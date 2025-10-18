@@ -347,8 +347,15 @@ class LLMService {
       .map((issue) => issue?.title)
       .filter((title): title is string => Boolean(title));
 
+    // Get discussion participation context
+    const recentDiscussions = (data.recentDiscussions || [])
+      .slice(0, 5)
+      .map((d) => `${d.title} (${d.category || 'Discussion'})${d.isAnswered ? ' [Answered]' : ''}`)
+      .filter(Boolean);
+
     const prSummary = this.summarizePRActivity(data.recentPRs || []);
     const issueSummary = this.summarizeIssueActivity(data.recentIssues || []);
+    const discussionSummary = this.summarizeDiscussionActivity(data.recentDiscussions || []);
 
     // Calculate age of most recent activity to determine if contributions are old
     let ageContext = '';
@@ -381,22 +388,33 @@ Recent Pull Requests ${prSummary}:
 ${recentPRTitles.length > 0 ? recentPRTitles.map((title) => `- ${title}`).join('\n') : 'None'}
 
 Recent Issues ${issueSummary}:
-${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}${ageContext}
+${recentIssueTitles.length > 0 ? recentIssueTitles.map((title) => `- ${title}`).join('\n') : 'None'}
+
+${recentDiscussions.length > 0 ? `Recent Discussion Participation ${discussionSummary}:\n${recentDiscussions.map((d) => `- ${d}`).join('\n')}` : ''}${ageContext}
 
 Create a summary that:
 1. MUST start with "${contributor.login} recently..." (use exact username)
 2. Identifies SPECIFIC areas they worked on (e.g., "authentication flow", "API endpoints", "UI components")
 3. Describes the TYPE of work (features, fixes, refactoring, docs, testing)
 4. Mentions impact or patterns (e.g., "improving performance", "adding new features", "fixing critical bugs")
+5. If discussions are present, note their ENGAGEMENT STYLE:
+   - Q&A participation (asking questions, providing answers)
+   - Community help (answering others' questions)
+   - Feature proposals or idea discussions
+   - Active community engagement across multiple topics
 
 Requirements:
 - Maximum 30 words
 - MUST start with "${contributor.login} recently..."
 - Be SPECIFIC - avoid generic phrases like "general contributions" or "various features"
-- Use technical details from the PR/issue titles
+- Use technical details from the PR/issue/discussion titles
+- If contributor is active in discussions, mention their community engagement pattern
 - Third-person, professional tone
 
-Good: "${contributor.login} recently implemented new authentication flow and API rate limiting, fixing critical bugs in payment processing."
+Good examples:
+- "${contributor.login} recently implemented new authentication flow and API rate limiting, while actively helping users with setup questions in discussions."
+- "${contributor.login} recently fixed critical payment bugs and proposed new caching architecture in community discussions."
+- "${contributor.login} recently contributed UI improvements and answered multiple deployment-related questions in Q&A."
 Bad: "Made general contributions to the codebase with various improvements."`;
   }
 
@@ -468,6 +486,26 @@ Bad: "Made general contributions to the codebase with various improvements."`;
     }
 
     return '';
+  }
+
+  /**
+   * Summarize discussion activity in concise format
+   */
+  private summarizeDiscussionActivity(
+    discussions: ContributorActivityData['recentDiscussions']
+  ): string {
+    if (!discussions || discussions.length === 0) return '';
+
+    const created = discussions.filter((d) => d.isAuthor).length;
+    const participated = discussions.filter((d) => !d.isAuthor && d.commentCount > 0).length;
+    const answered = discussions.filter((d) => d.isAnswered).length;
+
+    const parts = [];
+    if (created > 0) parts.push(`${created} created`);
+    if (participated > 0) parts.push(`${participated} participated`);
+    if (answered > 0) parts.push(`${answered} answered`);
+
+    return parts.length > 0 ? `(${parts.join(', ')})` : '';
   }
 
   /**

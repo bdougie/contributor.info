@@ -53,7 +53,7 @@ import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 
 export interface Activity {
   id: string;
-  type: 'pr' | 'issue' | 'review' | 'comment' | 'commit';
+  type: 'pr' | 'issue' | 'review' | 'comment' | 'commit' | 'discussion';
   title: string;
   repository: string;
   url: string;
@@ -104,6 +104,8 @@ function getActivityIcon(type: Activity['type']) {
       return <MessageSquare className="h-4 w-4" />;
     case 'commit':
       return <GitCommit className="h-4 w-4" />;
+    case 'discussion':
+      return <MessageSquare className="h-4 w-4" />;
   }
 }
 
@@ -117,6 +119,8 @@ function getActivityColor(type: Activity['type'], state?: Activity['state']) {
       return 'text-blue-600';
     case 'issue':
       return 'text-orange-600';
+    case 'discussion':
+      return 'text-indigo-600';
     default:
       return 'text-muted-foreground';
   }
@@ -193,6 +197,26 @@ function mapToRecentActivity(activity: ContributorActivity): RecentActivity {
   };
 }
 
+/**
+ * Map ContributorActivity to DiscussionParticipation format for AI summaries
+ */
+function mapActivityToDiscussion(
+  activity: ContributorActivity
+): import('@/lib/llm/contributor-summary-types').DiscussionParticipation | null {
+  if (activity.type !== 'discussion') {
+    return null;
+  }
+
+  return {
+    title: activity.title,
+    category: activity.discussion_category,
+    commentCount: activity.discussion_comment_count || 0,
+    isAuthor: activity.is_discussion_author || false,
+    isAnswered: activity.is_answered,
+    created_at: activity.created_at,
+  };
+}
+
 export function ContributorProfileModal({
   open,
   onOpenChange,
@@ -259,7 +283,12 @@ export function ContributorProfileModal({
     const result = activities.reduce(
       (acc, activity, index) => {
         // Early termination - we only need max 10 of each type
-        if (acc.recentPRs.length >= 10 && acc.recentIssues.length >= 10 && index >= 10) {
+        if (
+          acc.recentPRs.length >= 10 &&
+          acc.recentIssues.length >= 10 &&
+          acc.recentDiscussions.length >= 10 &&
+          index >= 10
+        ) {
           return acc;
         }
 
@@ -284,12 +313,22 @@ export function ContributorProfileModal({
           }
         }
 
+        // Try to map to discussion if we need more discussions
+        if (acc.recentDiscussions.length < 10) {
+          const discussion = mapActivityToDiscussion(activity);
+          if (discussion) {
+            acc.recentDiscussions.push(discussion);
+          }
+        }
+
         return acc;
       },
       {
         recentPRs: [] as PullRequest[],
         recentIssues: [] as RecentIssue[],
         recentActivities: [] as RecentActivity[],
+        recentDiscussions:
+          [] as import('@/lib/llm/contributor-summary-types').DiscussionParticipation[],
       }
     );
 
@@ -301,6 +340,7 @@ export function ContributorProfileModal({
       recentPRs: result.recentPRs,
       recentIssues: result.recentIssues,
       recentActivities: result.recentActivities,
+      recentDiscussions: result.recentDiscussions,
     };
   }, [
     contributor?.username,

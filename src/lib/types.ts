@@ -80,7 +80,7 @@ export interface RecentIssue {
 
 export interface RecentActivity {
   id: string;
-  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
+  type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork' | 'discussion';
   title: string;
   created_at: string;
   status?: string;

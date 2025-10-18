@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 export interface ContributorActivity {
   id: string;
-  type: 'pr' | 'issue' | 'review' | 'comment';
+  type: 'pr' | 'issue' | 'review' | 'comment' | 'discussion';
   title: string;
   repository: string;
   repository_full_name: string;
@@ -12,6 +12,12 @@ export interface ContributorActivity {
   state?: 'open' | 'closed' | 'merged';
   pr_number?: number;
   issue_number?: number;
+  discussion_number?: number;
+  // Discussion-specific fields
+  discussion_category?: string;
+  is_discussion_author?: boolean;
+  discussion_comment_count?: number;
+  is_answered?: boolean;
 }
 
 // Types for Supabase query results
@@ -76,12 +82,13 @@ export function useContributorActivity({
         const repoIds = workspaceRepos?.map((r) => r.repository_id) || [];
 
         // Fetch activities from multiple tables - fetch more data initially
-        const [pullRequests, issues, reviews, comments] = await Promise.all([
-          // Pull Requests
-          supabase
-            .from('pull_requests')
-            .select(
-              `
+        const [pullRequests, issues, reviews, comments, discussions, discussionComments] =
+          await Promise.all([
+            // Pull Requests
+            supabase
+              .from('pull_requests')
+              .select(
+                `
               id,
               title,
               number,
@@ -96,17 +103,17 @@ export function useContributorActivity({
                 full_name
               )
             `
-            )
-            .eq('author_id', contributorId)
-            .in('repository_id', repoIds)
-            .order('created_at', { ascending: false })
-            .range(0, fetchLimit - 1),
+              )
+              .eq('author_id', contributorId)
+              .in('repository_id', repoIds)
+              .order('created_at', { ascending: false })
+              .range(0, fetchLimit - 1),
 
-          // Issues (without html_url which doesn't exist)
-          supabase
-            .from('issues')
-            .select(
-              `
+            // Issues (without html_url which doesn't exist)
+            supabase
+              .from('issues')
+              .select(
+                `
               id,
               title,
               number,
@@ -120,17 +127,17 @@ export function useContributorActivity({
                 full_name
               )
             `
-            )
-            .eq('author_id', contributorId)
-            .in('repository_id', repoIds)
-            .order('created_at', { ascending: false })
-            .range(0, fetchLimit - 1),
+              )
+              .eq('author_id', contributorId)
+              .in('repository_id', repoIds)
+              .order('created_at', { ascending: false })
+              .range(0, fetchLimit - 1),
 
-          // Reviews (using correct table name)
-          supabase
-            .from('reviews')
-            .select(
-              `
+            // Reviews (using correct table name)
+            supabase
+              .from('reviews')
+              .select(
+                `
               id,
               state,
               submitted_at,
@@ -143,17 +150,17 @@ export function useContributorActivity({
                 repository_id
               )
             `
-            )
-            .eq('reviewer_id', contributorId)
-            .in('pull_requests.repository_id', repoIds)
-            .order('submitted_at', { ascending: false })
-            .range(0, fetchLimit - 1),
+              )
+              .eq('reviewer_id', contributorId)
+              .in('pull_requests.repository_id', repoIds)
+              .order('submitted_at', { ascending: false })
+              .range(0, fetchLimit - 1),
 
-          // Comments (from comments table filtered by issue_id)
-          supabase
-            .from('comments')
-            .select(
-              `
+            // Comments (from comments table filtered by issue_id)
+            supabase
+              .from('comments')
+              .select(
+                `
               id,
               body,
               created_at,
@@ -165,13 +172,63 @@ export function useContributorActivity({
                 repository_id
               )
             `
-            )
-            .eq('commenter_id', contributorId)
-            .not('issue_id', 'is', null)
-            .in('issues.repository_id', repoIds)
-            .order('created_at', { ascending: false })
-            .range(0, fetchLimit - 1),
-        ]);
+              )
+              .eq('commenter_id', contributorId)
+              .not('issue_id', 'is', null)
+              .in('issues.repository_id', repoIds)
+              .order('created_at', { ascending: false })
+              .range(0, fetchLimit - 1),
+
+            // Discussions authored by contributor
+            supabase
+              .from('discussions')
+              .select(
+                `
+              id,
+              title,
+              number,
+              created_at,
+              category_name,
+              is_answered,
+              comment_count,
+              url,
+              repository_id,
+              repositories!inner(
+                id,
+                name,
+                owner,
+                full_name
+              )
+            `
+              )
+              .eq('author_id', contributorId)
+              .in('repository_id', repoIds)
+              .order('created_at', { ascending: false })
+              .range(0, fetchLimit - 1),
+
+            // Discussion comments by contributor
+            supabase
+              .from('discussion_comments')
+              .select(
+                `
+              id,
+              created_at,
+              discussion_id,
+              discussions!inner(
+                id,
+                title,
+                number,
+                category_name,
+                is_answered,
+                url,
+                repository_id
+              )
+            `
+              )
+              .eq('author_id', contributorId)
+              .order('created_at', { ascending: false })
+              .range(0, fetchLimit - 1),
+          ]);
 
         // Transform and combine activities
         const allActivities: ContributorActivity[] = [];
@@ -299,6 +356,75 @@ export function useContributorActivity({
                   // Generate URL since comments don't have html_url
                   url: `https://github.com/${repository.full_name}/issues/${issue.number}`,
                   created_at: comment.created_at,
+                });
+              }
+            }
+          });
+        }
+
+        // Process discussions authored by contributor
+        if (discussions.data) {
+          discussions.data.forEach((discussion) => {
+            const repository = discussion.repositories as unknown as RepositoryData;
+            if (repository) {
+              allActivities.push({
+                id: discussion.id,
+                type: 'discussion',
+                title: discussion.title,
+                repository: repository.name,
+                repository_full_name: repository.full_name,
+                url: discussion.url,
+                created_at: discussion.created_at,
+                discussion_number: discussion.number,
+                discussion_category: discussion.category_name || undefined,
+                is_discussion_author: true,
+                discussion_comment_count: discussion.comment_count || 0,
+                is_answered: discussion.is_answered || false,
+              });
+            }
+          });
+        }
+
+        // Process discussion comments - fetch repository data separately
+        if (discussionComments.data && discussionComments.data.length > 0) {
+          // Get unique discussion IDs
+          const discussionIds = discussionComments.data
+            .map((c) => {
+              const discussion = Array.isArray(c.discussions) ? c.discussions[0] : c.discussions;
+              return discussion?.repository_id;
+            })
+            .filter((id): id is string => !!id);
+
+          const uniqueDiscussionRepoIds = [...new Set(discussionIds)];
+
+          // Fetch repository data
+          const { data: discussionRepoData } = await supabase
+            .from('repositories')
+            .select('id, name, owner, full_name')
+            .in('id', uniqueDiscussionRepoIds);
+
+          const discussionRepoMap = new Map(discussionRepoData?.map((r) => [r.id, r]) || []);
+
+          discussionComments.data.forEach((comment) => {
+            const discussion = Array.isArray(comment.discussions)
+              ? comment.discussions[0]
+              : comment.discussions;
+            if (discussion?.repository_id) {
+              const repository = discussionRepoMap.get(discussion.repository_id);
+              if (repository) {
+                allActivities.push({
+                  id: comment.id,
+                  type: 'discussion',
+                  title: `Comment on: ${discussion.title}`,
+                  repository: repository.name,
+                  repository_full_name: repository.full_name,
+                  url: discussion.url,
+                  created_at: comment.created_at,
+                  discussion_number: discussion.number,
+                  discussion_category: discussion.category_name || undefined,
+                  is_discussion_author: false,
+                  discussion_comment_count: 1, // This comment
+                  is_answered: discussion.is_answered || false,
                 });
               }
             }
