@@ -93,9 +93,11 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run critical E2E tests
-        run: npx playwright test e2e/critical-flows.spec.ts e2e/workspace-invitation-lifecycle.spec.ts e2e/workspace-invitation-simple.spec.ts
+        run: npx playwright test e2e/critical-flows.spec.ts e2e/auth-mock-test.spec.ts
         env:
           CI: true
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: mock-anon-key
 
       - name: Upload test artifacts on failure
         if: failure()

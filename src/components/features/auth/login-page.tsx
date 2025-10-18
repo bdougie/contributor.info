@@ -102,8 +102,9 @@ export default function LoginPage() {
       localStorage.setItem('test-auth-user', testEmail);
       trackLoginSuccessful('test');
 
-      // Navigate to redirect URL
-      navigate(redirectTo, { replace: true });
+      // Force a page reload to trigger auth state update
+      // This ensures the auth hook recognizes the test login
+      window.location.href = redirectTo;
     } else {
       setError('Invalid test credentials');
     }
