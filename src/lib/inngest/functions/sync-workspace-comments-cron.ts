@@ -3,7 +3,8 @@ import { supabase } from '../supabase-server';
 
 /**
  * Cron job to periodically sync comments for workspace repositories
- * Runs every 6 hours to keep Replies tab data fresh without overwhelming the API
+ * Runs every 4 hours to keep Replies tab data fresh without overwhelming the API
+ * This ensures at least 2 updates during a typical work day (8am-6pm)
  *
  * Strategy:
  * - Targets repositories in active workspaces (has members, recent activity)
@@ -16,7 +17,7 @@ export const syncWorkspaceCommentsCron = inngest.createFunction(
     name: 'Sync Workspace Comments (Cron)',
     retries: 1,
   },
-  { cron: '0 */6 * * *' }, // Run every 6 hours
+  { cron: '0 */4 * * *' }, // Run every 4 hours
   async ({ step }) => {
     // Step 1: Find all repositories in active workspaces
     const repositories = await step.run('get-workspace-repositories', async () => {
