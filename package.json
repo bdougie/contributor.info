@@ -166,7 +166,7 @@
     "dub": "^0.66.4",
     "embla-carousel-react": "^8.3.0",
     "html2canvas": "^1.4.1",
-    "inngest": "^3.41.0",
+    "inngest": "^3.43.1",
     "input-otp": "^1.2.4",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.544.0",
