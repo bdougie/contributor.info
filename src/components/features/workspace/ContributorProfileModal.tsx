@@ -351,9 +351,9 @@ export function ContributorProfileModal({
           websiteUrl: profile.websiteUrl,
         });
         // Update the contributor object for immediate display
-        contributor.company = profile.company;
-        contributor.location = profile.location;
-        contributor.bio = profile.bio;
+        contributor.company = profile.company ?? undefined;
+        contributor.location = profile.location ?? undefined;
+        contributor.bio = profile.bio ?? undefined;
       }
     } catch (error) {
       console.error('Failed to fetch profile data:', error);

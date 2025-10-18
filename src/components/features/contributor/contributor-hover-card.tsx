@@ -317,8 +317,8 @@ export function ContributorHoverCard({
                 <div className="flex flex-wrap gap-2">
                   {displayOrganizations.slice(0, 4).map((org) => {
                     // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
-                    const avatarUrl = 'avatarUrl' in org ? org.avatarUrl : org.avatar_url;
-                    const orgName = 'name' in org ? org.name : undefined;
+                    const avatarUrl: string = 'avatarUrl' in org ? (org.avatarUrl as string) : (org.avatar_url as string);
+                    const orgName: string | undefined = 'name' in org ? (org.name as string | undefined) : undefined;
                     
                     return (
                       <a
