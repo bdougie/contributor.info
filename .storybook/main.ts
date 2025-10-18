@@ -75,6 +75,8 @@ const config: StorybookConfig = {
       // Tree shaking now safe to use with utility function patterns
       build: {
         rollupOptions: {
+          // Exclude server-only packages from the browser bundle
+          external: ['inngest'],
           treeshake: {
             moduleSideEffects: true,
             propertyReadSideEffects: true,
@@ -83,6 +85,9 @@ const config: StorybookConfig = {
             correctVarValueBeforeDeclaration: false,
           },
         },
+      },
+      optimizeDeps: {
+        exclude: ['inngest'],
       },
       resolve: {
         alias: {
