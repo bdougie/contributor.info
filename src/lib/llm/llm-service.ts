@@ -419,33 +419,63 @@ Bad: "Made general contributions to the codebase with various improvements."`;
   }
 
   /**
-   * Extract focus areas from contributor activity
+   * Extract focus areas from contributor activity with better detection
    */
-  private extractFocusAreas(data: ContributorActivityData): string {
+  private extractFocusAreas(data: ContributorActivityData): string[] {
     if (data.primaryFocus) {
-      return data.primaryFocus;
+      return [data.primaryFocus];
     }
 
-    // Infer from PR titles
-    const titles = data.recentPRs.map((pr) => pr.title.toLowerCase()).join(' ');
+    // Combine all contribution titles for analysis
+    const allTitles = [
+      ...data.recentPRs.map((pr) => pr.title.toLowerCase()),
+      ...data.recentIssues.map((issue) => issue.title.toLowerCase()),
+    ].join(' ');
 
-    if (titles.includes('auth') || titles.includes('login') || titles.includes('security')) {
-      return 'authentication/security';
-    }
-    if (titles.includes('ui') || titles.includes('component') || titles.includes('style')) {
-      return 'frontend/UI';
-    }
-    if (titles.includes('api') || titles.includes('endpoint') || titles.includes('backend')) {
-      return 'backend/API';
-    }
-    if (titles.includes('test') || titles.includes('spec')) {
-      return 'testing/quality';
-    }
-    if (titles.includes('doc') || titles.includes('readme')) {
-      return 'documentation';
+    const areas: string[] = [];
+
+    // Authentication/Security
+    if (allTitles.match(/\b(auth|login|security|permission|access|jwt|oauth|token|credential)\b/)) {
+      areas.push('authentication');
     }
 
-    return 'general development';
+    // Frontend/UI
+    if (allTitles.match(/\b(ui|component|style|css|design|layout|button|modal|form|page)\b/)) {
+      areas.push('UI');
+    }
+
+    // Backend/API
+    if (allTitles.match(/\b(api|endpoint|backend|server|database|query|migration)\b/)) {
+      areas.push('API');
+    }
+
+    // Testing
+    if (allTitles.match(/\b(test|spec|e2e|unit|integration|coverage)\b/)) {
+      areas.push('testing');
+    }
+
+    // Documentation
+    if (allTitles.match(/\b(doc|readme|guide|tutorial|comment)\b/)) {
+      areas.push('documentation');
+    }
+
+    // Performance
+    if (allTitles.match(/\b(performance|optimize|cache|speed|slow|fast|load)\b/)) {
+      areas.push('performance');
+    }
+
+    // Bug fixes
+    if (allTitles.match(/\b(fix|bug|issue|error|crash|broken)\b/)) {
+      areas.push('bug fixes');
+    }
+
+    // Features
+    if (allTitles.match(/\b(feature|add|implement|new|create)\b/)) {
+      areas.push('features');
+    }
+
+    // Return up to 2 most relevant areas, or default
+    return areas.length > 0 ? areas.slice(0, 2) : ['general development'];
   }
 
   /**
@@ -687,21 +717,138 @@ Bad: "This discussion asks about implementing OAuth2 authentication and various 
   }
 
   /**
-   * Generate fallback summary when LLM fails
+   * Generate fallback summary when LLM fails - using actual contribution data for specificity
    */
   private generateFallbackContributorSummary(data: ContributorActivityData): LLMInsight {
     const merged = data.recentPRs.filter((pr) => pr.merged_at).length;
-    const contributionType = merged > 3 ? 'Active contributor' : 'Contributor';
-    const focus = data.primaryFocus || this.extractFocusAreas(data);
+    const open = data.recentPRs.filter((pr) => pr.state === 'open' && !pr.merged_at).length;
+    const issues = data.recentIssues.length;
+    const discussions = data.recentDiscussions?.length || 0;
 
-    const content = `${contributionType} focusing on ${focus}. ${merged} merged PRs recently.`;
+    // Extract focus areas (now returns array)
+    const focusAreas = this.extractFocusAreas(data);
+
+    // Get a specific example from recent work
+    const recentWork = this.extractRecentWorkExample(data);
+
+    // Build summary based on contribution pattern
+    let content = '';
+
+    if (merged > 0 && recentWork) {
+      // Most specific: mention actual work
+      const focus = focusAreas.slice(0, 2).join(' and ');
+      content = `${recentWork}${focus ? ` (${focus})` : ''}`;
+
+      // Add discussion engagement if present
+      if (discussions > 2) {
+        content += `, active in discussions`;
+      } else if (discussions > 0) {
+        content += `, participates in discussions`;
+      }
+    } else if (merged > 0) {
+      // Fallback to focus areas
+      const focus = focusAreas.slice(0, 2).join(' and ');
+      content = `Contributed ${merged} merged PR${merged > 1 ? 's' : ''} in ${focus}`;
+
+      if (discussions > 0) {
+        content += ` and ${discussions} discussion${discussions > 1 ? 's' : ''}`;
+      }
+    } else if (open > 0) {
+      // Open PRs only
+      const focus = focusAreas.slice(0, 2).join(' and ');
+      content = `${open} open PR${open > 1 ? 's' : ''} in ${focus}`;
+    } else if (issues > 0) {
+      // Issues only
+      const focus = focusAreas.slice(0, 2).join(' and ');
+      content = `Reported ${issues} issue${issues > 1 ? 's' : ''} in ${focus}`;
+    } else if (discussions > 0) {
+      // Discussions only
+      content = `Active in ${discussions} discussion${discussions > 1 ? 's' : ''}`;
+    } else {
+      // Ultimate fallback
+      content = 'Recent contributor to this repository';
+    }
 
     return {
       type: 'contributor_summary',
       content,
-      confidence: 0.5, // Lower confidence for fallback
+      confidence: 0.6, // Higher confidence now that we use real data
       timestamp: new Date(),
     };
+  }
+
+  /**
+   * Extract a specific example of recent work from contributions
+   */
+  private extractRecentWorkExample(data: ContributorActivityData): string | null {
+    // Try to get the most recent merged PR title
+    const mergedPRs = data.recentPRs.filter((pr) => pr.merged_at);
+    if (mergedPRs.length > 0) {
+      const mostRecent = mergedPRs[0];
+
+      // Clean up the title first (remove conventional commit prefixes)
+      let cleanTitle = mostRecent.title.replace(
+        /^(fix|feat|chore|docs|style|refactor|test|perf):\s*/i,
+        ''
+      );
+
+      // Extract key verb/action
+      const verbs = {
+        fix: 'Fixed',
+        add: 'Added',
+        update: 'Updated',
+        improve: 'Improved',
+        refactor: 'Refactored',
+        remove: 'Removed',
+        implement: 'Implemented',
+        create: 'Created',
+      };
+
+      const titleLower = cleanTitle.toLowerCase();
+      let prefix = '';
+
+      for (const [keyword, verb] of Object.entries(verbs)) {
+        if (titleLower.startsWith(keyword) || titleLower.includes(` ${keyword} `)) {
+          prefix = verb;
+          // Remove the verb from the title since we'll use it as prefix
+          cleanTitle = cleanTitle.replace(new RegExp(`^${keyword}\\s+`, 'i'), '');
+          cleanTitle = cleanTitle.replace(new RegExp(`\\s+${keyword}\\s+`, 'i'), ' ');
+          break;
+        }
+      }
+
+      // Truncate to ~80 chars max (leaves room for focus areas in parentheses)
+      // Only add ellipsis if we actually truncated
+      let finalTitle = cleanTitle;
+      if (cleanTitle.length > 80) {
+        finalTitle = cleanTitle.substring(0, 77) + '...';
+      }
+
+      // Build the final string
+      if (prefix) {
+        return `${prefix} ${finalTitle.charAt(0).toLowerCase()}${finalTitle.slice(1)}`;
+      } else {
+        return `Contributed: ${finalTitle.charAt(0).toLowerCase()}${finalTitle.slice(1)}`;
+      }
+    }
+
+    // Try recent issues
+    if (data.recentIssues.length > 0) {
+      const issue = data.recentIssues[0];
+      let cleanTitle = issue.title.replace(
+        /^(fix|feat|chore|docs|style|refactor|test|perf):\s*/i,
+        ''
+      );
+
+      // Truncate to ~80 chars
+      if (cleanTitle.length > 80) {
+        cleanTitle = cleanTitle.substring(0, 77) + '...';
+      }
+
+      return `Reported: ${cleanTitle.charAt(0).toLowerCase()}${cleanTitle.slice(1)}`;
+    }
+
+    return null;
   }
 
   /**
