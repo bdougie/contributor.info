@@ -10,7 +10,8 @@ const runInMockMode =
   process.env.VITE_SUPABASE_URL?.includes('localhost:54321') || process.env.CI === 'true';
 
 test.describe('Mock Authentication Tests', () => {
-  test.beforeEach(async (_, testInfo) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  test.beforeEach(async ({ page }, testInfo) => {
     // Skip all tests in this suite if not in mock mode
     if (!runInMockMode) {
       testInfo.skip();
