@@ -8,16 +8,25 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, memo } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
+import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
 
 export interface MyWorkItem {
   id: string;
   type: 'pr' | 'issue' | 'discussion';
-  itemType: 'authored' | 'assigned' | 'review_requested' | 'mentioned' | 'participant';
+  itemType:
+    | 'authored'
+    | 'assigned'
+    | 'review_requested'
+    | 'mentioned'
+    | 'participant'
+    | 'follow_up'
+    | 'my_comment';
   title: string;
   repository: string;
   status: 'open' | 'merged' | 'closed' | 'answered';
   url: string;
   updated_at: string;
+  responded_at?: string;
   needsAttention?: boolean;
   number: number;
   user: {
@@ -129,7 +138,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
     }
 
     if (itemType === 'assigned') {
-      return 'assigned to issue';
+      return 'opened issue';
     }
 
     if (itemType === 'mentioned') {
@@ -141,6 +150,18 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
     if (itemType === 'participant') {
       if (type === 'discussion') return 'started discussion';
       return 'participating in discussion';
+    }
+
+    if (itemType === 'follow_up') {
+      if (type === 'pr') return 'PR with new activity';
+      if (type === 'issue') return 'issue with new activity';
+      return 'discussion with new replies';
+    }
+
+    if (itemType === 'my_comment') {
+      if (type === 'pr') return 'commented on PR';
+      if (type === 'issue') return 'commented on issue';
+      return 'commented on discussion';
     }
 
     return 'updated';
@@ -262,6 +283,9 @@ export function MyWorkCard({
     'issue',
     'discussion',
   ]);
+  const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
+    'needs_response'
+  );
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -280,7 +304,30 @@ export function MyWorkCard({
   };
 
   // Filter items by selected types
-  const filteredItems = items.filter((item) => selectedTypes.includes(item.type));
+  let filteredItems = items.filter((item) => selectedTypes.includes(item.type));
+
+  // Apply tab filter to ALL item types (not just issues)
+  // This ensures PRs, Issues, and Discussions are filtered consistently
+  if (issueTab === 'needs_response') {
+    // Show items needing response (not yet responded to)
+    filteredItems = filteredItems.filter(
+      (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+    );
+  } else if (issueTab === 'follow_ups') {
+    // Show items with follow-up activity (you've responded, now they've replied)
+    filteredItems = filteredItems.filter((item) => item.itemType === 'follow_up');
+  } else if (issueTab === 'replies') {
+    // Show user's own comments/replies
+    filteredItems = filteredItems.filter((item) => item.itemType === 'my_comment');
+  }
+
+  // Calculate tab counts based on filtered types (not all items)
+  const typeFilteredItems = items.filter((item) => selectedTypes.includes(item.type));
+  const needsResponseCount = typeFilteredItems.filter(
+    (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+  ).length;
+  const followUpsCount = typeFilteredItems.filter((item) => item.itemType === 'follow_up').length;
+  const repliesCount = typeFilteredItems.filter((item) => item.itemType === 'my_comment').length;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
@@ -439,6 +486,33 @@ export function MyWorkCard({
               Discussions
             </Label>
           </div>
+        </div>
+
+        {/* Tabs: "Needs Response", "Follow-ups", and "Replies" for all item types */}
+        <div className="mb-4">
+          <WorkspaceSubTabs
+            tabs={[
+              {
+                value: 'needs_response',
+                label: 'Needs Response',
+                count: needsResponseCount,
+              },
+              {
+                value: 'follow_ups',
+                label: 'Follow-ups',
+                count: followUpsCount,
+              },
+              {
+                value: 'replies',
+                label: 'Replies',
+                count: repliesCount,
+              },
+            ]}
+            activeTab={issueTab}
+            onTabChange={(value) =>
+              setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
+            }
+          />
         </div>
 
         {/* Items count */}

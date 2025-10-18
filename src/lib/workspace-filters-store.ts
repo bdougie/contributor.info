@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 export type PRState = 'open' | 'closed' | 'merged' | 'draft';
 export type IssueState = 'open' | 'closed';
 export type IssueAssignmentFilter = 'all' | 'assigned' | 'unassigned';
+export type IssueResponseFilter = 'all' | 'needs_response' | 'replied';
 
 interface WorkspaceFiltersState {
   // PR Filters
@@ -17,9 +18,11 @@ interface WorkspaceFiltersState {
   issueStates: IssueState[];
   issueIncludeBots: boolean;
   issueAssignmentFilter: IssueAssignmentFilter;
+  issueResponseFilter: IssueResponseFilter;
   setIssueStates: (states: IssueState[]) => void;
   setIssueIncludeBots: (include: boolean) => void;
   setIssueAssignmentFilter: (filter: IssueAssignmentFilter) => void;
+  setIssueResponseFilter: (filter: IssueResponseFilter) => void;
   toggleIssueState: (state: IssueState) => void;
 
   // Reset filters
@@ -29,6 +32,7 @@ interface WorkspaceFiltersState {
 
 const DEFAULT_PR_STATES: PRState[] = ['open', 'closed', 'merged', 'draft'];
 const DEFAULT_ISSUE_STATES: IssueState[] = ['open', 'closed'];
+const DEFAULT_ISSUE_RESPONSE_FILTER: IssueResponseFilter = 'all';
 
 export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
   persist(
@@ -55,9 +59,11 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
       issueStates: DEFAULT_ISSUE_STATES,
       issueIncludeBots: true,
       issueAssignmentFilter: 'all',
+      issueResponseFilter: DEFAULT_ISSUE_RESPONSE_FILTER,
       setIssueStates: (states) => set({ issueStates: states }),
       setIssueIncludeBots: (include) => set({ issueIncludeBots: include }),
       setIssueAssignmentFilter: (filter) => set({ issueAssignmentFilter: filter }),
+      setIssueResponseFilter: (filter) => set({ issueResponseFilter: filter }),
       toggleIssueState: (state) =>
         set((current) => {
           const isCurrentlySelected = current.issueStates.includes(state);
@@ -82,6 +88,7 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
           issueStates: DEFAULT_ISSUE_STATES,
           issueIncludeBots: true,
           issueAssignmentFilter: 'all',
+          issueResponseFilter: DEFAULT_ISSUE_RESPONSE_FILTER,
         }),
     }),
     {

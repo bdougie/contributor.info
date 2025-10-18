@@ -137,11 +137,21 @@ export function ResponsePreviewModal({
       }
 
       // Determine the table name based on item type
-      const tableName = currentItem.type === 'issue' ? 'issues' : 'discussions';
+      let tableName: 'issues' | 'discussions' | 'pull_requests';
+      if (currentItem.type === 'issue') {
+        tableName = 'issues';
+      } else if (currentItem.type === 'discussion') {
+        tableName = 'discussions';
+      } else {
+        tableName = 'pull_requests';
+      }
 
       // Extract the actual database ID by removing the prefix
-      // MyWorkItem IDs have format: "issue-{id}" or "discussion-{id}"
-      const actualId = currentItem.id.replace(/^(issue-|discussion-|review-pr-)/, '');
+      // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", or "follow-up-pr-{id}", etc.
+      const actualId = currentItem.id.replace(
+        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-)/,
+        ''
+      );
 
       // Optimistically trigger refresh BEFORE the database update
       // This immediately removes the item from the UI for better UX
@@ -167,9 +177,16 @@ export function ResponsePreviewModal({
         return;
       }
 
-      toast.success(
-        `${currentItem.type === 'issue' ? 'Issue' : 'Discussion'} #${currentItem.number} marked as responded.`
-      );
+      let itemTypeLabel: string;
+      if (currentItem.type === 'issue') {
+        itemTypeLabel = 'Issue';
+      } else if (currentItem.type === 'discussion') {
+        itemTypeLabel = 'Discussion';
+      } else {
+        itemTypeLabel = 'PR';
+      }
+
+      toast.success(`${itemTypeLabel} #${currentItem.number} marked as responded.`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error marking item as responded: %s', errorMessage);
