@@ -16,6 +16,16 @@ export function useGitHubAuth() {
     // Check login status
     async function checkAuth() {
       setLoading(true);
+
+      // Check for test mode authentication first (CI/E2E tests)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const isTestMode = supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test';
+      if (isTestMode && localStorage.getItem('test-auth-user')) {
+        setIsLoggedIn(true);
+        setLoading(false);
+        return;
+      }
+
       // Check URL for auth tokens first and handle them manually
       // This prevents 401 errors that occur when Supabase's automatic detection fails
       if (typeof window !== 'undefined' && window.location?.hash?.includes('access_token')) {
@@ -152,7 +162,17 @@ export function useGitHubAuth() {
    * Signs the user out
    */
   const logout = async () => {
-    await supabase.auth.signOut();
+    // Check for test mode
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    const isTestMode = supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test';
+
+    if (isTestMode) {
+      // Clear test auth
+      localStorage.removeItem('test-auth-user');
+      setIsLoggedIn(false);
+    } else {
+      await supabase.auth.signOut();
+    }
   };
 
   /**
