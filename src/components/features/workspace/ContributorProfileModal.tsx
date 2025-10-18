@@ -368,7 +368,7 @@ export function ContributorProfileModal({
   // Fetch profile data when modal opens
   const fetchProfileData = useCallback(async () => {
     if (!contributor?.username || !open) return;
-    
+
     // Check if we already have profile data from the database
     if (contributor.company || contributor.location || contributor.bio) {
       setProfileData({
@@ -576,7 +576,11 @@ export function ContributorProfileModal({
                           <div className="flex items-center gap-1">
                             <Globe className="h-4 w-4" />
                             <a
-                              href={profileData.websiteUrl.startsWith('http') ? profileData.websiteUrl : `https://${profileData.websiteUrl}`}
+                              href={
+                                profileData.websiteUrl.startsWith('http')
+                                  ? profileData.websiteUrl
+                                  : `https://${profileData.websiteUrl}`
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
                               className="hover:underline"

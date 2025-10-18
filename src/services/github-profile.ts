@@ -22,9 +22,7 @@ interface GitHubUserProfile {
  * @param username - GitHub username
  * @returns User profile data including company information
  */
-export async function fetchGitHubUserProfile(
-  username: string
-): Promise<GitHubUserProfile | null> {
+export async function fetchGitHubUserProfile(username: string): Promise<GitHubUserProfile | null> {
   try {
     console.log(`Fetching GitHub profile for ${username}`);
 

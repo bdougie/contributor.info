@@ -72,10 +72,7 @@ export function ContributorHoverCard({
   const displayOrganizations = contributor.organizations || [];
 
   return (
-    <HoverCardPrimitive.Root
-      openDelay={0}
-      closeDelay={100}
-    >
+    <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>
         <div className="inline-block" style={{ pointerEvents: 'auto' }}>
           {children}
@@ -317,9 +314,11 @@ export function ContributorHoverCard({
                 <div className="flex flex-wrap gap-2">
                   {displayOrganizations.slice(0, 4).map((org) => {
                     // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
-                    const avatarUrl: string = 'avatarUrl' in org ? (org.avatarUrl as string) : (org.avatar_url as string);
-                    const orgName: string | undefined = 'name' in org ? (org.name as string | undefined) : undefined;
-                    
+                    const avatarUrl: string =
+                      'avatarUrl' in org ? (org.avatarUrl as string) : (org.avatar_url as string);
+                    const orgName: string | undefined =
+                      'name' in org ? (org.name as string | undefined) : undefined;
+
                     return (
                       <a
                         key={org.login}

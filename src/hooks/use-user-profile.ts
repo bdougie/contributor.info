@@ -45,7 +45,7 @@ export function useUserProfile(username: string, enabled: boolean = true): UseUs
 
       try {
         const profileData = await fetchAndCacheUserProfile(username);
-        
+
         if (isMounted) {
           setProfile(profileData);
           setLoading(false);
