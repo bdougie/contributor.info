@@ -81,10 +81,12 @@ async function calculateDiscussionImpact(
     .eq('author_id', contributorId)
     .in('repository_id', repoIds);
 
+  // Fetch discussion comments in workspace repositories
   const { data: discussionComments } = await supabase
     .from('discussion_comments')
-    .select('id')
-    .eq('author_id', contributorId);
+    .select('id, discussions!inner(repository_id)')
+    .eq('author_id', contributorId)
+    .in('discussions.repository_id', repoIds);
 
   const metrics: DiscussionMetrics = {
     totalDiscussions: discussions?.length || 0,

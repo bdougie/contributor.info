@@ -130,7 +130,7 @@ export function useContributorActivity({
       }
 
       // Fetch latest analytics snapshot for velocity and topic shifts
-      const { data: analyticsData } = await supabase
+      const { data: analyticsData, error: analyticsError } = await supabase
         .from('contributor_analytics')
         .select('contribution_velocity, topic_shifts, snapshot_date')
         .eq('contributor_id', contributorData.id)
@@ -138,6 +138,11 @@ export function useContributorActivity({
         .order('snapshot_date', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // Log analytics errors but don't fail - analytics is optional enrichment
+      if (analyticsError) {
+        console.error('Error fetching contributor analytics:', analyticsError);
+      }
 
       // Parse quality metrics with defaults
       const qualityMetrics: QualityScoreBreakdown = {

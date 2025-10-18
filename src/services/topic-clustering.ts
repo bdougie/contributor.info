@@ -59,17 +59,21 @@ export async function clusterContributionsByTopic(
     // Step 3: Generate topic labels using LLM
     const topicClusters = await Promise.all(
       clusteringResult.clusters.map(async (cluster) => {
-        // Get sample titles from this cluster
-        const sampleItems = embeddings.filter((e) => cluster.itemIds.includes(e.id)).slice(0, 10);
+        // Get ALL cluster members for contributor counting
+        const allClusterItems = embeddings.filter((e) => cluster.itemIds.includes(e.id));
 
+        // Get sample titles for LLM labeling (first 10)
+        const sampleItems = allClusterItems.slice(0, 10);
         const sampleTitles = sampleItems.map((item) => item.title);
 
         // Generate topic label using LLM
         const topicLabel = await generateTopicLabels(cluster, sampleTitles);
 
-        // Get contributor count
+        // Get contributor count from ALL cluster members, not just samples
         const contributorUsernames = new Set(
-          sampleItems.map((item) => item.contributorUsername).filter((u): u is string => Boolean(u))
+          allClusterItems
+            .map((item) => item.contributorUsername)
+            .filter((u): u is string => Boolean(u))
         );
 
         return {

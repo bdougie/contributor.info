@@ -385,8 +385,10 @@ ON quality_score_rankings(workspace_id, quality_score DESC);
 CREATE OR REPLACE FUNCTION refresh_analytics_views()
 RETURNS void AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY workspace_topic_clusters;
-  REFRESH MATERIALIZED VIEW CONCURRENTLY quality_score_rankings;
+  -- Note: CONCURRENTLY cannot be used within plpgsql functions
+  -- Callers should use REFRESH MATERIALIZED VIEW CONCURRENTLY directly if needed
+  REFRESH MATERIALIZED VIEW workspace_topic_clusters;
+  REFRESH MATERIALIZED VIEW quality_score_rankings;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -102,6 +102,7 @@ async function getContributionCounts(
         .from('discussion_comments')
         .select('id, discussions!inner(repository_id)', { count: 'exact', head: true })
         .eq('author_id', contributorId)
+        .in('discussions.repository_id', repoIds)
         .gte('created_at', startDate.toISOString())
         .lt('created_at', endDate.toISOString()),
     ]),
