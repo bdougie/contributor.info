@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,7 @@ import {
   isValidLinkedInUrl,
   isValidDiscordUrl,
 } from '@/lib/validation/url-validation';
+import { fetchAndCacheUserProfile } from '@/services/github-profile';
 import type { Contributor } from './ContributorsList';
 import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
@@ -210,6 +211,13 @@ export function ContributorProfileModal({
   const [activeTab, setActiveTab] = useState('overview');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { login } = useAuth();
+  const [profileData, setProfileData] = useState<{
+    company: string | null;
+    location: string | null;
+    bio: string | null;
+    websiteUrl: string | null;
+  } | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   // Permission checks
   const permissions = useWorkspacePermissions({
@@ -316,6 +324,47 @@ export function ContributorProfileModal({
     requiresAuth,
   } = useContributorSummary(contributorSummaryData);
   const { login: handleAuthLogin } = useGitHubAuth();
+
+  // Fetch profile data when modal opens
+  const fetchProfileData = useCallback(async () => {
+    if (!contributor?.username || !open) return;
+    
+    // Check if we already have profile data from the database
+    if (contributor.company || contributor.location || contributor.bio) {
+      setProfileData({
+        company: contributor.company || null,
+        location: contributor.location || null,
+        bio: contributor.bio || null,
+        websiteUrl: null, // Not stored in contributor object yet
+      });
+      return;
+    }
+
+    setLoadingProfile(true);
+    try {
+      const profile = await fetchAndCacheUserProfile(contributor.username);
+      if (profile) {
+        setProfileData({
+          company: profile.company,
+          location: profile.location,
+          bio: profile.bio,
+          websiteUrl: profile.websiteUrl,
+        });
+        // Update the contributor object for immediate display
+        contributor.company = profile.company ?? undefined;
+        contributor.location = profile.location ?? undefined;
+        contributor.bio = profile.bio ?? undefined;
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile data:', error);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, [contributor, open]);
+
+  useEffect(() => {
+    fetchProfileData();
+  }, [fetchProfileData]);
 
   if (!contributor) return null;
 
@@ -460,25 +509,49 @@ export function ContributorProfileModal({
                   <CardTitle className="text-base">Profile Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {contributor.bio && <p className="text-sm">{contributor.bio}</p>}
-                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    {contributor.company && (
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {contributor.company}
-                      </div>
-                    )}
-                    {contributor.location && (
-                      <div className="flex items-center gap-1">
-                        <Globe className="h-4 w-4" />
-                        {contributor.location}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Last active {getRelativeTime(contributor.stats.last_active)}
+                  {loadingProfile ? (
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      {(profileData?.bio || contributor.bio) && (
+                        <p className="text-sm">{profileData?.bio || contributor.bio}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        {(profileData?.company || contributor.company) && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {profileData?.company || contributor.company}
+                          </div>
+                        )}
+                        {(profileData?.location || contributor.location) && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-4 w-4" />
+                            {profileData?.location || contributor.location}
+                          </div>
+                        )}
+                        {profileData?.websiteUrl && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-4 w-4" />
+                            <a
+                              href={profileData.websiteUrl.startsWith('http') ? profileData.websiteUrl : `https://${profileData.websiteUrl}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              {profileData.websiteUrl.replace(/^https?:\/\//, '')}
+                            </a>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Last active {getRelativeTime(contributor.stats.last_active)}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
