@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Activity, RefreshCw } from '@/components/ui/icon';
+import { ArrowRight, Activity, RefreshCw, AlertCircle, CheckCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, memo, useEffect } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
+import { useToast } from '@/hooks/use-toast';
 
 export interface MyWorkItem {
   id: string;
@@ -287,6 +288,7 @@ export function MyWorkCard({
   isSyncingComments = false,
   commentSyncStatus,
 }: MyWorkCardProps) {
+  const { toast } = useToast();
   const [selectedTypes, setSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
     'pr',
     'issue',
@@ -296,6 +298,19 @@ export function MyWorkCard({
     'needs_response'
   );
   const [hasAutoSynced, setHasAutoSynced] = useState(false);
+  const [previousSyncingState, setPreviousSyncingState] = useState(isSyncingComments);
+
+  // Show toast notification when sync completes successfully
+  useEffect(() => {
+    if (previousSyncingState && !isSyncingComments && issueTab === 'replies') {
+      toast({
+        title: 'Comments synced',
+        description: 'Latest comments have been fetched from GitHub',
+        duration: 3000,
+      });
+    }
+    setPreviousSyncingState(isSyncingComments);
+  }, [isSyncingComments, previousSyncingState, issueTab, toast]);
 
   // Auto-sync comments when Replies tab is opened and data is stale
   useEffect(() => {
@@ -307,7 +322,6 @@ export function MyWorkCard({
       !isSyncingComments;
 
     if (shouldAutoSync) {
-      console.log('[MyWorkCard] Auto-syncing comments - data is stale');
       setHasAutoSynced(true);
       onSyncComments();
     }
@@ -564,18 +578,36 @@ export function MyWorkCard({
             )}
           </div>
 
-          {/* Sync status indicator */}
+          {/* Enhanced sync status indicator */}
           {issueTab === 'replies' && commentSyncStatus && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              {commentSyncStatus.lastSyncedAt ? (
-                <span>
-                  Last updated{' '}
-                  {formatDistanceToNow(commentSyncStatus.lastSyncedAt, { addSuffix: true })}
-                  {commentSyncStatus.isStale && ' (stale)'}
-                </span>
-              ) : (
-                <span>No sync data available</span>
+            <div
+              className={cn(
+                'mt-2 px-3 py-2 rounded-md text-xs flex items-center gap-2',
+                commentSyncStatus.isStale
+                  ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800'
+                  : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
               )}
+            >
+              {commentSyncStatus.isStale ? (
+                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
+              <div className="flex-1">
+                {commentSyncStatus.lastSyncedAt ? (
+                  <div>
+                    <span className="font-medium">
+                      {commentSyncStatus.isStale ? 'Data may be outdated' : 'Up to date'}
+                    </span>
+                    <span className="text-muted-foreground ml-1">
+                      • Last synced{' '}
+                      {formatDistanceToNow(commentSyncStatus.lastSyncedAt, { addSuffix: true })}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="font-medium">No sync data available</span>
+                )}
+              </div>
             </div>
           )}
         </div>
