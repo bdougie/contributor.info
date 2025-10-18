@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   GitPullRequest,
   MessageSquare,
@@ -73,7 +73,7 @@ export function ContributorHoverCard({
   }
 
   const [isOpen, setIsOpen] = useState(false);
-  const { profile, loading: profileLoading } = useUserProfile(
+  const { profile } = useUserProfile(
     contributor.login,
     isOpen // Only fetch when hover card is open
   );
@@ -363,26 +363,32 @@ export function ContributorHoverCard({
               <div>
                 <div className="text-sm font-medium mb-2">Organizations</div>
                 <div className="flex flex-wrap gap-2">
-                  {displayOrganizations.slice(0, 4).map((org) => (
-                    <a
-                      key={org.login}
-                      href={`https://github.com/${org.login}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
-                      title={org.name || org.login}
-                    >
-                      <OptimizedAvatar
-                        src={org.avatarUrl || org.avatar_url}
-                        alt={org.login}
-                        size={32}
-                        lazy={false}
-                        fallback={org.login[0].toUpperCase()}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-xs">{org.login}</span>
-                    </a>
-                  ))}
+                  {displayOrganizations.slice(0, 4).map((org) => {
+                    // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
+                    const avatarUrl = 'avatarUrl' in org ? org.avatarUrl : org.avatar_url;
+                    const orgName = 'name' in org ? org.name : undefined;
+                    
+                    return (
+                      <a
+                        key={org.login}
+                        href={`https://github.com/${org.login}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                        title={orgName || org.login}
+                      >
+                        <OptimizedAvatar
+                          src={avatarUrl}
+                          alt={org.login}
+                          size={32}
+                          lazy={false}
+                          fallback={org.login[0].toUpperCase()}
+                          className="h-4 w-4"
+                        />
+                        <span className="text-xs">{org.login}</span>
+                      </a>
+                    );
+                  })}
                   {displayOrganizations.length > 4 && (
                     <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
                       +{displayOrganizations.length - 4}

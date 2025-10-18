@@ -27,13 +27,13 @@ interface UseUserProfileResult {
  * @param enabled - Whether to fetch the profile (default: true)
  * @returns Profile data, loading state, and error
  */
-export function useUserProfile(username: string | null, enabled: boolean = true): UseUserProfileResult {
+export function useUserProfile(username: string, enabled: boolean = true): UseUserProfileResult {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!username || !enabled) {
+    if (!username || !enabled || username.trim() === '') {
       return;
     }
 
