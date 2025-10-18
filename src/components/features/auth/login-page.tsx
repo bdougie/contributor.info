@@ -30,7 +30,9 @@ function isValidRedirectUrl(url: string): boolean {
 function isTestMode(): boolean {
   // Check if we're using mock Supabase URL (indicates CI/test environment)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-  return supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test';
+  // Also check for CI environment variable passed through Vite
+  const isCI = import.meta.env.VITE_CI === 'true';
+  return supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
 }
 
 /**

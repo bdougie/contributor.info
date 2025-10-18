@@ -9,7 +9,13 @@ import { test, expect } from '@playwright/test';
 const runInMockMode =
   process.env.VITE_SUPABASE_URL?.includes('localhost:54321') || process.env.CI === 'true';
 
-test.describe.skipIf(!runInMockMode)('Mock Authentication Tests', () => {
+test.describe('Mock Authentication Tests', () => {
+  test.beforeEach(async (_, testInfo) => {
+    // Skip all tests in this suite if not in mock mode
+    if (!runInMockMode) {
+      testInfo.skip();
+    }
+  });
   test('should show test login form in CI environment', async ({ page }) => {
     await page.goto('/login');
 
@@ -30,7 +36,7 @@ test.describe.skipIf(!runInMockMode)('Mock Authentication Tests', () => {
     await page.click('button[type="submit"]');
 
     // Should redirect away from login
-    await page.waitForURL((url) => !url.includes('/login'), { timeout: 10000 });
+    await page.waitForURL((url) => !url.toString().includes('/login'), { timeout: 10000 });
 
     // Verify we're logged in by checking localStorage
     const isLoggedIn = await page.evaluate(() => {
@@ -60,7 +66,7 @@ test.describe.skipIf(!runInMockMode)('Mock Authentication Tests', () => {
     await page.fill('input[type="email"]', 'test-owner@example.com');
     await page.fill('input[type="password"]', 'test-password-123');
     await page.click('button[type="submit"]');
-    await page.waitForURL((url) => !url.includes('/login'), { timeout: 10000 });
+    await page.waitForURL((url) => !url.toString().includes('/login'), { timeout: 10000 });
 
     // Now logout
     await page.evaluate(() => {
@@ -76,13 +82,5 @@ test.describe.skipIf(!runInMockMode)('Mock Authentication Tests', () => {
       return localStorage.getItem('test-auth-user') === null;
     });
     expect(isLoggedOut).toBe(true);
-  });
-});
-
-// Skip the complex workspace tests in mock mode
-test.describe.skipIf(runInMockMode)('Real Workspace Tests', () => {
-  test('placeholder for real workspace tests', async () => {
-    // These would run with real Supabase
-    expect(true).toBe(true);
   });
 });

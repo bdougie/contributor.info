@@ -88,6 +88,7 @@ jobs:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: mock-anon-key
           VITE_GITHUB_TOKEN: mock-github-token
+          VITE_CI: true
 
       - name: Install Playwright
         run: npx playwright install chromium --with-deps

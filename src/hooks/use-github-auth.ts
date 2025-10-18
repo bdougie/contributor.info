@@ -19,7 +19,9 @@ export function useGitHubAuth() {
 
       // Check for test mode authentication first (CI/E2E tests)
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-      const isTestMode = supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test';
+      const isCI = import.meta.env.VITE_CI === 'true';
+      const isTestMode =
+        supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
       if (isTestMode && localStorage.getItem('test-auth-user')) {
         setIsLoggedIn(true);
         setLoading(false);
@@ -164,7 +166,9 @@ export function useGitHubAuth() {
   const logout = async () => {
     // Check for test mode
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    const isTestMode = supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test';
+    const isCI = import.meta.env.VITE_CI === 'true';
+    const isTestMode =
+      supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
 
     if (isTestMode) {
       // Clear test auth
