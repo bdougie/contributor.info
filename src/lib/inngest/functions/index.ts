@@ -32,3 +32,9 @@ export { syncWorkspacePriorities } from './sync-workspace-priorities';
 // Discussion sync
 export { captureRepositoryDiscussions } from './capture-repository-discussions';
 export { syncDiscussionsCron } from './sync-discussions-cron';
+
+// Comment sync (issues and PRs)
+export { captureIssueComments } from './capture-issue-comments';
+export { captureRepositoryIssues } from './capture-repository-issues';
+export { captureRepositoryCommentsAll } from './capture-repository-comments-all';
+export { syncWorkspaceCommentsCron } from './sync-workspace-comments-cron';
