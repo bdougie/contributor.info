@@ -1266,17 +1266,23 @@ async function getCachedConfidenceScore(
       return null;
     }
 
-    const age = Date.now() - new Date(data.calculated_at).getTime();
+    const cacheData = data as {
+      confidence_score: number;
+      calculated_at: string;
+      calculation_time_ms: number;
+    };
+
+    const age = Date.now() - new Date(cacheData.calculated_at).getTime();
     console.log(
       '[Confidence Cache] Found cached score: %s% (%ss old)',
-      data.confidence_score,
+      cacheData.confidence_score,
       Math.round(age / 1000)
     );
 
     return {
-      score: data.confidence_score,
-      calculatedAt: new Date(data.calculated_at),
-      calculationTimeMs: data.calculation_time_ms,
+      score: cacheData.confidence_score,
+      calculatedAt: new Date(cacheData.calculated_at),
+      calculationTimeMs: cacheData.calculation_time_ms,
     };
   } catch (error) {
     console.warn('[Confidence Cache] Error reading cache:', error);
@@ -1304,6 +1310,8 @@ async function cacheConfidenceScore(
       .eq('repository_name', repo)
       .maybeSingle();
 
+    const syncDataTyped = syncData as { last_sync_at: string } | null;
+
     // Determine cache TTL based on repository activity
     const baseTTL = getConfidenceCacheTTL(owner, repo);
     const expiresAt = new Date(Date.now() + baseTTL * 1000);
@@ -1314,7 +1322,7 @@ async function cacheConfidenceScore(
       time_range_days: timeRangeDays,
       confidence_score: score,
       expires_at: toUTCTimestamp(expiresAt),
-      last_sync_at: syncData?.last_sync_at || null,
+      last_sync_at: syncDataTyped?.last_sync_at || null,
       calculation_time_ms: calculationTimeMs,
       data_version: 1, // Current algorithm version
     };

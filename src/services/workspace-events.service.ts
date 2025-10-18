@@ -96,19 +96,31 @@ class WorkspaceEventsService {
       if (repoError) throw repoError;
       if (!workspaceRepos?.length) return null;
 
-      const repositories = workspaceRepos.map((wr) => wr.repositories);
-      const repoConditions = repositories.flat().map((repo) => ({
+      type RepositoryData = {
+        owner: string;
+        name: string;
+        full_name: string;
+        stargazers_count: number;
+        forks_count: number;
+      };
+
+      const repositories = (
+        workspaceRepos as unknown as Array<{ repositories: RepositoryData }>
+      ).map((wr) => wr.repositories);
+      const repoConditions = repositories.map((repo) => ({
         repository_owner: repo.owner,
         repository_name: repo.name,
       }));
 
       // Get actual totals from repository data
-      const totalStarsFromRepos = repositories
-        .flat()
-        .reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0);
-      const totalForksFromRepos = repositories
-        .flat()
-        .reduce((sum, repo) => sum + (repo.forks_count || 0), 0);
+      const totalStarsFromRepos = repositories.reduce(
+        (sum, repo) => sum + (repo.stargazers_count || 0),
+        0
+      );
+      const totalForksFromRepos = repositories.reduce(
+        (sum, repo) => sum + (repo.forks_count || 0),
+        0
+      );
 
       // Calculate date ranges
       const now = new Date();
@@ -122,10 +134,19 @@ class WorkspaceEventsService {
       ]);
 
       // Process metrics
-      const currentStars = currentPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
-      const currentForks = currentPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
-      const previousStars = previousPeriodEvents.filter((e) => e.event_type === 'WatchEvent');
-      const previousForks = previousPeriodEvents.filter((e) => e.event_type === 'ForkEvent');
+      type EventData = { event_type: string; created_at: string };
+      const currentStars = (currentPeriodEvents as EventData[]).filter(
+        (e) => e.event_type === 'WatchEvent'
+      );
+      const currentForks = (currentPeriodEvents as EventData[]).filter(
+        (e) => e.event_type === 'ForkEvent'
+      );
+      const previousStars = (previousPeriodEvents as EventData[]).filter(
+        (e) => e.event_type === 'WatchEvent'
+      );
+      const previousForks = (previousPeriodEvents as EventData[]).filter(
+        (e) => e.event_type === 'ForkEvent'
+      );
 
       // Calculate metrics using actual totals
       const starMetrics = this.calculateTrendMetrics(
@@ -216,11 +237,17 @@ class WorkspaceEventsService {
 
       if (!workspaceRepos?.length) return [];
 
-      const repoConditions = workspaceRepos.map((wr) => wr.repositories);
+      type RepositorySimple = {
+        owner: string;
+        name: string;
+      };
+
+      const repoConditions = (
+        workspaceRepos as unknown as Array<{ repositories: RepositorySimple }>
+      ).map((wr) => wr.repositories);
 
       // Build OR conditions for repositories
       const orConditions = repoConditions
-        .flat()
         .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
         .join(',');
 
@@ -251,8 +278,19 @@ class WorkspaceEventsService {
 
       if (error) throw error;
 
+      type EventRecord = {
+        id: string;
+        event_id: string;
+        event_type: string;
+        actor_login: string;
+        repository_owner: string;
+        repository_name: string;
+        created_at: string;
+        payload: Record<string, unknown>;
+      };
+
       // Validate and enrich events
-      const validatedEvents = (events || []).map((event) => {
+      const validatedEvents = ((events || []) as EventRecord[]).map((event) => {
         const schema = getSchemaForEventType(event.event_type);
 
         // If we have a schema, validate the payload
