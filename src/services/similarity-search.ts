@@ -3,6 +3,9 @@
  *
  * Finds similar items (PRs, issues, discussions) within a workspace using vector embeddings.
  * Helps users respond to items by suggesting relevant related content.
+ * 
+ * Uses standardized 384-dimension embeddings across all entity types for consistent
+ * cross-entity similarity search.
  */
 
 import { supabase } from '@/lib/supabase';
@@ -81,182 +84,88 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     // Embedding is already in array format from database
     const embeddingArray = itemData.embedding;
 
-    // Step 4: Search for similar PRs
-    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-    let excludePrId: string | null;
-    if (queryItem.type === 'pr') {
-      excludePrId = rawId;
-    } else {
-      excludePrId = null;
-    }
-
-    const { data: similarPRs, error: prError } = await supabase.rpc(
-      'find_similar_pull_requests_in_workspace',
+    // Step 4: Use the new cross-entity similarity function
+    // This function handles all entity types in a single call with consistent dimensions
+    const { data: similarItems, error: similarityError } = await supabase.rpc(
+      'find_similar_items_cross_entity',
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
-        match_count: limit,
-        exclude_pr_id: excludePrId,
+        match_count: limit * 3, // Request more since we'll filter and sort
+        exclude_item_type: queryItem.type,
+        exclude_item_id: rawId,
       }
     );
 
-    if (prError) {
-      console.error('Error finding similar PRs:', prError);
-      // Don't throw - continue with empty PR results
+    if (similarityError) {
+      console.error('Error finding similar items:', similarityError);
+      throw new Error(`Failed to find similar items: ${similarityError.message}`);
     }
 
-    // Step 5: Search for similar issues
-    // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-    let excludeIssueId: string | null;
-    if (queryItem.type === 'issue') {
-      excludeIssueId = rawId;
-    } else {
-      excludeIssueId = null;
-    }
-
-    const { data: similarIssues, error: issueError } = await supabase.rpc(
-      'find_similar_issues_in_workspace',
-      {
-        query_embedding: embeddingArray,
-        repo_ids: repoIds,
-        match_count: limit,
-        exclude_issue_id: excludeIssueId,
-      }
-    );
-
-    if (issueError) {
-      console.error('Error finding similar issues:', issueError);
-      // Don't throw - continue with empty issue results
-    }
-
-    // Step 6: Search for similar discussions
-    // Note: The RPC function has a bug - it expects UUID but discussions use VARCHAR IDs
-    // For now, we pass null to avoid the type error and filter client-side
-    const { data: similarDiscussions, error: discussionError } = await supabase.rpc(
-      'find_similar_discussions_in_workspace',
-      {
-        query_embedding: embeddingArray,
-        repo_ids: repoIds,
-        match_count: limit + 1, // Request one extra to account for filtering
-        exclude_discussion_id: null, // Can't use VARCHAR ID with UUID parameter
-      }
-    );
-
-    if (discussionError) {
-      console.error('Error finding similar discussions:', discussionError);
-      // Don't throw - continue with empty discussion results
-    }
-
-    // Step 7: Combine and format results
+    // Step 5: Format results
     const allResults: SimilarItem[] = [];
 
-    // Add PRs
-    if (similarPRs) {
-      similarPRs.forEach(
-        (pr: {
+    if (similarItems) {
+      similarItems.forEach(
+        (item: {
+          item_type: string;
           id: string;
-          number: number;
           title: string;
+          number: number;
+          similarity: number;
+          url: string;
           state: string;
-          merged_at: string | null;
-          similarity: number;
-          html_url: string;
           repository_name: string;
         }) => {
-          // Use if statements to avoid Rollup 4.45.0 ternary bug (see docs/architecture/state-machine-patterns.md)
-          let prStatus: 'open' | 'merged' | 'closed';
-          if (pr.state === 'open') {
-            prStatus = 'open';
-          } else if (pr.merged_at) {
-            prStatus = 'merged';
+          // Map item_type to our SimilarItem type
+          let itemType: 'pr' | 'issue' | 'discussion';
+          if (item.item_type === 'pull_request') {
+            itemType = 'pr';
+          } else if (item.item_type === 'issue') {
+            itemType = 'issue';
           } else {
-            prStatus = 'closed';
+            itemType = 'discussion';
           }
 
-          allResults.push({
-            id: pr.id,
-            type: 'pr',
-            number: pr.number,
-            title: pr.title,
-            repository: pr.repository_name,
-            url: pr.html_url,
-            similarity: pr.similarity,
-            status: prStatus,
-          });
-        }
-      );
-    }
-
-    // Add Issues
-    if (similarIssues) {
-      similarIssues.forEach(
-        (issue: {
-          id: string;
-          number: number;
-          title: string;
-          state: string;
-          similarity: number;
-          html_url: string;
-          repository_name: string;
-        }) => {
-          allResults.push({
-            id: issue.id,
-            type: 'issue',
-            number: issue.number,
-            title: issue.title,
-            repository: issue.repository_name,
-            url: issue.html_url,
-            similarity: issue.similarity,
-            status: issue.state as 'open' | 'closed',
-          });
-        }
-      );
-    }
-
-    // Add Discussions
-    if (similarDiscussions) {
-      similarDiscussions.forEach(
-        (discussion: {
-          id: string;
-          number: number;
-          title: string;
-          is_answered: boolean;
-          similarity: number;
-          html_url: string;
-          repository_name: string;
-        }) => {
-          // Filter out the current discussion (client-side since RPC can't handle VARCHAR IDs)
-          if (queryItem.type === 'discussion' && discussion.id === rawId) {
-            return;
-          }
-
-          // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-          let discussionStatus: 'answered' | 'open';
-          if (discussion.is_answered) {
-            discussionStatus = 'answered';
+          // Map state to our status format
+          let status: 'open' | 'merged' | 'closed' | 'answered';
+          if (itemType === 'pr') {
+            // For PRs, state comes from the database
+            if (item.state === 'open') {
+              status = 'open';
+            } else if (item.state === 'merged') {
+              status = 'merged';
+            } else {
+              status = 'closed';
+            }
+          } else if (itemType === 'discussion') {
+            // For discussions, state is either 'answered' or 'open'
+            if (item.state === 'answered') {
+              status = 'answered';
+            } else {
+              status = 'open';
+            }
           } else {
-            discussionStatus = 'open';
+            // For issues, state is 'open' or 'closed'
+            status = item.state as 'open' | 'closed';
           }
 
           allResults.push({
-            id: discussion.id,
-            type: 'discussion',
-            number: discussion.number,
-            title: discussion.title,
-            repository: discussion.repository_name,
-            url: discussion.html_url,
-            similarity: discussion.similarity,
-            status: discussionStatus,
+            id: item.id,
+            type: itemType,
+            number: item.number,
+            title: item.title,
+            repository: item.repository_name,
+            url: item.url,
+            similarity: item.similarity,
+            status: status,
           });
         }
       );
     }
 
-    // Step 8: Filter out the query item (defensive check across all types)
-    const filteredResults = allResults.filter((result) => result.id !== rawId);
-
-    // Step 9: Sort by similarity and return top N
-    const sortedResults = filteredResults
+    // Step 6: Sort by similarity and return top N
+    const sortedResults = allResults
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, limit);
 
