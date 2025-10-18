@@ -9,6 +9,11 @@ import { supabase } from '../supabase';
 import { sendInngestEvent } from '../inngest/client-safe';
 import { logger } from '../logger';
 
+// Configuration constants
+const STALENESS_THRESHOLD_HOURS = 1;
+const DEFAULT_SYNC_TIME_RANGE_DAYS = 30;
+const ESTIMATED_SYNC_SECONDS_PER_REPO = 5;
+
 export interface CommentSyncStatus {
   isSyncing: boolean;
   lastSyncedAt: Date | null;
@@ -54,7 +59,7 @@ export async function checkCommentStaleness(
       .limit(1);
 
     if (syncError) {
-      logger.log('[CommentSync] Error checking sync logs:', syncError);
+      logger.log('[CommentSync] Error checking sync logs: %s', syncError.message);
       return { isStale: true, lastSyncedAt: null };
     }
 
@@ -66,13 +71,15 @@ export async function checkCommentStaleness(
     const lastSync = new Date(syncLogs[0].completed_at);
     const hoursSinceSync = (Date.now() - lastSync.getTime()) / (1000 * 60 * 60);
 
-    // Consider stale if older than 1 hour
     return {
-      isStale: hoursSinceSync > 1,
+      isStale: hoursSinceSync > STALENESS_THRESHOLD_HOURS,
       lastSyncedAt: lastSync,
     };
   } catch (error) {
-    console.error('[CommentSync] Exception checking staleness:', error);
+    logger.log(
+      '[CommentSync] Exception checking staleness: %s',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return { isStale: true, lastSyncedAt: null };
   }
 }
@@ -148,7 +155,7 @@ export async function syncWorkspaceComments(
         name: 'capture/repository.comments.all',
         data: {
           repositoryId: repository.id,
-          timeRange: 30, // Last 30 days
+          timeRange: DEFAULT_SYNC_TIME_RANGE_DAYS,
           priority: 'medium',
           triggerSource: 'auto-sync',
         },
@@ -169,7 +176,7 @@ export async function syncWorkspaceComments(
         name: 'capture/repository.issues',
         data: {
           repositoryId: repository.id,
-          timeRange: 30, // Last 30 days
+          timeRange: DEFAULT_SYNC_TIME_RANGE_DAYS,
           priority: 'medium',
           triggerSource: 'auto-sync',
         },
@@ -201,7 +208,10 @@ export async function syncWorkspaceComments(
       jobsQueued,
     };
   } catch (error) {
-    console.error('[CommentSync] Error syncing workspace comments:', error);
+    logger.log(
+      '[CommentSync] Error syncing workspace comments: %s',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -247,9 +257,9 @@ export async function getCommentSyncStatus(workspaceId: string): Promise<Comment
 
     const isSyncing = Boolean(activeSyncs && activeSyncs.length > 0);
 
-    // Estimate completion time based on repository count
-    // Assume ~5 seconds per repository for comment sync
-    const estimatedCompletionSeconds = isSyncing ? workspaceRepos.length * 5 : 0;
+    const estimatedCompletionSeconds = isSyncing
+      ? workspaceRepos.length * ESTIMATED_SYNC_SECONDS_PER_REPO
+      : 0;
 
     const status: CommentSyncStatus = {
       isSyncing,
@@ -259,7 +269,10 @@ export async function getCommentSyncStatus(workspaceId: string): Promise<Comment
     };
     return status;
   } catch (error) {
-    console.error('[CommentSync] Error getting sync status:', error);
+    logger.log(
+      '[CommentSync] Error getting sync status: %s',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return {
       isSyncing: false,
       lastSyncedAt: null,
