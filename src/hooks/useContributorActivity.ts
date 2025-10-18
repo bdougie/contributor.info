@@ -221,7 +221,13 @@ export function useContributorActivity({
                 category_name,
                 is_answered,
                 url,
-                repository_id
+                repository_id,
+                repositories!inner(
+                  id,
+                  name,
+                  owner,
+                  full_name
+                )
               )
             `
               )
@@ -385,32 +391,17 @@ export function useContributorActivity({
           });
         }
 
-        // Process discussion comments - fetch repository data separately
-        if (discussionComments.data && discussionComments.data.length > 0) {
-          // Get unique discussion IDs
-          const discussionIds = discussionComments.data
-            .map((c) => {
-              const discussion = Array.isArray(c.discussions) ? c.discussions[0] : c.discussions;
-              return discussion?.repository_id;
-            })
-            .filter((id): id is string => !!id);
-
-          const uniqueDiscussionRepoIds = [...new Set(discussionIds)];
-
-          // Fetch repository data
-          const { data: discussionRepoData } = await supabase
-            .from('repositories')
-            .select('id, name, owner, full_name')
-            .in('id', uniqueDiscussionRepoIds);
-
-          const discussionRepoMap = new Map(discussionRepoData?.map((r) => [r.id, r]) || []);
-
+        // Process discussion comments - repository data now included in query
+        if (discussionComments.data) {
           discussionComments.data.forEach((comment) => {
             const discussion = Array.isArray(comment.discussions)
               ? comment.discussions[0]
               : comment.discussions;
-            if (discussion?.repository_id) {
-              const repository = discussionRepoMap.get(discussion.repository_id);
+            if (discussion) {
+              // Repository data is now nested within discussion
+              const repository = Array.isArray(discussion.repositories)
+                ? discussion.repositories[0]
+                : discussion.repositories;
               if (repository) {
                 allActivities.push({
                   id: comment.id,

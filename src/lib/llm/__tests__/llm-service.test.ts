@@ -506,4 +506,282 @@ describe('LLM Service', () => {
       expect(insight?.confidence).toBe(0.5);
     });
   });
+
+  describe('Contributor Summary Fallback Logic', () => {
+    const sampleRepoInfo = { owner: 'test', repo: 'repo' };
+
+    beforeEach(() => {
+      llmService.clearCache();
+      vi.clearAllMocks();
+      mockPostHogOpenAIService.isAvailable.mockReturnValue(false);
+      mockOpenAIService.isAvailable.mockReturnValue(false);
+    });
+
+    it('should generate specific summary with merged PRs and focus areas', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'fix: authentication token validation',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+          {
+            id: '2',
+            title: 'feat: add login flow',
+            merged_at: '2023-01-02',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight).toBeTruthy();
+      expect(insight?.type).toBe('contributor_summary');
+      expect(insight?.content).toContain('Fixed');
+      expect(insight?.content).toContain('authentication');
+      expect(insight?.confidence).toBe(0.6);
+    });
+
+    it('should detect UI focus area from PR titles', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'Update button component styles',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+          {
+            id: '2',
+            title: 'Improve responsive layout',
+            merged_at: '2023-01-02',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toMatch(/UI|interface/i);
+    });
+
+    it('should handle multiple focus areas correctly', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'fix: API authentication endpoint',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [{ id: '1', title: 'Add tests for login flow', state: 'open' as const }],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toMatch(/authentication.*testing|testing.*authentication/i);
+    });
+
+    it('should truncate long PR titles to 80 characters', async () => {
+      const longTitle =
+        'This is a very long pull request title that should be truncated to exactly eighty characters maximum length';
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: longTitle,
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      // Content should not contain the full long title
+      expect(insight?.content.length).toBeLessThan(longTitle.length + 50);
+      // Should contain ellipsis if truncated
+      if (longTitle.length > 80) {
+        expect(insight?.content).toContain('...');
+      }
+    });
+
+    it('should handle conventional commit prefixes correctly', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'feat: implement user authentication',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      // Should not duplicate verbs
+      expect(insight?.content).not.toContain('Added implement');
+      expect(insight?.content).not.toContain('Fixed implement');
+      // Should use proper verb
+      expect(insight?.content).toMatch(/Added|Implemented/i);
+    });
+
+    it('should include discussion activity when present', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'Update documentation',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [
+          { id: '1', title: 'How to implement feature X' },
+          { id: '2', title: 'Best practices for Y' },
+          { id: '3', title: 'Discussion about Z' },
+        ],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toContain('active in discussions');
+    });
+
+    it('should generate appropriate summary for issue-focused contributors', async () => {
+      const contributorData = {
+        recentPRs: [],
+        recentIssues: [
+          { id: '1', title: 'Bug in login flow', state: 'open' as const },
+          { id: '2', title: 'Performance issue in dashboard', state: 'closed' as const },
+          { id: '3', title: 'Feature request for dark mode', state: 'open' as const },
+        ],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toContain('3 issues');
+      expect(insight?.content).toMatch(/bug|feature|performance/i);
+    });
+
+    it('should handle review-focused contributors', async () => {
+      const contributorData = {
+        recentPRs: [],
+        recentIssues: [],
+        recentReviews: [
+          { id: '1', state: 'APPROVED' },
+          { id: '2', state: 'APPROVED' },
+          { id: '3', state: 'CHANGES_REQUESTED' },
+          { id: '4', state: 'APPROVED' },
+          { id: '5', state: 'COMMENTED' },
+        ],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toContain('5 reviews');
+      expect(insight?.content).toContain('Active reviewer');
+    });
+
+    it('should provide minimal summary when no activity data', async () => {
+      const contributorData = {
+        recentPRs: [],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toBe('Active contributor');
+      expect(insight?.confidence).toBe(0.4);
+    });
+
+    it('should detect API focus from keywords', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'Add REST endpoint for user management',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toMatch(/API/i);
+    });
+
+    it('should detect performance focus from keywords', async () => {
+      const contributorData = {
+        recentPRs: [],
+        recentIssues: [
+          { id: '1', title: 'Optimize database queries', state: 'open' as const },
+          { id: '2', title: 'Improve page load performance', state: 'open' as const },
+        ],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      expect(insight?.content).toMatch(/performance/i);
+    });
+
+    it('should limit focus areas to maximum of 2', async () => {
+      const contributorData = {
+        recentPRs: [
+          {
+            id: '1',
+            title: 'fix: authentication bug in API endpoint with performance optimization',
+            merged_at: '2023-01-01',
+            state: 'merged' as const,
+          },
+        ],
+        recentIssues: [
+          { id: '1', title: 'Add tests for UI components', state: 'open' as const },
+          { id: '2', title: 'Update documentation', state: 'open' as const },
+        ],
+        recentReviews: [],
+        recentDiscussions: [],
+      };
+
+      const insight = await llmService.generateContributorSummary(contributorData, sampleRepoInfo);
+
+      // Count number of focus areas in parentheses
+      const focusMatch = insight?.content.match(/\(([^)]+)\)/);
+      if (focusMatch) {
+        const focusAreas = focusMatch[1].split(' and ');
+        expect(focusAreas.length).toBeLessThanOrEqual(2);
+      }
+    });
+  });
 });
