@@ -4,18 +4,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
-import React, { useState } from 'react';
+import React from 'react';
 import {
   GitPullRequest,
   MessageSquare,
   GitPullRequestDraft,
   AlertCircle,
   CheckCircle2,
-  Package,
-  Layout,
-  Globe,
 } from '@/components/ui/icon';
-import { useUserProfile } from '@/hooks/use-user-profile';
 
 // Status colors matching ActivityTable
 const STATUS_COLORS = {
@@ -72,23 +68,13 @@ export function ContributorHoverCard({
     return <>{children}</>;
   }
 
-  const [isOpen, setIsOpen] = useState(false);
-  const { profile } = useUserProfile(
-    contributor.login,
-    isOpen // Only fetch when hover card is open
-  );
-
-  // Use profile data if available, otherwise fall back to contributor data
-  const displayCompany = profile?.company || contributor.company;
-  const displayLocation = profile?.location || contributor.location;
-  const displayWebsite = profile?.websiteUrl || contributor.websiteUrl;
-  const displayOrganizations = profile?.organizations || contributor.organizations || [];
+  // Use contributor data from props (which may include cached profile data)
+  const displayOrganizations = contributor.organizations || [];
 
   return (
     <HoverCardPrimitive.Root
       openDelay={0}
       closeDelay={100}
-      onOpenChange={setIsOpen}
     >
       <HoverCardPrimitive.Trigger asChild>
         <div className="inline-block" style={{ pointerEvents: 'auto' }}>
@@ -153,8 +139,8 @@ export function ContributorHoverCard({
               >
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
-              {profile?.name && (
-                <p className="text-xs text-muted-foreground">{profile.name}</p>
+              {contributor.name && (
+                <p className="text-xs text-muted-foreground">{contributor.name}</p>
               )}
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                 {useIssueIcons ? (
@@ -196,40 +182,6 @@ export function ContributorHoverCard({
               </div>
             </div>
           </div>
-
-          {/* Profile Information Section */}
-          {(displayCompany || displayLocation || displayWebsite) && (
-            <>
-              <Separator className="my-3" />
-              <div className="space-y-2 text-sm">
-                {displayCompany && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Package className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{displayCompany}</span>
-                  </div>
-                )}
-                {displayLocation && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Layout className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{displayLocation}</span>
-                  </div>
-                )}
-                {displayWebsite && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Globe className="h-4 w-4 shrink-0" />
-                    <a
-                      href={displayWebsite.startsWith('http') ? displayWebsite : `https://${displayWebsite}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="truncate hover:underline"
-                    >
-                      {displayWebsite}
-                    </a>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
 
           {contributor.recentPRs && contributor.recentPRs.length > 0 && (
             <>
