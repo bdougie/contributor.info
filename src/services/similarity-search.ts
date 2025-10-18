@@ -3,7 +3,7 @@
  *
  * Finds similar items (PRs, issues, discussions) within a workspace using vector embeddings.
  * Helps users respond to items by suggesting relevant related content.
- * 
+ *
  * Uses standardized 384-dimension embeddings across all entity types for consistent
  * cross-entity similarity search.
  */
@@ -91,7 +91,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
       {
         query_embedding: embeddingArray,
         repo_ids: repoIds,
-        match_count: limit * 3, // Request more since we'll filter and sort
+        match_count: Math.min(limit * 3, 100), // Cap at 100 to prevent excessive database load
         exclude_item_type: queryItem.type,
         exclude_item_id: rawId,
       }
@@ -118,13 +118,18 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
           repository_name: string;
         }) => {
           // Map item_type to our SimilarItem type
+          // Skip items with unknown types to fail gracefully
           let itemType: 'pr' | 'issue' | 'discussion';
           if (item.item_type === 'pull_request') {
             itemType = 'pr';
           } else if (item.item_type === 'issue') {
             itemType = 'issue';
-          } else {
+          } else if (item.item_type === 'discussion') {
             itemType = 'discussion';
+          } else {
+            // Unknown item type - skip this item
+            console.warn('Unknown item_type from database:', item.item_type);
+            return;
           }
 
           // Map state to our status format
@@ -165,9 +170,7 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
     }
 
     // Step 6: Sort by similarity and return top N
-    const sortedResults = allResults
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
+    const sortedResults = allResults.sort((a, b) => b.similarity - a.similarity).slice(0, limit);
 
     return sortedResults;
   } catch (error) {
