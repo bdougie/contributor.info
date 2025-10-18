@@ -1,6 +1,8 @@
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
 import { getTrendDirection, getTrendDirectionReverse } from '@/lib/utils/performance-helpers';
+import { analyzeTrends } from '@/services/trend-analysis';
+import type { VelocityMetrics, TrendAnalysis } from '../llm/contributor-enrichment-types';
 
 export interface TrendData {
   metric: string;
@@ -21,6 +23,16 @@ export interface TrendData {
     | 'pending';
   message?: string;
   repositoryName?: string;
+}
+
+/**
+ * Contributor-specific trend data
+ */
+export interface ContributorTrendData {
+  velocity: TrendData[];
+  quality: TrendData[];
+  engagement: TrendData[];
+  topics: TrendData[];
 }
 
 /**
@@ -376,4 +388,238 @@ function getEmptyTrends(
       repositoryName,
     },
   ];
+}
+
+/**
+ * Calculate contributor-specific trend metrics
+ */
+export async function calculateContributorTrends(
+  contributorId: string,
+  workspaceId: string,
+  currentTopics: string[] = []
+): Promise<ContributorTrendData> {
+  try {
+    // Fetch trend analysis
+    const trendAnalysis = await analyzeTrends(contributorId, workspaceId, currentTopics);
+
+    // Build velocity trends
+    const velocityTrends = buildVelocityTrends(trendAnalysis.velocityData);
+
+    // Build engagement trends
+    const engagementTrends = buildEngagementTrends(trendAnalysis);
+
+    // Build topic shift trends
+    const topicTrends = buildTopicShiftTrends(trendAnalysis);
+
+    return {
+      velocity: velocityTrends,
+      quality: [], // Quality trends will be populated by quality scoring service
+      engagement: engagementTrends,
+      topics: topicTrends,
+    };
+  } catch (error) {
+    console.error('Error calculating contributor trends:', error);
+    return {
+      velocity: [],
+      quality: [],
+      engagement: [],
+      topics: [],
+    };
+  }
+}
+
+/**
+ * Build velocity trend data from velocity metrics
+ */
+function buildVelocityTrends(velocity: VelocityMetrics): TrendData[] {
+  const trends: TrendData[] = [];
+
+  // 7-day velocity trend
+  const velocity7dChange =
+    velocity.previous7d > 0
+      ? Math.round(((velocity.current7d - velocity.previous7d) / velocity.previous7d) * 100)
+      : 0;
+
+  trends.push({
+    metric: 'Weekly Contributions',
+    current: velocity.current7d,
+    previous: velocity.previous7d,
+    change: velocity7dChange,
+    trend: getTrendDirection(velocity7dChange),
+    icon: 'Activity',
+    unit: 'contributions',
+    insight: (() => {
+      if (velocity7dChange > 0) return `${velocity7dChange}% increase in weekly contributions`;
+      if (velocity7dChange < 0)
+        return `${Math.abs(velocity7dChange)}% decrease in weekly contributions`;
+      return 'Weekly contribution rate stable';
+    })(),
+    status: 'success',
+  });
+
+  // 30-day velocity trend
+  const velocity30dChange =
+    velocity.previous30d > 0
+      ? Math.round(((velocity.current30d - velocity.previous30d) / velocity.previous30d) * 100)
+      : 0;
+
+  trends.push({
+    metric: 'Monthly Contributions',
+    current: velocity.current30d,
+    previous: velocity.previous30d,
+    change: velocity30dChange,
+    trend: getTrendDirection(velocity30dChange),
+    icon: 'Calendar',
+    unit: 'contributions',
+    insight: (() => {
+      if (velocity30dChange > 0) return `${velocity30dChange}% increase in monthly contributions`;
+      if (velocity30dChange < 0)
+        return `${Math.abs(velocity30dChange)}% decrease in monthly contributions`;
+      return 'Monthly contribution rate stable';
+    })(),
+    status: 'success',
+  });
+
+  // Overall trend - determine trend direction without nesting ternaries
+  let velocityTrend: 'up' | 'down' | 'stable' = 'stable';
+  if (velocity.trend === 'accelerating') {
+    velocityTrend = 'up';
+  } else if (velocity.trend === 'declining') {
+    velocityTrend = 'down';
+  }
+
+  trends.push({
+    metric: 'Contribution Velocity',
+    current: velocity.current30d,
+    previous: velocity.previous30d,
+    change: Math.round(velocity.changePercent),
+    trend: velocityTrend,
+    icon: 'TrendingUp',
+    unit: 'trend',
+    insight: (() => {
+      switch (velocity.trend) {
+        case 'accelerating':
+          return 'Contribution velocity is increasing';
+        case 'declining':
+          return 'Contribution velocity is decreasing';
+        default:
+          return 'Contribution velocity is stable';
+      }
+    })(),
+    status: 'success',
+  });
+
+  return trends;
+}
+
+/**
+ * Build engagement pattern trends
+ */
+function buildEngagementTrends(analysis: TrendAnalysis): TrendData[] {
+  const trends: TrendData[] = [];
+
+  // Engagement pattern trend - calculate score and trend without nesting ternaries
+  let engagementScore = 0;
+  let engagementTrend: 'up' | 'down' | 'stable' = 'stable';
+
+  if (analysis.engagementPattern === 'increasing') {
+    engagementScore = 100;
+    engagementTrend = 'up';
+  } else if (analysis.engagementPattern === 'decreasing') {
+    engagementScore = -100;
+    engagementTrend = 'down';
+  }
+
+  trends.push({
+    metric: 'Engagement Pattern',
+    current: engagementScore,
+    previous: 0,
+    change: engagementScore,
+    trend: engagementTrend,
+    icon: 'Users',
+    unit: 'pattern',
+    insight: (() => {
+      switch (analysis.engagementPattern) {
+        case 'increasing':
+          return 'Engagement with the project is growing';
+        case 'decreasing':
+          return 'Engagement with the project is declining';
+        default:
+          return 'Engagement with the project is stable';
+      }
+    })(),
+    status: 'success',
+  });
+
+  // Confidence in predictions
+  const confidencePercent = Math.round(analysis.confidenceScore * 100);
+
+  trends.push({
+    metric: 'Trend Confidence',
+    current: confidencePercent,
+    previous: 0,
+    change: 0,
+    trend: 'stable',
+    icon: 'CheckCircle',
+    unit: '%',
+    insight: (() => {
+      if (confidencePercent >= 75) return 'High confidence in trend analysis';
+      if (confidencePercent >= 50) return 'Moderate confidence in trend analysis';
+      return 'Limited data for trend analysis';
+    })(),
+    status: 'success',
+  });
+
+  return trends;
+}
+
+/**
+ * Build topic shift trends
+ */
+function buildTopicShiftTrends(analysis: TrendAnalysis): TrendData[] {
+  const trends: TrendData[] = [];
+
+  // Topic shift detection
+  const hasRecentShifts = analysis.topicShifts.length > 0;
+  const majorShifts = analysis.topicShifts.filter((s) => s.significance === 'major').length;
+  const minorShifts = analysis.topicShifts.filter((s) => s.significance === 'minor').length;
+
+  if (hasRecentShifts) {
+    trends.push({
+      metric: 'Topic Shifts Detected',
+      current: analysis.topicShifts.length,
+      previous: 0,
+      change: analysis.topicShifts.length,
+      trend: majorShifts > 0 ? 'up' : 'stable',
+      icon: 'GitBranch',
+      unit: 'shifts',
+      insight: (() => {
+        if (majorShifts > 0) {
+          return `${majorShifts} major topic shift${majorShifts > 1 ? 's' : ''} detected`;
+        }
+        if (minorShifts > 0) {
+          return `${minorShifts} minor topic shift${minorShifts > 1 ? 's' : ''} detected`;
+        }
+        return 'Topic focus remains stable';
+      })(),
+      status: 'success',
+    });
+  }
+
+  // Predicted focus areas
+  if (analysis.predictedFocus && analysis.predictedFocus.length > 0) {
+    trends.push({
+      metric: 'Emerging Topics',
+      current: analysis.predictedFocus.length,
+      previous: 0,
+      change: 0,
+      trend: 'stable',
+      icon: 'Sparkles',
+      unit: 'topics',
+      insight: `Predicted focus: ${analysis.predictedFocus.slice(0, 3).join(', ')}`,
+      status: 'success',
+    });
+  }
+
+  return trends;
 }

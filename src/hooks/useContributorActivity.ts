@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import type {
+  PersonaType,
+  QualityScoreBreakdown,
+  VelocityMetrics,
+  TopicShift,
+} from '@/lib/llm/contributor-enrichment-types';
 
 export interface ContributorActivity {
   id: string;
@@ -18,6 +24,44 @@ export interface ContributorActivity {
   is_discussion_author?: boolean;
   discussion_comment_count?: number;
   is_answered?: boolean;
+}
+
+/**
+ * Enriched contributor data with AI-powered analytics
+ */
+export interface ContributorEnrichmentData {
+  /** Primary topics/expertise areas */
+  topics: string[];
+
+  /** Topic confidence score (0-1) */
+  topicConfidence: number;
+
+  /** Detected persona types */
+  persona: PersonaType[];
+
+  /** Persona confidence score (0-1) */
+  personaConfidence: number;
+
+  /** Contribution style classification */
+  contributionStyle: 'code' | 'discussion' | 'mixed';
+
+  /** Engagement pattern classification */
+  engagementPattern: 'mentor' | 'learner' | 'reporter' | 'builder';
+
+  /** Specific expertise areas */
+  expertise: string[];
+
+  /** Quality score breakdown */
+  qualityMetrics: QualityScoreBreakdown;
+
+  /** Velocity metrics (7d/30d) */
+  velocity: VelocityMetrics;
+
+  /** Detected topic shifts */
+  topicShifts: TopicShift[];
+
+  /** When this enrichment was last updated */
+  lastUpdated: Date | null;
 }
 
 // Types for Supabase query results
@@ -40,10 +84,128 @@ export function useContributorActivity({
   pageSize = 20,
 }: UseContributorActivityOptions) {
   const [activities, setActivities] = useState<ContributorActivity[]>([]);
+  const [enrichment, setEnrichment] = useState<ContributorEnrichmentData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+
+  /**
+   * Fetch enrichment data from contributor_analytics and contributors tables
+   */
+  const fetchEnrichment = useCallback(async () => {
+    if (!contributorUsername || !workspaceId) return;
+
+    setEnrichmentLoading(true);
+
+    try {
+      // Fetch contributor ID and enrichment data
+      const { data: contributorData, error: contributorError } = await supabase
+        .from('contributors')
+        .select(
+          `
+          id,
+          primary_topics,
+          topic_confidence,
+          detected_persona,
+          persona_confidence,
+          contribution_style,
+          engagement_pattern_type,
+          expertise_areas,
+          quality_score,
+          discussion_impact_score,
+          code_review_depth_score,
+          issue_quality_score,
+          mentor_score
+        `
+        )
+        .eq('username', contributorUsername)
+        .maybeSingle();
+
+      if (contributorError) throw contributorError;
+      if (!contributorData) {
+        setEnrichment(null);
+        return;
+      }
+
+      // Fetch latest analytics snapshot for velocity and topic shifts
+      const { data: analyticsData } = await supabase
+        .from('contributor_analytics')
+        .select('contribution_velocity, topic_shifts, snapshot_date')
+        .eq('contributor_id', contributorData.id)
+        .eq('workspace_id', workspaceId)
+        .order('snapshot_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // Parse quality metrics with defaults
+      const qualityMetrics: QualityScoreBreakdown = {
+        overall: contributorData.quality_score || 0,
+        discussionImpact: contributorData.discussion_impact_score || 0,
+        codeReviewDepth: contributorData.code_review_depth_score || 0,
+        issueQuality: contributorData.issue_quality_score || 0,
+        mentorScore: contributorData.mentor_score || 0,
+        weights: {
+          discussionImpact: 0.25,
+          codeReviewDepth: 0.3,
+          issueQuality: 0.25,
+          mentorScore: 0.2,
+        },
+      };
+
+      // Parse velocity metrics with defaults
+      const velocityData = analyticsData?.contribution_velocity as {
+        current7d?: number;
+        previous7d?: number;
+        current30d?: number;
+        previous30d?: number;
+        trend?: 'accelerating' | 'steady' | 'declining';
+        changePercent?: number;
+      } | null;
+
+      const velocity: VelocityMetrics = {
+        current7d: velocityData?.current7d || 0,
+        previous7d: velocityData?.previous7d || 0,
+        current30d: velocityData?.current30d || 0,
+        previous30d: velocityData?.previous30d || 0,
+        trend: velocityData?.trend || 'steady',
+        changePercent: velocityData?.changePercent || 0,
+      };
+
+      // Parse topic shifts
+      const topicShifts: TopicShift[] = (analyticsData?.topic_shifts as TopicShift[]) || [];
+
+      // Build enrichment data
+      const enrichmentData: ContributorEnrichmentData = {
+        topics: contributorData.primary_topics || [],
+        topicConfidence: contributorData.topic_confidence || 0,
+        persona: (contributorData.detected_persona || []) as PersonaType[],
+        personaConfidence: contributorData.persona_confidence || 0,
+        contributionStyle:
+          (contributorData.contribution_style as 'code' | 'discussion' | 'mixed') || 'mixed',
+        engagementPattern:
+          (contributorData.engagement_pattern_type as
+            | 'mentor'
+            | 'learner'
+            | 'reporter'
+            | 'builder') || 'builder',
+        expertise: contributorData.expertise_areas || [],
+        qualityMetrics,
+        velocity,
+        topicShifts,
+        lastUpdated: analyticsData?.snapshot_date ? new Date(analyticsData.snapshot_date) : null,
+      };
+
+      setEnrichment(enrichmentData);
+    } catch (err) {
+      console.error('Error fetching contributor enrichment:', err);
+      // Don't set error state - enrichment is optional
+      setEnrichment(null);
+    } finally {
+      setEnrichmentLoading(false);
+    }
+  }, [contributorUsername, workspaceId]);
 
   const fetchActivities = useCallback(
     async (reset = false) => {
@@ -465,16 +627,20 @@ export function useContributorActivity({
   useEffect(() => {
     if (contributorUsername && workspaceId) {
       refresh();
+      fetchEnrichment();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contributorUsername, workspaceId]);
 
   return {
     activities,
+    enrichment,
     loading,
+    enrichmentLoading,
     error,
     hasMore,
     loadMore,
     refresh,
+    refreshEnrichment: fetchEnrichment,
   };
 }

@@ -15,6 +15,11 @@ import type {
   ContributorSummaryMetadata,
 } from './contributor-summary-types';
 import type { DiscussionData, DiscussionSummaryMetadata } from './discussion-summary-types';
+import type {
+  ContributorPersona,
+  PersonaType,
+  QualityScoreBreakdown,
+} from './contributor-enrichment-types';
 
 export interface LLMServiceOptions {
   enableCaching: boolean;
@@ -709,6 +714,266 @@ Bad: "This discussion asks about implementing OAuth2 authentication and various 
   }
 
   /**
+   * Generate contributor persona detection using AI
+   * Identifies contributor type, expertise, and engagement patterns
+   */
+  async generateContributorPersona(
+    activityData: ContributorActivityData,
+    topicClusters: string[],
+    qualityMetrics: QualityScoreBreakdown,
+    metadata?: LLMCallMetadata
+  ): Promise<ContributorPersona | null> {
+    const contributorLogin = metadata?.userId || 'unknown';
+    const cacheKey = `contributor_persona:${contributorLogin}:${this.generateDataHash({ activityData, topicClusters, qualityMetrics })}`;
+
+    // Check cache first (24 hour TTL for personas)
+    if (this.options.enableCaching) {
+      const cached = cacheService.get(cacheKey, '');
+      if (cached) {
+        return cached as unknown as ContributorPersona;
+      }
+    }
+
+    try {
+      const prompt = this.buildPersonaDetectionPrompt(activityData, topicClusters, qualityMetrics);
+
+      let personaResult: string | null = null;
+
+      // Try PostHog-tracked LLM first
+      if (this.options.enablePostHogTracking && posthogOpenAIService.isAvailable()) {
+        const result = await posthogOpenAIService.callOpenAI(prompt, 'gpt-4o-mini', {
+          feature: 'persona-detection',
+          userId: contributorLogin,
+          traceId: metadata?.traceId,
+          ...metadata,
+        });
+        personaResult = result.content;
+      }
+
+      // Fallback to direct OpenAI
+      if (!personaResult && openAIService.isAvailable()) {
+        personaResult = await openAIService.callOpenAI(prompt, 'gpt-4o-mini');
+      }
+
+      if (!personaResult) {
+        console.warn('[Persona Detection] LLM unavailable, using heuristic fallback');
+        return this.generateFallbackPersona(activityData, topicClusters, qualityMetrics);
+      }
+
+      // Parse JSON response
+      const persona = this.parsePersonaResponse(personaResult, activityData, topicClusters);
+
+      if (persona && this.options.enableCaching) {
+        cacheService.set(cacheKey, persona as unknown as LLMInsight, '', 1440); // 24h cache
+      }
+
+      return persona;
+    } catch (error) {
+      console.error('[Persona Detection] Error generating persona:', error);
+      return this.generateFallbackPersona(activityData, topicClusters, qualityMetrics);
+    }
+  }
+
+  /**
+   * Build prompt for persona detection
+   */
+  private buildPersonaDetectionPrompt(
+    data: ContributorActivityData,
+    topics: string[],
+    quality: QualityScoreBreakdown
+  ): string {
+    // Analyze contribution titles for keywords
+    const allTitles = [
+      ...data.recentPRs.map((pr) => pr.title),
+      ...data.recentIssues.map((issue) => issue.title),
+      ...(data.recentDiscussions || []).map((d) => d.title),
+    ].join('\n');
+
+    // Analyze discussion participation
+    const discussionEngagement = data.recentDiscussions || [];
+    const answeredQuestions = discussionEngagement.filter(
+      (d) => !d.isAuthor && d.isAnswered
+    ).length;
+    const askedQuestions = discussionEngagement.filter((d) => d.isAuthor).length;
+    const participated = discussionEngagement.filter(
+      (d) => !d.isAuthor && d.commentCount > 0
+    ).length;
+
+    return `Analyze this GitHub contributor's activity and identify their persona:
+
+**Contribution Summary:**
+- Total: ${data.totalContributions} contributions
+- PRs: ${data.recentPRs.length} (${data.recentPRs.filter((pr) => pr.merged_at).length} merged)
+- Issues: ${data.recentIssues.length}
+- Discussions: ${discussionEngagement.length}
+  - Answered others' questions: ${answeredQuestions}
+  - Asked questions: ${askedQuestions}
+  - Participated in discussions: ${participated}
+
+**Primary Topics:** ${topics.length > 0 ? topics.join(', ') : 'General development'}
+
+**Quality Metrics (0-100):**
+- Discussion Impact: ${quality.discussionImpact}
+- Code Review Depth: ${quality.codeReviewDepth}
+- Issue Quality: ${quality.issueQuality}
+- Mentor Score: ${quality.mentorScore}
+
+**Recent Activity Titles:**
+${allTitles.substring(0, 1000)}${allTitles.length > 1000 ? '...' : ''}
+
+**Persona Types Available:**
+1. "enterprise" - Asks about SSO, corporate proxies, compliance, enterprise features
+2. "security" - Reports vulnerabilities, discusses authentication, security reviews
+3. "performance" - Optimization PRs, benchmarks, performance discussions
+4. "documentation" - README updates, doc improvements, guides
+5. "bug_hunter" - Primarily reports bugs, finds edge cases
+6. "feature_requester" - Requests new features, proposes enhancements
+7. "community_helper" - Answers questions, mentors, helps others
+
+Identify:
+1. **Primary Persona** (1-2 types from list above based on activity patterns)
+2. **Expertise Areas** (3-5 specific technical topics they focus on)
+3. **Contribution Style**: "code" (mainly PRs), "discussion" (mainly issues/discussions), or "mixed"
+4. **Engagement Pattern**:
+   - "mentor" (helps others, high mentor score)
+   - "learner" (asks questions, low mentor score)
+   - "reporter" (mainly reports issues/bugs)
+   - "builder" (mainly builds features via PRs)
+
+Return ONLY valid JSON (no markdown):
+{
+  "type": ["persona1", "persona2"],
+  "confidence": 0.85,
+  "expertise": ["topic1", "topic2", "topic3"],
+  "contributionStyle": "mixed",
+  "engagementPattern": "mentor",
+  "reasoning": "Brief explanation of why this persona was assigned"
+}`;
+  }
+
+  /**
+   * Parse LLM persona response
+   */
+  private parsePersonaResponse(
+    response: string,
+    _data: ContributorActivityData,
+    topics: string[]
+  ): ContributorPersona | null {
+    try {
+      // Extract JSON from response (may have markdown formatting)
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn('[Persona] No JSON found in response, using fallback');
+        return null;
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      return {
+        type: Array.isArray(parsed.type) ? parsed.type : [parsed.type],
+        confidence: parsed.confidence || 0.7,
+        expertise: Array.isArray(parsed.expertise) ? parsed.expertise : topics.slice(0, 3),
+        contributionStyle: parsed.contributionStyle || 'mixed',
+        engagementPattern: parsed.engagementPattern || 'builder',
+        reasoning: parsed.reasoning,
+      };
+    } catch (error) {
+      console.error('[Persona] Failed to parse response:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate fallback persona using heuristics when LLM unavailable
+   */
+  private generateFallbackPersona(
+    data: ContributorActivityData,
+    topics: string[],
+    quality: QualityScoreBreakdown
+  ): ContributorPersona {
+    const allTitles = [
+      ...data.recentPRs.map((pr) => pr.title),
+      ...data.recentIssues.map((issue) => issue.title),
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    const personas: Array<{ type: string; score: number }> = [];
+
+    // Enterprise detection
+    if (allTitles.match(/\b(sso|saml|proxy|corporate|enterprise|compliance|ldap)\b/)) {
+      personas.push({ type: 'enterprise', score: 0.8 });
+    }
+
+    // Security detection
+    if (allTitles.match(/\b(security|vulnerability|xss|csrf|auth|authentication|encryption)\b/)) {
+      personas.push({ type: 'security', score: 0.9 });
+    }
+
+    // Performance detection
+    if (allTitles.match(/\b(performance|optimize|slow|fast|cache|benchmark|latency)\b/)) {
+      personas.push({ type: 'performance', score: 0.85 });
+    }
+
+    // Documentation detection
+    if (allTitles.match(/\b(doc|readme|guide|tutorial|documentation)\b/)) {
+      personas.push({ type: 'documentation', score: 0.7 });
+    }
+
+    // Bug hunter detection
+    const bugKeywords = allTitles.match(/\b(bug|fix|error|crash|issue|broken)\b/g);
+    if (bugKeywords && bugKeywords.length > data.totalContributions * 0.5) {
+      personas.push({ type: 'bug_hunter', score: 0.8 });
+    }
+
+    // Feature requester detection
+    const featureKeywords = allTitles.match(/\b(feature|add|implement|new|request|proposal)\b/g);
+    if (featureKeywords && featureKeywords.length > data.totalContributions * 0.4) {
+      personas.push({ type: 'feature_requester', score: 0.75 });
+    }
+
+    // Community helper detection (based on mentor score)
+    if (quality.mentorScore > 60) {
+      personas.push({ type: 'community_helper', score: quality.mentorScore / 100 });
+    }
+
+    // Sort by score and take top 2
+    personas.sort((a, b) => b.score - a.score);
+    const topPersonas = personas.slice(0, 2).map((p) => p.type);
+
+    // Determine contribution style
+    const prCount = data.recentPRs.length;
+    const discussionCount = (data.recentDiscussions || []).length + data.recentIssues.length;
+    let style: 'code' | 'discussion' | 'mixed' = 'mixed';
+
+    if (prCount > discussionCount * 2) {
+      style = 'code';
+    } else if (discussionCount > prCount * 2) {
+      style = 'discussion';
+    }
+
+    // Determine engagement pattern
+    let pattern: 'mentor' | 'learner' | 'reporter' | 'builder' = 'builder';
+
+    if (quality.mentorScore > 70) {
+      pattern = 'mentor';
+    } else if (quality.issueQuality > quality.codeReviewDepth && data.recentPRs.length < 3) {
+      pattern = 'reporter';
+    } else if (data.recentIssues.length > data.recentPRs.length && quality.discussionImpact < 50) {
+      pattern = 'learner';
+    }
+
+    return {
+      type: (topPersonas.length > 0 ? topPersonas : ['builder']) as PersonaType[],
+      confidence: personas[0]?.score || 0.6,
+      expertise: topics.slice(0, 3),
+      contributionStyle: style,
+      engagementPattern: pattern,
+      reasoning: 'Generated using heuristic analysis (LLM unavailable)',
+    };
+  }
+
+  /**
    * Build cache key for contributor summaries
    */
   private buildContributorCacheKey(login: string, activityData: ContributorActivityData): string {
@@ -894,7 +1159,18 @@ Bad: "This discussion asks about implementing OAuth2 authentication and various 
    * Generate hash from data for cache invalidation
    */
   private generateDataHash(
-    data: HealthData | RecommendationData | PRData[] | ContributorActivityData | DiscussionData
+    data:
+      | HealthData
+      | RecommendationData
+      | PRData[]
+      | ContributorActivityData
+      | DiscussionData
+      | {
+          activityData: ContributorActivityData;
+          topicClusters: string[];
+          qualityMetrics: QualityScoreBreakdown;
+        }
+      | Record<string, unknown>
   ): string {
     // Simple hash function for data changes detection
     const dataString = JSON.stringify(data);
