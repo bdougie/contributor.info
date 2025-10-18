@@ -170,19 +170,21 @@ Tracks all sync operations for monitoring and staleness detection.
 **Queries used**:
 ```sql
 -- Check staleness
-SELECT completed_at
+SELECT completed_at, sync_type
 FROM sync_logs
-WHERE sync_type = 'repository_comments_all'
-  AND entity_id IN (SELECT repository_id FROM workspace_repositories WHERE workspace_id = $1)
-  AND status = 'success'
+WHERE sync_type IN ('pr_comments', 'issue_comments')
+  AND repository_id IN (SELECT repository_id FROM workspace_repositories WHERE workspace_id = $1)
+  AND status = 'completed'
 ORDER BY completed_at DESC
 LIMIT 1;
 
 -- Find active syncs
-SELECT *
+SELECT id, sync_type, started_at
 FROM sync_logs
-WHERE sync_type = 'repository_comments_all'
-  AND status = 'in_progress';
+WHERE sync_type IN ('pr_comments', 'issue_comments')
+  AND repository_id IN (SELECT repository_id FROM workspace_repositories WHERE workspace_id = $1)
+  AND status = 'running'
+LIMIT 1;
 ```
 
 ## Performance Characteristics

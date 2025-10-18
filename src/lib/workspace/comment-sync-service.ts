@@ -37,6 +37,7 @@ interface RepositoryBasicInfo {
 
 /**
  * Helper: Get repository IDs for a workspace
+ * Throws error instead of silently returning empty array to ensure proper error handling
  */
 async function getWorkspaceRepositoryIds(workspaceId: string): Promise<string[]> {
   const { data, error } = await supabase
@@ -44,7 +45,11 @@ async function getWorkspaceRepositoryIds(workspaceId: string): Promise<string[]>
     .select('repository_id')
     .eq('workspace_id', workspaceId);
 
-  if (error || !data || data.length === 0) {
+  if (error) {
+    throw new Error(`Failed to fetch workspace repositories: ${error.message}`);
+  }
+
+  if (!data || data.length === 0) {
     return [];
   }
 

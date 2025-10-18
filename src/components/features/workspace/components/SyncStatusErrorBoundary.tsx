@@ -7,25 +7,40 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorCount: number;
 }
 
 /**
  * Error boundary for sync status display
  * Prevents sync status fetch failures from breaking the entire MyWorkCard
+ * Includes automatic recovery after 30 seconds
  */
 export class SyncStatusErrorBoundary extends Component<Props, State> {
+  private resetTimer: NodeJS.Timeout | null = null;
+
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorCount: 0 };
   }
 
   static getDerivedStateFromError(): State {
-    return { hasError: true };
+    return { hasError: true, errorCount: 0 };
   }
 
   componentDidCatch(error: Error, errorInfo: { componentStack: string }): void {
     // Log error for debugging without exposing to user
     console.error('Sync status error:', error, errorInfo);
+
+    // Auto-reset after 30 seconds to allow recovery
+    this.resetTimer = setTimeout(() => {
+      this.setState({ hasError: false, errorCount: this.state.errorCount + 1 });
+    }, 30000);
+  }
+
+  componentWillUnmount(): void {
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+    }
   }
 
   render(): ReactNode {

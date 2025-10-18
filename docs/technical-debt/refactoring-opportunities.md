@@ -4,22 +4,7 @@ Generated: 2025-01-17
 
 ## High Priority
 
-### 1. Remove Temporary Script File
-
-**File**: `cleanup-unused-files.sh` (root directory)
-
-**Issue**: One-time cleanup script left in git-tracked files. According to `CLAUDE.md`, scripts should be "documented and organized into folders/readmes" and one-time scripts should be deleted.
-
-**Action**:
-```bash
-rm cleanup-unused-files.sh
-```
-
-**Impact**: Cleanup, reduces clutter
-
----
-
-### 2. Inconsistent Console Logging in comment-sync-service.ts
+### 1. Inconsistent Console Logging in comment-sync-service.ts
 
 **File**: `src/lib/workspace/comment-sync-service.ts`
 
@@ -46,7 +31,7 @@ logger.log('[CommentSync] Exception checking staleness: %s', error instanceof Er
 
 ---
 
-### 3. Duplicate Repository Querying Logic
+### 2. Duplicate Repository Querying Logic
 
 **File**: `src/lib/workspace/comment-sync-service.ts`
 
@@ -77,7 +62,7 @@ async function getWorkspaceRepositoryIds(workspaceId: string): Promise<string[]>
 
 ---
 
-### 4. Magic Numbers Without Constants
+### 3. Magic Numbers Without Constants
 
 **File**: `src/lib/workspace/comment-sync-service.ts`
 
@@ -117,35 +102,7 @@ const ESTIMATED_SYNC_SECONDS_PER_REPO = 5;
 
 ---
 
-### 6. Type Coercion with Boolean() in comment-sync-service.ts
-
-**File**: `src/lib/workspace/comment-sync-service.ts`
-
-**Issue**: Using `Boolean()` coercion (lines 231, 248, 257) to work around TypeScript null handling instead of fixing the root cause.
-
-**Current code**:
-```typescript
-const status: CommentSyncStatus = {
-  isSyncing: Boolean(activeSyncs && activeSyncs.length > 0),
-  isStale: Boolean(stalenessResult.isStale),
-  // ...
-};
-```
-
-**Better approach**:
-```typescript
-const status: CommentSyncStatus = {
-  isSyncing: (activeSyncs?.length ?? 0) > 0,
-  isStale: stalenessResult.isStale ?? true, // Default to stale when uncertain
-  // ...
-};
-```
-
-**Impact**: More idiomatic TypeScript, clearer intent
-
----
-
-### 7. Duplicate Event Queueing Logic
+### 6. Duplicate Event Queueing Logic
 
 **File**: `src/lib/workspace/comment-sync-service.ts`
 
@@ -181,7 +138,7 @@ async function queueSyncEvent(
 
 ---
 
-### 8. Inngest Function Comments Inconsistency
+### 7. Inngest Function Comments Inconsistency
 
 **File**: `src/lib/inngest/functions/sync-workspace-comments-cron.ts`
 
@@ -195,7 +152,7 @@ async function queueSyncEvent(
 
 ## Low Priority
 
-### 9. Unused Type Import Opportunity
+### 8. Unused Type Import Opportunity
 
 **File**: `src/lib/inngest/functions/capture-repository-comments-all.ts`
 
@@ -215,7 +172,7 @@ export interface RepositoryBasicInfo {
 
 ---
 
-### 10. Missing Error Boundaries
+### 9. Missing Error Boundaries
 
 **File**: `src/components/features/workspace/MyWorkCard.tsx`
 
@@ -227,7 +184,7 @@ export interface RepositoryBasicInfo {
 
 ---
 
-### 11. Toast Dependency in useEffect
+### 10. Toast Dependency in useEffect
 
 **File**: `src/components/features/workspace/MyWorkCard.tsx`
 
@@ -277,14 +234,12 @@ useEffect(() => {
 
 ### Estimated Impact
 
-**High Priority Items**: ~2-3 hours to fix
-- Remove script: 5 minutes
+**High Priority Items**: ~1.5-2 hours to fix
 - Fix console logging: 30 minutes
 - Extract repository helper: 45 minutes
 - Add constants: 15 minutes
 
-**Medium Priority Items**: ~4-6 hours (spread over time)
-- Type coercion improvements: 1 hour
+**Medium Priority Items**: ~3-5 hours (spread over time)
 - Extract event helper: 1 hour
 - Fix `any` usage (top 4 files): 2-4 hours
 
@@ -293,19 +248,17 @@ useEffect(() => {
 - Error boundaries: 1 hour
 - Toast ref optimization: 30 minutes
 
-**Total Estimated Effort**: 8-12 hours
+**Total Estimated Effort**: 6.5-10 hours
 
 ### Recommended Approach
 
 1. **Immediate (< 1 hour)**:
-   - Remove `cleanup-unused-files.sh`
    - Fix console logging security issues
    - Add constants for magic numbers
 
 2. **Next Sprint**:
    - Extract repository query helper
    - Extract event queueing helper
-   - Fix Boolean coercion
 
 3. **Ongoing (Boy Scout Rule)**:
    - Fix `any` types as files are touched
