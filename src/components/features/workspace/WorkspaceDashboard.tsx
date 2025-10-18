@@ -48,6 +48,12 @@ export interface WorkspaceDashboardProps {
   onUpgradeClick?: () => void;
   onMyWorkItemClick?: (item: MyWorkItem) => void;
   onMyWorkItemRespond?: (item: MyWorkItem) => void;
+  onSyncComments?: () => Promise<void>;
+  isSyncingComments?: boolean;
+  commentSyncStatus?: {
+    isStale: boolean;
+    lastSyncedAt: Date | null;
+  };
   className?: string;
   children?: React.ReactNode; // Allow passing additional content like Rising Stars chart
   repoStatuses?: Map<
@@ -81,6 +87,9 @@ export function WorkspaceDashboard({
   onGitHubAppModalOpen,
   onMyWorkItemClick,
   onMyWorkItemRespond,
+  onSyncComments,
+  isSyncingComments,
+  commentSyncStatus,
   className,
   children,
   repoStatuses,
@@ -127,9 +136,7 @@ export function WorkspaceDashboard({
           subtitle="Stars per day"
           value={
             // Show placeholder if velocity is not valid (0, undefined, or too large)
-            metrics.totalStars > 0 && metrics.totalStars < 1000
-              ? metrics.totalStars
-              : '—'
+            metrics.totalStars > 0 && metrics.totalStars < 1000 ? metrics.totalStars : '—'
           }
           description="Daily star growth rate"
           icon={<Star className="h-4 w-4" />}
@@ -202,6 +209,9 @@ export function WorkspaceDashboard({
         loading={loading}
         onItemClick={onMyWorkItemClick}
         onRespond={onMyWorkItemRespond}
+        onSyncComments={onSyncComments}
+        isSyncingComments={isSyncingComments}
+        commentSyncStatus={commentSyncStatus}
       />
 
       {/* Additional Content (e.g., Rising Stars Chart) */}

@@ -3,12 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Activity } from '@/components/ui/icon';
+import { ArrowRight, Activity, RefreshCw, AlertCircle, CheckCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { useState, memo } from 'react';
+import { useState, memo, useEffect, useRef } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
+import { useToast } from '@/hooks/use-toast';
+import { SyncStatusErrorBoundary } from './components/SyncStatusErrorBoundary';
 
 export interface MyWorkItem {
   id: string;
@@ -62,6 +64,12 @@ export interface MyWorkCardProps {
   onViewAll?: () => void;
   onPageChange?: (page: number) => void;
   onRespond?: (item: MyWorkItem) => void;
+  onSyncComments?: () => Promise<void>;
+  isSyncingComments?: boolean;
+  commentSyncStatus?: {
+    isStale: boolean;
+    lastSyncedAt: Date | null;
+  };
 }
 
 function MyWorkItemSkeleton() {
@@ -277,7 +285,11 @@ export function MyWorkCard({
   onViewAll,
   onPageChange,
   onRespond,
+  onSyncComments,
+  isSyncingComments = false,
+  commentSyncStatus,
 }: MyWorkCardProps) {
+  const { toast } = useToast();
   const [selectedTypes, setSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
     'pr',
     'issue',
@@ -286,6 +298,48 @@ export function MyWorkCard({
   const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
     'needs_response'
   );
+  const [hasAutoSynced, setHasAutoSynced] = useState(false);
+  const [previousSyncingState, setPreviousSyncingState] = useState(isSyncingComments);
+
+  // Stable reference to toast function to avoid unnecessary re-renders
+  const toastRef = useRef(toast);
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
+
+  // Show toast notification when sync completes successfully
+  useEffect(() => {
+    if (previousSyncingState && !isSyncingComments && issueTab === 'replies') {
+      toastRef.current({
+        title: 'Comments synced',
+        description: 'Latest comments have been fetched from GitHub',
+        duration: 3000,
+      });
+    }
+    setPreviousSyncingState(isSyncingComments);
+  }, [isSyncingComments, previousSyncingState, issueTab]);
+
+  // Auto-sync comments when Replies tab is opened and data is stale
+  useEffect(() => {
+    const shouldAutoSync =
+      issueTab === 'replies' &&
+      !hasAutoSynced &&
+      onSyncComments &&
+      commentSyncStatus?.isStale &&
+      !isSyncingComments;
+
+    if (shouldAutoSync) {
+      setHasAutoSynced(true);
+      onSyncComments();
+    }
+  }, [issueTab, hasAutoSynced, onSyncComments, commentSyncStatus, isSyncingComments]);
+
+  // Reset auto-sync flag when user navigates away from Replies tab
+  useEffect(() => {
+    if (issueTab !== 'replies') {
+      setHasAutoSynced(false);
+    }
+  }, [issueTab]);
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
     setSelectedTypes((prev) => {
@@ -490,29 +544,81 @@ export function MyWorkCard({
 
         {/* Tabs: "Needs Response", "Follow-ups", and "Replies" for all item types */}
         <div className="mb-4">
-          <WorkspaceSubTabs
-            tabs={[
-              {
-                value: 'needs_response',
-                label: 'Needs Response',
-                count: needsResponseCount,
-              },
-              {
-                value: 'follow_ups',
-                label: 'Follow-ups',
-                count: followUpsCount,
-              },
-              {
-                value: 'replies',
-                label: 'Replies',
-                count: repliesCount,
-              },
-            ]}
-            activeTab={issueTab}
-            onTabChange={(value) =>
-              setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
-            }
-          />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1">
+              <WorkspaceSubTabs
+                tabs={[
+                  {
+                    value: 'needs_response',
+                    label: 'Needs Response',
+                    count: needsResponseCount,
+                  },
+                  {
+                    value: 'follow_ups',
+                    label: 'Follow-ups',
+                    count: followUpsCount,
+                  },
+                  {
+                    value: 'replies',
+                    label: 'Replies',
+                    count: repliesCount,
+                  },
+                ]}
+                activeTab={issueTab}
+                onTabChange={(value) =>
+                  setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
+                }
+              />
+            </div>
+            {issueTab === 'replies' && onSyncComments && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs gap-1"
+                onClick={() => onSyncComments()}
+                disabled={isSyncingComments}
+                title="Refresh comments from GitHub"
+              >
+                <RefreshCw className={cn('h-3 w-3', isSyncingComments && 'animate-spin')} />
+                {isSyncingComments ? 'Syncing...' : 'Refresh'}
+              </Button>
+            )}
+          </div>
+
+          {/* Enhanced sync status indicator */}
+          {issueTab === 'replies' && commentSyncStatus && (
+            <SyncStatusErrorBoundary>
+              <div
+                className={cn(
+                  'mt-2 px-3 py-2 rounded-md text-xs flex items-center gap-2',
+                  commentSyncStatus.isStale
+                    ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800'
+                    : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                )}
+              >
+                {commentSyncStatus.isStale ? (
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                ) : (
+                  <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                )}
+                <div className="flex-1">
+                  {commentSyncStatus.lastSyncedAt ? (
+                    <div>
+                      <span className="font-medium">
+                        {commentSyncStatus.isStale ? 'Data may be outdated' : 'Up to date'}
+                      </span>
+                      <span className="text-muted-foreground ml-1">
+                        • Last synced{' '}
+                        {formatDistanceToNow(commentSyncStatus.lastSyncedAt, { addSuffix: true })}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-medium">No sync data available</span>
+                  )}
+                </div>
+              </div>
+            </SyncStatusErrorBoundary>
+          )}
         </div>
 
         {/* Items count */}
