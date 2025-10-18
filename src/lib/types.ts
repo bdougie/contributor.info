@@ -100,6 +100,12 @@ export interface ContributorStats {
     login: string;
     avatar_url: string;
   }[];
+  // User profile information
+  name?: string | null;
+  company?: string | null;
+  location?: string | null;
+  bio?: string | null;
+  websiteUrl?: string | null;
 }
 
 export interface LotteryFactor {

@@ -4,14 +4,18 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GitPullRequest,
   MessageSquare,
   GitPullRequestDraft,
   AlertCircle,
   CheckCircle2,
+  Package,
+  Layout,
+  Globe,
 } from '@/components/ui/icon';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 // Status colors matching ActivityTable
 const STATUS_COLORS = {
@@ -68,8 +72,24 @@ export function ContributorHoverCard({
     return <>{children}</>;
   }
 
+  const [isOpen, setIsOpen] = useState(false);
+  const { profile, loading: profileLoading } = useUserProfile(
+    contributor.login,
+    isOpen // Only fetch when hover card is open
+  );
+
+  // Use profile data if available, otherwise fall back to contributor data
+  const displayCompany = profile?.company || contributor.company;
+  const displayLocation = profile?.location || contributor.location;
+  const displayWebsite = profile?.websiteUrl || contributor.websiteUrl;
+  const displayOrganizations = profile?.organizations || contributor.organizations || [];
+
   return (
-    <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
+    <HoverCardPrimitive.Root
+      openDelay={0}
+      closeDelay={100}
+      onOpenChange={setIsOpen}
+    >
       <HoverCardPrimitive.Trigger asChild>
         <div className="inline-block" style={{ pointerEvents: 'auto' }}>
           {children}
@@ -133,6 +153,9 @@ export function ContributorHoverCard({
               >
                 <h4 className="text-sm font-semibold">{contributor.login}</h4>
               </a>
+              {profile?.name && (
+                <p className="text-xs text-muted-foreground">{profile.name}</p>
+              )}
               <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                 {useIssueIcons ? (
                   <AlertCircle className="h-4 w-4" />
@@ -173,6 +196,40 @@ export function ContributorHoverCard({
               </div>
             </div>
           </div>
+
+          {/* Profile Information Section */}
+          {(displayCompany || displayLocation || displayWebsite) && (
+            <>
+              <Separator className="my-3" />
+              <div className="space-y-2 text-sm">
+                {displayCompany && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Package className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{displayCompany}</span>
+                  </div>
+                )}
+                {displayLocation && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Layout className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{displayLocation}</span>
+                  </div>
+                )}
+                {displayWebsite && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Globe className="h-4 w-4 shrink-0" />
+                    <a
+                      href={displayWebsite.startsWith('http') ? displayWebsite : `https://${displayWebsite}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate hover:underline"
+                    >
+                      {displayWebsite}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {contributor.recentPRs && contributor.recentPRs.length > 0 && (
             <>
@@ -300,34 +357,38 @@ export function ContributorHoverCard({
             </>
           )}
 
-          {contributor.organizations && contributor.organizations.length > 0 && (
+          {displayOrganizations && displayOrganizations.length > 0 && (
             <>
               <Separator className="my-3" />
-              <div className="flex flex-wrap gap-2">
-                {contributor.organizations.slice(0, 4).map((org) => (
-                  <a
-                    key={org.login}
-                    href={`https://github.com/${org.login}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
-                  >
-                    <OptimizedAvatar
-                      src={org.avatar_url}
-                      alt={org.login}
-                      size={32}
-                      lazy={false}
-                      fallback={org.login[0].toUpperCase()}
-                      className="h-4 w-4"
-                    />
-                    <span className="text-xs">{org.login}</span>
-                  </a>
-                ))}
-                {contributor.organizations.length > 4 && (
-                  <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
-                    +{contributor.organizations.length - 4}
-                  </span>
-                )}
+              <div>
+                <div className="text-sm font-medium mb-2">Organizations</div>
+                <div className="flex flex-wrap gap-2">
+                  {displayOrganizations.slice(0, 4).map((org) => (
+                    <a
+                      key={org.login}
+                      href={`https://github.com/${org.login}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                      title={org.name || org.login}
+                    >
+                      <OptimizedAvatar
+                        src={org.avatarUrl || org.avatar_url}
+                        alt={org.login}
+                        size={32}
+                        lazy={false}
+                        fallback={org.login[0].toUpperCase()}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-xs">{org.login}</span>
+                    </a>
+                  ))}
+                  {displayOrganizations.length > 4 && (
+                    <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
+                      +{displayOrganizations.length - 4}
+                    </span>
+                  )}
+                </div>
               </div>
             </>
           )}
