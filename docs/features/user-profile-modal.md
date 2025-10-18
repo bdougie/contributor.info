@@ -1,8 +1,8 @@
-# User Profile Information in Contributor Hover Card
+# User Profile Information in Contributor Profile Modal
 
 ## Overview
 
-This feature adds comprehensive user profile information to the contributor hover card, enabling better contributor grouping and organizational insights. When users hover over a contributor's name, they can now see company affiliation, location, and personal website information.
+This feature adds comprehensive user profile information to the contributor profile modal, enabling better contributor grouping and organizational insights. When users open a contributor's profile modal, they can now see company affiliation, location, bio, and personal website information fetched from their GitHub profile.
 
 ## Implementation
 
@@ -10,17 +10,16 @@ This feature adds comprehensive user profile information to the contributor hove
 
 ```mermaid
 graph TD
-    A[User Hovers on Contributor] --> B[Hover Card Opens]
-    B --> C{Profile Data Available?}
-    C -->|No| D[Fetch from GitHub API]
-    C -->|Yes| E[Display Cached Data]
-    D --> F{GraphQL Available?}
-    F -->|Yes| G[Fetch via GraphQL]
-    F -->|No| H[Fetch via REST API]
-    G --> I[Update Database Cache]
-    H --> I
-    I --> E
-    E --> J[Display Profile Information]
+    A[User Opens Profile Modal] --> B{Profile Data in DB?}
+    B -->|Yes| C[Display Cached Data]
+    B -->|No| D[Fetch from GitHub API]
+    D --> E{GraphQL Available?}
+    E -->|Yes| F[Fetch via GraphQL]
+    E -->|No| G[Fetch via REST API]
+    F --> H[Update Database Cache]
+    G --> H
+    H --> I[Display Profile Information]
+    C --> I
 ```
 
 ### Components
@@ -52,7 +51,7 @@ fetchAndCacheUserProfile(username: string)
 
 #### 2. useUserProfile Hook (`src/hooks/use-user-profile.ts`)
 
-React hook for managing profile data in components:
+React hook for managing profile data in components (kept for future use):
 
 **Features:**
 - On-demand fetching (only when needed)
@@ -65,27 +64,27 @@ React hook for managing profile data in components:
 const { profile, loading, error } = useUserProfile(username, enabled);
 ```
 
-#### 3. Enhanced Hover Card (`src/components/features/contributor/contributor-hover-card.tsx`)
+#### 3. Enhanced Profile Modal (`src/components/features/workspace/ContributorProfileModal.tsx`)
 
-Updated component with profile information display:
+Updated component with profile information fetching and display:
 
 **New Features:**
-- Profile information section with company, location, and website
-- Visual icons for each field type
-- On-demand profile fetching
-- Fallback to existing contributor data
-- Improved organizations display
+- Profile information fetched when modal opens
+- Displays company, location, bio, and website
+- Loading state during profile fetch
+- Fallback to cached database data
+- Updates contributor object for immediate display
 
 ### Data Flow
 
-1. **Hover Event**: User hovers over contributor name
-2. **State Update**: `isOpen` state changes to `true`
-3. **Profile Fetch**: `useUserProfile` hook triggers API call
+1. **Modal Open**: User clicks to open contributor profile modal
+2. **Check Cache**: Component checks if profile data exists in database
+3. **Conditional Fetch**: If no cached data, triggers `fetchAndCacheUserProfile`
 4. **API Selection**: 
    - GraphQL API if token available (includes organizations)
    - REST API as fallback
 5. **Cache Update**: Profile data saved to database
-6. **Display**: Profile information rendered in hover card
+6. **Display**: Profile information rendered in modal's "Profile Information" section
 
 ### Database Schema
 
@@ -136,13 +135,18 @@ GET https://api.github.com/users/{username}
 - Displays organization/company affiliation
 - Helps identify corporate contributors
 - Useful for partnership tracking
-- Icon: Package (📦)
+- Icon: Users (👥)
 
 ### Location Information
 - Shows geographical location
 - Enables regional analysis
 - Helps with timezone coordination
-- Icon: Layout (📍)
+- Icon: Globe (🌐)
+
+### Bio/Description
+- Displays user's GitHub bio
+- Provides context about contributor's focus and interests
+- Helps understand contributor's background
 
 ### Website/Blog
 - Links to personal website or blog
@@ -150,33 +154,38 @@ GET https://api.github.com/users/{username}
 - Clickable link with proper formatting
 - Icon: Globe (🌐)
 
-### Organizations
-- Lists public organization memberships
-- Shows organization avatars
-- Limited to 4 visible (with "+N more" indicator)
-- Links to organization profiles
+### Last Activity
+- Shows when contributor was last active
+- Helps gauge current engagement level
+- Icon: Calendar (📅)
 
 ## Performance Optimizations
 
-### 1. On-Demand Loading
-Profile data is only fetched when the hover card is opened, not on initial component render.
+### 1. Modal-Only Loading
+Profile data is only fetched when the profile modal is explicitly opened by the user, not on hover interactions. This significantly improves performance by:
+- Eliminating API calls on every hover
+- Only fetching when user shows explicit interest
+- Reducing unnecessary network traffic
 
 ### 2. Database Caching
 Fetched profile data is stored in the database to avoid redundant API calls:
 - Updates `last_updated_at` timestamp
 - Caches company, location, bio, blog, and display_name
-- Future hover card opens can use cached data
+- Future modal opens can use cached data immediately
 
 ### 3. Smart Fallback
-Component uses cached data from `ContributorStats` if profile fetch fails or is slow:
+Modal checks for cached data before fetching:
 ```typescript
-const displayCompany = profile?.company || contributor.company;
-const displayLocation = profile?.location || contributor.location;
-const displayWebsite = profile?.websiteUrl || contributor.websiteUrl;
+// Check if we already have profile data from the database
+if (contributor.company || contributor.location || contributor.bio) {
+  setProfileData({ /* use cached data */ });
+  return;
+}
+// Otherwise fetch from GitHub API
 ```
 
-### 4. Minimal Re-renders
-Uses React's `useState` to track hover card state and only trigger fetches when needed.
+### 4. Efficient State Management
+Uses React's `useCallback` to memoize the fetch function and prevent unnecessary re-fetches when modal re-renders.
 
 ## Use Cases
 
@@ -222,45 +231,68 @@ Uses React's `useState` to track hover card state and only trigger fetches when 
 - Uses user token when available (higher rate limits)
 - Falls back to environment token
 
+## Visual Changes
+
+The profile modal's "Profile Information" section now displays:
+
+**Before:**
+- Only bio (if available)
+- Company (if available)
+- Location (if available)
+- Last active timestamp
+
+**After:**
+- Bio fetched from GitHub profile
+- Company with Users icon
+- Location with Globe icon
+- Personal website/blog with clickable link
+- Last active timestamp
+- Loading skeleton during fetch
+
 ## Testing
 
-### Storybook Stories
-Created comprehensive stories in `contributor-hover-card-profile.stories.tsx`:
-
-1. **WithCompanyAndLocation**: Full profile data
-2. **WithoutProfileInfo**: Minimal data
-3. **WithRole**: Profile data with role badge
-4. **WithReviewsAndComments**: Profile with activity metrics
-
 ### Manual Testing
-- Test with real GitHub usernames
-- Verify GraphQL and REST API paths
-- Check error handling and fallbacks
-- Validate database caching
+- Open contributor profile modal
+- Verify profile data is fetched
+- Check loading state appears
+- Confirm cached data is used on subsequent opens
+- Test with users that have complete vs. partial profile data
+- Verify error handling when API fails
+
+### Test Cases
+1. **First Time Open**: Should fetch from GitHub API
+2. **Cached Data**: Should display immediately from database
+3. **No Profile Data**: Should handle gracefully
+4. **API Failure**: Should fall back to cached data
+5. **Rate Limit**: Should handle gracefully
 
 ## Future Enhancements
 
 ### Potential Improvements
-1. **Bio Display**: Add expandable bio section
-2. **Social Links**: Include Twitter, LinkedIn, etc.
-3. **Contribution Stats**: Show lifetime contribution metrics
-4. **Follow Status**: Display if user follows the repository
-5. **Badges**: Add verified contributor badges
-6. **Sponsors**: Show GitHub Sponsors status
-7. **Achievements**: Display contributor achievements
-8. **Activity Heatmap**: Mini contribution calendar
+1. ✅ **Bio Display**: Now displayed in modal
+2. ✅ **Website Links**: Now displayed and clickable
+3. **Social Links**: Expand beyond Discord and LinkedIn
+4. **Contribution Stats**: Show lifetime contribution metrics
+5. **Follow Status**: Display if user follows the repository
+6. **Badges**: Add verified contributor badges
+7. **Sponsors**: Show GitHub Sponsors status
+8. **Achievements**: Display contributor achievements
+9. **Activity Heatmap**: Mini contribution calendar
+10. **Profile Refresh**: Add manual refresh button with cooldown
+11. **Organization Details**: Show organization affiliation more prominently
 
 ### Performance Considerations
-1. **Bulk Fetching**: Pre-fetch profiles for visible contributors
+1. **Background Refresh**: Periodically update cached profiles
 2. **Service Worker**: Cache profile data offline
 3. **Lazy Loading**: Progressive profile data loading
 4. **Rate Limit Management**: Smart API call batching
+5. ✅ **Modal-Only Fetching**: Implemented - only fetch when modal opens
 
 ## Related Files
 
 - `src/services/github-profile.ts` - Profile fetching service
-- `src/hooks/use-user-profile.ts` - React hook for profile data
-- `src/components/features/contributor/contributor-hover-card.tsx` - Main component
+- `src/hooks/use-user-profile.ts` - React hook for profile data (kept for future use)
+- `src/components/features/workspace/ContributorProfileModal.tsx` - Main modal component with profile fetching
 - `src/lib/types.ts` - TypeScript interfaces
 - `src/components/features/contributor/contributor-hover-card-profile.stories.tsx` - Storybook examples
 
@@ -273,9 +305,10 @@ Created comprehensive stories in `contributor-hover-card-profile.stories.tsx`:
 
 ### Mitigation Strategies
 1. Database caching reduces API calls
-2. On-demand fetching (not pre-loading)
+2. Modal-only fetching (not on hover)
 3. User token prioritization for higher limits
 4. Graceful degradation when limits reached
+5. Check cache before making API calls
 
 ## Security Considerations
 
@@ -292,6 +325,7 @@ Created comprehensive stories in `contributor-hover-card-profile.stories.tsx`:
 3. **Keyboard Navigation**: Fully keyboard accessible
 4. **Screen Readers**: Proper ARIA labels
 5. **Focus Management**: Appropriate focus handling
+6. **Loading States**: Clear loading indicators for screen readers
 
 ## Browser Compatibility
 
@@ -299,3 +333,16 @@ Created comprehensive stories in `contributor-hover-card-profile.stories.tsx`:
 - Progressive enhancement for older browsers
 - No critical dependencies on latest APIs
 - Graceful degradation for unsupported features
+
+## Migration Notes
+
+### From Hover Card to Modal
+Previous implementation fetched profile data on hover, which caused performance issues:
+- API calls triggered on every hover interaction
+- Increased network traffic
+- Slower hover card response time
+
+New implementation moves profile fetching to the modal:
+- API calls only when user explicitly opens modal
+- Better performance on hover interactions
+- More appropriate UX for detailed profile information
