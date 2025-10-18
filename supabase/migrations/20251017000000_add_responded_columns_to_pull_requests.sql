@@ -4,7 +4,7 @@
 
 -- Add responded_by column (references auth.users)
 ALTER TABLE pull_requests
-ADD COLUMN responded_by UUID REFERENCES auth.users(id);
+ADD COLUMN responded_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 
 -- Add responded_at column (timestamp)
 ALTER TABLE pull_requests
