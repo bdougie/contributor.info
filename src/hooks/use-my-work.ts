@@ -673,17 +673,17 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
         const userCommentItems: MyWorkItem[] =
           filteredUserComments?.map((comment) => {
             const pr = comment.pull_requests;
-            const isPR = comment.comment_type === 'review_comment' || pr.state !== 'closed';
+            // All comments from the comments table have pull_request_id NOT NULL, so they're always PR comments
             const status = pr.merged ? 'merged' : (pr.state as 'open' | 'closed');
 
             return {
               id: `my-comment-${comment.id}`,
-              type: isPR ? ('pr' as const) : ('issue' as const),
+              type: 'pr' as const,
               itemType: 'my_comment' as const,
               title: pr.title,
               repository: pr.repositories.full_name,
               status,
-              url: `https://github.com/${pr.repositories.owner}/${pr.repositories.name}/${isPR ? 'pull' : 'issues'}/${pr.number}#issuecomment-${comment.id}`,
+              url: `https://github.com/${pr.repositories.owner}/${pr.repositories.name}/pull/${pr.number}#issuecomment-${comment.id}`,
               updated_at: comment.created_at,
               needsAttention: false,
               number: pr.number,
