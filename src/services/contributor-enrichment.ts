@@ -18,7 +18,7 @@ import { analyzeTrends } from './trend-analysis';
  * Process complete enrichment for a single contributor
  */
 export async function enrichContributor(contributorId: string, workspaceId: string): Promise<void> {
-  console.log(`[Enrichment] Processing contributor ${contributorId} in workspace ${workspaceId}`);
+  console.log('[Enrichment] Processing contributor %s in workspace %s', contributorId, workspaceId);
 
   try {
     // Run all enrichment processes in parallel where possible
@@ -68,9 +68,9 @@ export async function enrichContributor(contributorId: string, workspaceId: stri
       })
       .eq('id', contributorId);
 
-    console.log(`[Enrichment] ✅ Successfully enriched contributor ${contributorId}`);
+    console.log('[Enrichment] ✅ Successfully enriched contributor %s', contributorId);
   } catch (error) {
-    console.error(`[Enrichment] ❌ Error enriching contributor ${contributorId}:`, error);
+    console.error('[Enrichment] ❌ Error enriching contributor %s:', contributorId, error);
     throw error;
   }
 }
@@ -80,18 +80,18 @@ export async function enrichContributor(contributorId: string, workspaceId: stri
  * This identifies common technical topics across all contributions
  */
 export async function enrichWorkspaceTopics(workspaceId: string): Promise<void> {
-  console.log(`[Enrichment] Clustering topics for workspace ${workspaceId}`);
+  console.log('[Enrichment] Clustering topics for workspace %s', workspaceId);
 
   try {
     // Run topic clustering
     const topicClusters = await clusterContributionsByTopic(workspaceId, { k: 7 });
 
     if (topicClusters.length === 0) {
-      console.log(`[Enrichment] No topic clusters found for workspace ${workspaceId}`);
+      console.log('[Enrichment] No topic clusters found for workspace %s', workspaceId);
       return;
     }
 
-    console.log(`[Enrichment] Found ${topicClusters.length} topic clusters`);
+    console.log('[Enrichment] Found %s topic clusters', topicClusters.length);
 
     // For each contributor, assign their primary topics based on cluster membership
     for (const cluster of topicClusters) {
@@ -152,7 +152,7 @@ export async function enrichWorkspaceTopics(workspaceId: string): Promise<void> 
  * Process enrichment for all contributors in a workspace
  */
 export async function enrichWorkspace(workspaceId: string): Promise<void> {
-  console.log(`[Enrichment] Starting enrichment for workspace ${workspaceId}`);
+  console.log('[Enrichment] Starting enrichment for workspace %s', workspaceId);
 
   try {
     // Get all contributors in this workspace
@@ -166,11 +166,11 @@ export async function enrichWorkspace(workspaceId: string): Promise<void> {
     }
 
     if (!contributors || contributors.length === 0) {
-      console.log(`[Enrichment] No contributors found for workspace ${workspaceId}`);
+      console.log('[Enrichment] No contributors found for workspace %s', workspaceId);
       return;
     }
 
-    console.log(`[Enrichment] Processing ${contributors.length} contributors`);
+    console.log('[Enrichment] Processing %s contributors', contributors.length);
 
     // First, do topic clustering at workspace level
     await enrichWorkspaceTopics(workspaceId);
@@ -186,13 +186,15 @@ export async function enrichWorkspace(workspaceId: string): Promise<void> {
       );
 
       console.log(
-        `[Enrichment] Processed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(contributors.length / batchSize)}`
+        '[Enrichment] Processed batch %s/%s',
+        Math.floor(i / batchSize) + 1,
+        Math.ceil(contributors.length / batchSize)
       );
     }
 
-    console.log(`[Enrichment] ✅ Successfully enriched workspace ${workspaceId}`);
+    console.log('[Enrichment] ✅ Successfully enriched workspace %s', workspaceId);
   } catch (error) {
-    console.error(`[Enrichment] ❌ Error enriching workspace ${workspaceId}:`, error);
+    console.error('[Enrichment] ❌ Error enriching workspace %s:', workspaceId, error);
     throw error;
   }
 }
@@ -218,16 +220,16 @@ export async function enrichAllWorkspaces(): Promise<void> {
       return;
     }
 
-    console.log(`[Enrichment] Processing ${workspaces.length} workspaces`);
+    console.log('[Enrichment] Processing %s workspaces', workspaces.length);
 
     // Process workspaces sequentially to avoid overwhelming the system
     for (const workspace of workspaces) {
-      console.log(`[Enrichment] Processing workspace: ${workspace.name}`);
+      console.log('[Enrichment] Processing workspace: %s', workspace.name);
 
       try {
         await enrichWorkspace(workspace.id);
       } catch (error) {
-        console.error(`[Enrichment] Error enriching workspace ${workspace.name}:`, error);
+        console.error('[Enrichment] Error enriching workspace %s:', workspace.name, error);
         // Continue with other workspaces
       }
     }

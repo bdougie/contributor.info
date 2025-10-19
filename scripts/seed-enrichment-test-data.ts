@@ -27,10 +27,10 @@ async function seedEnrichmentData() {
     return;
   }
 
-  console.log(`Found ${contributors.length} contributors to enrich:\n`);
+  console.log('Found %s contributors to enrich:\n', contributors.length);
 
   for (const contributor of contributors) {
-    console.log(`Enriching @${contributor.username}...`);
+    console.log('Enriching @%s...', contributor.username);
 
     // Update contributors table with current analytics state
     const { error: updateError } = await supabase
@@ -53,7 +53,7 @@ async function seedEnrichmentData() {
       .eq('id', contributor.id);
 
     if (updateError) {
-      console.error(`  ❌ Error updating contributor: ${updateError.message}`);
+      console.error('  ❌ Error updating contributor: %s', updateError.message);
       continue;
     }
 
@@ -98,11 +98,13 @@ async function seedEnrichmentData() {
       .maybeSingle();
 
     if (analyticsError) {
-      // If already exists, update it
+      // If already exists, update it with ALL fields
       if (analyticsError.code === '23505') {
         const { error: updateAnalyticsError } = await supabase
           .from('contributor_analytics')
           .update({
+            primary_topics: ['authentication', 'api-design', 'security'],
+            topic_confidence: 0.85,
             contribution_velocity: {
               current7d: 8,
               previous7d: 5,
@@ -120,21 +122,31 @@ async function seedEnrichmentData() {
                 confidence: 0.82,
               },
             ],
+            engagement_pattern: 'increasing',
+            quality_score: 82,
+            discussion_impact_score: 75,
+            code_review_depth_score: 88,
+            issue_quality_score: 79,
+            mentor_score: 85,
+            detected_persona: ['enterprise', 'security'],
+            persona_confidence: 0.78,
+            contribution_style: 'code',
+            engagement_pattern_type: 'builder',
           })
           .eq('contributor_id', contributor.id)
           .eq('workspace_id', contributor.workspace_id)
           .eq('snapshot_date', new Date().toISOString().split('T')[0]);
 
         if (updateAnalyticsError) {
-          console.error(`  ❌ Error updating analytics: ${updateAnalyticsError.message}`);
+          console.error('  ❌ Error updating analytics: %s', updateAnalyticsError.message);
         } else {
-          console.log(`  ✅ Updated analytics for @${contributor.username}`);
+          console.log('  ✅ Updated analytics for @%s', contributor.username);
         }
       } else {
-        console.error(`  ❌ Error creating analytics: ${analyticsError.message}`);
+        console.error('  ❌ Error creating analytics: %s', analyticsError.message);
       }
     } else {
-      console.log(`  ✅ Created analytics for @${contributor.username}`);
+      console.log('  ✅ Created analytics for @%s', contributor.username);
     }
   }
 

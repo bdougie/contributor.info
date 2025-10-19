@@ -140,10 +140,18 @@ async function fetchActivityPatterns(
   workspaceId: string
 ): Promise<ActivityPattern> {
   // Get workspace repositories
-  const { data: workspaceRepos } = await supabase
+  const { data: workspaceRepos, error: reposError } = await supabase
     .from('workspace_repositories')
     .select('repository_id')
     .eq('workspace_id', workspaceId);
+
+  if (reposError) {
+    console.error(
+      '[Persona Detection] Error fetching workspace repositories: %s',
+      reposError.message
+    );
+    return createEmptyPattern();
+  }
 
   const repoIds = workspaceRepos?.map((r) => r.repository_id) || [];
 

@@ -86,18 +86,32 @@ export function ContributorInsights({
   className,
 }: ContributorInsightsProps) {
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+  const [isInCooldown, setIsInCooldown] = useState<boolean>(false);
 
-  // Rate-limited refresh handler
-  const handleRefresh = useCallback(() => {
+  // Rate-limited refresh handler with error handling
+  const handleRefresh = useCallback(async () => {
     const now = Date.now();
     if (now - lastRefreshTime < REFRESH_COOLDOWN_MS) {
       return; // Still in cooldown period
     }
+
     setLastRefreshTime(now);
-    onRefresh?.();
+    setIsInCooldown(true);
+
+    // Clear cooldown after delay
+    setTimeout(() => {
+      setIsInCooldown(false);
+    }, REFRESH_COOLDOWN_MS);
+
+    try {
+      await onRefresh?.();
+    } catch (error) {
+      console.error('Failed to refresh enrichment data: %s', error);
+      // Error is handled by parent component's error boundary
+    }
   }, [lastRefreshTime, onRefresh]);
 
-  const isRefreshDisabled = loading || Date.now() - lastRefreshTime < REFRESH_COOLDOWN_MS;
+  const isRefreshDisabled = loading || isInCooldown;
 
   // Show skeleton while loading
   if (loading) {
