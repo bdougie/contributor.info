@@ -51,6 +51,8 @@ import type { Contributor } from './ContributorsList';
 import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
 import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
+import { ContributorInsights } from './enrichment/ContributorInsights';
+import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
 
 export interface Activity {
   id: string;
@@ -250,13 +252,16 @@ export function ContributorProfileModal({
     isLoggedIn,
   });
 
-  // Fetch contributor activity
+  // Fetch contributor activity and enrichment data
   const {
     activities,
+    enrichment,
     loading: activityLoading,
+    enrichmentLoading,
     error: activityError,
     hasMore,
     loadMore,
+    refreshEnrichment,
   } = useContributorActivity({
     contributorUsername: contributor?.username,
     workspaceId,
@@ -535,8 +540,9 @@ export function ContributorProfileModal({
 
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="insights">AI Insights</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
               <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
               <TabsTrigger value="stats">Statistics</TabsTrigger>
@@ -683,6 +689,16 @@ export function ContributorProfileModal({
 
               {/* Social Links Section */}
               <SocialLinksCard contributor={contributor} isLoggedIn={isLoggedIn} />
+            </TabsContent>
+
+            <TabsContent value="insights" className="mt-4">
+              <AIFeatureErrorBoundary featureName="AI Insights">
+                <ContributorInsights
+                  enrichment={enrichment}
+                  loading={enrichmentLoading}
+                  onRefresh={refreshEnrichment}
+                />
+              </AIFeatureErrorBoundary>
             </TabsContent>
 
             <TabsContent value="activity" className="mt-4">

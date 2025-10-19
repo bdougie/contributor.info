@@ -38,3 +38,6 @@ export { captureIssueComments } from './capture-issue-comments';
 export { captureRepositoryIssues } from './capture-repository-issues';
 export { captureRepositoryCommentsAll } from './capture-repository-comments-all';
 export { syncWorkspaceCommentsCron } from './sync-workspace-comments-cron';
+
+// Contributor enrichment (AI-powered insights)
+export { enrichContributorsCron } from './enrich-contributors-cron';
