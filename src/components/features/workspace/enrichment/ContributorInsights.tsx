@@ -7,6 +7,7 @@ import { TopicTags } from './TopicTags';
 import { QualityScoreCard } from './QualityScoreCard';
 import { TopicShiftBadge } from './TopicShiftBadge';
 import { cn } from '@/lib/utils';
+import { useState, useCallback } from 'react';
 
 interface ContributorInsightsProps {
   enrichment: ContributorEnrichmentData | null;
@@ -14,6 +15,8 @@ interface ContributorInsightsProps {
   onRefresh?: () => void;
   className?: string;
 }
+
+const REFRESH_COOLDOWN_MS = 10000; // 10 seconds between refreshes
 
 /**
  * Get timeframe label for display
@@ -82,6 +85,20 @@ export function ContributorInsights({
   onRefresh,
   className,
 }: ContributorInsightsProps) {
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(0);
+
+  // Rate-limited refresh handler
+  const handleRefresh = useCallback(() => {
+    const now = Date.now();
+    if (now - lastRefreshTime < REFRESH_COOLDOWN_MS) {
+      return; // Still in cooldown period
+    }
+    setLastRefreshTime(now);
+    onRefresh?.();
+  }, [lastRefreshTime, onRefresh]);
+
+  const isRefreshDisabled = loading || Date.now() - lastRefreshTime < REFRESH_COOLDOWN_MS;
+
   // Show skeleton while loading
   if (loading) {
     return <InsightsSkeleton />;
@@ -139,10 +156,14 @@ export function ContributorInsights({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onRefresh}
-                disabled={loading}
+                onClick={handleRefresh}
+                disabled={isRefreshDisabled}
                 className="h-8"
-                title="Refresh insights"
+                title={
+                  isRefreshDisabled && !loading
+                    ? 'Please wait before refreshing again'
+                    : 'Refresh insights'
+                }
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

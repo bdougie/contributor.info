@@ -52,6 +52,7 @@ import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
 import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 import { ContributorInsights } from './enrichment/ContributorInsights';
+import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
 
 export interface Activity {
   id: string;
@@ -691,11 +692,13 @@ export function ContributorProfileModal({
             </TabsContent>
 
             <TabsContent value="insights" className="mt-4">
-              <ContributorInsights
-                enrichment={enrichment}
-                loading={enrichmentLoading}
-                onRefresh={refreshEnrichment}
-              />
+              <AIFeatureErrorBoundary featureName="AI Insights">
+                <ContributorInsights
+                  enrichment={enrichment}
+                  loading={enrichmentLoading}
+                  onRefresh={refreshEnrichment}
+                />
+              </AIFeatureErrorBoundary>
             </TabsContent>
 
             <TabsContent value="activity" className="mt-4">
