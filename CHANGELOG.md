@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Database: Workspace user relations** ([#1147](https://github.com/bdougie/contributor.info/issues/1147))
+  - Fixed database relation error preventing workspace creation
+  - Created `users` view mapping to `app_users` for PostgREST compatibility
+  - Added missing foreign key constraints for workspace tables:
+    - `workspaces.owner_id` → `app_users.id`
+    - `workspace_members.user_id` → `app_users.id`
+    - `workspace_members.invited_by` → `app_users.id`
+    - `workspace_repositories.added_by` → `app_users.id`
+    - `workspace_invitations.invited_by` → `app_users.id`
+  - Migrated orphaned data using `auth_user_id` to correct `app_users.id` references
+  - Added performance indexes on all foreign key columns
+  - Cleaned up null UUID placeholders and orphaned references
+  - Migration: `20251021000000_fix_workspace_user_relations.sql`
+  - Documentation: `docs/migrations/2025-10-workspace-user-relations-fix.md`
+
 ## [3.0.0](https://github.com/bdougie/contributor.info/compare/v2.1.0...v3.0.0) (2025-10-15)
 
 
