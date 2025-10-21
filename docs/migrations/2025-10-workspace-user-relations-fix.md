@@ -190,12 +190,27 @@ VALUES ('00000000-0000-0000-0000-000000000000', 'test', 'test');
 3. **Use views for backward compatibility** - Avoided breaking changes by creating compatibility layer
 4. **Migrate data before adding constraints** - Critical for applying constraints to existing tables
 
+## Follow-Up Migration
+
+**Migration**: `20251021000001_fix_workspace_rls_for_app_users.sql`
+
+After applying this migration, a critical RLS policy issue was discovered:
+- RLS policies use `auth.uid()` which returns `auth.users.id`
+- Foreign keys now reference `app_users.id` (a different UUID)
+- INSERT operations on `workspace_repositories` were broken
+
+**Solution**: Created follow-up migration to:
+1. Update RLS policies to map `auth.uid()` → `app_users.id` via subquery
+2. Add performance index on `app_users.auth_user_id` for RLS lookups
+3. Fix affected policies on `workspace_repositories` and `workspace_members`
+
 ## Future Improvements
 
 1. **Consider adding CHECK constraints** for additional validation
 2. **Add database triggers** to log workspace owner changes
 3. **Implement soft deletes** instead of CASCADE for better data recovery
 4. **Add foreign keys to other workspace-related tables** that may have been missed
+5. **Create helper function** to centralize `auth.uid()` → `app_users.id` mapping
 
 ## Support
 

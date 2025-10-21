@@ -80,9 +80,8 @@ FROM app_users au
 WHERE wi.invited_by = au.auth_user_id
   AND wi.invited_by != au.id;
 
--- Handle null UUIDs in workspace_invitations.invited_by
-UPDATE workspace_invitations
-SET invited_by = NULL
+-- Delete orphaned invitations (invited_by column is NOT NULL, so we delete instead of setting NULL)
+DELETE FROM workspace_invitations
 WHERE invited_by = '00000000-0000-0000-0000-000000000000'
    OR invited_by NOT IN (SELECT id FROM app_users);
 
@@ -122,11 +121,12 @@ ON DELETE SET NULL;
 
 -- Add foreign key for workspace_invitations.invited_by -> app_users.id
 -- This ensures the user who sent an invitation must exist in app_users table
+-- ON DELETE CASCADE: When inviter is deleted, delete their pending invitations
 ALTER TABLE workspace_invitations
 ADD CONSTRAINT workspace_invitations_invited_by_fkey
 FOREIGN KEY (invited_by)
 REFERENCES app_users(id)
-ON DELETE SET NULL;
+ON DELETE CASCADE;
 
 -- Add foreign key for workspace_members.invited_by -> app_users.id (nullable)
 -- This ensures the user who sent an invitation must exist in app_users table

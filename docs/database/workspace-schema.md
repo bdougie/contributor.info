@@ -149,7 +149,7 @@ CREATE TABLE workspace_invitations (
 
 **Foreign Keys:**
 - `workspace_id` → `workspaces.id` ON DELETE CASCADE
-- `invited_by` → `app_users.id` ON DELETE SET NULL
+- `invited_by` → `app_users.id` ON DELETE CASCADE
 
 **Indexes:**
 - `idx_invitations_workspace` ON `workspace_id`
@@ -234,7 +234,7 @@ app_users (id)
         │   ├─→ repositories (repository_id, CASCADE)
         │   └─→ app_users (added_by, SET NULL)
         ├── workspace_invitations
-        │   └─→ app_users (invited_by, SET NULL)
+        │   └─→ app_users (invited_by, CASCADE)
         └── workspace_metrics_cache
 ```
 
@@ -244,6 +244,7 @@ app_users (id)
 - When a user (`app_users`) is deleted:
   - Their owned workspaces are deleted
   - Their workspace memberships are deleted
+  - Invitations they sent are deleted
 - When a workspace is deleted:
   - All members are removed
   - All repository associations are removed
@@ -251,10 +252,10 @@ app_users (id)
   - All cached metrics are removed
 
 **ON DELETE SET NULL:**
-- When a user who invited someone is deleted:
-  - The invitation record remains, but `invited_by` is set to NULL
+- When a user who invited a workspace member is deleted:
+  - The membership record remains, but `invited_by` is set to NULL (historical tracking)
 - When a user who added a repository is deleted:
-  - The repository association remains, but `added_by` is set to NULL
+  - The repository association remains, but `added_by` is set to NULL (historical tracking)
 
 ---
 
@@ -271,13 +272,13 @@ app_users (id)
 
 ### Invitation Roles
 
-Invitation roles map to workspace member roles:
+Invitations use a subset of workspace member roles. The `owner` role cannot be assigned via invitation (only through workspace creation):
 
-| Invitation Role | Maps to Member Role |
-|-----------------|---------------------|
-| `admin` | `owner` or `maintainer` |
-| `editor` | `contributor` |
-| `viewer` | `contributor` (read-only) |
+| Invitation Role | Resulting Member Role | Notes |
+|-----------------|----------------------|-------|
+| `admin` | `admin` | Full workspace management except deletion |
+| `editor` | `editor` | Can add/remove repositories |
+| `viewer` | `viewer` | Read-only access |
 
 ---
 
@@ -380,6 +381,19 @@ All workspace tables have RLS policies enforcing:
 2. Only workspace owners can delete workspaces
 3. Only owners/admins can invite members
 4. Only owners/admins can manage repositories
+
+**Important**: RLS policies use `auth.uid()` which returns `auth.users.id` (stored as `app_users.auth_user_id`). Since foreign keys reference `app_users.id` (which is different), RLS policies must map between these IDs:
+
+```sql
+-- Pattern used in RLS policies
+WHERE user_id = (SELECT id FROM app_users WHERE auth_user_id = auth.uid())
+```
+
+This mapping is necessary because:
+- `auth.uid()` → returns `auth.users.id` (UUID from Supabase Auth)
+- `app_users.auth_user_id` → stores this same value
+- `app_users.id` → separate primary key used in foreign keys
+- Without mapping, comparisons like `added_by = auth.uid()` fail
 
 ### Data Exposure
 
