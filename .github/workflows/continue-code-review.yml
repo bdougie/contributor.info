@@ -66,41 +66,59 @@ jobs:
           CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
           GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
         run: |
-          # Check if custom rules exist
-          if [ -d ".continue/rules" ]; then
-            echo "📋 Found custom rules in .continue/rules/"
-            RULES_CONTEXT="Apply the custom rules found in .continue/rules/ directory."
-          else
-            echo "ℹ️  No custom rules found. Using general best practices."
-            RULES_CONTEXT="Review for general best practices, security issues, and code quality."
+          # Validate API key is set
+          if [ -z "$CONTINUE_API_KEY" ]; then
+            echo "❌ Error: CONTINUE_API_KEY secret is not set"
+            echo "Please add your API key from https://hub.continue.dev/settings/api-keys"
+            exit 1
           fi
 
-          # Build review prompt
-          PROMPT="Review this pull request with the following context:
+          # Check if custom rules exist and build rules context
+          if [ -d ".continue/rules" ]; then
+            echo "📋 Found custom rules in .continue/rules/"
+            ls -la .continue/rules/
+            echo "## Custom Project Rules" > rules_context.md
+            cat .continue/rules/*.md >> rules_context.md
+          else
+            echo "ℹ️  No custom rules found. Using general best practices."
+            echo "Review for general best practices, security issues, and code quality." > rules_context.md
+          fi
 
-          ## Changed Files
-          $(cat changed_files.txt)
+          # Build review prompt file
+          echo "Review this pull request with the following context:" > review_prompt.txt
+          echo "" >> review_prompt.txt
+          echo "## Changed Files" >> review_prompt.txt
+          cat changed_files.txt >> review_prompt.txt
+          echo "" >> review_prompt.txt
+          echo "## Diff" >> review_prompt.txt
+          echo '```diff' >> review_prompt.txt
+          cat pr.diff >> review_prompt.txt
+          echo '```' >> review_prompt.txt
+          echo "" >> review_prompt.txt
+          echo "## Instructions" >> review_prompt.txt
+          cat rules_context.md >> review_prompt.txt
+          echo "" >> review_prompt.txt
+          echo "Provide:" >> review_prompt.txt
+          echo "1. A brief summary of changes" >> review_prompt.txt
+          echo "2. Key findings (potential issues, security concerns, suggestions)" >> review_prompt.txt
+          echo "3. Positive observations (good practices, improvements)" >> review_prompt.txt
+          echo "4. Specific actionable recommendations" >> review_prompt.txt
+          echo "" >> review_prompt.txt
+          echo "Format as markdown suitable for a GitHub pull request comment." >> review_prompt.txt
 
-          ## Diff
-          \`\`\`diff
-          $(cat pr.diff)
-          \`\`\`
-
-          ## Instructions
-          $RULES_CONTEXT
-
-          Provide:
-          1. A brief summary of changes
-          2. Key findings (potential issues, security concerns, suggestions)
-          3. Positive observations (good practices, improvements)
-          4. Specific actionable recommendations
-
-          Format as markdown suitable for a GitHub pull request comment."
-
-          # Run Continue CLI in headless mode
-          cn --config continuedev/code-reviewer \
-             -p "$PROMPT" \
-             --auto > review_output.md
+          # Run Continue CLI in headless mode with verbose logging
+          echo "🤖 Running Continue CLI review..."
+          if cn --config continuedev/code-reviewer --verbose < review_prompt.txt > review_output.md 2>&1; then
+            echo "✅ Review completed successfully"
+          else
+            EXIT_CODE=$?
+            echo "❌ Continue CLI failed with exit code $EXIT_CODE"
+            echo "Output:"
+            cat review_output.md || echo "No output file generated"
+            echo ""
+            echo "Check logs at ~/.continue/logs/cn.log for more details"
+            exit 1
+          fi
 
       - name: Post Review Comment
         env:
