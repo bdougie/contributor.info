@@ -2565,7 +2565,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
       return data;
     });
 
-    // Step 2: Fetch discussions using GraphQL
+    // Step 2: Fetch discussions using GraphQL with rate limit handling
     const discussionsData = await step.run('fetch-discussions', async () => {
       const githubToken = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
 
@@ -2576,6 +2576,130 @@ const captureRepositoryDiscussions = inngest.createFunction(
       const discussions: GitHubDiscussion[] = [];
       let hasNextPage = true;
       let cursor: string | null = null;
+      const DELAY_BETWEEN_CALLS_MS = 1000; // 1 second delay between API calls
+      const MAX_RETRIES = 3;
+
+      /**
+       * Sleep helper for adding delays between API calls
+       */
+      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      /**
+       * Fetch a single page of discussions with retry logic
+       */
+      const fetchPageWithRetry = async (retryCount = 0): Promise<{
+        discussions: GitHubDiscussion[];
+        pageInfo: { hasNextPage: boolean; endCursor: string };
+      }> => {
+        const query = `
+          query($owner: String!, $repo: String!, $cursor: String) {
+            repository(owner: $owner, name: $repo) {
+              discussions(first: 50, after: $cursor, orderBy: {field: CREATED_AT, direction: DESC}) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  id
+                  number
+                  title
+                  body
+                  url
+                  createdAt
+                  updatedAt
+                  locked
+                  author {
+                    login
+                    ... on User {
+                      databaseId
+                    }
+                  }
+                  category {
+                    id
+                    name
+                    description
+                    emoji
+                  }
+                  answer {
+                    id
+                    createdAt
+                    author {
+                      login
+                    }
+                  }
+                  upvoteCount
+                  comments {
+                    totalCount
+                  }
+                }
+              }
+            }
+          }
+        `;
+
+        const response: Response = await fetch('https://api.github.com/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${githubToken}`,
+          },
+          body: JSON.stringify({
+            query,
+            variables: {
+              owner: repository.owner,
+              repo: repository.name,
+              cursor,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`GitHub API error: ${await response.text()}`);
+        }
+
+        const result: {
+          data?: {
+            repository: {
+              discussions: {
+                nodes: GitHubDiscussion[];
+                pageInfo: { hasNextPage: boolean; endCursor: string };
+              };
+            };
+          };
+          errors?: Array<{ type?: string; code?: string; message: string }>;
+        } = await response.json();
+
+        // Handle rate limit errors with exponential backoff
+        if (result.errors) {
+          const rateLimitError = result.errors.find(
+            (err) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit'
+          );
+
+          if (rateLimitError && retryCount < MAX_RETRIES) {
+            const backoffDelay = Math.pow(2, retryCount) * 60000; // Exponential: 1min, 2min, 4min
+            console.log(
+              'Rate limit hit. Retrying in %d seconds (attempt %d/%d)',
+              backoffDelay / 1000,
+              retryCount + 1,
+              MAX_RETRIES
+            );
+            await sleep(backoffDelay);
+            return fetchPageWithRetry(retryCount + 1);
+          }
+
+          console.error('GraphQL errors: %s', JSON.stringify(result.errors, null, 2));
+          throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
+        }
+
+        if (!result.data) {
+          throw new Error('No data returned from GitHub API');
+        }
+
+        return {
+          discussions: result.data.repository.discussions.nodes,
+          pageInfo: result.data.repository.discussions.pageInfo,
+        };
+      };
 
       try {
         console.log('Fetching discussions for %s/%s', repository.owner, repository.name);
@@ -2583,91 +2707,13 @@ const captureRepositoryDiscussions = inngest.createFunction(
         while (hasNextPage && discussions.length < maxItems) {
           apiCallsUsed++;
 
-          const query = `
-            query($owner: String!, $repo: String!, $cursor: String) {
-              repository(owner: $owner, name: $repo) {
-                discussions(first: 50, after: $cursor, orderBy: {field: CREATED_AT, direction: DESC}) {
-                  pageInfo {
-                    hasNextPage
-                    endCursor
-                  }
-                  nodes {
-                    id
-                    number
-                    title
-                    body
-                    url
-                    createdAt
-                    updatedAt
-                    locked
-                    author {
-                      login
-                      ... on User {
-                        databaseId
-                      }
-                    }
-                    category {
-                      id
-                      name
-                      description
-                      emoji
-                    }
-                    answer {
-                      id
-                      createdAt
-                      author {
-                        login
-                      }
-                    }
-                    upvoteCount
-                    comments {
-                      totalCount
-                    }
-                  }
-                }
-              }
-            }
-          `;
-
-          const response: Response = await fetch('https://api.github.com/graphql', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${githubToken}`,
-            },
-            body: JSON.stringify({
-              query,
-              variables: {
-                owner: repository.owner,
-                repo: repository.name,
-                cursor,
-              },
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`GitHub API error: ${await response.text()}`);
+          // Add delay before API call (except for first call)
+          if (apiCallsUsed > 1) {
+            console.log('Waiting %d ms before next API call...', DELAY_BETWEEN_CALLS_MS);
+            await sleep(DELAY_BETWEEN_CALLS_MS);
           }
 
-          const result: {
-            data: {
-              repository: {
-                discussions: {
-                  nodes: GitHubDiscussion[];
-                  pageInfo: { hasNextPage: boolean; endCursor: string };
-                };
-              };
-            };
-            errors?: unknown[];
-          } = await response.json();
-
-          if (result.errors) {
-            console.error('GraphQL errors: %s', JSON.stringify(result.errors, null, 2));
-            throw new Error(`GraphQL errors: ${JSON.stringify(result.errors)}`);
-          }
-
-          const pageDiscussions: GitHubDiscussion[] = result.data.repository.discussions.nodes;
-          const pageInfo: { hasNextPage: boolean; endCursor: string } = result.data.repository.discussions.pageInfo;
+          const { discussions: pageDiscussions, pageInfo } = await fetchPageWithRetry();
 
           discussions.push(...pageDiscussions);
           hasNextPage = pageInfo.hasNextPage;
@@ -2679,6 +2725,12 @@ const captureRepositoryDiscussions = inngest.createFunction(
             discussions.length
           );
         }
+
+        console.log(
+          'Completed fetching discussions: %d total, %d API calls used',
+          discussions.length,
+          apiCallsUsed
+        );
 
         return discussions;
       } catch (error: any) {
