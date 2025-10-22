@@ -29,13 +29,11 @@ A GitHub Action that performs AI-powered code reviews using Continue Agent on pu
 
 ### GitHub Configuration
 
-Store these as secrets/variables in your repository or organization:
-
-**Variables:**
-- `CONTINUE_APP_ID` - Your GitHub App ID
+Store these as secrets in your repository or organization:
 
 **Secrets:**
-- `CONTINUE_APP_PRIVATE_KEY` - Your GitHub App private key
+- `APP_ID` - Your GitHub App ID (from [codebunny](https://github.com/bdougie/codebunny))
+- `APP_PRIVATE_KEY` - Your GitHub App private key
 - `CONTINUE_API_KEY` - Your Continue API key
 
 ### Workflow Configuration
@@ -72,8 +70,8 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
         with:
-          app-id: ${{ vars.CONTINUE_APP_ID }}
-          private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
       
       # Run Continue Review with App token
       - name: Continue Review
@@ -136,8 +134,8 @@ You can limit the App token permissions:
   id: app-token
   uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
   with:
-    app-id: ${{ vars.CONTINUE_APP_ID }}
-    private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+    app-id: ${{ secrets.APP_ID }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY }}
     permissions: |
       contents: read
       pull-requests: write
@@ -153,8 +151,8 @@ For organizations with many repositories:
   id: app-token
   uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v2.0.0
   with:
-    app-id: ${{ vars.CONTINUE_APP_ID }}
-    private-key: ${{ secrets.CONTINUE_APP_PRIVATE_KEY }}
+    app-id: ${{ secrets.APP_ID }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY }}
     repositories: |
       repo1
       repo2
