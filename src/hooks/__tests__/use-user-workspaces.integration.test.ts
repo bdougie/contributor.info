@@ -77,9 +77,17 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     const mockFrom = vi.fn((table: string) => {
       const eqCalls: Array<[string, string]> = [];
 
+      // CRITICAL: Record query immediately when from() is called, not in maybeSingle()
+      // This ensures we capture ALL queries (workspaces, workspace_members, etc.)
+      // even if they don't reach maybeSingle(). Without this, the regression test
+      // would pass even if queries revert to using authUserId.
+      const queryRecord = { table, eqCalls };
+      queryCalls.push(queryRecord);
+
       const chainable = {
         select: vi.fn(() => chainable),
         eq: vi.fn((column: string, value: string) => {
+          // Record eq calls to the shared eqCalls array
           eqCalls.push([column, value]);
           return chainable;
         }),
@@ -87,8 +95,6 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
         order: vi.fn(() => chainable),
         limit: vi.fn(() => chainable),
         maybeSingle: vi.fn(async () => {
-          queryCalls.push({ table, eqCalls: [...eqCalls] });
-
           if (table === 'app_users') {
             // CRITICAL: This maps auth_user_id to app_users.id
             return { data: { id: appUserId }, error: null };
