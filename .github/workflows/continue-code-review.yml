@@ -107,8 +107,10 @@ jobs:
           echo "Format as markdown suitable for a GitHub pull request comment." >> review_prompt.txt
 
           # Run Continue CLI in headless mode with verbose logging
+          # Note: Not using --config flag as continuedev/code-reviewer doesn't exist
+          # Continue CLI will use default configuration
           echo "🤖 Running Continue CLI review..."
-          if cn --config continuedev/code-reviewer --verbose < review_prompt.txt > review_output.md 2>&1; then
+          if cn --verbose < review_prompt.txt > review_output.md 2>&1; then
             echo "✅ Review completed successfully"
           else
             EXIT_CODE=$?
