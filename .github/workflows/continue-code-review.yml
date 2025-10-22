@@ -1,0 +1,138 @@
+name: Continue Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    # Only run on PRs or when @review-bot is mentioned
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@review-bot'))
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for better context
+
+      # Optional: Use GitHub App token for better rate limits
+      - name: Generate App Token
+        id: app-token
+        if: vars.APP_ID != ''
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Continue CLI
+        run: npm i -g @continuedev/cli
+
+      - name: Get Pull Request Details
+        id: pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+        run: |
+          # Get pull request number and details
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER=${{ github.event.pull_request.number }}
+          else
+            PR_NUMBER=$(jq -r .issue.number "$GITHUB_EVENT_PATH")
+          fi
+
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get pull request diff
+          gh pr diff $PR_NUMBER > pr.diff
+
+          # Get changed files
+          gh pr view $PR_NUMBER --json files -q '.files[].path' > changed_files.txt
+
+      - name: Run Continue Review
+        env:
+          CONTINUE_API_KEY: ${{ secrets.CONTINUE_API_KEY }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+        run: |
+          # Check if custom rules exist
+          if [ -d ".continue/rules" ]; then
+            echo "📋 Found custom rules in .continue/rules/"
+            RULES_CONTEXT="Apply the custom rules found in .continue/rules/ directory."
+          else
+            echo "ℹ️  No custom rules found. Using general best practices."
+            RULES_CONTEXT="Review for general best practices, security issues, and code quality."
+          fi
+
+          # Build review prompt
+          PROMPT="Review this pull request with the following context:
+
+          ## Changed Files
+          $(cat changed_files.txt)
+
+          ## Diff
+          \`\`\`diff
+          $(cat pr.diff)
+          \`\`\`
+
+          ## Instructions
+          $RULES_CONTEXT
+
+          Provide:
+          1. A brief summary of changes
+          2. Key findings (potential issues, security concerns, suggestions)
+          3. Positive observations (good practices, improvements)
+          4. Specific actionable recommendations
+
+          Format as markdown suitable for a GitHub pull request comment."
+
+          # Run Continue CLI in headless mode
+          cn --config continuedev/code-reviewer \
+             -p "$PROMPT" \
+             --auto > review_output.md
+
+      - name: Post Review Comment
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+        run: |
+          # Add header
+          cat > review_comment.md <<'EOF'
+          ## 🤖 AI Code Review
+
+          EOF
+
+          # Add review content
+          cat review_output.md >> review_comment.md
+
+          # Add footer
+          cat >> review_comment.md <<'EOF'
+
+          ---
+          *Powered by [Continue](https://continue.dev) • Need a focused review? Comment `@review-bot check for [specific concern]`*
+          EOF
+
+          # Check for existing review comment
+          EXISTING_COMMENT=$(gh pr view ${{ steps.pr.outputs.pr_number }} \
+            --json comments -q '.comments[] | select(.body | contains("🤖 AI Code Review")) | .id' | head -1)
+
+          if [ -n "$EXISTING_COMMENT" ]; then
+            echo "Updating existing comment..."
+            gh api --method PATCH \
+              "repos/${{ github.repository }}/issues/comments/$EXISTING_COMMENT" \
+              -f body="$(cat review_comment.md)"
+          else
+            echo "Creating new comment..."
+            gh pr comment ${{ steps.pr.outputs.pr_number }} \
+              --body-file review_comment.md
+          fi
