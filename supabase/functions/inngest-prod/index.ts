@@ -133,16 +133,24 @@ async function githubRequest(path: string, token?: string): Promise<any> {
   return response.json();
 }
 
-// GraphQL helper
+// GraphQL helper with rate limit handling
 async function githubGraphQL(
   query: string,
   variables: Record<string, any> = {},
   token?: string,
+  retryCount = 0,
 ): Promise<any> {
   const githubToken = token || Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN');
   if (!githubToken) {
     throw new NonRetriableError('GitHub token not configured');
   }
+
+  const MAX_RETRIES = 3;
+
+  /**
+   * Sleep helper for retry delays
+   */
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
@@ -158,7 +166,25 @@ async function githubGraphQL(
   }
 
   const data = await response.json();
+
+  // Handle rate limit errors with exponential backoff
   if (data.errors) {
+    const rateLimitError = data.errors.find(
+      (err: any) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit'
+    );
+
+    if (rateLimitError && retryCount < MAX_RETRIES) {
+      const backoffDelay = Math.pow(2, retryCount) * 60000; // Exponential: 1min, 2min, 4min
+      console.log(
+        'GraphQL rate limit hit. Retrying in %d seconds (attempt %d/%d)',
+        backoffDelay / 1000,
+        retryCount + 1,
+        MAX_RETRIES
+      );
+      await sleep(backoffDelay);
+      return githubGraphQL(query, variables, token, retryCount + 1);
+    }
+
     throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
   }
 
