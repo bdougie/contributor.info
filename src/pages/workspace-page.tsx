@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
+import { getAppUserId } from '@/lib/auth-helpers';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_RANGE_DAYS, getStartDateForTimeRange } from '@/lib/utils/time-range';
 import {
@@ -357,23 +358,26 @@ function WorkspacePage() {
         return;
       }
 
+      // Get app_users.id for workspace ownership and membership checks
+      const appUserId = await getAppUserId();
+
       // Check if current user is the workspace owner
-      if (user && workspaceData.owner_id === user.id) {
+      if (appUserId && workspaceData.owner_id === appUserId) {
         setIsWorkspaceOwner(true);
       } else {
         setIsWorkspaceOwner(false);
       }
 
       // Fetch current member info and member count
-      if (user) {
+      if (appUserId) {
         const { data: memberData } = await supabase
           .from('workspace_members')
           .select('*')
           .eq('workspace_id', workspaceData.id)
-          .eq('user_id', user.id)
+          .eq('user_id', appUserId)
           .maybeSingle();
 
-        if (memberData) {
+        if (memberData && user) {
           // Fetch user details for the current member
           const { data: userData } = await supabase
             .from('app_users')

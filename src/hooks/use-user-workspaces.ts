@@ -106,7 +106,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
               data: { session },
             } = await supabase.auth.getSession();
             if (!session) {
-          logger.log('[Workspace] No session found, user is not authenticated');
+              logger.log('[Workspace] No session found, user is not authenticated');
               setWorkspaces([]);
               setLoading(false);
               hasInitialLoadRef.current = true;
@@ -165,19 +165,38 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
       logger.log('[Workspace] User authenticated, fetching workspaces...');
 
+      // First, get the app_users.id for this authenticated user
+      // user.id is auth_user_id, but workspace tables use app_users.id
+      const { data: appUser, error: appUserError } = await supabase
+        .from('app_users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+
+      if (appUserError || !appUser) {
+        logger.error('[Workspace] Failed to find app_users record:', appUserError?.message);
+        setWorkspaces([]);
+        setLoading(false);
+        hasInitialLoadRef.current = true;
+        return;
+      }
+
+      const appUserId = appUser.id;
+      logger.log('[Workspace] Found app_user id for auth user');
+
       // Fetch workspaces where user is owner or member
       // First try to get workspaces where user is the owner
       const { data: ownedWorkspaces } = await supabase
         .from('workspaces')
         .select('id')
-        .eq('owner_id', user.id)
+        .eq('owner_id', appUserId)
         .eq('is_active', true);
 
       // Then get workspace IDs where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role')
-        .eq('user_id', user.id);
+        .eq('user_id', appUserId);
 
       if (memberError && !ownedWorkspaces) {
         throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
@@ -336,7 +355,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           }) || [];
 
         // Use current user's metadata if they're the owner
-        const ownerMetadata = workspace.owner_id === user.id ? user.user_metadata : null;
+        // Compare against appUserId since workspace.owner_id is app_users.id
+        const ownerMetadata = workspace.owner_id === appUserId ? user.user_metadata : null;
 
         return {
           id: workspace.id,

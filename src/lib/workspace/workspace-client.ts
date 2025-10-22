@@ -5,6 +5,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { workspaceMetricsCache } from '@/lib/cache/workspace-metrics-cache';
+import { getAppUserId } from '@/lib/auth-helpers';
 import type {
   WorkspaceWithStats,
   WorkspaceMetrics,
@@ -26,12 +27,9 @@ import type {
  * Create a new workspace
  */
 export async function createWorkspace(data: CreateWorkspaceRequest) {
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError) {
-    console.error('Failed to fetch user session:', userError);
-    throw new Error('Failed to authenticate. Please try logging in again.');
-  }
-  if (!user?.user) {
+  // Get app_users.id for workspace tables
+  const appUserId = await getAppUserId();
+  if (!appUserId) {
     throw new Error('User not authenticated. Please log in to create a workspace.');
   }
 
@@ -50,7 +48,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
       name: data.name,
       slug: slugData,
       description: data.description || null,
-      owner_id: user.user.id,
+      owner_id: appUserId,
       visibility: data.visibility || 'public',
       settings: data.settings || {},
     })
@@ -64,7 +62,7 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
   // Automatically add owner as a member
   const { error: memberError } = await supabase.from('workspace_members').insert({
     workspace_id: workspace.id,
-    user_id: user.user.id,
+    user_id: appUserId,
     role: 'owner',
     accepted_at: new Date().toISOString(),
   });
@@ -202,7 +200,7 @@ export async function deleteWorkspace(id: string) {
  * List workspaces with filters
  */
 export async function listWorkspaces(filters: WorkspaceFilters = {}) {
-  const { data: user } = await supabase.auth.getUser();
+  const appUserId = await getAppUserId();
 
   let query = supabase
     .from('workspaces')
@@ -220,12 +218,12 @@ export async function listWorkspaces(filters: WorkspaceFilters = {}) {
     query = query.eq('visibility', filters.visibility);
   }
 
-  if (filters.owned_by_me && user?.user) {
-    query = query.eq('owner_id', user.user.id);
+  if (filters.owned_by_me && appUserId) {
+    query = query.eq('owner_id', appUserId);
   }
 
-  if (filters.member_of && user?.user) {
-    query = query.or(`owner_id.eq.${user.user.id},workspace_members.user_id.eq.${user.user.id}`);
+  if (filters.member_of && appUserId) {
+    query = query.or(`owner_id.eq.${appUserId},workspace_members.user_id.eq.${appUserId}`);
   }
 
   if (filters.search) {
@@ -254,8 +252,8 @@ export async function listWorkspaces(filters: WorkspaceFilters = {}) {
  * Add repository to workspace
  */
 export async function addRepositoryToWorkspace(workspaceId: string, data: AddRepositoryRequest) {
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user?.user) {
+  const appUserId = await getAppUserId();
+  if (!appUserId) {
     throw new Error('User not authenticated');
   }
 
@@ -264,7 +262,7 @@ export async function addRepositoryToWorkspace(workspaceId: string, data: AddRep
     .insert({
       workspace_id: workspaceId,
       repository_id: data.repository_id,
-      added_by: user.user.id,
+      added_by: appUserId,
       notes: data.notes || null,
       tags: data.tags || [],
       is_pinned: data.is_pinned || false,
@@ -365,8 +363,8 @@ export async function listWorkspaceRepositories(
  * Invite member to workspace
  */
 export async function inviteMemberToWorkspace(workspaceId: string, data: InviteMemberRequest) {
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user?.user) {
+  const appUserId = await getAppUserId();
+  if (!appUserId) {
     throw new Error('User not authenticated');
   }
 
@@ -376,7 +374,7 @@ export async function inviteMemberToWorkspace(workspaceId: string, data: InviteM
       workspace_id: workspaceId,
       email: data.email,
       role: data.role,
-      invited_by: user.user.id,
+      invited_by: appUserId,
     })
     .select()
     .maybeSingle();
@@ -396,8 +394,8 @@ export async function inviteMemberToWorkspace(workspaceId: string, data: InviteM
  * Accept workspace invitation
  */
 export async function acceptInvitation(invitationToken: string) {
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError || !user?.user) {
+  const appUserId = await getAppUserId();
+  if (!appUserId) {
     throw new Error('User not authenticated');
   }
 
@@ -432,7 +430,7 @@ export async function acceptInvitation(invitationToken: string) {
     .from('workspace_members')
     .insert({
       workspace_id: invitation.workspace_id,
-      user_id: user.user.id,
+      user_id: appUserId,
       role: invitation.role,
       invited_by: invitation.invited_by,
       invited_at: invitation.invited_at,
@@ -513,12 +511,8 @@ export async function removeMemberFromWorkspace(workspaceId: string, userId: str
  * Get user's role in workspace
  */
 export async function getUserWorkspaceRole(workspaceId: string): Promise<WorkspaceRole | null> {
-  const { data: user, error: userError } = await supabase.auth.getUser();
-  if (userError) {
-    console.error('Failed to fetch user session:', userError);
-    return null;
-  }
-  if (!user?.user) {
+  const appUserId = await getAppUserId();
+  if (!appUserId) {
     return null;
   }
 
@@ -530,7 +524,7 @@ export async function getUserWorkspaceRole(workspaceId: string): Promise<Workspa
     .eq('id', workspaceId)
     .single();
 
-  if (workspace?.owner_id === user.user.id) {
+  if (workspace?.owner_id === appUserId) {
     return 'owner';
   }
 
@@ -540,7 +534,7 @@ export async function getUserWorkspaceRole(workspaceId: string): Promise<Workspa
     .from('workspace_members')
     .select('role')
     .eq('workspace_id', workspaceId)
-    .eq('user_id', user.user.id)
+    .eq('user_id', appUserId)
     .single();
 
   return member?.role || null;
