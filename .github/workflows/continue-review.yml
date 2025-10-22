@@ -1,4 +1,4 @@
-name: Continue Agent Code Review
+name: CodeBunny Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
@@ -14,12 +14,12 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
-    # Run on PRs automatically, or when triggered by @continue-agent in comments
+    # Run on PRs automatically, or when triggered by @codebunny in comments
     if: |
       github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
-       contains(github.event.comment.body, '@continue-agent')) ||
+       contains(github.event.comment.body, '@codebunny')) ||
       github.event_name == 'workflow_dispatch'
 
     permissions:
@@ -38,7 +38,7 @@ jobs:
             COMMENT_BODY='${{ github.event.comment.body }}'
             echo "Comment Preview (first 100 chars): ${COMMENT_BODY:0:100}..."
             echo "Comment Author: ${{ github.event.comment.user.login }}"
-            echo "Contains @continue-agent: ${{ contains(github.event.comment.body, '@continue-agent') }}"
+            echo "Contains @codebunny: ${{ contains(github.event.comment.body, '@codebunny') }}"
           fi
           echo "Repository: ${{ github.repository }}"
           echo "PR/Issue Number: ${{ github.event.issue.number || github.event.pull_request.number }}"
@@ -67,11 +67,11 @@ jobs:
             echo "GitHub App token successfully generated"
           fi
 
-      # Run Continue Review with App authentication
-      - name: Run Continue Review
-        uses: ./actions/continue-review
+      # Run CodeBunny Review with App authentication
+      - name: CodeBunny Review
+        uses: bdougie/codebunny@main
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           continue-api-key: ${{ secrets.CONTINUE_API_KEY }}
-          continue-org: 'continuedev' # Continue's organization
-          continue-config: 'continuedev/review-bot' # Continue's pr review agent
+          continue-org: ${{ vars.CONTINUE_ORG }}
+          continue-config: ${{ vars.CONTINUE_CONFIG }}
