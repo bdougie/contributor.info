@@ -1,10 +1,10 @@
-# Continue Agent Workflows
+# CodeBunny Workflows
 
-This document describes how the Continue Agent responds to different GitHub events and mentions.
+This document describes how CodeBunny responds to different GitHub events and mentions.
 
 ## Workflow Separation
 
-The Continue Agent operates through two distinct workflows, each with a specific purpose:
+CodeBunny operates through two distinct workflows, each with a specific purpose:
 
 ### 1. Issue Triage (`continue-triage.yml`)
 
@@ -15,7 +15,7 @@ The Continue Agent operates through two distinct workflows, each with a specific
 - Issues edited  
 - Issues reopened
 - Scheduled (hourly for issues without labels)
-- `@continue-agent` mentions in **issue comments**
+- `@codebunny` mentions in **issue comments**
 
 **Responsibilities**:
 - Analyzes issue content against project rules
@@ -27,18 +27,18 @@ The Continue Agent operates through two distinct workflows, each with a specific
 **Key Features**:
 - Detects video content and requests written descriptions
 - Identifies insufficient context (<50 characters) and asks for details
-- Responds to user prompts via `@continue-agent` mentions
+- Responds to user prompts via `@codebunny` mentions
 - Sanitizes user input by removing mention text
 
 ### 2. Pull Request Review (`continue-review.yml`)
 
-**Purpose**: Provide automated code review for pull requests.
+**Purpose**: Provide automated code review for pull requests using [CodeBunny](https://github.com/bdougie/codebunny).
 
 **Triggers**:
 - Pull requests opened
 - Pull requests synchronized (new commits)
 - Pull requests marked ready for review
-- `@continue-agent` mentions in **PR comments only**
+- `@codebunny` mentions in **PR comments only**
 
 **Responsibilities**:
 - Reviews code changes against project rules
@@ -55,28 +55,28 @@ if (!context.payload.issue?.pull_request) {
 }
 ```
 
-## Using @continue-agent
+## Using @codebunny
 
 ### In Issues
-Mention `@continue-agent` in an issue comment to:
+Mention `@codebunny` in an issue comment to:
 - Request re-triage with additional context
 - Ask for help categorizing the issue
 - Provide clarification after initial triage
 
 Example:
 ```
-@continue-agent this is actually a security issue affecting the authentication system
+@codebunny this is actually a security issue affecting the authentication system
 ```
 
 ### In Pull Requests
-Mention `@continue-agent` in a PR comment to:
+Mention `@codebunny` in a PR comment to:
 - Request a code review
 - Ask for specific feedback
 - Get suggestions for improvements
 
 Example:
 ```
-@continue-agent please review the performance implications of these changes
+@codebunny please review the performance implications of these changes
 ```
 
 ## Important Notes
@@ -101,7 +101,9 @@ Example:
 ## Configuration Files
 
 - **Workflows**: `.github/workflows/continue-triage.yml`, `.github/workflows/continue-review.yml`
-- **Actions**: `actions/continue-triage/`, `actions/continue-review/`
+- **Actions**:
+  - Triage: `actions/continue-triage/`
+  - Review: Uses [CodeBunny](https://github.com/bdougie/codebunny) from GitHub Marketplace
 - **Rules**: `.continue/rules/*.md` (shared by both workflows)
 
 ## Troubleshooting
