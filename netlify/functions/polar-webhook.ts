@@ -2,6 +2,7 @@ import { Handler } from '@netlify/functions';
 import { Webhooks } from '@polar-sh/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../src/types/supabase';
+import { WorkspaceBackfillService } from '../../src/services/workspace-backfill.service';
 
 // Polar addon product IDs
 const POLAR_ADDON_PRODUCT_IDS = {
@@ -26,7 +27,7 @@ async function triggerWorkspaceBackfill(
   retentionDays: number = 365
 ) {
   try {
-    console.log('Triggering workspace backfill for user:', userId);
+    console.log('Triggering workspace backfill for user: %s', userId);
 
     // Get all workspaces owned by this user
     const { data: workspaces, error: workspacesError } = await supabase
@@ -40,11 +41,11 @@ async function triggerWorkspaceBackfill(
     }
 
     if (!workspaces || workspaces.length === 0) {
-      console.log('No workspaces found for user:', userId);
+      console.log('No workspaces found for user: %s', userId);
       return;
     }
 
-    console.log(`Found ${workspaces.length} workspaces for user ${userId}`);
+    console.log('Found %d workspaces for user %s', workspaces.length, userId);
 
     // Get the addon record
     const { data: addon } = await supabase
@@ -87,14 +88,28 @@ async function triggerWorkspaceBackfill(
         continue;
       }
 
-      console.log('Created backfill job:', job.id);
+      console.log('Created backfill job: %s', job.id);
 
-      // TODO: Queue the actual backfill processing
-      // This will be implemented in the WorkspaceBackfillService
-      // For now, just log that the job was created
+      // Trigger the actual backfill processing through WorkspaceBackfillService
+      try {
+        await WorkspaceBackfillService.triggerWorkspaceBackfill(
+          workspace.id,
+          retentionDays,
+          addon?.id
+        );
+        console.log('Successfully triggered backfill for workspace: %s', workspace.id);
+      } catch (backfillError) {
+        console.error(
+          'Error triggering backfill processing for workspace %s:',
+          workspace.id,
+          backfillError
+        );
+        // Job record already created, so errors here won't block webhook completion
+        // The job will remain in 'pending' status and can be retried manually
+      }
     }
 
-    console.log('Workspace backfill triggered successfully for user:', userId);
+    console.log('Workspace backfill triggered successfully for user: %s', userId);
   } catch (error) {
     console.error('Error triggering workspace backfill:', error);
   }
@@ -306,7 +321,7 @@ export const handler: Handler = async (event, context) => {
       // Log order for analytics
       const userId = order.metadata?.user_id as string;
       if (userId) {
-        console.log(`User ${userId} completed order ${order.id} for $${order.amount / 100}`);
+        console.log('User %s completed order %s for $%d', userId, order.id, order.amount / 100);
       }
     },
 

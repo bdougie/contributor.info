@@ -46,8 +46,16 @@ export class WorkspaceBackfillService {
     retentionDays: number = 365,
     subscriptionAddonId?: string
   ): Promise<string> {
+    // Input validation
+    if (!workspaceId || typeof workspaceId !== 'string') {
+      throw new Error('Valid workspaceId is required');
+    }
+    if (retentionDays < 1 || retentionDays > 3650) {
+      throw new Error('retentionDays must be between 1 and 3650 days (10 years)');
+    }
+
     try {
-      console.log('Starting workspace backfill for workspace:', workspaceId);
+      console.log('Starting workspace backfill for workspace: %s', workspaceId);
 
       // Get all repositories in the workspace
       const { data: repositories, error: reposError } = await supabase
@@ -61,7 +69,7 @@ export class WorkspaceBackfillService {
       }
 
       if (!repositories || repositories.length === 0) {
-        console.log('No repositories found in workspace:', workspaceId);
+        console.log('No repositories found in workspace: %s', workspaceId);
         throw new Error('No repositories found in workspace');
       }
 
@@ -73,7 +81,7 @@ export class WorkspaceBackfillService {
         subscriptionAddonId
       );
 
-      console.log(`Created backfill job ${jobId} for ${repositories.length} repositories`);
+      console.log('Created backfill job %s for %d repositories', jobId, repositories.length);
 
       // Queue backfill for each repository
       for (const repo of repositories) {
@@ -85,7 +93,7 @@ export class WorkspaceBackfillService {
         started_at: new Date().toISOString(),
       });
 
-      console.log('Workspace backfill queued successfully for job:', jobId);
+      console.log('Workspace backfill queued successfully for job: %s', jobId);
       return jobId;
     } catch (error) {
       console.error('Error triggering workspace backfill:', error);
@@ -164,9 +172,9 @@ export class WorkspaceBackfillService {
         ],
       });
 
-      console.log(`Queued repository ${repositoryId} for backfill in job ${jobId}`);
+      console.log('Queued repository %s for backfill in job %s', repositoryId, jobId);
     } catch (error) {
-      console.error(`Error queuing repository ${repositoryId}:`, error);
+      console.error('Error queuing repository %s:', repositoryId, error);
 
       // Mark repository as failed in progress table
       await this.updateRepositoryProgress(jobId, repositoryId, {
@@ -259,7 +267,7 @@ export class WorkspaceBackfillService {
       // Increment completed count and check if job is done
       await this.incrementCompletedRepositories(jobId);
 
-      console.log(`Repository ${repositoryId} completed in job ${jobId}`);
+      console.log('Repository %s completed in job %s', repositoryId, jobId);
     } catch (error) {
       console.error('Error completing repository backfill:', error);
       throw error;
@@ -294,7 +302,7 @@ export class WorkspaceBackfillService {
     if (totalProcessed >= job.total_repositories) {
       updates.status = 'completed';
       updates.completed_at = new Date().toISOString();
-      console.log(`Backfill job ${jobId} completed successfully`);
+      console.log('Backfill job %s completed successfully', jobId);
     }
 
     await this.updateJobStatus(jobId, updates.status as BackfillJobStatus['status'], updates);
@@ -328,7 +336,7 @@ export class WorkspaceBackfillService {
     if (totalProcessed >= job.total_repositories) {
       updates.status = newFailed === job.total_repositories ? 'failed' : 'completed';
       updates.completed_at = new Date().toISOString();
-      console.log(`Backfill job ${jobId} completed with ${newFailed} failures`);
+      console.log('Backfill job %s completed with %d failures', jobId, newFailed);
     }
 
     await this.updateJobStatus(jobId, updates.status as BackfillJobStatus['status'], updates);
@@ -344,7 +352,7 @@ export class WorkspaceBackfillService {
     dataType?: string
   ): Promise<void> {
     try {
-      console.error(`Backfill error for repository ${repositoryId}:`, error);
+      console.error('Backfill error for repository %s:', repositoryId, error);
 
       // Get current progress
       const { data: progress } = await supabase
@@ -405,7 +413,7 @@ export class WorkspaceBackfillService {
       // Re-queue the repository
       await this.queueRepositoryBackfill(repositoryId, job.workspace_id, jobId, job.retention_days);
 
-      console.log(`Retry queued for repository ${repositoryId} in job ${jobId}`);
+      console.log('Retry queued for repository %s in job %s', repositoryId, jobId);
     } catch (error) {
       console.error('Error retrying failed repository:', error);
       throw error;
@@ -483,6 +491,6 @@ export class WorkspaceBackfillService {
       completed_at: new Date().toISOString(),
     });
 
-    console.log(`Backfill job ${jobId} canceled`);
+    console.log('Backfill job %s canceled', jobId);
   }
 }
