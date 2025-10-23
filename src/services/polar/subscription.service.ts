@@ -372,10 +372,27 @@ export class SubscriptionService {
    */
   static async hasExtendedRetention(userId: string): Promise<boolean> {
     try {
+      // First get the subscription for this user
+      const { data: subscription, error: subError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (subError) {
+        console.error('Error fetching subscription:', subError);
+        return false;
+      }
+
+      if (!subscription) {
+        return false;
+      }
+
+      // Then check if this subscription has the extended retention addon
       const { data, error } = await supabase
         .from('subscription_addons')
         .select('id')
-        .eq('subscription_id', userId)
+        .eq('subscription_id', subscription.id)
         .eq('addon_type', 'extended_data_retention')
         .eq('status', 'active')
         .maybeSingle();

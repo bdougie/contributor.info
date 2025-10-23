@@ -59,6 +59,24 @@ async function triggerWorkspaceBackfill(
     for (const workspace of workspaces) {
       console.log('Creating backfill job for workspace:', workspace.name);
 
+      // Check for existing pending/in_progress jobs to prevent duplicates (idempotency)
+      const { data: existingJob } = await supabase
+        .from('workspace_backfill_jobs')
+        .select('id, status')
+        .eq('workspace_id', workspace.id)
+        .eq('subscription_addon_id', addon?.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle();
+
+      if (existingJob) {
+        console.log(
+          'Skipping duplicate job creation - existing job %s with status %s',
+          existingJob.id,
+          existingJob.status
+        );
+        continue;
+      }
+
       // Get repository count for this workspace
       const { count: repoCount } = await supabase
         .from('workspace_repositories')
@@ -214,15 +232,20 @@ export const handler: Handler = async (event, context) => {
             .maybeSingle();
 
           if (sub) {
-            await supabase.from('subscription_addons').upsert({
-              subscription_id: sub.id,
-              addon_type: 'extended_data_retention',
-              addon_product_id: subscription.product_id,
-              retention_days: 365,
-              status: 'active',
-              purchased_at: new Date().toISOString(),
-              activated_at: new Date().toISOString(),
-            });
+            await supabase.from('subscription_addons').upsert(
+              {
+                subscription_id: sub.id,
+                addon_type: 'extended_data_retention',
+                addon_product_id: subscription.product_id,
+                retention_days: 365,
+                status: 'active',
+                purchased_at: new Date().toISOString(),
+                activated_at: new Date().toISOString(),
+              },
+              {
+                onConflict: 'subscription_id,addon_type',
+              }
+            );
 
             // Trigger workspace backfill
             await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);

@@ -276,9 +276,37 @@ export class WorkspaceBackfillService {
 
   /**
    * Increment the completed repositories count and check if job is complete
+   * Uses atomic SQL increment to prevent race conditions
    */
   private static async incrementCompletedRepositories(jobId: string): Promise<void> {
-    // Get current job state
+    // Atomically increment completed_repositories and fetch the updated state
+    const { data: job, error: updateError } = await supabase.rpc(
+      'increment_completed_repositories',
+      {
+        p_job_id: jobId,
+      }
+    );
+
+    if (updateError) {
+      console.error('Error incrementing completed repositories:', updateError);
+      // Fallback to manual increment if RPC doesn't exist yet
+      await this.manualIncrementCompleted(jobId);
+      return;
+    }
+
+    // Check if job is complete based on returned state
+    if (job && job.completed_repositories + job.failed_repositories >= job.total_repositories) {
+      await this.updateJobStatus(jobId, 'completed', {
+        completed_at: new Date().toISOString(),
+      });
+      console.log('Backfill job %s completed successfully', jobId);
+    }
+  }
+
+  /**
+   * Fallback manual increment (non-atomic, for backwards compatibility)
+   */
+  private static async manualIncrementCompleted(jobId: string): Promise<void> {
     const { data: job, error: fetchError } = await supabase
       .from('workspace_backfill_jobs')
       .select('completed_repositories, failed_repositories, total_repositories')
@@ -293,16 +321,13 @@ export class WorkspaceBackfillService {
     const newCompleted = job.completed_repositories + 1;
     const totalProcessed = newCompleted + job.failed_repositories;
 
-    // Update completed count
     const updates: Record<string, unknown> = {
       completed_repositories: newCompleted,
     };
 
-    // Check if job is complete
     if (totalProcessed >= job.total_repositories) {
       updates.status = 'completed';
       updates.completed_at = new Date().toISOString();
-      console.log('Backfill job %s completed successfully', jobId);
     }
 
     await this.updateJobStatus(jobId, updates.status as BackfillJobStatus['status'], updates);
@@ -310,9 +335,35 @@ export class WorkspaceBackfillService {
 
   /**
    * Increment the failed repositories count
+   * Uses atomic SQL increment to prevent race conditions
    */
   private static async incrementFailedRepositories(jobId: string): Promise<void> {
-    // Get current job state
+    // Atomically increment failed_repositories and fetch the updated state
+    const { data: job, error: updateError } = await supabase.rpc('increment_failed_repositories', {
+      p_job_id: jobId,
+    });
+
+    if (updateError) {
+      console.error('Error incrementing failed repositories:', updateError);
+      // Fallback to manual increment if RPC doesn't exist yet
+      await this.manualIncrementFailed(jobId);
+      return;
+    }
+
+    // Check if job is complete based on returned state
+    if (job && job.completed_repositories + job.failed_repositories >= job.total_repositories) {
+      const status = job.failed_repositories === job.total_repositories ? 'failed' : 'completed';
+      await this.updateJobStatus(jobId, status, {
+        completed_at: new Date().toISOString(),
+      });
+      console.log('Backfill job %s completed with %d failures', jobId, job.failed_repositories);
+    }
+  }
+
+  /**
+   * Fallback manual increment for failed count (non-atomic, for backwards compatibility)
+   */
+  private static async manualIncrementFailed(jobId: string): Promise<void> {
     const { data: job, error: fetchError } = await supabase
       .from('workspace_backfill_jobs')
       .select('completed_repositories, failed_repositories, total_repositories')
@@ -327,16 +378,13 @@ export class WorkspaceBackfillService {
     const newFailed = job.failed_repositories + 1;
     const totalProcessed = job.completed_repositories + newFailed;
 
-    // Update failed count
     const updates: Record<string, unknown> = {
       failed_repositories: newFailed,
     };
 
-    // Check if job is complete (even with failures)
     if (totalProcessed >= job.total_repositories) {
       updates.status = newFailed === job.total_repositories ? 'failed' : 'completed';
       updates.completed_at = new Date().toISOString();
-      console.log('Backfill job %s completed with %d failures', jobId, newFailed);
     }
 
     await this.updateJobStatus(jobId, updates.status as BackfillJobStatus['status'], updates);
