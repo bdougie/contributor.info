@@ -464,7 +464,8 @@ export class SubscriptionService {
 }
 
 // Polar Addon Product IDs
+// Note: These must be configured via environment variables
+// See .env.example for VITE_POLAR_PRODUCT_ID_EXTENDED_RETENTION
 export const POLAR_ADDON_PRODUCTS = {
-  EXTENDED_DATA_RETENTION:
-    import.meta.env.POLAR_PRODUCT_ID_EXTENDED_RETENTION || '65248b4b-20d8-4ad0-95c2-c39f80dc4d18',
+  EXTENDED_DATA_RETENTION: import.meta.env.VITE_POLAR_PRODUCT_ID_EXTENDED_RETENTION,
 };

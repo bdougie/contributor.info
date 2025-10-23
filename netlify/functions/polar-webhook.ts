@@ -219,38 +219,57 @@ export const handler: Handler = async (event, context) => {
         subscription.product_id === POLAR_ADDON_PRODUCT_IDS.EXTENDED_DATA_RETENTION;
 
       if (isExtendedRetentionAddon && subscription.status === 'active') {
-        console.log('Extended Data Retention addon detected for subscription:', subscription.id);
+        console.log('Extended Data Retention addon detected for subscription: %s', subscription.id);
 
         // Get user ID from subscription metadata
         const userId = subscription.metadata?.user_id as string;
-        if (userId) {
-          // Create addon record in database
-          const { data: sub } = await supabase
-            .from('subscriptions')
-            .select('id')
-            .eq('polar_subscription_id', subscription.id)
-            .maybeSingle();
-
-          if (sub) {
-            await supabase.from('subscription_addons').upsert(
-              {
-                subscription_id: sub.id,
-                addon_type: 'extended_data_retention',
-                addon_product_id: subscription.product_id,
-                retention_days: 365,
-                status: 'active',
-                purchased_at: new Date().toISOString(),
-                activated_at: new Date().toISOString(),
-              },
-              {
-                onConflict: 'subscription_id,addon_type',
-              }
-            );
-
-            // Trigger workspace backfill
-            await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
-          }
+        if (!userId) {
+          console.error('No user_id in subscription metadata for addon purchase');
+          return;
         }
+
+        // Get internal subscription ID using Polar subscription ID
+        const { data: sub, error: subError } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('polar_subscription_id', subscription.id)
+          .maybeSingle();
+
+        if (subError) {
+          console.error('Error fetching subscription for addon: %s', subError.message);
+          return;
+        }
+
+        if (!sub) {
+          console.error('No subscription found for polar_subscription_id: %s', subscription.id);
+          return;
+        }
+
+        // Create addon record with error handling
+        const { error: addonError } = await supabase.from('subscription_addons').upsert(
+          {
+            subscription_id: sub.id,
+            addon_type: 'extended_data_retention',
+            addon_product_id: subscription.product_id,
+            retention_days: 365,
+            status: 'active',
+            purchased_at: new Date().toISOString(),
+            activated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'subscription_id,addon_type',
+          }
+        );
+
+        if (addonError) {
+          console.error('Error creating addon record: %s', addonError.message);
+          return;
+        }
+
+        console.log('Addon record created successfully for subscription: %s', sub.id);
+
+        // Trigger workspace backfill
+        await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
       }
 
       // Update subscription status in database
