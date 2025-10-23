@@ -3,12 +3,102 @@ import { Webhooks } from '@polar-sh/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../src/types/supabase';
 
+// Polar addon product IDs
+const POLAR_ADDON_PRODUCT_IDS = {
+  EXTENDED_DATA_RETENTION:
+    process.env.POLAR_PRODUCT_ID_EXTENDED_RETENTION || '65248b4b-20d8-4ad0-95c2-c39f80dc4d18',
+};
+
 // Initialize Supabase client with service role for webhook operations
 // Note: Environment variables are validated at runtime in the handler
 const supabase = createClient<Database>(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
+
+/**
+ * Trigger workspace backfill for a user's workspaces when addon is purchased
+ */
+async function triggerWorkspaceBackfill(
+  userId: string,
+  subscriptionId: string,
+  addonProductId: string,
+  retentionDays: number = 365
+) {
+  try {
+    console.log('Triggering workspace backfill for user:', userId);
+
+    // Get all workspaces owned by this user
+    const { data: workspaces, error: workspacesError } = await supabase
+      .from('workspaces')
+      .select('id, name')
+      .eq('owner_id', userId);
+
+    if (workspacesError) {
+      console.error('Error fetching workspaces:', workspacesError);
+      return;
+    }
+
+    if (!workspaces || workspaces.length === 0) {
+      console.log('No workspaces found for user:', userId);
+      return;
+    }
+
+    console.log(`Found ${workspaces.length} workspaces for user ${userId}`);
+
+    // Get the addon record
+    const { data: addon } = await supabase
+      .from('subscription_addons')
+      .select('id')
+      .eq('subscription_id', subscriptionId)
+      .eq('addon_product_id', addonProductId)
+      .maybeSingle();
+
+    // Create backfill jobs for each workspace
+    for (const workspace of workspaces) {
+      console.log('Creating backfill job for workspace:', workspace.name);
+
+      // Get repository count for this workspace
+      const { count: repoCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspace.id);
+
+      // Create workspace backfill job
+      const { data: job, error: jobError } = await supabase
+        .from('workspace_backfill_jobs')
+        .insert({
+          workspace_id: workspace.id,
+          subscription_addon_id: addon?.id,
+          retention_days: retentionDays,
+          status: 'pending',
+          total_repositories: repoCount || 0,
+          metadata: {
+            trigger_source: 'addon_purchase',
+            addon_product_id: addonProductId,
+            user_id: userId,
+          },
+        })
+        .select()
+        .maybeSingle();
+
+      if (jobError || !job) {
+        console.error('Error creating backfill job:', jobError);
+        continue;
+      }
+
+      console.log('Created backfill job:', job.id);
+
+      // TODO: Queue the actual backfill processing
+      // This will be implemented in the WorkspaceBackfillService
+      // For now, just log that the job was created
+    }
+
+    console.log('Workspace backfill triggered successfully for user:', userId);
+  } catch (error) {
+    console.error('Error triggering workspace backfill:', error);
+  }
+}
 
 // Define webhook handler with signature verification
 export const handler: Handler = async (event, context) => {
@@ -81,6 +171,41 @@ export const handler: Handler = async (event, context) => {
 
     onSubscriptionUpdated: async (subscription) => {
       console.log('Subscription updated:', subscription.id);
+
+      // Check if this update includes an addon purchase
+      // Note: Polar subscriptions can have multiple products/addons
+      const isExtendedRetentionAddon =
+        subscription.product_id === POLAR_ADDON_PRODUCT_IDS.EXTENDED_DATA_RETENTION;
+
+      if (isExtendedRetentionAddon && subscription.status === 'active') {
+        console.log('Extended Data Retention addon detected for subscription:', subscription.id);
+
+        // Get user ID from subscription metadata
+        const userId = subscription.metadata?.user_id as string;
+        if (userId) {
+          // Create addon record in database
+          const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('polar_subscription_id', subscription.id)
+            .maybeSingle();
+
+          if (sub) {
+            await supabase.from('subscription_addons').upsert({
+              subscription_id: sub.id,
+              addon_type: 'extended_data_retention',
+              addon_product_id: subscription.product_id,
+              retention_days: 365,
+              status: 'active',
+              purchased_at: new Date().toISOString(),
+              activated_at: new Date().toISOString(),
+            });
+
+            // Trigger workspace backfill
+            await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
+          }
+        }
+      }
 
       // Update subscription status in database
       await supabase

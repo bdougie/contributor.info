@@ -61,7 +61,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     },
     addons: {
       additionalWorkspace: 12, // $12 per additional workspace
-      extendedDataRetention: 10, // TBD pricing for extended retention
+      extendedDataRetention: 100, // $100/month for 365-day retention
     },
   },
   team: {
@@ -84,7 +84,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     addons: {
       additionalWorkspace: 12, // $12 per additional workspace
       additionalMember: 20, // $20 per additional member after 5
-      extendedDataRetention: 25, // TBD pricing for extended retention
+      extendedDataRetention: 100, // $100/month for 365-day retention
     },
   },
   // Enterprise tier for future expansion
@@ -366,4 +366,88 @@ export class SubscriptionService {
       }
     );
   }
+
+  /**
+   * Check if user has Extended Data Retention addon
+   */
+  static async hasExtendedRetention(userId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_addons')
+        .select('id')
+        .eq('subscription_id', userId)
+        .eq('addon_type', 'extended_data_retention')
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking extended retention addon:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Error checking extended retention:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get data retention days for a user (30 days default, 365 with addon)
+   */
+  static async getRetentionDays(userId: string): Promise<number> {
+    try {
+      const hasAddon = await this.hasExtendedRetention(userId);
+      return hasAddon ? 365 : 30;
+    } catch (error) {
+      console.error('Error getting retention days:', error);
+      return 30; // Safe default
+    }
+  }
+
+  /**
+   * Get all active addons for a user
+   */
+  static async getActiveAddons(userId: string): Promise<
+    Array<{
+      id: string;
+      addonType: string;
+      retentionDays?: number;
+      purchasedAt: string;
+    }>
+  > {
+    try {
+      const subscription = await this.getCurrentSubscription(userId);
+      if (!subscription) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('subscription_addons')
+        .select('*')
+        .eq('subscription_id', subscription.id)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Error fetching active addons:', error);
+        return [];
+      }
+
+      return (data || []).map((addon) => ({
+        id: addon.id,
+        addonType: addon.addon_type,
+        retentionDays: addon.retention_days,
+        purchasedAt: addon.purchased_at,
+      }));
+    } catch (error) {
+      console.error('Error getting active addons:', error);
+      return [];
+    }
+  }
 }
+
+// Polar Addon Product IDs
+export const POLAR_ADDON_PRODUCTS = {
+  EXTENDED_DATA_RETENTION:
+    import.meta.env.POLAR_PRODUCT_ID_EXTENDED_RETENTION || '65248b4b-20d8-4ad0-95c2-c39f80dc4d18',
+};
