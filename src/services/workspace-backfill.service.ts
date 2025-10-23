@@ -168,7 +168,7 @@ export class WorkspaceBackfillService {
           'comments',
           'reviews',
           'events',
-          'embeddings',
+          // Note: 'embeddings' omitted - no handler exists yet for this job type
         ],
       });
 
@@ -252,7 +252,7 @@ export class WorkspaceBackfillService {
         comments_count: counts.comments,
         reviews_count: counts.reviews,
         events_count: counts.events,
-        embeddings_count: counts.embeddings,
+        embeddings_count: counts.embeddings || 0, // Keep count but don't process yet
         data_types_completed: [
           'pull_requests',
           'issues',
@@ -260,7 +260,7 @@ export class WorkspaceBackfillService {
           'comments',
           'reviews',
           'events',
-          'embeddings',
+          // Note: 'embeddings' omitted until handler is implemented
         ],
       });
 

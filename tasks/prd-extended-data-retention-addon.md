@@ -244,11 +244,13 @@ const {
 - Link to purchase addon
 
 **Deliverables:**
-- ✅ Create progress component
-- ✅ Create status hook
-- ✅ Integrate into workspace settings
-- ✅ Add Storybook stories
-- ✅ Test real-time updates
+- ⏳ Create progress component (deferred to future PR)
+- ⏳ Create status hook (deferred to future PR)
+- ⏳ Integrate into workspace settings (deferred to future PR)
+- ⏳ Add Storybook stories (deferred to future PR)
+- ⏳ Test real-time updates (deferred to future PR)
+
+**Note:** UI components deferred to maintain focus on core backend functionality. Backend infrastructure complete and tested.
 
 ---
 
@@ -305,11 +307,13 @@ export async function syncHistoricalPRs(
 - Update database on completion
 
 **Deliverables:**
-- ✅ Create workflow file
-- ✅ Add dispatch trigger
-- ✅ Implement parallel processing
-- ✅ Add rate limit handling
-- ✅ Test with test workspace
+- ⏳ Create workflow file (deferred - using existing queue system)
+- ⏳ Add dispatch trigger (deferred - webhook triggers service directly)
+- ✅ Implement parallel processing (via HybridQueueManager)
+- ✅ Add rate limit handling (inherited from queue system)
+- ⏳ Test with test workspace (pending production deployment)
+
+**Note:** GitHub Actions workflow deferred in favor of existing HybridQueueManager architecture which already handles job distribution and processing.
 
 ---
 
