@@ -179,15 +179,45 @@ export const handler: Handler = async (event, context) => {
     onSubscriptionCreated: async (subscription) => {
       console.log('Subscription created:', subscription.id);
 
-      // Get user ID from metadata
+      // Validate user ID
       const userId = subscription.metadata?.user_id as string;
       if (!userId) {
-        console.error('No user_id in subscription metadata');
-        return;
+        console.error('❌ No user_id in subscription metadata:', subscription.id);
+        throw new Error('Missing user_id in subscription metadata');
       }
 
-      // Update subscription in database
-      await supabase.from('subscriptions').upsert(
+      // Map tier and validate
+      const tier = mapProductToTier(subscription.product_id);
+      if (tier === 'free' && subscription.product_id) {
+        console.error(
+          '⚠️ Product ID mismatch! Product: %s, Expected Pro: %s, Expected Team: %s',
+          subscription.product_id,
+          process.env.POLAR_PRODUCT_ID_PRO,
+          process.env.POLAR_PRODUCT_ID_TEAM
+        );
+      }
+
+      // Get tier limits
+      const limits = getTierLimits(tier);
+
+      // Determine billing cycle
+      let billingCycle: string | null = null;
+      if (subscription.recurring_interval === 'year') {
+        billingCycle = 'yearly';
+      } else if (subscription.recurring_interval === 'month') {
+        billingCycle = 'monthly';
+      }
+
+      console.log(
+        'Creating subscription for user %s with tier %s (workspaces: %d, repos: %d)',
+        userId,
+        tier,
+        limits.max_workspaces,
+        limits.max_repos_per_workspace
+      );
+
+      // Database operation with error checking
+      const { error } = await supabase.from('subscriptions').upsert(
         {
           user_id: userId,
           polar_customer_id: subscription.customer_id,
@@ -198,7 +228,10 @@ export const handler: Handler = async (event, context) => {
             | 'past_due'
             | 'trialing'
             | 'inactive',
-          tier: mapProductToTier(subscription.product_id),
+          tier,
+          max_workspaces: limits.max_workspaces,
+          max_repos_per_workspace: limits.max_repos_per_workspace,
+          billing_cycle: billingCycle,
           current_period_start: subscription.current_period_start,
           current_period_end: subscription.current_period_end,
           created_at: subscription.created_at,
@@ -207,6 +240,19 @@ export const handler: Handler = async (event, context) => {
         {
           onConflict: 'user_id',
         }
+      );
+
+      // Check for errors
+      if (error) {
+        console.error('❌ Failed to create subscription:', error);
+        throw error; // Return error to Polar for retry
+      }
+
+      console.log(
+        '✅ Subscription created: { user_id: %s, tier: %s, status: %s }',
+        userId,
+        tier,
+        subscription.status
       );
     },
 
@@ -272,8 +318,30 @@ export const handler: Handler = async (event, context) => {
         await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
       }
 
-      // Update subscription status in database
-      await supabase
+      // Map tier and validate
+      const tier = mapProductToTier(subscription.product_id);
+      if (tier === 'free' && subscription.product_id) {
+        console.error(
+          '⚠️ Product ID mismatch on update! Product: %s, Expected Pro: %s, Expected Team: %s',
+          subscription.product_id,
+          process.env.POLAR_PRODUCT_ID_PRO,
+          process.env.POLAR_PRODUCT_ID_TEAM
+        );
+      }
+
+      // Get tier limits
+      const limits = getTierLimits(tier);
+
+      // Determine billing cycle
+      let billingCycle: string | null = null;
+      if (subscription.recurring_interval === 'year') {
+        billingCycle = 'yearly';
+      } else if (subscription.recurring_interval === 'month') {
+        billingCycle = 'monthly';
+      }
+
+      // Update subscription status in database with error checking
+      const { error: updateError } = await supabase
         .from('subscriptions')
         .update({
           status: subscription.status as
@@ -282,12 +350,27 @@ export const handler: Handler = async (event, context) => {
             | 'past_due'
             | 'trialing'
             | 'inactive',
-          tier: mapProductToTier(subscription.product_id),
+          tier,
+          max_workspaces: limits.max_workspaces,
+          max_repos_per_workspace: limits.max_repos_per_workspace,
+          billing_cycle: billingCycle,
           current_period_start: subscription.current_period_start,
           current_period_end: subscription.current_period_end,
           updated_at: new Date().toISOString(),
         })
         .eq('polar_subscription_id', subscription.id);
+
+      if (updateError) {
+        console.error('❌ Failed to update subscription:', updateError);
+        throw updateError;
+      }
+
+      console.log(
+        '✅ Subscription updated: %s (tier: %s, status: %s)',
+        subscription.id,
+        tier,
+        subscription.status
+      );
     },
 
     onSubscriptionCanceled: async (subscription) => {
@@ -385,5 +468,32 @@ function mapProductToTier(productId: string): string {
     [process.env.POLAR_PRODUCT_ID_TEAM || '']: 'team',
   };
 
-  return productTierMap[productId] || 'free';
+  const tier = productTierMap[productId];
+
+  // Log warning for unrecognized product IDs
+  if (!tier && productId) {
+    console.error('⚠️ Unknown product ID: %s', productId);
+    console.error('Configured product IDs:', {
+      pro: process.env.POLAR_PRODUCT_ID_PRO,
+      team: process.env.POLAR_PRODUCT_ID_TEAM,
+    });
+  }
+
+  return tier || 'free';
+}
+
+/**
+ * Get tier limits based on subscription tier
+ */
+function getTierLimits(tier: string): {
+  max_workspaces: number;
+  max_repos_per_workspace: number;
+} {
+  const tierLimits: Record<string, { max_workspaces: number; max_repos_per_workspace: number }> = {
+    pro: { max_workspaces: 1, max_repos_per_workspace: 3 },
+    team: { max_workspaces: 3, max_repos_per_workspace: 3 },
+    free: { max_workspaces: 0, max_repos_per_workspace: 0 },
+  };
+
+  return tierLimits[tier] || tierLimits.free;
 }

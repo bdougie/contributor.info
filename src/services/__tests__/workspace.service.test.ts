@@ -678,4 +678,208 @@ describe('WorkspaceService', () => {
       expect(result.statusCode).toBe(200);
     });
   });
+
+  describe('Subscription Status Filter (Issue #1105)', () => {
+    const mockUserId = 'user-123';
+    const mockWorkspaceData: CreateWorkspaceRequest = {
+      name: 'Test Workspace',
+      description: 'Test Description',
+      visibility: 'public',
+    };
+
+    it('should accept subscriptions with "active" status', async () => {
+      let callCount = 0;
+
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'subscriptions') {
+          // Mock active subscription
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: {
+                      tier: 'team',
+                      max_workspaces: 3,
+                      max_repos_per_workspace: 3,
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'workspaces') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'workspace-123',
+                    name: 'Test Workspace',
+                    tier: 'team',
+                    max_repositories: 3,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        return {} as MockQueryBuilder;
+      });
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as MockSupabaseResponse);
+
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.tier).toBe('team');
+    });
+
+    it('should accept subscriptions with "trialing" status', async () => {
+      let callCount = 0;
+
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'subscriptions') {
+          // Mock trialing subscription
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: {
+                      tier: 'pro',
+                      max_workspaces: 1,
+                      max_repos_per_workspace: 3,
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'workspaces') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'workspace-123',
+                    name: 'Test Workspace',
+                    tier: 'pro',
+                    max_repositories: 3,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        return {} as MockQueryBuilder;
+      });
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as MockSupabaseResponse);
+
+      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.tier).toBe('pro');
+    });
+
+    it('should use .in() with both active and trialing statuses', async () => {
+      let callCount = 0;
+      const inSpy = vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: {
+            tier: 'team',
+            max_workspaces: 3,
+            max_repos_per_workspace: 3,
+          },
+          error: null,
+        }),
+      });
+
+      vi.mocked(supabase.from).mockImplementation((table: string): MockQueryBuilder => {
+        if (table === 'workspaces' && callCount === 0) {
+          callCount++;
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                count: 0,
+                error: null,
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'subscriptions') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: inSpy,
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        if (table === 'workspaces') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'workspace-123',
+                    name: 'Test Workspace',
+                    tier: 'team',
+                    max_repositories: 3,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          } as MockQueryBuilder;
+        }
+        return {} as MockQueryBuilder;
+      });
+
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: 'test-workspace',
+        error: null,
+      } as MockSupabaseResponse);
+
+      await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+
+      // Verify that .in() was called with both 'active' and 'trialing'
+      expect(inSpy).toHaveBeenCalledWith('status', ['active', 'trialing']);
+    });
+  });
 });
