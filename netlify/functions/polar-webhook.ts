@@ -12,7 +12,7 @@ const POLAR_ADDON_PRODUCT_IDS = {
 // Initialize Supabase client with service role for webhook operations
 // Note: Environment variables are validated at runtime in the handler
 const supabase = createClient<Database>(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+  process.env.SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
@@ -108,6 +108,14 @@ export const handler: Handler = async (event, context) => {
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Webhook configuration error' }),
+    };
+  }
+
+  if (!process.env.SUPABASE_URL) {
+    console.error('SUPABASE_URL is not configured');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Database configuration error' }),
     };
   }
 
