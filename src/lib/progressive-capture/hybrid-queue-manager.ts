@@ -19,8 +19,16 @@ export interface JobData {
   timeRange?: number; // days
   prNumbers?: number[];
   maxItems?: number;
-  triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix';
+  triggerSource?: 'manual' | 'scheduled' | 'automatic' | 'auto-fix' | 'addon_purchase';
   metadata?: Record<string, unknown>;
+}
+
+export interface WorkspaceBackfillData {
+  workspaceId: string;
+  repositoryId: string;
+  jobId: string;
+  retentionDays: number;
+  dataTypes: string[];
 }
 
 export interface HybridJob {
@@ -782,6 +790,111 @@ export class HybridQueueManager {
       console.error('[HybridQueue] Exception fetching repository info:', error);
       return null;
     }
+  }
+
+  /**
+   * Queue workspace-level backfill for all data types
+   * Called when Extended Data Retention addon is purchased
+   */
+  static async queueWorkspaceBackfill(data: WorkspaceBackfillData): Promise<void> {
+    try {
+      const { workspaceId, repositoryId, jobId, retentionDays, dataTypes } = data;
+
+      logger.log(
+        '[HybridQueue] Queueing workspace backfill for repository %s (workspace: %s, job: %s, retention: %s days)',
+        repositoryId,
+        workspaceId,
+        jobId,
+        retentionDays
+      );
+
+      // Get repository info
+      const { data: repo, error: repoError } = await supabase
+        .from('repositories')
+        .select('owner, name')
+        .eq('id', repositoryId)
+        .maybeSingle();
+
+      if (repoError || !repo) {
+        throw new Error(`Repository ${repositoryId} not found: ${repoError?.message}`);
+      }
+
+      const repositoryName = `${repo.owner}/${repo.name}`;
+
+      // Route based on retention period
+      // Historical data (>90 days) goes to GitHub Actions
+      // Recent data and embeddings go to Inngest
+      const useGitHubActions = retentionDays > 90;
+
+      // Queue each data type
+      for (const dataType of dataTypes) {
+        try {
+          // Skip embeddings for GitHub Actions (will be processed after data capture)
+          if (dataType === 'embeddings' && useGitHubActions) {
+            logger.log(
+              '[HybridQueue] Skipping embeddings for GitHub Actions (will process via Inngest after data capture)'
+            );
+            continue;
+          }
+
+          // Map data type to job type
+          const jobType = this.mapDataTypeToJobType(dataType);
+
+          // Create job data
+          const jobData: JobData = {
+            repositoryId,
+            repositoryName,
+            timeRange: retentionDays,
+            triggerSource: 'addon_purchase',
+            metadata: {
+              workspace_id: workspaceId,
+              backfill_job_id: jobId,
+              data_type: dataType,
+              retention_days: retentionDays,
+              priority: 'high', // Addon purchases get high priority
+            },
+          };
+
+          // Queue job through normal routing (will respect processor determination)
+          const manager = new HybridQueueManager();
+          await manager.queueJob(jobType, jobData);
+
+          logger.log(
+            '[HybridQueue] Queued %s backfill for repository %s',
+            dataType,
+            repositoryName
+          );
+        } catch (error) {
+          console.error('[HybridQueue] Error queueing %s backfill:', dataType, error);
+          // Continue with other data types even if one fails
+        }
+      }
+
+      logger.log(
+        '[HybridQueue] Workspace backfill queued successfully for repository %s',
+        repositoryName
+      );
+    } catch (error) {
+      console.error('[HybridQueue] Error queueing workspace backfill:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Map data type names to job types for queueing
+   */
+  private static mapDataTypeToJobType(dataType: string): string {
+    const mapping: Record<string, string> = {
+      pull_requests: 'historical-pr-sync',
+      issues: 'repository-issues',
+      discussions: 'repository-discussions',
+      comments: 'comments',
+      reviews: 'reviews',
+      events: 'historical-pr-sync', // Events are part of PR sync
+      embeddings: 'embeddings',
+    };
+
+    return mapping[dataType] || dataType;
   }
 }
 

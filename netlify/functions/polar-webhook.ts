@@ -2,13 +2,136 @@ import { Handler } from '@netlify/functions';
 import { Webhooks } from '@polar-sh/nextjs';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../../src/types/supabase';
+import { WorkspaceBackfillService } from '../../src/services/workspace-backfill.service';
+
+// Polar addon product IDs
+const POLAR_ADDON_PRODUCT_IDS = {
+  EXTENDED_DATA_RETENTION:
+    process.env.POLAR_PRODUCT_ID_EXTENDED_RETENTION || '65248b4b-20d8-4ad0-95c2-c39f80dc4d18',
+};
 
 // Initialize Supabase client with service role for webhook operations
 // Note: Environment variables are validated at runtime in the handler
 const supabase = createClient<Database>(
-  process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+  process.env.SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
+
+/**
+ * Trigger workspace backfill for a user's workspaces when addon is purchased
+ */
+async function triggerWorkspaceBackfill(
+  userId: string,
+  subscriptionId: string,
+  addonProductId: string,
+  retentionDays: number = 365
+) {
+  try {
+    console.log('Triggering workspace backfill for user: %s', userId);
+
+    // Get all workspaces owned by this user
+    const { data: workspaces, error: workspacesError } = await supabase
+      .from('workspaces')
+      .select('id, name')
+      .eq('owner_id', userId);
+
+    if (workspacesError) {
+      console.error('Error fetching workspaces:', workspacesError);
+      return;
+    }
+
+    if (!workspaces || workspaces.length === 0) {
+      console.log('No workspaces found for user: %s', userId);
+      return;
+    }
+
+    console.log('Found %d workspaces for user %s', workspaces.length, userId);
+
+    // Get the addon record
+    const { data: addon } = await supabase
+      .from('subscription_addons')
+      .select('id')
+      .eq('subscription_id', subscriptionId)
+      .eq('addon_product_id', addonProductId)
+      .maybeSingle();
+
+    // Create backfill jobs for each workspace
+    for (const workspace of workspaces) {
+      console.log('Creating backfill job for workspace:', workspace.name);
+
+      // Check for existing pending/in_progress jobs to prevent duplicates (idempotency)
+      const { data: existingJob } = await supabase
+        .from('workspace_backfill_jobs')
+        .select('id, status')
+        .eq('workspace_id', workspace.id)
+        .eq('subscription_addon_id', addon?.id)
+        .in('status', ['pending', 'in_progress'])
+        .maybeSingle();
+
+      if (existingJob) {
+        console.log(
+          'Skipping duplicate job creation - existing job %s with status %s',
+          existingJob.id,
+          existingJob.status
+        );
+        continue;
+      }
+
+      // Get repository count for this workspace
+      const { count: repoCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspace.id);
+
+      // Create workspace backfill job
+      const { data: job, error: jobError } = await supabase
+        .from('workspace_backfill_jobs')
+        .insert({
+          workspace_id: workspace.id,
+          subscription_addon_id: addon?.id,
+          retention_days: retentionDays,
+          status: 'pending',
+          total_repositories: repoCount || 0,
+          metadata: {
+            trigger_source: 'addon_purchase',
+            addon_product_id: addonProductId,
+            user_id: userId,
+          },
+        })
+        .select()
+        .maybeSingle();
+
+      if (jobError || !job) {
+        console.error('Error creating backfill job:', jobError);
+        continue;
+      }
+
+      console.log('Created backfill job: %s', job.id);
+
+      // Trigger the actual backfill processing through WorkspaceBackfillService
+      try {
+        await WorkspaceBackfillService.triggerWorkspaceBackfill(
+          workspace.id,
+          retentionDays,
+          addon?.id
+        );
+        console.log('Successfully triggered backfill for workspace: %s', workspace.id);
+      } catch (backfillError) {
+        console.error(
+          'Error triggering backfill processing for workspace %s:',
+          workspace.id,
+          backfillError
+        );
+        // Job record already created, so errors here won't block webhook completion
+        // The job will remain in 'pending' status and can be retried manually
+      }
+    }
+
+    console.log('Workspace backfill triggered successfully for user: %s', userId);
+  } catch (error) {
+    console.error('Error triggering workspace backfill:', error);
+  }
+}
 
 // Define webhook handler with signature verification
 export const handler: Handler = async (event, context) => {
@@ -18,6 +141,14 @@ export const handler: Handler = async (event, context) => {
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Webhook configuration error' }),
+    };
+  }
+
+  if (!process.env.SUPABASE_URL) {
+    console.error('SUPABASE_URL is not configured');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Database configuration error' }),
     };
   }
 
@@ -81,6 +212,65 @@ export const handler: Handler = async (event, context) => {
 
     onSubscriptionUpdated: async (subscription) => {
       console.log('Subscription updated:', subscription.id);
+
+      // Check if this update includes an addon purchase
+      // Note: Polar subscriptions can have multiple products/addons
+      const isExtendedRetentionAddon =
+        subscription.product_id === POLAR_ADDON_PRODUCT_IDS.EXTENDED_DATA_RETENTION;
+
+      if (isExtendedRetentionAddon && subscription.status === 'active') {
+        console.log('Extended Data Retention addon detected for subscription: %s', subscription.id);
+
+        // Get user ID from subscription metadata
+        const userId = subscription.metadata?.user_id as string;
+        if (!userId) {
+          console.error('No user_id in subscription metadata for addon purchase');
+          return;
+        }
+
+        // Get internal subscription ID using Polar subscription ID
+        const { data: sub, error: subError } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('polar_subscription_id', subscription.id)
+          .maybeSingle();
+
+        if (subError) {
+          console.error('Error fetching subscription for addon: %s', subError.message);
+          return;
+        }
+
+        if (!sub) {
+          console.error('No subscription found for polar_subscription_id: %s', subscription.id);
+          return;
+        }
+
+        // Create addon record with error handling
+        const { error: addonError } = await supabase.from('subscription_addons').upsert(
+          {
+            subscription_id: sub.id,
+            addon_type: 'extended_data_retention',
+            addon_product_id: subscription.product_id,
+            retention_days: 365,
+            status: 'active',
+            purchased_at: new Date().toISOString(),
+            activated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'subscription_id,addon_type',
+          }
+        );
+
+        if (addonError) {
+          console.error('Error creating addon record: %s', addonError.message);
+          return;
+        }
+
+        console.log('Addon record created successfully for subscription: %s', sub.id);
+
+        // Trigger workspace backfill
+        await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
+      }
 
       // Update subscription status in database
       await supabase
@@ -173,7 +363,7 @@ export const handler: Handler = async (event, context) => {
       // Log order for analytics
       const userId = order.metadata?.user_id as string;
       if (userId) {
-        console.log(`User ${userId} completed order ${order.id} for $${order.amount / 100}`);
+        console.log('User %s completed order %s for $%d', userId, order.id, order.amount / 100);
       }
     },
 
