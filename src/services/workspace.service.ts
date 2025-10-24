@@ -116,11 +116,12 @@ export class WorkspaceService {
       }
 
       // Get user's subscription to determine tier and limits
+      // Include both 'active' and 'trialing' status to match subscription service pattern
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('tier, max_workspaces, max_repos_per_workspace')
         .eq('user_id', userId)
-        .eq('status', 'active')
+        .in('status', ['active', 'trialing'])
         .maybeSingle();
 
       // Determine tier and get limits from central source
