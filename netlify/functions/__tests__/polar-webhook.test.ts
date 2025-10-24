@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
 
 // Set up environment variables before importing handler
@@ -73,6 +73,19 @@ describe('Polar Webhook Handler', () => {
   let mockEvent: Partial<HandlerEvent>;
   let mockContext: Partial<HandlerContext>;
 
+  // Import the handler module once to populate capturedConfigs
+  beforeAll(async () => {
+    const { handler } = await import('../polar-webhook');
+    // Call handler once to trigger Webhooks() constructor which populates capturedConfigs
+    await handler(
+      {
+        body: JSON.stringify({ type: 'test' }),
+        headers: { 'x-polar-signature': 'test-signature' },
+      } as HandlerEvent,
+      {} as HandlerContext
+    );
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -96,10 +109,6 @@ describe('Polar Webhook Handler', () => {
     mockContext = {
       callbackWaitsForEmptyEventLoop: false,
     };
-  });
-
-  afterEach(() => {
-    vi.resetModules();
   });
 
   describe('Environment Variable Validation', () => {
@@ -160,8 +169,6 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Creation Handler', () => {
     it('should throw error when user_id is missing from metadata', async () => {
-      // Ensure the module is loaded
-      await import('../polar-webhook');
       const subscription = {
         id: 'sub_123',
         customer_id: 'cust_123',
@@ -335,11 +342,6 @@ describe('Polar Webhook Handler', () => {
   });
 
   describe('Subscription Update Handler', () => {
-    beforeAll(async () => {
-      // Import once for all tests in this describe
-      await import('../polar-webhook');
-    });
-
     it('should update subscription with error handling', async () => {
       const mockUpdate = vi.fn().mockResolvedValue({ data: {}, error: null });
       const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
@@ -419,11 +421,6 @@ describe('Polar Webhook Handler', () => {
   });
 
   describe('Tier Mapping', () => {
-    beforeAll(async () => {
-      // Import once for all tests in this describe
-      await import('../polar-webhook');
-    });
-
     it.each([
       ['prod_test_pro_123', 'pro', 1, 3],
       ['prod_test_team_456', 'team', 3, 3],
@@ -467,11 +464,6 @@ describe('Polar Webhook Handler', () => {
   });
 
   describe('Billing Cycle Mapping', () => {
-    beforeAll(async () => {
-      // Import once for all tests in this describe
-      await import('../polar-webhook');
-    });
-
     it.each([
       ['year', 'yearly'],
       ['month', 'monthly'],
