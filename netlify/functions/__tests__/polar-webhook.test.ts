@@ -17,11 +17,50 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => mockSupabase),
 }));
 
-// Mock Polar Webhooks
+// Import Polar webhook types
+import type {
+  WebhookSubscriptionCreatedPayload,
+  WebhookSubscriptionUpdatedPayload,
+  WebhookSubscriptionCanceledPayload,
+  WebhookSubscriptionRevokedPayload,
+  WebhookCustomerCreatedPayload,
+  WebhookCustomerUpdatedPayload,
+  WebhookOrderCreatedPayload,
+} from '@polar-sh/sdk/models/components';
+
+// Mock Polar Webhooks - capture config globally
 const mockWebhooksHandler = vi.fn();
-vi.mock('@polar-sh/nextjs', () => ({
-  Webhooks: vi.fn(() => mockWebhooksHandler),
-}));
+const capturedConfigs: Array<{
+  webhookSecret: string;
+  onError?: (error: Error) => Promise<{ statusCode: number; body: string }>;
+  onSubscriptionCreated?: (
+    subscription: WebhookSubscriptionCreatedPayload['data']
+  ) => Promise<void>;
+  onSubscriptionUpdated?: (
+    subscription: WebhookSubscriptionUpdatedPayload['data']
+  ) => Promise<void>;
+  onSubscriptionCanceled?: (
+    subscription: WebhookSubscriptionCanceledPayload['data']
+  ) => Promise<void>;
+  onSubscriptionRevoked?: (
+    subscription: WebhookSubscriptionRevokedPayload['data']
+  ) => Promise<void>;
+  onCustomerCreated?: (customer: WebhookCustomerCreatedPayload['data']) => Promise<void>;
+  onCustomerUpdated?: (customer: WebhookCustomerUpdatedPayload['data']) => Promise<void>;
+  onOrderCreated?: (order: WebhookOrderCreatedPayload['data']) => Promise<void>;
+  onPayload?: (
+    payload: WebhookSubscriptionCreatedPayload | WebhookOrderCreatedPayload
+  ) => Promise<void>;
+}> = [];
+
+vi.mock('@polar-sh/nextjs', () => {
+  return {
+    Webhooks: vi.fn((config) => {
+      capturedConfigs.push(config);
+      return mockWebhooksHandler;
+    }),
+  };
+});
 
 // Mock WorkspaceBackfillService
 vi.mock('../../../src/services/workspace-backfill.service', () => ({
@@ -34,7 +73,7 @@ describe('Polar Webhook Handler', () => {
   let mockEvent: Partial<HandlerEvent>;
   let mockContext: Partial<HandlerContext>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
 
     // Reset Supabase mocks
@@ -121,9 +160,8 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Creation Handler', () => {
     it('should throw error when user_id is missing from metadata', async () => {
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
+      // Ensure the module is loaded
+      await import('../polar-webhook');
       const subscription = {
         id: 'sub_123',
         customer_id: 'cust_123',
@@ -136,7 +174,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await expect(webhooksConfig.onSubscriptionCreated(subscription)).rejects.toThrow(
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error(
+          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await expect(config.onSubscriptionCreated(subscription)).rejects.toThrow(
         'Missing user_id in subscription metadata'
       );
     });
@@ -144,9 +188,6 @@ describe('Polar Webhook Handler', () => {
     it('should successfully create subscription with all required fields', async () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
-
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
 
       const subscription = {
         id: 'sub_123',
@@ -160,7 +201,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await webhooksConfig.onSubscriptionCreated(subscription);
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error(
+          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await config.onSubscriptionCreated(subscription);
 
       expect(mockSupabase.from).toHaveBeenCalledWith('subscriptions');
       expect(mockUpsert).toHaveBeenCalledWith(
@@ -182,9 +229,6 @@ describe('Polar Webhook Handler', () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
       const subscription = {
         id: 'sub_123',
         customer_id: 'cust_123',
@@ -197,7 +241,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'year',
       };
 
-      await webhooksConfig.onSubscriptionCreated(subscription);
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error(
+          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await config.onSubscriptionCreated(subscription);
 
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -215,9 +265,6 @@ describe('Polar Webhook Handler', () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       const subscription = {
@@ -232,7 +279,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await webhooksConfig.onSubscriptionCreated(subscription);
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error(
+          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await config.onSubscriptionCreated(subscription);
 
       // Should log warning about unknown product ID
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -259,9 +312,6 @@ describe('Polar Webhook Handler', () => {
         .mockResolvedValue({ data: null, error: { message: 'Database error' } });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
       const subscription = {
         id: 'sub_123',
         customer_id: 'cust_123',
@@ -274,13 +324,22 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await expect(webhooksConfig.onSubscriptionCreated(subscription)).rejects.toEqual({
+      const config = capturedConfigs[capturedConfigs.length - 1];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error('onSubscriptionCreated not initialized');
+      }
+      await expect(config.onSubscriptionCreated(subscription)).rejects.toEqual({
         message: 'Database error',
       });
     });
   });
 
   describe('Subscription Update Handler', () => {
+    beforeAll(async () => {
+      // Import once for all tests in this describe
+      await import('../polar-webhook');
+    });
+
     it('should update subscription with error handling', async () => {
       const mockUpdate = vi.fn().mockResolvedValue({ data: {}, error: null });
       const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
@@ -291,9 +350,6 @@ describe('Polar Webhook Handler', () => {
       });
 
       mockUpdate.mockReturnValue({ eq: mockEq });
-
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
 
       const subscription = {
         id: 'sub_123',
@@ -307,7 +363,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await webhooksConfig.onSubscriptionUpdated(subscription);
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionUpdated) {
+        throw new Error(
+          `onSubscriptionUpdated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await config.onSubscriptionUpdated(subscription);
 
       expect(mockSupabase.from).toHaveBeenCalledWith('subscriptions');
       expect(mockUpdate).toHaveBeenCalledWith(
@@ -332,9 +394,6 @@ describe('Polar Webhook Handler', () => {
 
       mockUpdate.mockReturnValue({ eq: mockEq });
 
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
-
       const subscription = {
         id: 'sub_123',
         customer_id: 'cust_123',
@@ -347,13 +406,24 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: 'month',
       };
 
-      await expect(webhooksConfig.onSubscriptionUpdated(subscription)).rejects.toEqual({
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionUpdated) {
+        throw new Error(
+          `onSubscriptionUpdated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await expect(config.onSubscriptionUpdated(subscription)).rejects.toEqual({
         message: 'Update failed',
       });
     });
   });
 
   describe('Tier Mapping', () => {
+    beforeAll(async () => {
+      // Import once for all tests in this describe
+      await import('../polar-webhook');
+    });
+
     it.each([
       ['prod_test_pro_123', 'pro', 1, 3],
       ['prod_test_team_456', 'team', 3, 3],
@@ -363,9 +433,6 @@ describe('Polar Webhook Handler', () => {
       async (productId, expectedTier, expectedWorkspaces, expectedRepos) => {
         const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
         mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
-
-        const { Webhooks } = await import('@polar-sh/nextjs');
-        const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
 
         const subscription = {
           id: 'sub_123',
@@ -379,7 +446,13 @@ describe('Polar Webhook Handler', () => {
           recurring_interval: 'month',
         };
 
-        await webhooksConfig.onSubscriptionCreated(subscription);
+        const config = capturedConfigs[0];
+        if (!config?.onSubscriptionCreated) {
+          throw new Error(
+            `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+          );
+        }
+        await config.onSubscriptionCreated(subscription);
 
         expect(mockUpsert).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -394,6 +467,11 @@ describe('Polar Webhook Handler', () => {
   });
 
   describe('Billing Cycle Mapping', () => {
+    beforeAll(async () => {
+      // Import once for all tests in this describe
+      await import('../polar-webhook');
+    });
+
     it.each([
       ['year', 'yearly'],
       ['month', 'monthly'],
@@ -401,9 +479,6 @@ describe('Polar Webhook Handler', () => {
     ])('should map recurring_interval %s to billing_cycle %s', async (interval, expected) => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
-
-      const { Webhooks } = await import('@polar-sh/nextjs');
-      const webhooksConfig = (Webhooks as ReturnType<typeof vi.fn>).mock.calls[0][0];
 
       const subscription = {
         id: 'sub_123',
@@ -417,7 +492,13 @@ describe('Polar Webhook Handler', () => {
         recurring_interval: interval,
       };
 
-      await webhooksConfig.onSubscriptionCreated(subscription);
+      const config = capturedConfigs[0];
+      if (!config?.onSubscriptionCreated) {
+        throw new Error(
+          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
+        );
+      }
+      await config.onSubscriptionCreated(subscription);
 
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({

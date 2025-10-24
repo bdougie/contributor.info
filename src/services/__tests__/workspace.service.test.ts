@@ -55,7 +55,7 @@ describe('WorkspaceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
                     error: null,
@@ -122,7 +122,7 @@ describe('WorkspaceService', () => {
       const subscriptionMock = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
               maybeSingle: vi.fn().mockResolvedValue({
                 data: {
                   tier: 'pro',
@@ -211,7 +211,7 @@ describe('WorkspaceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
                     error: null,
@@ -271,7 +271,7 @@ describe('WorkspaceService', () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
                   maybeSingle: vi.fn().mockResolvedValue({
                     data: null,
                     error: null,
