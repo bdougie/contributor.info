@@ -54,13 +54,25 @@ describe('useHasPaidWorkspace', () => {
 
   it('should return true when user owns a pro workspace', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: mockUser },
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    const fromMock = {
+    // Mock app_users query first
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Mock workspaces query second
+    const workspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({
@@ -69,9 +81,9 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    vi.mocked(supabase.from).mockReturnValue(
-      fromMock as unknown as ReturnType<typeof supabase.from>
-    );
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
+      .mockReturnValueOnce(workspacesMock as unknown as ReturnType<typeof supabase.from>);
 
     const { result } = renderHook(() => useHasPaidWorkspace());
 
@@ -80,18 +92,31 @@ describe('useHasPaidWorkspace', () => {
     });
 
     expect(result.current.hasPaidWorkspace).toBe(true);
+    expect(supabase.from).toHaveBeenCalledWith('app_users');
     expect(supabase.from).toHaveBeenCalledWith('workspaces');
   });
 
   it('should return true when user owns a team workspace', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: mockUser },
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    const fromMock = {
+    // Mock app_users query first
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Mock workspaces query second
+    const workspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({
@@ -100,9 +125,9 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    vi.mocked(supabase.from).mockReturnValue(
-      fromMock as unknown as ReturnType<typeof supabase.from>
-    );
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
+      .mockReturnValueOnce(workspacesMock as unknown as ReturnType<typeof supabase.from>);
 
     const { result } = renderHook(() => useHasPaidWorkspace());
 
@@ -115,13 +140,25 @@ describe('useHasPaidWorkspace', () => {
 
   it('should return true when user owns an enterprise workspace', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: mockUser },
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    const fromMock = {
+    // Mock app_users query first
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Mock workspaces query second
+    const workspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({
@@ -130,9 +167,9 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    vi.mocked(supabase.from).mockReturnValue(
-      fromMock as unknown as ReturnType<typeof supabase.from>
-    );
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
+      .mockReturnValueOnce(workspacesMock as unknown as ReturnType<typeof supabase.from>);
 
     const { result } = renderHook(() => useHasPaidWorkspace());
 
@@ -145,13 +182,24 @@ describe('useHasPaidWorkspace', () => {
 
   it('should return false when user owns only free workspace', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: mockUser },
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    // First call for owned workspaces - returns empty
+    // First call for app_users lookup
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Second call for owned workspaces - returns empty
     const ownedWorkspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -161,7 +209,7 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    // Second call for member workspaces - returns empty
+    // Third call for member workspaces - returns empty
     const memberWorkspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -172,6 +220,7 @@ describe('useHasPaidWorkspace', () => {
     };
 
     vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
       .mockReturnValueOnce(ownedWorkspacesMock as unknown as ReturnType<typeof supabase.from>)
       .mockReturnValueOnce(memberWorkspacesMock as unknown as ReturnType<typeof supabase.from>);
 
@@ -186,13 +235,24 @@ describe('useHasPaidWorkspace', () => {
 
   it('should return true when user is member of a paid workspace', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
 
     vi.mocked(supabase.auth.getUser).mockResolvedValue({
       data: { user: mockUser },
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    // First call for owned workspaces - returns empty
+    // First call for app_users lookup
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Second call for owned workspaces - returns empty
     const ownedWorkspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -202,7 +262,7 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    // Second call for member workspaces - returns paid workspace
+    // Third call for member workspaces - returns paid workspace
     const memberWorkspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -218,6 +278,7 @@ describe('useHasPaidWorkspace', () => {
     };
 
     vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
       .mockReturnValueOnce(ownedWorkspacesMock as unknown as ReturnType<typeof supabase.from>)
       .mockReturnValueOnce(memberWorkspacesMock as unknown as ReturnType<typeof supabase.from>);
 
@@ -228,6 +289,7 @@ describe('useHasPaidWorkspace', () => {
     });
 
     expect(result.current.hasPaidWorkspace).toBe(true);
+    expect(supabase.from).toHaveBeenCalledWith('app_users');
     expect(supabase.from).toHaveBeenCalledWith('workspace_members');
   });
 
@@ -239,14 +301,15 @@ describe('useHasPaidWorkspace', () => {
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    const fromMock = {
+    // Mock app_users query to throw error
+    const appUsersMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      in: vi.fn().mockRejectedValue(new Error('Database error')),
+      maybeSingle: vi.fn().mockRejectedValue(new Error('Database error')),
     };
 
     vi.mocked(supabase.from).mockReturnValue(
-      fromMock as unknown as ReturnType<typeof supabase.from>
+      appUsersMock as unknown as ReturnType<typeof supabase.from>
     );
 
     // Mock console.error to avoid test output noise
@@ -269,6 +332,7 @@ describe('useHasPaidWorkspace', () => {
 
   it('should refetch on auth state change', async () => {
     const mockUser = { id: 'user-123', email: 'test@example.com' } as Partial<User>;
+    const mockAppUserId = 'app-user-123';
     let authCallback: ((event: AuthChangeEvent) => void) | null = null;
 
     // Capture the auth state change callback
@@ -289,7 +353,18 @@ describe('useHasPaidWorkspace', () => {
       error: null,
     } as unknown as Awaited<ReturnType<typeof supabase.auth.getUser>>);
 
-    const fromMock = {
+    // Mock app_users query
+    const appUsersMock = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { id: mockAppUserId },
+        error: null,
+      }),
+    };
+
+    // Mock workspaces query
+    const workspacesMock = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({
@@ -298,9 +373,9 @@ describe('useHasPaidWorkspace', () => {
       }),
     };
 
-    vi.mocked(supabase.from).mockReturnValue(
-      fromMock as unknown as ReturnType<typeof supabase.from>
-    );
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
+      .mockReturnValueOnce(workspacesMock as unknown as ReturnType<typeof supabase.from>);
 
     const { result } = renderHook(() => useHasPaidWorkspace());
 
@@ -310,6 +385,12 @@ describe('useHasPaidWorkspace', () => {
 
     // Clear mock calls
     vi.mocked(supabase.auth.getUser).mockClear();
+    vi.mocked(supabase.from).mockClear();
+
+    // Reset mocks for second call after auth state change
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(appUsersMock as unknown as ReturnType<typeof supabase.from>)
+      .mockReturnValueOnce(workspacesMock as unknown as ReturnType<typeof supabase.from>);
 
     // Trigger auth state change
     if (authCallback) {
