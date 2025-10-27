@@ -33,6 +33,20 @@ export class Inngest {
   }
 }
 
+/**
+ * Mock NonRetriableError for browser builds
+ * Inngest function definitions import this, but functions don't run in browser
+ */
+export class NonRetriableError extends Error {
+  constructor(message: string, _cause?: Error) {
+    super(message);
+    this.name = 'NonRetriableError';
+    throw new Error(
+      'Inngest functions cannot run in browser. This error should never be thrown in browser context.'
+    );
+  }
+}
+
 export const inngest: InngestStub = {
   send: () => {
     throw new Error(
