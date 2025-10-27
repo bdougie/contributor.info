@@ -42,6 +42,8 @@ export default defineConfig(() => ({
       '@': path.resolve(__dirname, './src'),
       react: path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      // Use browser stub for inngest in production builds to avoid Node.js module issues
+      inngest: path.resolve(__dirname, './src/lib/inngest/browser-stub.ts'),
     },
     dedupe: ['react', 'react-dom'],
     // Narrow extensions list to reduce filesystem checks
