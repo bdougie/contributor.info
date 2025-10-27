@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { inngest } from '../inngest/client';
+import { sendInngestEvent } from '../inngest/client-safe';
 import { logger } from '../logger';
 import { GitHubActionsQueueManager, GitHubActionsJobInput } from './github-actions-queue-manager';
 import { DataCaptureQueueManager } from './queue-manager';
@@ -335,28 +335,15 @@ export class HybridQueueManager {
     jobTracker: unknown
   ): Promise<void> {
     try {
-      // If we're in the browser, use the client-safe sendInngestEvent function
-      if (typeof window !== 'undefined') {
-        const { sendInngestEvent } = await import('../inngest/client-safe');
-        await sendInngestEvent({
-          name: eventName,
-          data: eventData as Record<string, unknown>,
-        });
-        logger.log(
-          `[HybridQueue] Event ${eventName} queued successfully via client-safe API for`,
-          (eventData as { repositoryId?: string }).repositoryId
-        );
-      } else {
-        // Server-side: send directly to Inngest
-        await inngest.send({
-          name: eventName,
-          data: eventData,
-        });
-        logger.log(
-          `[HybridQueue] Event ${eventName} sent successfully for`,
-          (eventData as { repositoryId?: string }).repositoryId
-        );
-      }
+      // Use client-safe sendInngestEvent for both browser and server
+      await sendInngestEvent({
+        name: eventName,
+        data: eventData as Record<string, unknown>,
+      });
+      logger.log(
+        `[HybridQueue] Event ${eventName} queued successfully for`,
+        (eventData as { repositoryId?: string }).repositoryId
+      );
     } catch (error) {
       console.error('[HybridQueue] Failed to send event %s:', eventName, error);
       (jobTracker as { failure?: (msg: string) => void })?.failure?.(

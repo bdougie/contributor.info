@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Lock, Loader2 } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
-import { inngest } from '@/lib/inngest/client';
+import { sendInngestEvent } from '@/lib/inngest/client-safe';
 import { supabase } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
@@ -236,54 +236,25 @@ export function UnifiedSyncButton({
 
       syncPromises.push(ghDatapipePromise);
 
-      // 2. Trigger Inngest sync for immediate processing
-      // Try client-side first, then fallback to server-side if that fails
-      const inngestPromise = inngest
-        .send({
-          name: 'capture/repository.sync.graphql',
-          data: {
-            repositoryId: repoId,
-            repositoryName: `${owner}/${repo}`,
-            days: 7, // Last 7 days for quick sync
-            priority: 'critical',
-            reason: isAutomatic ? 'auto' : 'manual',
-            triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
-          },
-        })
+      // 2. Trigger Inngest sync for immediate processing using client-safe wrapper
+      const inngestPromise = sendInngestEvent({
+        name: 'capture/repository.sync.graphql',
+        data: {
+          repositoryId: repoId,
+          repositoryName: `${owner}/${repo}`,
+          days: 7, // Last 7 days for quick sync
+          priority: 'critical',
+          reason: isAutomatic ? 'auto' : 'manual',
+          triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
+        },
+      })
         .then((result) => {
-          console.log('Inngest direct client job started:', result);
+          console.log('Inngest job started:', result);
           return result;
         })
-        .catch(async (err) => {
-          console.warn('Inngest direct client failed, trying server-side fallback:', err.message);
-
-          // Fallback to server-side Inngest trigger
-          try {
-            const serverResponse = await fetch('/api/trigger-inngest-sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                repositoryId: repoId,
-                repositoryName: `${owner}/${repo}`,
-                days: 7,
-                priority: 'critical',
-                reason: isAutomatic ? 'auto' : 'manual',
-                triggeredBy: isAutomatic ? 'auto_page_load' : 'user_manual_sync',
-              }),
-            });
-
-            if (serverResponse.ok) {
-              const result = await serverResponse.json();
-              console.log('Inngest server-side fallback job started:', result);
-              return result;
-            } else {
-              console.error('Server-side Inngest fallback also failed:', serverResponse.status);
-              return null;
-            }
-          } catch (serverErr) {
-            console.error('Server-side Inngest fallback error:', serverErr);
-            return null;
-          }
+        .catch((err) => {
+          console.error('Inngest sync failed:', err);
+          return null;
         });
 
       syncPromises.push(inngestPromise);

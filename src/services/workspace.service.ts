@@ -11,7 +11,7 @@ import {
 } from '@/lib/validations/workspace';
 import { WorkspacePermissionService } from './workspace-permissions.service';
 import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
-import { inngest } from '@/lib/inngest/client';
+import { sendInngestEvent } from '@/lib/inngest/client-safe';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -623,7 +623,7 @@ export class WorkspaceService {
         await workspacePrioritySync.markAsWorkspaceRepo(data.repository_id);
 
         // Trigger immediate priority sync job (async, non-blocking)
-        await inngest.send({
+        await sendInngestEvent({
           name: 'workspace/priorities.sync',
           data: {
             repositoryId: data.repository_id,
@@ -648,7 +648,7 @@ export class WorkspaceService {
           .maybeSingle();
 
         if (repository) {
-          await inngest.send({
+          await sendInngestEvent({
             name: 'workspace.repository.changed',
             data: {
               workspaceId,
@@ -752,7 +752,7 @@ export class WorkspaceService {
           .maybeSingle();
 
         if (repository) {
-          await inngest.send({
+          await sendInngestEvent({
             name: 'workspace.repository.changed',
             data: {
               workspaceId,

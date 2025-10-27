@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw, Lock, Loader2 } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
-import { inngest } from '@/lib/inngest/client';
+import { sendInngestEvent } from '@/lib/inngest/client-safe';
 import { supabase } from '@/lib/supabase';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
@@ -102,7 +102,7 @@ export function ManualSyncButton({
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
           throw new Error('Repository not found in database');
@@ -113,7 +113,7 @@ export function ManualSyncButton({
       setSyncProgress('Queueing sync job...');
 
       // Send sync event to Inngest with manual trigger and priority
-      const result = await inngest.send({
+      const result = await sendInngestEvent({
         name: 'capture/repository.sync.graphql',
         data: {
           repositoryId: repoId,
@@ -171,7 +171,7 @@ export function ManualSyncButton({
           .from('repositories')
           .select('last_updated_at')
           .eq('id', repoId)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
@@ -213,15 +213,20 @@ export function ManualSyncButton({
     }, POLLING_CONFIG.interval);
   };
 
+  const getButtonIcon = () => {
+    const iconClass = showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4';
+    if (isSyncing) {
+      return <Loader2 className={`${iconClass} animate-spin`} />;
+    }
+    if (isLoggedIn) {
+      return <RefreshCw className={iconClass} />;
+    }
+    return <Lock className={iconClass} />;
+  };
+
   const buttonContent = (
     <>
-      {isSyncing ? (
-        <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
-      ) : isLoggedIn ? (
-        <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      ) : (
-        <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      )}
+      {getButtonIcon()}
       {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
     </>
   );
