@@ -174,6 +174,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
   }, [urlWorkspaceId, workspaces, activeWorkspaceId, addToRecent]);
 
+  // Clear invalid activeWorkspaceId when workspace no longer exists
+  useEffect(() => {
+    if (activeWorkspaceId && !activeWorkspace && workspaces.length > 0 && !workspacesLoading) {
+      console.log(
+        '[WorkspaceContext] Active workspace ID is set but workspace not found, clearing:',
+        activeWorkspaceId
+      );
+      setActiveWorkspaceId(null);
+    }
+  }, [activeWorkspaceId, activeWorkspace, workspaces.length, workspacesLoading]);
+
   // Auto-select first workspace if none selected but workspaces exist
   useEffect(() => {
     if (!activeWorkspaceId && !urlWorkspaceId && workspaces.length > 0 && !workspacesLoading) {

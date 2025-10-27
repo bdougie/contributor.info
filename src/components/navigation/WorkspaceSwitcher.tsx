@@ -152,7 +152,9 @@ export function WorkspaceSwitcher({
     }
   };
 
-  if (!activeWorkspace && !isLoading && workspaces.length === 0) {
+  // Only show "Create Workspace" button if user has NO workspaces at all
+  // Even if activeWorkspace is null, show dropdown if workspaces exist
+  if (workspaces.length === 0 && !isLoading) {
     return (
       <Button variant="outline" onClick={handleCreateWorkspace} className={cn('gap-2', className)}>
         <Plus className="h-4 w-4" />

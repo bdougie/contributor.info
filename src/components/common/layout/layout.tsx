@@ -19,7 +19,6 @@ import { useTimeRangeStore } from '@/lib/time-range-store';
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
-import { useNeedsWorkspaceOnboarding } from '@/hooks/use-workspace-count';
 import { trackEvent } from '@/lib/posthog-lazy';
 
 // Lazy load the command palette
@@ -40,8 +39,10 @@ export default function Layout() {
   const [commandPalettePreloaded, setCommandPalettePreloaded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { workspaces, switchWorkspace } = useWorkspaceContext();
-  const { needsOnboarding, loading: onboardingLoading } = useNeedsWorkspaceOnboarding();
+  const { workspaces, switchWorkspace, isLoading: workspacesLoading } = useWorkspaceContext();
+  // Simplified check - just use the working context instead of a separate broken hook
+  const needsOnboarding = workspaces.length === 0;
+  const onboardingLoading = workspacesLoading;
   const hasTrackedCTA = useRef(false);
 
   // Prefetch handlers for navigation links
