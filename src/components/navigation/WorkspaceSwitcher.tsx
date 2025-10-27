@@ -152,7 +152,20 @@ export function WorkspaceSwitcher({
     }
   };
 
-  if (!activeWorkspace && !isLoading && workspaces.length === 0) {
+  // Debug logging for workspace switcher state
+  useEffect(() => {
+    console.log('[WorkspaceSwitcher] State:', {
+      activeWorkspace: activeWorkspace?.name || 'none',
+      activeWorkspaceId: activeWorkspace?.id,
+      workspacesLength: workspaces.length,
+      isLoading,
+      showingCreateButton: !activeWorkspace && !isLoading && workspaces.length === 0,
+    });
+  }, [activeWorkspace, workspaces.length, isLoading]);
+
+  // Only show "Create Workspace" button if user has NO workspaces at all
+  // Even if activeWorkspace is null, show dropdown if workspaces exist
+  if (workspaces.length === 0 && !isLoading) {
     return (
       <Button variant="outline" onClick={handleCreateWorkspace} className={cn('gap-2', className)}>
         <Plus className="h-4 w-4" />
