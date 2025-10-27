@@ -98,6 +98,7 @@ export default defineConfig(() => ({
       '@testing-library/jest-dom',
       '@xenova/transformers', // Exclude embeddings library
       'onnxruntime-web', // Exclude ONNX runtime
+      'inngest', // Exclude server-side job queue
     ],
     // Remove force: true to avoid aggressive re-optimization
   },
@@ -108,8 +109,11 @@ export default defineConfig(() => ({
       // Better handling of CommonJS modules (like some D3 packages)
       transformMixedEsModules: true,
       strictRequires: 'auto',
+      // Ignore server-side modules in browser build
+      ignore: ['inngest'],
     },
     rollupOptions: {
+      external: ['inngest'], // Mark inngest as external for proper handling
       // Conservative tree shaking optimization for better bundle size
       treeshake: {
         moduleSideEffects: false, // Safe optimization for better bundle size
