@@ -28,11 +28,24 @@ export function useHasPaidWorkspace(): {
           return;
         }
 
+        // Get the app_user record to access the app_users.id (not auth.users.id)
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (!appUser || !mounted) {
+          setHasPaidWorkspace(false);
+          setLoading(false);
+          return;
+        }
+
         // Check if user owns any paid workspaces
         const { data: ownedWorkspaces } = await supabase
           .from('workspaces')
           .select('id, tier')
-          .eq('owner_id', user.id)
+          .eq('owner_id', appUser.id)
           .eq('is_active', true)
           .in('tier', ['pro', 'team', 'enterprise']);
 
@@ -55,7 +68,7 @@ export function useHasPaidWorkspace(): {
             )
           `
           )
-          .eq('user_id', user.id)
+          .eq('user_id', appUser.id)
           .eq('workspaces.is_active', true)
           .in('workspaces.tier', ['pro', 'team', 'enterprise']);
 
