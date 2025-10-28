@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 interface RepositoryValidation {
   isTracked: boolean;
@@ -9,7 +9,8 @@ interface RepositoryValidation {
 
 export async function validateRepository(
   owner: string,
-  repo: string
+  repo: string,
+  supabaseClient?: SupabaseClient
 ): Promise<RepositoryValidation> {
   const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
 
@@ -35,20 +36,26 @@ export async function validateRepository(
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = process.env.SUPABASE_URL || '';
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+    let supabase: SupabaseClient;
 
-    if (!supabaseUrl || !supabaseKey) {
-      return {
-        isTracked: false,
-        exists: false,
-        error: 'Missing Supabase configuration',
-      };
+    // Use provided client or create new one
+    if (supabaseClient) {
+      supabase = supabaseClient;
+    } else {
+      const supabaseUrl = process.env.SUPABASE_URL || '';
+      const supabaseKey =
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+      if (!supabaseUrl || !supabaseKey) {
+        return {
+          isTracked: false,
+          exists: false,
+          error: 'Missing Supabase configuration',
+        };
+      }
+
+      supabase = createClient(supabaseUrl, supabaseKey);
     }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data, error } = await supabase
       .from('tracked_repositories')
@@ -59,8 +66,6 @@ export async function validateRepository(
 
     if (error) {
       console.error('Error checking repository tracking:', error);
-      console.error('Supabase URL:', supabaseUrl ? 'Set' : 'Not set');
-      console.error('Supabase Key:', supabaseKey ? 'Set' : 'Not set');
       console.error('Query params - owner:', owner, 'repo:', repo);
       return {
         isTracked: false,
