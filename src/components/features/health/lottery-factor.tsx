@@ -453,54 +453,61 @@ export function LotteryFactorContent({
               <div className="text-right">% of total</div>
             </div>
 
-            {safeLotteryFactor.contributors.map((contributor, index) => (
-              <div
-                key={contributor.login}
-                className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0"
-              >
-                <div className="flex items-center gap-2">
-                  <ContributorHoverCard
-                    contributor={contributor}
-                    role={getContributorRole(contributor.login, index)}
-                  >
-                    <OptimizedAvatar
-                      src={contributor.avatar_url}
-                      alt={contributor.login}
-                      size={32}
-                      lazy={false}
-                      fallback={contributor.login[0]?.toUpperCase() || '?'}
-                      className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                    />
-                  </ContributorHoverCard>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium" style={{ wordBreak: 'break-word' }}>
-                      {contributor.login}
-                    </div>
-                    <div className="text-sm text-muted-foreground flex items-center justify-between">
-                      <span>{getContributorRole(contributor.login, index)}</span>
-                      <div className="flex items-center gap-2 sm:hidden">
-                        <span className="flex items-center gap-1">
-                          <span className="text-xs">{contributor.pullRequests}</span>
-                          <GitPullRequest className="h-3 w-3" />
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <span className="text-xs">{Math.round(contributor.percentage)}</span>
-                          <Percent className="h-3 w-3" />
-                        </span>
+            {safeLotteryFactor.contributors.map((contributor, index) => {
+              // Determine if this contributor is a bot
+              const isContributorBot = detectBot({
+                githubUser: { login: contributor.login },
+              }).isBot;
+              const contributorRole = isContributorBot
+                ? 'bot'
+                : getContributorRole(contributor.login, index);
+
+              return (
+                <div
+                  key={contributor.login}
+                  className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <ContributorHoverCard contributor={contributor} role={contributorRole}>
+                      <OptimizedAvatar
+                        src={contributor.avatar_url}
+                        alt={contributor.login}
+                        size={32}
+                        lazy={false}
+                        fallback={contributor.login[0]?.toUpperCase() || '?'}
+                        className="cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                      />
+                    </ContributorHoverCard>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium" style={{ wordBreak: 'break-word' }}>
+                        {contributor.login}
+                      </div>
+                      <div className="text-sm text-muted-foreground flex items-center justify-between">
+                        <span>{contributorRole}</span>
+                        <div className="flex items-center gap-2 sm:hidden">
+                          <span className="flex items-center gap-1">
+                            <span className="text-xs">{contributor.pullRequests}</span>
+                            <GitPullRequest className="h-3 w-3" />
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="text-xs">{Math.round(contributor.percentage)}</span>
+                            <Percent className="h-3 w-3" />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="hidden sm:flex sm:justify-between sm:contents">
-                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                    <span className="text-base">{contributor.pullRequests}</span>
+                  <div className="hidden sm:flex sm:justify-between sm:contents">
+                    <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                      <span className="text-base">{contributor.pullRequests}</span>
+                    </div>
+                    <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
+                      <span className="text-base">{Math.round(contributor.percentage)}%</span>
+                    </div>
                   </div>
-                  <div className="sm:text-right font-medium flex items-center gap-1 sm:justify-end">
-                    <span className="text-base">{Math.round(contributor.percentage)}%</span>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <div className="border-t pt-4">
               <div className="flex flex-col space-y-2 sm:grid sm:grid-cols-[1fr_100px_80px] sm:gap-4 sm:items-center sm:space-y-0">
