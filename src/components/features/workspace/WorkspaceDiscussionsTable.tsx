@@ -71,7 +71,7 @@ export interface Discussion {
   };
 }
 
-type SortOption = 'newest' | 'upvotes' | 'comments';
+type SortOption = 'newest' | 'activity' | 'upvotes' | 'comments';
 type FilterOption = 'all' | 'answered' | 'unanswered';
 
 interface WorkspaceDiscussionsTableProps {
@@ -196,9 +196,11 @@ export function WorkspaceDiscussionsTable({
               return b.upvote_count - a.upvote_count;
             case 'comments':
               return b.comment_count - a.comment_count;
+            case 'activity':
+              return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
             case 'newest':
             default:
-              return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           }
         }),
     [discussions, searchTerm, filterBy, selectedCategory, sortBy]
@@ -287,6 +289,15 @@ export function WorkspaceDiscussionsTable({
                 aria-label="Sort by newest"
               >
                 Newest
+              </Button>
+              <Button
+                variant={sortBy === 'activity' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('activity')}
+                aria-pressed={sortBy === 'activity'}
+                aria-label="Sort by recent activity"
+              >
+                Recent Activity
               </Button>
               <Button
                 variant={sortBy === 'upvotes' ? 'default' : 'outline'}
