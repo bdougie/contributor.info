@@ -96,13 +96,24 @@ interface DiscussionCommentRow {
   };
 }
 
+export interface MyWorkFilters {
+  selectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
+  activeTab?: 'needs_response' | 'follow_ups' | 'replies';
+}
+
 /**
  * Hook to fetch the current user's work items (PRs, issues, and discussions)
  */
-export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
+export function useMyWork(
+  workspaceId?: string,
+  page = 1,
+  itemsPerPage = 10,
+  filters?: MyWorkFilters
+) {
   const { user } = useCurrentUser();
   const [items, setItems] = useState<MyWorkItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [tabCounts, setTabCounts] = useState({ needsResponse: 0, followUps: 0, replies: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -734,7 +745,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
           }) || [];
 
         // Combine and sort by updated_at
-        const allItems = [
+        let allItems = [
           ...reviewPrItems,
           ...issueItems,
           ...discussionItems,
@@ -747,13 +758,43 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
 
         // Processed items needing attention
 
-        // Set total count
-        setTotalCount(allItems.length);
+        // Apply filters BEFORE pagination
+        const selectedTypes = filters?.selectedTypes || ['pr', 'issue', 'discussion'];
+        const activeTab = filters?.activeTab || 'needs_response';
 
-        // Paginate items
+        // Filter by selected types
+        const typeFilteredItems = allItems.filter((item) => selectedTypes.includes(item.type));
+
+        // Calculate tab counts from type-filtered items (before tab filtering)
+        const needsResponseItems = typeFilteredItems.filter(
+          (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+        );
+        const followUpItems = typeFilteredItems.filter((item) => item.itemType === 'follow_up');
+        const replyItems = typeFilteredItems.filter((item) => item.itemType === 'my_comment');
+
+        setTabCounts({
+          needsResponse: needsResponseItems.length,
+          followUps: followUpItems.length,
+          replies: replyItems.length,
+        });
+
+        // Filter by active tab for display
+        let displayItems: MyWorkItem[];
+        if (activeTab === 'needs_response') {
+          displayItems = needsResponseItems;
+        } else if (activeTab === 'follow_ups') {
+          displayItems = followUpItems;
+        } else {
+          displayItems = replyItems;
+        }
+
+        // Set total count for active tab
+        setTotalCount(displayItems.length);
+
+        // Paginate items for active tab
         const startIndex = (page - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const paginatedItems = allItems.slice(startIndex, endIndex);
+        const paginatedItems = displayItems.slice(startIndex, endIndex);
 
         // Showing paginated items
 
@@ -768,7 +809,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
     }
 
     fetchMyWork();
-  }, [user, workspaceId, page, itemsPerPage, refreshTrigger]);
+  }, [user, workspaceId, page, itemsPerPage, refreshTrigger, filters?.selectedTypes, filters?.activeTab]);
 
   const refresh = () => setRefreshTrigger((prev) => prev + 1);
 
@@ -824,6 +865,7 @@ export function useMyWork(workspaceId?: string, page = 1, itemsPerPage = 10) {
   return {
     items,
     totalCount,
+    tabCounts,
     loading,
     error,
     refresh,

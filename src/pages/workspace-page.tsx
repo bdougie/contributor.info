@@ -127,16 +127,39 @@ function WorkspacePage() {
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
 
+  // My Work filter and pagination state
+  const [myWorkPage, setMyWorkPage] = useState(1);
+  const [myWorkItemsPerPage] = useState(10);
+  const [myWorkSelectedTypes, setMyWorkSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
+    'pr',
+    'issue',
+    'discussion',
+  ]);
+  const [myWorkActiveTab, setMyWorkActiveTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
+    'needs_response'
+  );
+
+  // Memoize filter object to prevent unnecessary re-renders
+  const myWorkFilters = useMemo(
+    () => ({
+      selectedTypes: myWorkSelectedTypes,
+      activeTab: myWorkActiveTab,
+    }),
+    [myWorkSelectedTypes, myWorkActiveTab]
+  );
+
   // Fetch live My Work data
   // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
   const {
     items: myWorkItems,
+    totalCount: myWorkTotalCount,
+    tabCounts: myWorkTabCounts,
+    loading: myWorkLoading,
     refresh: refreshMyWork,
     syncComments,
     isSyncingComments,
     commentSyncStatus,
-  } = useMyWork(workspace?.id);
-  // TODO: Add pagination state, totalCount, and loading to WorkspaceDashboard props
+  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, myWorkFilters);
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -1491,6 +1514,16 @@ function WorkspacePage() {
                 activityData={activityData}
                 repositories={repositories}
                 myWorkItems={myWorkItems}
+                myWorkTotalCount={myWorkTotalCount}
+                myWorkTabCounts={myWorkTabCounts}
+                myWorkCurrentPage={myWorkPage}
+                myWorkItemsPerPage={myWorkItemsPerPage}
+                myWorkLoading={myWorkLoading}
+                myWorkSelectedTypes={myWorkSelectedTypes}
+                myWorkActiveTab={myWorkActiveTab}
+                onMyWorkPageChange={setMyWorkPage}
+                onMyWorkTypesChange={setMyWorkSelectedTypes}
+                onMyWorkTabChange={setMyWorkActiveTab}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
