@@ -11,6 +11,8 @@ const BOT_PATTERNS = [
   /^dependabot\[?bot\]?$/i,
   /^renovate\[?bot\]?$/i,
   /^github-actions\[?bot\]?$/i,
+  /^continue\[?bot\]?$/i,
+  /^snyk\[?bot\]?$/i,
   /-bot$/i,
 ];
 

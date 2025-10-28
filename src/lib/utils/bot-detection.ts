@@ -15,6 +15,8 @@ const KNOWN_BOT_PATTERNS = [
   /^dependabot\[?bot\]?$/i, // Dependabot (exact)
   /^renovate\[?bot\]?$/i, // Renovate (exact)
   /^github-actions\[?bot\]?$/i, // GitHub Actions (exact)
+  /^continue\[?bot\]?$/i, // Continue AI coding assistant (exact)
+  /^snyk\[?bot\]?$/i, // Snyk security scanner (exact)
   /-bot$/i, // Ends with -bot
 ] as const;
 
