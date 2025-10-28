@@ -37,6 +37,15 @@ export interface WorkspaceDashboardProps {
   repositories: Repository[];
   myWorkItems?: MyWorkItem[];
   myWorkStats?: MyWorkStats;
+  myWorkTotalCount?: number;
+  myWorkCurrentPage?: number;
+  myWorkItemsPerPage?: number;
+  myWorkLoading?: boolean;
+  myWorkSelectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
+  myWorkActiveTab?: 'needs_response' | 'follow_ups' | 'replies';
+  onMyWorkPageChange?: (page: number) => void;
+  onMyWorkTypesChange?: (types: Array<'pr' | 'issue' | 'discussion'>) => void;
+  onMyWorkTabChange?: (tab: 'needs_response' | 'follow_ups' | 'replies') => void;
   loading?: boolean;
   tier?: 'free' | 'pro' | 'enterprise';
   timeRange?: TimeRange;
@@ -79,6 +88,15 @@ export function WorkspaceDashboard({
   repositories,
   myWorkItems = [],
   myWorkStats,
+  myWorkTotalCount = 0,
+  myWorkCurrentPage = 1,
+  myWorkItemsPerPage = 10,
+  myWorkLoading = false,
+  myWorkSelectedTypes = ['pr', 'issue', 'discussion'],
+  myWorkActiveTab = 'needs_response',
+  onMyWorkPageChange,
+  onMyWorkTypesChange,
+  onMyWorkTabChange,
   loading = false,
   timeRange = '30d',
   onAddRepository,
@@ -206,7 +224,15 @@ export function WorkspaceDashboard({
       <MyWorkCard
         items={myWorkItems || []}
         stats={myWorkStats}
-        loading={loading}
+        totalCount={myWorkTotalCount}
+        currentPage={myWorkCurrentPage}
+        itemsPerPage={myWorkItemsPerPage}
+        loading={myWorkLoading}
+        selectedTypes={myWorkSelectedTypes}
+        activeTab={myWorkActiveTab}
+        onPageChange={onMyWorkPageChange}
+        onTypesChange={onMyWorkTypesChange}
+        onTabChange={onMyWorkTabChange}
         onItemClick={onMyWorkItemClick}
         onRespond={onMyWorkItemRespond}
         onSyncComments={onSyncComments}

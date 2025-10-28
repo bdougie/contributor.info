@@ -60,9 +60,13 @@ export interface MyWorkCardProps {
   totalCount?: number;
   currentPage?: number;
   itemsPerPage?: number;
+  selectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
+  activeTab?: 'needs_response' | 'follow_ups' | 'replies';
   onItemClick?: (item: MyWorkItem) => void;
   onViewAll?: () => void;
   onPageChange?: (page: number) => void;
+  onTypesChange?: (types: Array<'pr' | 'issue' | 'discussion'>) => void;
+  onTabChange?: (tab: 'needs_response' | 'follow_ups' | 'replies') => void;
   onRespond?: (item: MyWorkItem) => void;
   onSyncComments?: () => Promise<void>;
   isSyncingComments?: boolean;
@@ -281,23 +285,19 @@ export function MyWorkCard({
   totalCount = 0,
   currentPage = 1,
   itemsPerPage = 10,
+  selectedTypes = ['pr', 'issue', 'discussion'],
+  activeTab = 'needs_response',
   onItemClick,
   onViewAll,
   onPageChange,
+  onTypesChange,
+  onTabChange,
   onRespond,
   onSyncComments,
   isSyncingComments = false,
   commentSyncStatus,
 }: MyWorkCardProps) {
   const { toast } = useToast();
-  const [selectedTypes, setSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
-    'pr',
-    'issue',
-    'discussion',
-  ]);
-  const [issueTab, setIssueTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
-    'needs_response'
-  );
   const [hasAutoSynced, setHasAutoSynced] = useState(false);
   const [previousSyncingState, setPreviousSyncingState] = useState(isSyncingComments);
 
@@ -309,7 +309,7 @@ export function MyWorkCard({
 
   // Show toast notification when sync completes successfully
   useEffect(() => {
-    if (previousSyncingState && !isSyncingComments && issueTab === 'replies') {
+    if (previousSyncingState && !isSyncingComments && activeTab === 'replies') {
       toastRef.current({
         title: 'Comments synced',
         description: 'Latest comments have been fetched from GitHub',
@@ -317,12 +317,12 @@ export function MyWorkCard({
       });
     }
     setPreviousSyncingState(isSyncingComments);
-  }, [isSyncingComments, previousSyncingState, issueTab]);
+  }, [isSyncingComments, previousSyncingState, activeTab]);
 
   // Auto-sync comments when Replies tab is opened and data is stale
   useEffect(() => {
     const shouldAutoSync =
-      issueTab === 'replies' &&
+      activeTab === 'replies' &&
       !hasAutoSynced &&
       onSyncComments &&
       commentSyncStatus?.isStale &&
@@ -332,56 +332,41 @@ export function MyWorkCard({
       setHasAutoSynced(true);
       onSyncComments();
     }
-  }, [issueTab, hasAutoSynced, onSyncComments, commentSyncStatus, isSyncingComments]);
+  }, [activeTab, hasAutoSynced, onSyncComments, commentSyncStatus, isSyncingComments]);
 
   // Reset auto-sync flag when user navigates away from Replies tab
   useEffect(() => {
-    if (issueTab !== 'replies') {
+    if (activeTab !== 'replies') {
       setHasAutoSynced(false);
     }
-  }, [issueTab]);
+  }, [activeTab]);
 
   const toggleType = (type: 'pr' | 'issue' | 'discussion') => {
-    setSelectedTypes((prev) => {
-      const isSelected = prev.includes(type);
+    if (!onTypesChange) return;
 
-      if (isSelected) {
-        // Don't allow deselecting all types
-        if (prev.length === 1) {
-          return prev;
-        }
-        return prev.filter((t) => t !== type);
+    const isSelected = selectedTypes.includes(type);
+
+    if (isSelected) {
+      // Don't allow deselecting all types
+      if (selectedTypes.length === 1) {
+        return;
       }
-
-      return [...prev, type];
-    });
+      onTypesChange(selectedTypes.filter((t) => t !== type));
+    } else {
+      onTypesChange([...selectedTypes, type]);
+    }
   };
 
-  // Filter items by selected types
-  let filteredItems = items.filter((item) => selectedTypes.includes(item.type));
+  // Note: Filtering now happens in the hook before pagination
+  // Items received here are already filtered and paginated
+  const filteredItems = items;
 
-  // Apply tab filter to ALL item types (not just issues)
-  // This ensures PRs, Issues, and Discussions are filtered consistently
-  if (issueTab === 'needs_response') {
-    // Show items needing response (not yet responded to)
-    filteredItems = filteredItems.filter(
-      (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
-    );
-  } else if (issueTab === 'follow_ups') {
-    // Show items with follow-up activity (you've responded, now they've replied)
-    filteredItems = filteredItems.filter((item) => item.itemType === 'follow_up');
-  } else if (issueTab === 'replies') {
-    // Show user's own comments/replies
-    filteredItems = filteredItems.filter((item) => item.itemType === 'my_comment');
-  }
-
-  // Calculate tab counts based on filtered types (not all items)
-  const typeFilteredItems = items.filter((item) => selectedTypes.includes(item.type));
-  const needsResponseCount = typeFilteredItems.filter(
+  // Calculate tab counts from items (items are already filtered by type in the hook)
+  const needsResponseCount = items.filter(
     (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
   ).length;
-  const followUpsCount = typeFilteredItems.filter((item) => item.itemType === 'follow_up').length;
-  const repliesCount = typeFilteredItems.filter((item) => item.itemType === 'my_comment').length;
+  const followUpsCount = items.filter((item) => item.itemType === 'follow_up').length;
+  const repliesCount = items.filter((item) => item.itemType === 'my_comment').length;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (
@@ -400,16 +385,6 @@ export function MyWorkCard({
   }
 
   const hasActivity = filteredItems.length > 0;
-
-  // Build conditional sections to avoid Rollup 4.45.0 bug with && operators
-  let itemCountSection = null;
-  if (filteredItems.length < items.length) {
-    itemCountSection = (
-      <div className="mb-2 text-sm text-muted-foreground">
-        Showing {filteredItems.length} of {items.length} items
-      </div>
-    );
-  }
 
   let noMatchesSection = null;
   if (!hasActivity && items.length > 0) {
@@ -564,13 +539,15 @@ export function MyWorkCard({
                     count: repliesCount,
                   },
                 ]}
-                activeTab={issueTab}
-                onTabChange={(value) =>
-                  setIssueTab(value as 'needs_response' | 'follow_ups' | 'replies')
-                }
+                activeTab={activeTab}
+                onTabChange={(value) => {
+                  if (onTabChange) {
+                    onTabChange(value as 'needs_response' | 'follow_ups' | 'replies');
+                  }
+                }}
               />
             </div>
-            {issueTab === 'replies' && onSyncComments && (
+            {activeTab === 'replies' && onSyncComments && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -586,7 +563,7 @@ export function MyWorkCard({
           </div>
 
           {/* Enhanced sync status indicator */}
-          {issueTab === 'replies' && commentSyncStatus && (
+          {activeTab === 'replies' && commentSyncStatus && (
             <SyncStatusErrorBoundary>
               <div
                 className={cn(
@@ -620,9 +597,6 @@ export function MyWorkCard({
             </SyncStatusErrorBoundary>
           )}
         </div>
-
-        {/* Items count */}
-        {itemCountSection}
 
         {/* Show message when all items are filtered out */}
         {noMatchesSection}
