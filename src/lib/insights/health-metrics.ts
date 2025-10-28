@@ -529,7 +529,8 @@ export async function calculateRepositoryConfidence(
   timeRange: string = '30',
   forceRecalculate: boolean = false,
   returnMetadata: boolean = false,
-  returnBreakdown: boolean = false
+  returnBreakdown: boolean = false,
+  saveToHistory: boolean = false
 ): Promise<number | ConfidenceResult | ConfidenceBreakdown> {
   const startTime = Date.now();
 
@@ -660,6 +661,49 @@ export async function calculateRepositoryConfidence(
 
     // Cache the result for future use (both database and memory)
     await cacheConfidenceScore(supabase, owner, repo, daysBack, finalScore, calculationTime);
+
+    // Optionally save to history for trend tracking
+    if (saveToHistory) {
+      try {
+        const { saveConfidenceToHistory } = await import('./confidence-history.service');
+
+        const breakdownData =
+          returnBreakdown &&
+          typeof starForkResult === 'object' &&
+          'totalStargazers' in starForkResult
+            ? {
+                starForkConfidence,
+                engagementConfidence,
+                retentionConfidence,
+                qualityConfidence,
+                totalStargazers: starForkResult.totalStargazers,
+                totalForkers: starForkResult.totalForkers,
+                contributorCount: starForkResult.contributorCount,
+                conversionRate: starForkResult.conversionRate,
+              }
+            : {
+                starForkConfidence,
+                engagementConfidence,
+                retentionConfidence,
+                qualityConfidence,
+              };
+
+        await saveConfidenceToHistory(
+          supabase,
+          owner,
+          repo,
+          daysBack,
+          finalScore,
+          breakdownData,
+          calculationTime
+        );
+
+        console.log('[Confidence] Saved to history for %s/%s', owner, repo);
+      } catch (historyError) {
+        console.warn('[Confidence] Failed to save to history:', historyError);
+        // Don't fail the entire calculation if history save fails
+      }
+    }
 
     console.log(
       '[Confidence] Calculated confidence for %s/%s: %s% (%sms)',
