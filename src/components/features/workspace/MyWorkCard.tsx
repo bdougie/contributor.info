@@ -58,6 +58,7 @@ export interface MyWorkCardProps {
   loading?: boolean;
   className?: string;
   totalCount?: number;
+  tabCounts?: { needsResponse: number; followUps: number; replies: number };
   currentPage?: number;
   itemsPerPage?: number;
   selectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
@@ -283,6 +284,7 @@ export function MyWorkCard({
   loading = false,
   className,
   totalCount = 0,
+  tabCounts,
   currentPage = 1,
   itemsPerPage = 10,
   selectedTypes = ['pr', 'issue', 'discussion'],
@@ -361,12 +363,10 @@ export function MyWorkCard({
   // Items received here are already filtered and paginated
   const filteredItems = items;
 
-  // Calculate tab counts from items (items are already filtered by type in the hook)
-  const needsResponseCount = items.filter(
-    (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
-  ).length;
-  const followUpsCount = items.filter((item) => item.itemType === 'follow_up').length;
-  const repliesCount = items.filter((item) => item.itemType === 'my_comment').length;
+  // Use tab counts from hook, or calculate from items as fallback
+  const needsResponseCount = tabCounts?.needsResponse ?? 0;
+  const followUpsCount = tabCounts?.followUps ?? 0;
+  const repliesCount = tabCounts?.replies ?? 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   if (loading) {
     return (

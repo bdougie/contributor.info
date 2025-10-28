@@ -113,6 +113,7 @@ export function useMyWork(
   const { user } = useCurrentUser();
   const [items, setItems] = useState<MyWorkItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [tabCounts, setTabCounts] = useState({ needsResponse: 0, followUps: 0, replies: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -762,29 +763,38 @@ export function useMyWork(
         const activeTab = filters?.activeTab || 'needs_response';
 
         // Filter by selected types
-        allItems = allItems.filter((item) => selectedTypes.includes(item.type));
+        const typeFilteredItems = allItems.filter((item) => selectedTypes.includes(item.type));
 
-        // Filter by active tab
+        // Calculate tab counts from type-filtered items (before tab filtering)
+        const needsResponseItems = typeFilteredItems.filter(
+          (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
+        );
+        const followUpItems = typeFilteredItems.filter((item) => item.itemType === 'follow_up');
+        const replyItems = typeFilteredItems.filter((item) => item.itemType === 'my_comment');
+
+        setTabCounts({
+          needsResponse: needsResponseItems.length,
+          followUps: followUpItems.length,
+          replies: replyItems.length,
+        });
+
+        // Filter by active tab for display
+        let displayItems: MyWorkItem[];
         if (activeTab === 'needs_response') {
-          // Show items needing response (not yet responded to)
-          allItems = allItems.filter(
-            (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
-          );
+          displayItems = needsResponseItems;
         } else if (activeTab === 'follow_ups') {
-          // Show items with follow-up activity
-          allItems = allItems.filter((item) => item.itemType === 'follow_up');
-        } else if (activeTab === 'replies') {
-          // Show user's own comments/replies
-          allItems = allItems.filter((item) => item.itemType === 'my_comment');
+          displayItems = followUpItems;
+        } else {
+          displayItems = replyItems;
         }
 
-        // Set total count AFTER filtering
-        setTotalCount(allItems.length);
+        // Set total count for active tab
+        setTotalCount(displayItems.length);
 
-        // Paginate items
+        // Paginate items for active tab
         const startIndex = (page - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
-        const paginatedItems = allItems.slice(startIndex, endIndex);
+        const paginatedItems = displayItems.slice(startIndex, endIndex);
 
         // Showing paginated items
 
@@ -855,6 +865,7 @@ export function useMyWork(
   return {
     items,
     totalCount,
+    tabCounts,
     loading,
     error,
     refresh,

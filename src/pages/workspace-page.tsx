@@ -139,20 +139,27 @@ function WorkspacePage() {
     'needs_response'
   );
 
+  // Memoize filter object to prevent unnecessary re-renders
+  const myWorkFilters = useMemo(
+    () => ({
+      selectedTypes: myWorkSelectedTypes,
+      activeTab: myWorkActiveTab,
+    }),
+    [myWorkSelectedTypes, myWorkActiveTab]
+  );
+
   // Fetch live My Work data
   // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
   const {
     items: myWorkItems,
     totalCount: myWorkTotalCount,
+    tabCounts: myWorkTabCounts,
     loading: myWorkLoading,
     refresh: refreshMyWork,
     syncComments,
     isSyncingComments,
     commentSyncStatus,
-  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, {
-    selectedTypes: myWorkSelectedTypes,
-    activeTab: myWorkActiveTab,
-  });
+  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, myWorkFilters);
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -1508,6 +1515,7 @@ function WorkspacePage() {
                 repositories={repositories}
                 myWorkItems={myWorkItems}
                 myWorkTotalCount={myWorkTotalCount}
+                myWorkTabCounts={myWorkTabCounts}
                 myWorkCurrentPage={myWorkPage}
                 myWorkItemsPerPage={myWorkItemsPerPage}
                 myWorkLoading={myWorkLoading}

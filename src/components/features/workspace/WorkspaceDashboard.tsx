@@ -38,6 +38,7 @@ export interface WorkspaceDashboardProps {
   myWorkItems?: MyWorkItem[];
   myWorkStats?: MyWorkStats;
   myWorkTotalCount?: number;
+  myWorkTabCounts?: { needsResponse: number; followUps: number; replies: number };
   myWorkCurrentPage?: number;
   myWorkItemsPerPage?: number;
   myWorkLoading?: boolean;
@@ -89,6 +90,7 @@ export function WorkspaceDashboard({
   myWorkItems = [],
   myWorkStats,
   myWorkTotalCount = 0,
+  myWorkTabCounts,
   myWorkCurrentPage = 1,
   myWorkItemsPerPage = 10,
   myWorkLoading = false,
@@ -225,6 +227,7 @@ export function WorkspaceDashboard({
         items={myWorkItems || []}
         stats={myWorkStats}
         totalCount={myWorkTotalCount}
+        tabCounts={myWorkTabCounts}
         currentPage={myWorkCurrentPage}
         itemsPerPage={myWorkItemsPerPage}
         loading={myWorkLoading}
@@ -280,6 +283,7 @@ export function WorkspaceDashboardSkeleton({ className }: { className?: string }
       trendData={{ labels: [], datasets: [] }}
       repositories={[]}
       loading={true}
+      myWorkLoading={true}
       className={className}
     />
   );
