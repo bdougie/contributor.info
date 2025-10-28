@@ -91,7 +91,7 @@ export function useWorkspaceDiscussions({
         `
       )
       .in('repository_id', repoIds)
-      .order('updated_at', { ascending: false })
+      .order('created_at', { ascending: false }) // Show newest discussions first (LIFO)
       .limit(200);
 
     if (error) {
