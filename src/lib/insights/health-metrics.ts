@@ -502,6 +502,22 @@ export interface ConfidenceBreakdown {
   };
 }
 
+export interface ConfidenceTrendData {
+  direction: 'improving' | 'declining' | 'stable';
+  changePercent: number;
+  currentScore: number;
+  previousScore: number;
+  hasSufficientData: boolean;
+}
+
+export interface ConfidenceResultWithTrend extends ConfidenceResult {
+  trend?: ConfidenceTrendData;
+}
+
+export interface ConfidenceBreakdownWithTrend extends ConfidenceBreakdown {
+  trend?: ConfidenceTrendData;
+}
+
 export async function calculateRepositoryConfidence(
   owner: string,
   repo: string,
@@ -513,16 +529,21 @@ export async function calculateRepositoryConfidence(
   repo: string,
   timeRange: string,
   forceRecalculate: boolean,
-  returnMetadata: true
-): Promise<ConfidenceResult>;
+  returnMetadata: true,
+  returnBreakdown?: false,
+  saveToHistory?: boolean,
+  returnTrend?: boolean
+): Promise<ConfidenceResultWithTrend>;
 export async function calculateRepositoryConfidence(
   owner: string,
   repo: string,
   timeRange: string,
   forceRecalculate: boolean,
   returnMetadata: false,
-  returnBreakdown: true
-): Promise<ConfidenceBreakdown>;
+  returnBreakdown: true,
+  saveToHistory?: boolean,
+  returnTrend?: boolean
+): Promise<ConfidenceBreakdownWithTrend>;
 export async function calculateRepositoryConfidence(
   owner: string,
   repo: string,
@@ -530,8 +551,9 @@ export async function calculateRepositoryConfidence(
   forceRecalculate: boolean = false,
   returnMetadata: boolean = false,
   returnBreakdown: boolean = false,
-  saveToHistory: boolean = false
-): Promise<number | ConfidenceResult | ConfidenceBreakdown> {
+  saveToHistory: boolean = false,
+  returnTrend: boolean = false
+): Promise<number | ConfidenceResultWithTrend | ConfidenceBreakdownWithTrend> {
   const startTime = Date.now();
 
   try {
@@ -713,6 +735,12 @@ export async function calculateRepositoryConfidence(
       calculationTime
     );
 
+    // Calculate trend if requested
+    let trendData: ConfidenceTrendData | undefined;
+    if (returnTrend) {
+      trendData = await calculateConfidenceTrendData(supabase, owner, repo, daysBack, finalScore);
+    }
+
     if (returnBreakdown) {
       const breakdownData =
         typeof starForkResult === 'object'
@@ -725,7 +753,7 @@ export async function calculateRepositoryConfidence(
               conversionRate: 0,
             };
 
-      const result = {
+      const result: ConfidenceBreakdownWithTrend = {
         score: finalScore,
         cached: false,
         calculatedAt: new Date(),
@@ -745,6 +773,7 @@ export async function calculateRepositoryConfidence(
             'contributorCount' in breakdownData ? breakdownData.contributorCount : 0,
           conversionRate: 'conversionRate' in breakdownData ? breakdownData.conversionRate : 0,
         },
+        ...(trendData && { trend: trendData }),
       };
 
       // Store in memory cache
@@ -753,11 +782,12 @@ export async function calculateRepositoryConfidence(
     }
 
     if (returnMetadata) {
-      const result = {
+      const result: ConfidenceResultWithTrend = {
         score: finalScore,
         cached: false,
         calculatedAt: new Date(),
         calculationTimeMs: calculationTime,
+        ...(trendData && { trend: trendData }),
       };
 
       // Store in memory cache
@@ -772,6 +802,79 @@ export async function calculateRepositoryConfidence(
     console.error('Error calculating repository confidence:', error);
     // Return fallback based on available data
     return await calculateBasicFallback(owner, repo, timeRange);
+  }
+}
+
+/**
+ * Calculate trend data by comparing current score with previous period
+ */
+async function calculateConfidenceTrendData(
+  supabase: SupabaseClient<Database>,
+  owner: string,
+  repo: string,
+  timeRangeDays: number,
+  currentScore: number,
+  trendThreshold: number = 5
+): Promise<ConfidenceTrendData> {
+  try {
+    // Try to get the previous period's score from history
+    const { getLatestConfidenceFromHistory } = await import('./confidence-history.service');
+    const previousData = await getLatestConfidenceFromHistory(supabase, owner, repo, timeRangeDays);
+
+    if (!previousData) {
+      // No historical data available - first calculation
+      console.log(
+        '[Confidence Trend] No historical data for %s/%s - marking as stable',
+        owner,
+        repo
+      );
+      return {
+        direction: 'stable',
+        changePercent: 0,
+        currentScore,
+        previousScore: currentScore,
+        hasSufficientData: false,
+      };
+    }
+
+    const previousScore = previousData.confidenceScore;
+    const changePercent =
+      previousScore > 0 ? ((currentScore - previousScore) / previousScore) * 100 : 0;
+
+    // Determine direction based on threshold
+    let direction: 'improving' | 'declining' | 'stable';
+    if (Math.abs(changePercent) < trendThreshold) {
+      direction = 'stable';
+    } else if (changePercent > 0) {
+      direction = 'improving';
+    } else {
+      direction = 'declining';
+    }
+
+    console.log('[Confidence Trend] Calculated for %s/%s:', owner, repo, {
+      direction,
+      changePercent: changePercent.toFixed(2),
+      currentScore,
+      previousScore,
+    });
+
+    return {
+      direction,
+      changePercent,
+      currentScore,
+      previousScore,
+      hasSufficientData: true,
+    };
+  } catch (error) {
+    console.error('[Confidence Trend] Error calculating trend:', error);
+    // Return neutral trend on error
+    return {
+      direction: 'stable',
+      changePercent: 0,
+      currentScore,
+      previousScore: currentScore,
+      hasSufficientData: false,
+    };
   }
 }
 
