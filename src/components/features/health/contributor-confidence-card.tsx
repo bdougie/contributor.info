@@ -1,6 +1,13 @@
 import { useState, memo, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus, RefreshCw, HelpCircle } from '@/components/ui/icon';
+import {
+  UserPlus,
+  RefreshCw,
+  HelpCircle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+} from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -81,6 +88,13 @@ export interface ContributorConfidenceCardProps {
     contributorCount: number;
     conversionRate: number;
   };
+  trend?: {
+    direction: 'improving' | 'declining' | 'stable';
+    changePercent: number;
+    currentScore: number;
+    previousScore: number;
+    hasSufficientData: boolean;
+  };
 }
 
 interface ConfidenceLevel {
@@ -88,6 +102,12 @@ interface ConfidenceLevel {
   title: string;
   description: string;
   color: string;
+}
+
+function getTrendPrefix(direction: 'improving' | 'declining' | 'stable'): string {
+  if (direction === 'improving') return '+';
+  if (direction === 'declining') return '';
+  return '±';
 }
 
 function getConfidenceLevel(score: number): ConfidenceLevel {
@@ -135,6 +155,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   repo,
   onRefresh,
   breakdown,
+  trend,
 }: ContributorConfidenceCardProps) {
   // Local state for Learn More modal
   const [showLearnMore, setShowLearnMore] = useState(false);
@@ -156,6 +177,35 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
 
   // Move useMemo to top level to ensure it's called on every render
   const confidence = useMemo(() => getConfidenceLevel(confidenceScore ?? 0), [confidenceScore]);
+
+  // Render trend indicator based on direction
+  const TrendIcon = useMemo(() => {
+    if (!trend || !trend.hasSufficientData) return null;
+    switch (trend.direction) {
+      case 'improving':
+        return TrendingUp;
+      case 'declining':
+        return TrendingDown;
+      case 'stable':
+        return Minus;
+      default:
+        return null;
+    }
+  }, [trend]);
+
+  const trendColor = useMemo(() => {
+    if (!trend || !trend.hasSufficientData) return '';
+    switch (trend.direction) {
+      case 'improving':
+        return 'text-green-600';
+      case 'declining':
+        return 'text-red-600';
+      case 'stable':
+        return 'text-muted-foreground';
+      default:
+        return '';
+    }
+  }, [trend]);
   // Show skeleton loading state when calculating or when sync is in progress
   if (loading || syncStatus.isTriggering || syncStatus.isInProgress) {
     const message =
@@ -223,7 +273,12 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               <p className="text-xs text-muted-foreground hidden sm:block">
                 Upgrade to see contributor confidence metrics for this repository.
               </p>
-              <Button asChild variant="default" size="sm" className="flex items-center gap-1 h-7 px-2 text-xs">
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="flex items-center gap-1 h-7 px-2 text-xs"
+              >
                 <Link to="/billing">Upgrade and find out</Link>
               </Button>
             </div>
@@ -324,8 +379,22 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           </div>
 
           <div className="flex flex-col items-center sm:items-start gap-1 flex-1 text-center sm:text-left">
-            <div className="font-semibold text-muted-foreground text-xs leading-4 whitespace-nowrap">
-              {confidence.title}
+            <div className="flex items-center gap-2">
+              <div className="font-semibold text-muted-foreground text-xs leading-4 whitespace-nowrap">
+                {confidence.title}
+              </div>
+              {trend && trend.hasSufficientData && TrendIcon && (
+                <div
+                  className={`flex items-center gap-1 ${trendColor}`}
+                  title={`${getTrendPrefix(trend.direction)}${Math.abs(trend.changePercent).toFixed(1)}% from previous period`}
+                >
+                  <TrendIcon className="w-3 h-3" />
+                  <span className="text-xs font-medium">
+                    {trend.changePercent > 0 ? '+' : ''}
+                    {trend.changePercent.toFixed(1)}%
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-sm text-muted-foreground leading-relaxed">
               {confidence.description}

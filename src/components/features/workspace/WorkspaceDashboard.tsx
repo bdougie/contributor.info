@@ -3,7 +3,7 @@ import { MetricCard } from './MetricCard';
 import { MyWorkCard, type MyWorkItem, type MyWorkStats } from './MyWorkCard';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
-import { Star, GitPullRequest, Users, AlertCircle } from '@/components/ui/icon';
+import { Star, GitPullRequest, Users, AlertCircle, UserPlus } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 export interface WorkspaceMetrics {
@@ -17,6 +17,10 @@ export interface WorkspaceMetrics {
   issuesTrend: number;
   contributorsTrend: number;
   commitsTrend: number;
+  // Contributor Confidence metrics
+  contributorConfidence?: number; // 0-50 scale
+  confidenceTrend?: number; // percentage change
+  confidenceTrendDirection?: 'improving' | 'declining' | 'stable';
 }
 
 export interface WorkspaceTrendData {
@@ -150,7 +154,7 @@ export function WorkspaceDashboard({
   return (
     <div className={cn('space-y-6', className)} data-testid="workspace-dashboard">
       {/* Metrics Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <MetricCard
           title="Star Velocity"
           subtitle="Stars per day"
@@ -218,6 +222,32 @@ export function WorkspaceDashboard({
           }}
           format="number"
           color="blue"
+          loading={loading}
+        />
+
+        <MetricCard
+          title="Contributor Confidence"
+          subtitle="Workspace average"
+          value={metrics.contributorConfidence ?? '—'}
+          description="How approachable your projects are"
+          icon={<UserPlus className="h-4 w-4" />}
+          trend={
+            metrics.confidenceTrend !== undefined
+              ? {
+                  value: metrics.confidenceTrend,
+                  label: trendLabel,
+                }
+              : undefined
+          }
+          format={(val) => {
+            if (typeof val === 'string') return val;
+            return `${val}%`;
+          }}
+          color={(() => {
+            if (metrics.confidenceTrendDirection === 'improving') return 'green';
+            if (metrics.confidenceTrendDirection === 'declining') return 'orange';
+            return 'blue';
+          })()}
           loading={loading}
         />
       </div>
