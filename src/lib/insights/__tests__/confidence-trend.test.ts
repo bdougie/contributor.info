@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 vi.mock('../confidence-history.service', () => ({
   saveConfidenceToHistory: vi.fn().mockResolvedValue(undefined),
   getLatestConfidenceFromHistory: vi.fn().mockResolvedValue(null),
+  validateBreakdown: vi.fn().mockReturnValue(true),
 }));
 
 // Mock date formatting

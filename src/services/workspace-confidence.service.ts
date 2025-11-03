@@ -75,8 +75,8 @@ export async function getWorkspaceConfidenceTrends(
   const repositories: RepositoryConfidenceData[] = [];
   const confidenceScores: number[] = [];
 
-  // Calculate confidence for each repository
-  for (const wr of workspaceRepos) {
+  // Calculate confidence for all repositories in parallel
+  const repositoryPromises = workspaceRepos.map(async (wr) => {
     const repo = wr.repositories as unknown as {
       id: string;
       owner: string;
@@ -84,37 +84,37 @@ export async function getWorkspaceConfidenceTrends(
       full_name: string;
     } | null;
 
-    if (!repo) continue;
+    if (!repo) return null;
 
     try {
-      // Get current confidence score with breakdown
-      const result = await calculateRepositoryConfidence(
-        repo.owner,
-        repo.name,
-        timeRangeDays.toString(),
-        false,
-        false,
-        true // return breakdown
-      );
+      // Get current confidence score with breakdown and history in parallel
+      const [result, history] = await Promise.all([
+        calculateRepositoryConfidence(
+          repo.owner,
+          repo.name,
+          timeRangeDays.toString(),
+          false,
+          false,
+          true // return breakdown
+        ),
+        getConfidenceHistory(
+          client,
+          repo.owner,
+          repo.name,
+          timeRangeDays,
+          4 // Look back 4 periods
+        ),
+      ]);
 
       const confidenceScore =
         typeof result === 'number' ? result : (result as ConfidenceBreakdown).score;
       const breakdown =
         typeof result === 'object' ? (result as ConfidenceBreakdown).breakdown : undefined;
 
-      // Get historical data for trend analysis
-      const history = await getConfidenceHistory(
-        client,
-        repo.owner,
-        repo.name,
-        timeRangeDays,
-        4 // Look back 4 periods
-      );
-
       const trendResult = history.length >= 2 ? calculateConfidenceTrend(history) : null;
       const trend = trendResult ?? undefined;
 
-      repositories.push({
+      return {
         repositoryId: repo.id,
         owner: repo.owner,
         name: repo.name,
@@ -123,14 +123,23 @@ export async function getWorkspaceConfidenceTrends(
         breakdown,
         trend,
         history,
-      });
-
-      if (confidenceScore > 0) {
-        confidenceScores.push(confidenceScore);
-      }
+      };
     } catch (error) {
       console.warn(`[Workspace Confidence] Failed to get confidence for ${repo.full_name}:`, error);
-      // Continue with other repositories even if one fails
+      return null;
+    }
+  });
+
+  // Wait for all repository calculations to complete
+  const results = await Promise.all(repositoryPromises);
+
+  // Filter out null results and build the repositories array
+  for (const result of results) {
+    if (result) {
+      repositories.push(result);
+      if (result.confidenceScore > 0) {
+        confidenceScores.push(result.confidenceScore);
+      }
     }
   }
 

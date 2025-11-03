@@ -3,6 +3,20 @@ import type { Database } from '@/types/database';
 import { toUTCTimestamp } from '../utils/date-formatting';
 
 /**
+ * Breakdown data structure for confidence history
+ */
+export interface ConfidenceBreakdownData {
+  starForkConfidence: number;
+  engagementConfidence: number;
+  retentionConfidence: number;
+  qualityConfidence: number;
+  totalStargazers?: number;
+  totalForkers?: number;
+  contributorCount?: number;
+  conversionRate?: number;
+}
+
+/**
  * Represents a single point in confidence history
  */
 export interface ConfidenceHistoryPoint {
@@ -11,16 +25,7 @@ export interface ConfidenceHistoryPoint {
   repositoryName: string;
   confidenceScore: number;
   timeRangeDays: number;
-  breakdown?: {
-    starForkConfidence: number;
-    engagementConfidence: number;
-    retentionConfidence: number;
-    qualityConfidence: number;
-    totalStargazers?: number;
-    totalForkers?: number;
-    contributorCount?: number;
-    conversionRate?: number;
-  };
+  breakdown?: ConfidenceBreakdownData;
   calculatedAt: Date;
   periodStart: Date;
   periodEnd: Date;
@@ -53,6 +58,45 @@ export interface ConfidenceComparison {
 }
 
 /**
+ * Validate breakdown data structure
+ */
+function validateBreakdown(breakdown: ConfidenceBreakdownData): boolean {
+  const required = [
+    'starForkConfidence',
+    'engagementConfidence',
+    'retentionConfidence',
+    'qualityConfidence',
+  ];
+
+  for (const field of required) {
+    const value = breakdown[field as keyof ConfidenceBreakdownData];
+    if (typeof value !== 'number' || value < 0 || value > 100) {
+      return false;
+    }
+  }
+
+  // Validate optional fields if present
+  const optionalFields = ['totalStargazers', 'totalForkers', 'contributorCount'];
+  for (const field of optionalFields) {
+    const value = breakdown[field as keyof ConfidenceBreakdownData];
+    if (value !== undefined && (typeof value !== 'number' || value < 0)) {
+      return false;
+    }
+  }
+
+  if (
+    breakdown.conversionRate !== undefined &&
+    (typeof breakdown.conversionRate !== 'number' ||
+      breakdown.conversionRate < 0 ||
+      breakdown.conversionRate > 1)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Save a confidence score to history
  */
 export async function saveConfidenceToHistory(
@@ -61,20 +105,57 @@ export async function saveConfidenceToHistory(
   repo: string,
   timeRangeDays: number,
   score: number,
-  breakdown?: ConfidenceHistoryPoint['breakdown'],
+  breakdown?: ConfidenceBreakdownData,
   calculationTimeMs?: number
 ): Promise<void> {
+  // Input validation
+  if (!owner || !repo) {
+    throw new Error('[Confidence History] Owner and repo are required');
+  }
+
+  if (typeof score !== 'number' || score < 0 || score > 100) {
+    throw new Error(`[Confidence History] Score must be between 0-100, got: ${score}`);
+  }
+
+  if (typeof timeRangeDays !== 'number' || timeRangeDays <= 0) {
+    throw new Error(`[Confidence History] Time range must be positive, got: ${timeRangeDays}`);
+  }
+
+  if (breakdown && !validateBreakdown(breakdown)) {
+    throw new Error('[Confidence History] Invalid breakdown data structure');
+  }
+
   const now = new Date();
   const periodEnd = now;
   const periodStart = new Date(now);
   periodStart.setDate(periodStart.getDate() - timeRangeDays);
+
+  // Convert breakdown to JSONB-compatible format
+  const breakdownData = breakdown
+    ? ({
+        starForkConfidence: breakdown.starForkConfidence,
+        engagementConfidence: breakdown.engagementConfidence,
+        retentionConfidence: breakdown.retentionConfidence,
+        qualityConfidence: breakdown.qualityConfidence,
+        ...(breakdown.totalStargazers !== undefined && {
+          totalStargazers: breakdown.totalStargazers,
+        }),
+        ...(breakdown.totalForkers !== undefined && { totalForkers: breakdown.totalForkers }),
+        ...(breakdown.contributorCount !== undefined && {
+          contributorCount: breakdown.contributorCount,
+        }),
+        ...(breakdown.conversionRate !== undefined && {
+          conversionRate: breakdown.conversionRate,
+        }),
+      } as Record<string, number>)
+    : null;
 
   const { error } = await client.from('repository_confidence_history').insert({
     repository_owner: owner,
     repository_name: repo,
     confidence_score: score,
     time_range_days: timeRangeDays,
-    breakdown: breakdown ? (breakdown as unknown as Record<string, unknown>) : null,
+    breakdown: breakdownData,
     calculated_at: toUTCTimestamp(now),
     period_start: toUTCTimestamp(periodStart),
     period_end: toUTCTimestamp(periodEnd),
@@ -146,6 +227,19 @@ export async function getConfidenceHistory(
 
 /**
  * Calculate trend direction and percentage change from history
+ *
+ * Uses a ±5% threshold to determine trend direction:
+ * - Changes < 5%: "stable" - normal variance in contributor activity
+ * - Changes > 5%: "improving" - meaningful positive momentum
+ * - Changes < -5%: "declining" - concerning negative trend
+ *
+ * The 5% threshold was chosen to balance between:
+ * 1. Filtering out noise from day-to-day fluctuations
+ * 2. Surfacing meaningful changes that warrant attention
+ * 3. Avoiding false alarms from minor statistical variance
+ *
+ * @param history - Array of historical confidence scores (min 2 required)
+ * @returns Trend analysis or null if insufficient data
  */
 export function calculateConfidenceTrend(
   history: ConfidenceHistoryPoint[]

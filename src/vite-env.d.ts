@@ -11,6 +11,14 @@ declare global {
       NODE_ENV?: string;
     }
   }
+
+  interface Window {
+    posthog?: {
+      capture: (event: string, properties?: Record<string, unknown>) => void;
+      identify: (userId: string, properties?: Record<string, unknown>) => void;
+      reset: () => void;
+    };
+  }
 }
 
 interface ImportMetaEnv {

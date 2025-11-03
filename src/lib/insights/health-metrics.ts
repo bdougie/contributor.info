@@ -722,7 +722,25 @@ export async function calculateRepositoryConfidence(
 
         console.log('[Confidence] Saved to history for %s/%s', owner, repo);
       } catch (historyError) {
-        console.warn('[Confidence] Failed to save to history:', historyError);
+        console.error('[Confidence] Failed to save to history:', historyError);
+
+        // Track history save failures for monitoring
+        if (typeof window !== 'undefined') {
+          const posthog = (
+            window as {
+              posthog?: { capture: (event: string, properties?: Record<string, unknown>) => void };
+            }
+          ).posthog;
+          if (posthog) {
+            posthog.capture('confidence_history_save_failed', {
+              repository: `${owner}/${repo}`,
+              error: historyError instanceof Error ? historyError.message : String(historyError),
+              score: finalScore,
+              timeRangeDays: daysBack,
+            });
+          }
+        }
+
         // Don't fail the entire calculation if history save fails
       }
     }
