@@ -512,23 +512,46 @@ export class WorkspaceService {
     requiredRoles: WorkspaceRole[]
   ): Promise<{ hasPermission: boolean; role?: WorkspaceRole }> {
     try {
-      const { data: member } = await supabase
+      console.log('[WorkspaceService] Checking permissions:', {
+        workspaceId,
+        userId,
+        requiredRoles,
+      });
+
+      const { data: member, error: queryError } = await supabase
         .from('workspace_members')
         .select('role')
         .eq('workspace_id', workspaceId)
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (!member) {
+      if (queryError) {
+        console.error('[WorkspaceService] Database query error:', queryError);
         return { hasPermission: false };
       }
 
+      if (!member) {
+        console.log('[WorkspaceService] User is not a member of workspace:', {
+          workspaceId,
+          userId,
+        });
+        return { hasPermission: false };
+      }
+
+      const hasPermission = requiredRoles.includes(member.role as WorkspaceRole);
+
+      console.log('[WorkspaceService] Permission check result:', {
+        userRole: member.role,
+        requiredRoles,
+        hasPermission,
+      });
+
       return {
-        hasPermission: requiredRoles.includes(member.role as WorkspaceRole),
+        hasPermission,
         role: member.role as WorkspaceRole,
       };
     } catch (error) {
-      console.error('Check permission error:', error);
+      console.error('[WorkspaceService] Check permission error:', error);
       return { hasPermission: false };
     }
   }
@@ -541,13 +564,35 @@ export class WorkspaceService {
     userId: string,
     data: AddRepositoryRequest
   ): Promise<ServiceResponse<WorkspaceRepository>> {
+    console.log('[WorkspaceService] addRepositoryToWorkspace called with:', {
+      workspaceId,
+      userId,
+      repositoryId: data.repository_id,
+    });
+
     try {
-      // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
+      // Check permissions - allow owner, admin, and maintainer roles
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
       if (!permission.hasPermission) {
+        const userRole = permission.role || 'not a member';
+        const errorMessage = permission.role
+          ? `Insufficient permissions to add repositories. Your role: ${userRole}. Required: owner, admin, or maintainer.`
+          : 'Insufficient permissions to add repositories. You are not a member of this workspace.';
+
+        console.log('[WorkspaceService] Permission denied for addRepositoryToWorkspace:', {
+          workspaceId,
+          userId,
+          userRole,
+          requiredRoles: ['owner', 'admin', 'maintainer'],
+        });
+
         return {
           success: false,
-          error: 'Insufficient permissions to add repositories',
+          error: errorMessage,
           statusCode: 403,
         };
       }
@@ -689,8 +734,12 @@ export class WorkspaceService {
     repositoryId: string
   ): Promise<ServiceResponse<void>> {
     try {
-      // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
+      // Check permissions - allow owner, admin, and maintainer roles
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,
@@ -797,8 +846,12 @@ export class WorkspaceService {
     }
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
-      // Check permissions
-      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
+      // Check permissions - allow owner, admin, and maintainer roles
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
       if (!permission.hasPermission) {
         return {
           success: false,

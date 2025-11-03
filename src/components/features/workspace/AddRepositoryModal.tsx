@@ -19,13 +19,13 @@ import { toast } from 'sonner';
 import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
-import type { User } from '@supabase/supabase-js';
 import { z } from 'zod';
 import {
   createRepositoryFallback,
   waitForRepository,
   type ExtendedGitHubRepository,
 } from '@/lib/utils/repository-helpers';
+import { getAppUserId } from '@/lib/auth-helpers';
 
 // Use mock supabase in Storybook if available
 interface WindowWithMocks extends Window {
@@ -82,7 +82,7 @@ export function AddRepositoryModal({
   workspaceId,
   onSuccess,
 }: AddRepositoryModalProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [appUserId, setAppUserId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [stagedRepos, setStagedRepos] = useState<StagedRepository[]>([]);
   const [existingRepoIds, setExistingRepoIds] = useState<Set<string>>(new Set());
@@ -111,14 +111,22 @@ export function AddRepositoryModal({
       setError(null);
 
       try {
-        // Get user
+        // Get user and app_users.id
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        setUser(user);
 
         if (!user) {
           setError('You must be logged in to add repositories');
+          return;
+        }
+
+        // Get app_users.id for workspace operations
+        const appUserIdValue = await getAppUserId();
+        setAppUserId(appUserIdValue);
+
+        if (!appUserIdValue) {
+          setError('Unable to verify user permissions. Please try logging in again.');
           return;
         }
 
@@ -246,13 +254,13 @@ export function AddRepositoryModal({
 
   const handleRemoveFromWorkspace = useCallback(
     async (repoId: string, repoName: string) => {
-      if (!user?.id) {
+      if (!appUserId) {
         setError('You must be logged in to remove repositories');
         return;
       }
 
       // Verify user is workspace owner
-      if (workspace?.owner_id !== user.id) {
+      if (workspace?.owner_id !== appUserId) {
         setError('Only workspace owners can remove repositories');
         return;
       }
@@ -301,11 +309,11 @@ export function AddRepositoryModal({
         setRemovingRepoId(null);
       }
     },
-    [user, workspace, workspaceId, onSuccess]
+    [appUserId, workspace, workspaceId, onSuccess]
   );
 
   const handleSubmit = useCallback(async () => {
-    if (!user?.id) {
+    if (!appUserId) {
       setError('You must be logged in to add repositories');
       return;
     }
@@ -433,7 +441,7 @@ export function AddRepositoryModal({
       });
 
       for (const { id: repoId, repo: stagedRepo } of successfulRepos) {
-        const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, user.id, {
+        const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, appUserId, {
           repository_id: repoId,
           notes: stagedRepo.notes,
           tags: stagedRepo.tags,
@@ -475,7 +483,7 @@ export function AddRepositoryModal({
     } finally {
       setSubmitting(false);
     }
-  }, [user, workspaceId, stagedRepos, onOpenChange, onSuccess]);
+  }, [appUserId, workspaceId, stagedRepos, onOpenChange, onSuccess]);
 
   const handleCancel = useCallback(() => {
     if (!submitting) {

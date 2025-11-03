@@ -157,7 +157,25 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
           navigate(getWorkspaceRoute(selectedWorkspace));
         }
       } else {
-        toast.error(result.error || 'Failed to add repository to workspace');
+        // Enhanced error handling for permission errors
+        const errorMessage = result.error || 'Failed to add repository to workspace';
+
+        if (result.statusCode === 403) {
+          // Permission error - show more detailed message
+          toast.error(errorMessage, {
+            description: 'Contact the workspace owner to request maintainer or owner access.',
+            duration: 6000,
+          });
+        } else {
+          toast.error(errorMessage);
+        }
+
+        console.error('[AddToWorkspaceModal] Failed to add repository:', {
+          workspaceId: selectedWorkspaceId,
+          repositoryId: repoId,
+          error: result.error,
+          statusCode: result.statusCode,
+        });
       }
     } catch (error) {
       console.error('Error adding repository to workspace:', error);
