@@ -882,4 +882,245 @@ describe('WorkspaceService', () => {
       expect(inSpy).toHaveBeenCalledWith('status', ['active', 'trialing']);
     });
   });
+
+  describe('checkPermission', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-456';
+
+    it('should return hasPermission: true when user has owner role', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'owner' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'admin',
+      ]);
+
+      expect(result.hasPermission).toBe(true);
+      expect(result.role).toBe('owner');
+    });
+
+    it('should return hasPermission: true when user has admin role', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'admin' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
+
+      expect(result.hasPermission).toBe(true);
+      expect(result.role).toBe('admin');
+    });
+
+    it('should return hasPermission: true when user has maintainer role', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'maintainer' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
+
+      expect(result.hasPermission).toBe(true);
+      expect(result.role).toBe('maintainer');
+    });
+
+    it('should return hasPermission: false when user has contributor role but needs admin', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'contributor' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'admin',
+      ]);
+
+      expect(result.hasPermission).toBe(false);
+      expect(result.role).toBe('contributor');
+    });
+
+    it('should return hasPermission: false when user is not a member', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'admin',
+      ]);
+
+      expect(result.hasPermission).toBe(false);
+      expect(result.role).toBeUndefined();
+    });
+
+    it('should return hasPermission: false when database query fails', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database error', code: '500' },
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, ['owner']);
+
+      expect(result.hasPermission).toBe(false);
+      expect(result.role).toBeUndefined();
+    });
+
+    it('should handle exceptions and return hasPermission: false', async () => {
+      vi.mocked(supabase.from).mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, ['owner']);
+
+      expect(result.hasPermission).toBe(false);
+      expect(result.role).toBeUndefined();
+    });
+  });
+
+  describe('addRepositoryToWorkspace - Permission Tests', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-456';
+    const mockRepositoryRequest: AddRepositoryRequest = {
+      repository_id: 'repo-789',
+      is_pinned: false,
+    };
+
+    it('should fail with 403 when user has contributor role', async () => {
+      // Mock permission check - user is contributor (insufficient permissions)
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { role: 'contributor' },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepositoryRequest
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(403);
+      expect(result.error).toContain('Insufficient permissions');
+      expect(result.error).toContain('contributor');
+    });
+
+    it('should fail with 403 when user is not a workspace member', async () => {
+      // Mock permission check - user is not a member
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepositoryRequest
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(403);
+      expect(result.error).toContain('Insufficient permissions');
+      expect(result.error).toContain('not a member');
+    });
+
+    it('should handle database errors during permission check', async () => {
+      // Mock permission check with database error
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: { message: 'Database connection failed', code: '500' },
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        mockWorkspaceId,
+        mockUserId,
+        mockRepositoryRequest
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(403);
+    });
+  });
 });
