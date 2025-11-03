@@ -394,14 +394,20 @@ export function ActivityTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <a
-                                    href={getActivityUrl(activity)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                                  >
-                                    {activity.title}
-                                  </a>
+                                  {activity.url ? (
+                                    <a
+                                      href={activity.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                                    >
+                                      {activity.title}
+                                    </a>
+                                  ) : (
+                                    <span className="text-sm font-medium truncate block text-muted-foreground">
+                                      {activity.title}
+                                    </span>
+                                  )}
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <p className="font-semibold text-sm">{activity.title}</p>
@@ -409,7 +415,7 @@ export function ActivityTable({
                                   <p className="text-xs">
                                     Created: {format(parseISO(activity.created_at), 'PPp')}
                                   </p>
-                                  <p className="text-xs">Click to open in GitHub</p>
+                                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -556,14 +562,20 @@ export function ActivityTable({
 
                           {/* Link */}
                           <div className="w-8 sm:w-12">
-                            <a
-                              href={getActivityUrl(activity)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                            {activity.url ? (
+                              <a
+                                href={activity.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
+                                <ExternalLink className="h-4 w-4" />
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
