@@ -24,11 +24,19 @@ if (!shouldRunIntegrationTests) {
 const describeOrSkip = shouldRunIntegrationTests ? describe : describe.skip;
 
 describeOrSkip('Confidence History Integration Tests', () => {
-  const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Only create client if tests will run
+  let supabase: ReturnType<typeof createClient<Database>>;
   const testOwner = 'test-org';
   const testRepo = `test-repo-${Date.now()}`;
 
+  beforeAll(() => {
+    if (shouldRunIntegrationTests) {
+      supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  });
+
   beforeEach(async () => {
+    if (!shouldRunIntegrationTests) return;
     // Clean up any existing test data
     await supabase
       .from('repository_confidence_history')
@@ -38,6 +46,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
   });
 
   afterAll(async () => {
+    if (!shouldRunIntegrationTests) return;
     // Final cleanup
     await supabase
       .from('repository_confidence_history')
