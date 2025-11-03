@@ -41,52 +41,6 @@ export interface ActivityTableProps {
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
 
-// Helper function to construct GitHub URL
-const getActivityUrl = (activity: ActivityItem): string => {
-  if (activity.url) return activity.url;
-
-  // Construct URL based on type if not provided
-  const [owner, repo] = activity.repository.split('/');
-  if (!owner || !repo) return '#';
-
-  // Try to extract number from existing URL if available, then from id, then from title
-  let number = '';
-
-  // First try to extract from URL if it exists
-  if (activity.url) {
-    const urlMatch = activity.url.match(/\/(?:pull|issues)\/(\d+)/);
-    if (urlMatch) {
-      number = urlMatch[1];
-    }
-  }
-
-  // If no number found and we have an id that looks like a number, use it
-  if (!number && activity.id && /^\d+$/.test(activity.id)) {
-    number = activity.id;
-  }
-
-  // Fall back to extracting from title as last resort
-  if (!number) {
-    const titleMatch = activity.title.match(/#(\d+)/);
-    number = titleMatch ? titleMatch[1] : '';
-  }
-
-  switch (activity.type) {
-    case 'pr':
-      return number
-        ? `https://github.com/${owner}/${repo}/pull/${number}`
-        : `https://github.com/${owner}/${repo}/pulls`;
-    case 'issue':
-      return number
-        ? `https://github.com/${owner}/${repo}/issues/${number}`
-        : `https://github.com/${owner}/${repo}/issues`;
-    case 'commit':
-      return `https://github.com/${owner}/${repo}/commits`;
-    default:
-      return `https://github.com/${owner}/${repo}`;
-  }
-};
-
 const TYPE_ICONS = {
   pr: GitPullRequest,
   issue: AlertCircle,
