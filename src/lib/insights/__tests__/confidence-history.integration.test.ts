@@ -14,6 +14,13 @@ const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Skip integration tests in CI or when Supabase credentials are not available
 const shouldRunIntegrationTests = !process.env.CI && SUPABASE_ANON_KEY.length > 0;
+
+if (!shouldRunIntegrationTests) {
+  console.log(
+    '[Integration Tests] Skipping Confidence History integration tests - requires Supabase credentials and non-CI environment'
+  );
+}
+
 const describeOrSkip = shouldRunIntegrationTests ? describe : describe.skip;
 
 describeOrSkip('Confidence History Integration Tests', () => {
