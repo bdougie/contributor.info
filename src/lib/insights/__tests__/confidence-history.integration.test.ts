@@ -10,11 +10,13 @@ import {
 } from '../confidence-history.service';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
-const SUPABASE_ANON_KEY =
-  process.env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnY3h6b25wbW1jaXJtZ3FkcmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTgwNjQwMDAsImV4cCI6MjAzMzY0MDAwMH0.dummy';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || '';
 
-describe('Confidence History Integration Tests', () => {
+// Skip integration tests in CI or when Supabase credentials are not available
+const shouldRunIntegrationTests = !process.env.CI && SUPABASE_ANON_KEY.length > 0;
+const describeOrSkip = shouldRunIntegrationTests ? describe : describe.skip;
+
+describeOrSkip('Confidence History Integration Tests', () => {
   const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
   const testOwner = 'test-org';
   const testRepo = `test-repo-${Date.now()}`;
