@@ -195,59 +195,55 @@ export function WorkspaceActivityTab({
           };
         }),
         // Convert reviews to activities with validation
-        ...validReviewData.map(
-          (review, index): ActivityItem => {
-            // Construct URL from repository name and PR number if available
-            let reviewUrl = '';
-            if (review.repository_name && review.pr_number) {
-              reviewUrl = `https://github.com/${review.repository_name}/pull/${review.pr_number}`;
-            }
-            return {
-              id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
-              type: 'review',
-              title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
-              created_at: review.submitted_at,
-              author: {
-                username: review.reviewer_login || 'Unknown',
-                avatar_url: '', // Should come from contributors table via join
-              },
-              repository: review.repository_name || 'Unknown Repository',
-              status: review.state.toLowerCase() as ActivityItem['status'],
-              url: reviewUrl,
-              metadata: {},
-            };
+        ...validReviewData.map((review, index): ActivityItem => {
+          // Construct URL from repository name and PR number if available
+          let reviewUrl = '';
+          if (review.repository_name && review.pr_number) {
+            reviewUrl = `https://github.com/${review.repository_name}/pull/${review.pr_number}`;
           }
-        ),
+          return {
+            id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
+            type: 'review',
+            title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
+            created_at: review.submitted_at,
+            author: {
+              username: review.reviewer_login || 'Unknown',
+              avatar_url: '', // Should come from contributors table via join
+            },
+            repository: review.repository_name || 'Unknown Repository',
+            status: review.state.toLowerCase() as ActivityItem['status'],
+            url: reviewUrl,
+            metadata: {},
+          };
+        }),
         // Convert comments to activities with validation
-        ...validCommentData.map(
-          (comment, index): ActivityItem => {
-            // Construct URL from repository name and PR number if available
-            let commentUrl = '';
-            if (comment.repository_name && comment.pr_number) {
-              commentUrl = `https://github.com/${comment.repository_name}/pull/${comment.pr_number}`;
-            }
-            return {
-              id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
-              type: 'comment',
-              title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
-              created_at: comment.created_at,
-              author: {
-                username: comment.commenter_login || 'Unknown',
-                avatar_url: '', // Should come from contributors table via join
-              },
-              repository: comment.repository_name || 'Unknown Repository',
-              status: 'open',
-              url: commentUrl,
-              metadata: {},
-            };
+        ...validCommentData.map((comment, index): ActivityItem => {
+          // Construct URL from repository name and PR number if available
+          let commentUrl = '';
+          if (comment.repository_name && comment.pr_number) {
+            commentUrl = `https://github.com/${comment.repository_name}/pull/${comment.pr_number}`;
           }
-        ),
+          return {
+            id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
+            type: 'comment',
+            title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
+            created_at: comment.created_at,
+            author: {
+              username: comment.commenter_login || 'Unknown',
+              avatar_url: '', // Should come from contributors table via join
+            },
+            repository: comment.repository_name || 'Unknown Repository',
+            status: 'open',
+            url: commentUrl,
+            metadata: {},
+          };
+        }),
         // Convert star events to activities - now individual events
         ...validStarData.map((star, index): ActivityItem => {
-          // Construct repository URL if repository name is available
+          // Link to the user's GitHub profile instead of the repository
           let starUrl = '';
-          if (star.repository_name) {
-            starUrl = `https://github.com/${star.repository_name}`;
+          if (star.actor_login) {
+            starUrl = `https://github.com/${star.actor_login}`;
           }
           return {
             id: star.id || `star-${index}`,
@@ -266,10 +262,14 @@ export function WorkspaceActivityTab({
         }),
         // Convert fork events to activities - now individual events
         ...validForkData.map((fork, index): ActivityItem => {
-          // Construct repository URL if repository name is available
+          // Link to the user's forked repository
           let forkUrl = '';
-          if (fork.repository_name) {
-            forkUrl = `https://github.com/${fork.repository_name}`;
+          if (fork.actor_login && fork.repository_name) {
+            // Extract just the repo name from owner/repo format
+            const repoName = fork.repository_name.split('/')[1];
+            if (repoName) {
+              forkUrl = `https://github.com/${fork.actor_login}/${repoName}`;
+            }
           }
           return {
             id: fork.id || `fork-${index}`,
