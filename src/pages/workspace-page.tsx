@@ -526,20 +526,29 @@ function WorkspacePage() {
 
         if (prData) {
           // Format PR data for activity tab
-          const formattedPRs = prData.map((pr) => ({
-            ...pr,
-            author_login: (() => {
-              const contrib = pr.contributors as
-                | { username?: string; avatar_url?: string }
-                | { username?: string; avatar_url?: string }[]
-                | undefined;
-              if (Array.isArray(contrib)) {
-                return contrib[0]?.username || 'Unknown';
-              }
-              return contrib?.username || 'Unknown';
-            })(), // Use actual GitHub username
-            repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
-          }));
+          const formattedPRs = prData.map((pr) => {
+            const repoFullName = transformedRepos.find((r) => r.id === pr.repository_id)?.full_name;
+            return {
+              ...pr,
+              author_login: (() => {
+                const contrib = pr.contributors as
+                  | { username?: string; avatar_url?: string }
+                  | { username?: string; avatar_url?: string }[]
+                  | undefined;
+                if (Array.isArray(contrib)) {
+                  return contrib[0]?.username || 'Unknown';
+                }
+                return contrib?.username || 'Unknown';
+              })(), // Use actual GitHub username
+              repository_name: repoFullName,
+              // Construct html_url if not present in database
+              html_url:
+                pr.html_url ||
+                (repoFullName && pr.number
+                  ? `https://github.com/${repoFullName}/pull/${pr.number}`
+                  : undefined),
+            };
+          });
           setFullPRData(formattedPRs);
 
           // Store for trend calculation with commits
