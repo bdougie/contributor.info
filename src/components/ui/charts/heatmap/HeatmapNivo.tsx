@@ -85,7 +85,7 @@ export const HeatmapNivo: React.FC<HeatmapNivoProps> = ({
     <div style={{ height }}>
       <ResponsiveHeatMap
         data={nivoData}
-        margin={{ top: 60, right: 90, bottom: 60, left: 200 }}
+        margin={{ top: 60, right: 20, bottom: 60, left: 200 }}
         valueFormat=">-.0f"
         axisTop={{
           tickSize: 5,
@@ -96,15 +96,7 @@ export const HeatmapNivo: React.FC<HeatmapNivoProps> = ({
           ticksPosition: 'after',
           truncateTickAt: 0,
         }}
-        axisRight={{
-          tickSize: 5,
-          tickPadding: 5,
-          tickRotation: 0,
-          legend: 'Files',
-          legendPosition: 'middle',
-          legendOffset: 70,
-          truncateTickAt: 0,
-        }}
+        axisRight={null}
         axisLeft={{
           tickSize: 5,
           tickPadding: 5,

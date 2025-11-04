@@ -39,36 +39,6 @@ export function transformDataForNivo(heatmapData: HeatmapData): NivoHeatmapSerie
 }
 
 /**
- * Recharts expects data in a flat structure:
- * [
- *   { file: 'src/index.ts', 'Week 1': 5, 'Week 2': 10, ... },
- *   { file: 'src/App.tsx', 'Week 1': 3, 'Week 2': 8, ... }
- * ]
- */
-interface RechartsHeatmapDataPoint {
-  file: string;
-  [period: string]: string | number;
-}
-
-export function transformDataForRecharts(heatmapData: HeatmapData): RechartsHeatmapDataPoint[] {
-  const { files, data } = heatmapData;
-
-  return files.map((file) => {
-    const fileData = data.filter((d) => d.file === file);
-
-    const row: RechartsHeatmapDataPoint = {
-      file: truncateFilePath(file, 40),
-    };
-
-    fileData.forEach((d) => {
-      row[d.period] = d.changes;
-    });
-
-    return row;
-  });
-}
-
-/**
  * Truncate file paths to prevent UI overflow
  * Keeps the filename and a portion of the path
  */

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { HeatmapNivo } from './HeatmapNivo';
-import { HeatmapRecharts } from './HeatmapRecharts';
 import {
   generateSparseFileActivityData,
   generateDenseFileActivityData,
@@ -17,7 +16,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Heatmap visualizations for file activity tracking. Compares @nivo/heatmap and Recharts implementations with various data scenarios.',
+          'Heatmap visualization for file activity tracking using @nivo/heatmap. Shows file changes over time with color intensity indicating activity levels.',
       },
     },
   },
@@ -51,14 +50,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * NIVO IMPLEMENTATION STORIES
- */
-
-/**
  * Default heatmap showing weekly file activity for ~20 files.
  * Uses blue gradient color scheme.
  */
-export const NivoDefault: Story = {
+export const Default: Story = {
   args: {
     data: generateSparseFileActivityData(),
     height: 600,
@@ -70,7 +65,7 @@ export const NivoDefault: Story = {
     docs: {
       description: {
         story:
-          'Default Nivo heatmap with sparse data (20 files). Good for typical small-to-medium repository activity visualization.',
+          'Default heatmap with sparse data (20 files). Good for typical small-to-medium repository activity visualization.',
       },
     },
   },
@@ -80,7 +75,7 @@ export const NivoDefault: Story = {
  * Daily activity view showing weekday patterns.
  * Notice how activity varies by day of the week.
  */
-export const NivoDailyActivity: Story = {
+export const DailyActivity: Story = {
   args: {
     data: generateDailyFileActivityData(),
     height: 500,
@@ -102,7 +97,7 @@ export const NivoDailyActivity: Story = {
  * Stress test with 100+ files.
  * Tests performance and layout with dense data.
  */
-export const NivoDenseData: Story = {
+export const DenseData: Story = {
   args: {
     data: generateDenseFileActivityData(),
     height: 1200,
@@ -124,7 +119,7 @@ export const NivoDenseData: Story = {
  * GitHub-style contribution graph colors.
  * Familiar color palette for developers.
  */
-export const NivoGitHubColors: Story = {
+export const GitHubColors: Story = {
   args: {
     data: generateHotspotFileActivityData(),
     height: 400,
@@ -146,7 +141,7 @@ export const NivoGitHubColors: Story = {
  * Traffic light color scheme (green → yellow → red).
  * Good for highlighting problem areas.
  */
-export const NivoTrafficColors: Story = {
+export const TrafficColors: Story = {
   args: {
     data: generateHotspotFileActivityData(),
     height: 400,
@@ -168,7 +163,7 @@ export const NivoTrafficColors: Story = {
  * Dark mode variant.
  * Adjusted colors and contrast for dark backgrounds.
  */
-export const NivoDarkMode: Story = {
+export const DarkMode: Story = {
   args: {
     data: generateSparseFileActivityData(),
     height: 600,
@@ -190,7 +185,7 @@ export const NivoDarkMode: Story = {
 /**
  * Mobile viewport with condensed layout.
  */
-export const NivoMobile: Story = {
+export const Mobile: Story = {
   args: {
     data: generateDailyFileActivityData(),
     height: 400,
@@ -214,7 +209,7 @@ export const NivoMobile: Story = {
 /**
  * Loading state with skeleton.
  */
-export const NivoLoading: Story = {
+export const Loading: Story = {
   args: {
     data: generateSparseFileActivityData(),
     height: 600,
@@ -234,7 +229,7 @@ export const NivoLoading: Story = {
 /**
  * Empty state - no data available.
  */
-export const NivoEmpty: Story = {
+export const Empty: Story = {
   args: {
     data: generateEmptyHeatmapData(),
     height: 600,
@@ -253,7 +248,7 @@ export const NivoEmpty: Story = {
 /**
  * Without legend for cleaner look.
  */
-export const NivoNoLegend: Story = {
+export const NoLegend: Story = {
   args: {
     data: generateSparseFileActivityData(),
     height: 600,
@@ -273,7 +268,7 @@ export const NivoNoLegend: Story = {
 /**
  * Custom height for embedding.
  */
-export const NivoCompact: Story = {
+export const Compact: Story = {
   args: {
     data: generateDailyFileActivityData(),
     height: 300,
@@ -293,7 +288,7 @@ export const NivoCompact: Story = {
 /**
  * GitHub dark mode with green colors.
  */
-export const NivoGitHubDark: Story = {
+export const GitHubDark: Story = {
   args: {
     data: generateHotspotFileActivityData(),
     height: 400,
@@ -313,259 +308,67 @@ export const NivoGitHubDark: Story = {
 };
 
 /**
- * RECHARTS IMPLEMENTATION STORIES
- */
-
-/**
- * Default Recharts heatmap for comparison.
- * Uses ScatterChart with custom cells.
- */
-export const RechartsDefault: Story = {
-  render: (args) => <HeatmapRecharts {...args} />,
-  args: {
-    data: generateSparseFileActivityData(),
-    height: 600,
-    isDark: false,
-    colorScheme: 'default',
-    showLegend: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Recharts implementation using ScatterChart. Custom solution since Recharts lacks native heatmap component.',
-      },
-    },
-  },
-};
-
-/**
- * Dense data with Recharts.
- * Performance comparison with 100+ files.
- */
-export const RechartsDenseData: Story = {
-  render: (args) => <HeatmapRecharts {...args} />,
-  args: {
-    data: generateDenseFileActivityData(),
-    height: 1200,
-    isDark: false,
-    colorScheme: 'default',
-    showLegend: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          '**Performance Test:** Recharts with 100+ files. Compare rendering and interaction speed with Nivo.',
-      },
-    },
-  },
-};
-
-/**
- * Recharts dark mode.
- */
-export const RechartsDarkMode: Story = {
-  render: (args) => <HeatmapRecharts {...args} />,
-  args: {
-    data: generateSparseFileActivityData(),
-    height: 600,
-    isDark: true,
-    colorScheme: 'default',
-    showLegend: true,
-  },
-  parameters: {
-    backgrounds: { default: 'dark' },
-    docs: {
-      description: {
-        story: 'Recharts heatmap in dark mode.',
-      },
-    },
-  },
-};
-
-/**
- * Recharts with GitHub colors.
- */
-export const RechartsGitHubColors: Story = {
-  render: (args) => <HeatmapRecharts {...args} />,
-  args: {
-    data: generateHotspotFileActivityData(),
-    height: 400,
-    isDark: false,
-    colorScheme: 'github',
-    showLegend: true,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: 'Recharts with GitHub-style color scheme.',
-      },
-    },
-  },
-};
-
-/**
- * COMPARISON STORIES
- */
-
-/**
- * Side-by-side comparison of both implementations.
- */
-export const SideBySideComparison: Story = {
-  render: () => {
-    const data = generateSparseFileActivityData();
-    return (
-      <div className="space-y-8 p-8">
-        <div>
-          <h3 className="text-xl font-bold mb-4">Nivo Heatmap</h3>
-          <HeatmapNivo data={data} height={500} isDark={false} colorScheme="default" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold mb-4">Recharts Heatmap</h3>
-          <HeatmapRecharts data={data} height={500} isDark={false} colorScheme="default" />
-        </div>
-      </div>
-    );
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          'Direct comparison of both implementations with identical data. Notice differences in appearance, animations, and interactions.',
-      },
-    },
-  },
-};
-
-/**
  * IMPLEMENTATION NOTES
  */
 
 export const ImplementationNotes: Story = {
   render: () => (
-    <div className="max-w-5xl p-8 bg-white dark:bg-gray-900 rounded-lg">
-      <h2 className="text-2xl font-bold mb-6">Implementation Comparison</h2>
+    <div className="max-w-3xl p-8 bg-white dark:bg-gray-900 rounded-lg">
+      <h2 className="text-2xl font-bold mb-6">@nivo/heatmap Implementation</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        {/* Nivo */}
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <h3 className="text-xl font-bold mb-4">@nivo/heatmap</h3>
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+        <h3 className="text-xl font-bold mb-4">Features & Benefits</h3>
 
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold mb-2 text-green-600">✓ Pros</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Native heatmap with rich features</li>
-                <li>Excellent animations out of the box</li>
-                <li>Professional appearance</li>
-                <li>Responsive by default</li>
-                <li>Good accessibility support</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold mb-2 text-red-600">✗ Cons</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Larger bundle (~150KB gzipped)</li>
-                <li>Additional dependency</li>
-                <li>Steeper learning curve</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold mb-2">📊 Performance</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>100+ files: Smooth</li>
-                <li>Initial render: ~200-400ms</li>
-                <li>Interactions: &lt;50ms</li>
-              </ul>
-            </div>
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-semibold mb-2 text-green-600">✓ Key Features</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              <li>Native heatmap component with rich features</li>
+              <li>Excellent animations and transitions out of the box</li>
+              <li>Professional, polished appearance</li>
+              <li>Fully responsive by default</li>
+              <li>Good accessibility support</li>
+              <li>Customizable color schemes and themes</li>
+              <li>Interactive tooltips and click handlers</li>
+            </ul>
           </div>
-        </div>
 
-        {/* Recharts */}
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-          <h3 className="text-xl font-bold mb-4">Recharts</h3>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-semibold mb-2 text-green-600">✓ Pros</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Already in dependencies</li>
-                <li>No additional bundle cost</li>
-                <li>Familiar API if using Recharts</li>
-                <li>Full control over implementation</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold mb-2 text-red-600">✗ Cons</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>No native heatmap component</li>
-                <li>Custom implementation required</li>
-                <li>More code to maintain</li>
-                <li>Less polished animations</li>
-                <li>Basic tooltip customization</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold mb-2">📊 Performance</h4>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>100+ files: Good</li>
-                <li>Initial render: ~150-300ms</li>
-                <li>Interactions: &lt;100ms</li>
-              </ul>
-            </div>
+          <div>
+            <h4 className="text-sm font-semibold mb-2">📊 Performance</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              <li>Handles 100+ files smoothly</li>
+              <li>Initial render: ~200-400ms</li>
+              <li>Interactions: &lt;50ms response time</li>
+              <li>Bundle size: ~50KB (heatmap package only)</li>
+            </ul>
           </div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">💡 Recommendation</h3>
-          <p className="text-sm mb-2">
-            <strong>Nivo is recommended</strong> for production use. The development velocity,
-            built-in features, and professional appearance justify the bundle size cost.
-          </p>
-          <p className="text-sm">Choose Recharts only if:</p>
-          <ul className="list-disc list-inside text-xs mt-2 space-y-1">
-            <li>Bundle size is absolutely critical</li>
-            <li>You need extreme customization not possible with Nivo</li>
-            <li>Your team is already heavily invested in Recharts</li>
-          </ul>
-        </div>
-
-        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">⚠️ Trade-offs</h3>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <strong>Bundle Impact:</strong>
-              <p>Nivo adds ~50KB to bundle (heatmap only)</p>
-            </div>
-            <div>
-              <strong>Development Time:</strong>
-              <p>Nivo: 2 hours | Recharts: 6+ hours</p>
-            </div>
-            <div>
-              <strong>Maintenance:</strong>
-              <p>Nivo: Low | Recharts: Medium</p>
-            </div>
-            <div>
-              <strong>Polish:</strong>
-              <p>Nivo: High | Recharts: Medium</p>
-            </div>
-          </div>
-        </div>
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <h3 className="text-lg font-semibold mb-2">💡 Usage Recommendations</h3>
+        <ul className="list-disc list-inside text-sm space-y-2">
+          <li>
+            <strong>File Activity Tracking:</strong> Perfect for visualizing code changes over time
+          </li>
+          <li>
+            <strong>Color Schemes:</strong> Use GitHub scheme for familiar contribution graph style
+          </li>
+          <li>
+            <strong>Performance:</strong> Supports large datasets (100+ files) without performance
+            issues
+          </li>
+          <li>
+            <strong>Dark Mode:</strong> Full theme support for light and dark modes
+          </li>
+        </ul>
       </div>
     </div>
   ),
   parameters: {
     docs: {
       description: {
-        story:
-          'Comprehensive comparison of both implementations with recommendations for production use.',
+        story: 'Overview of @nivo/heatmap features, performance, and usage recommendations.',
       },
     },
   },
