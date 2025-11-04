@@ -130,14 +130,12 @@ function WorkspacePage() {
   // My Work filter and pagination state
   const [myWorkPage, setMyWorkPage] = useState(1);
   const [myWorkItemsPerPage] = useState(10);
-  const [myWorkSelectedTypes, setMyWorkSelectedTypes] = useState<Array<'pr' | 'issue' | 'discussion'>>([
-    'pr',
-    'issue',
-    'discussion',
-  ]);
-  const [myWorkActiveTab, setMyWorkActiveTab] = useState<'needs_response' | 'follow_ups' | 'replies'>(
-    'needs_response'
-  );
+  const [myWorkSelectedTypes, setMyWorkSelectedTypes] = useState<
+    Array<'pr' | 'issue' | 'discussion'>
+  >(['pr', 'issue', 'discussion']);
+  const [myWorkActiveTab, setMyWorkActiveTab] = useState<
+    'needs_response' | 'follow_ups' | 'replies'
+  >('needs_response');
 
   // Memoize filter object to prevent unnecessary re-renders
   const myWorkFilters = useMemo(
@@ -528,20 +526,29 @@ function WorkspacePage() {
 
         if (prData) {
           // Format PR data for activity tab
-          const formattedPRs = prData.map((pr) => ({
-            ...pr,
-            author_login: (() => {
-              const contrib = pr.contributors as
-                | { username?: string; avatar_url?: string }
-                | { username?: string; avatar_url?: string }[]
-                | undefined;
-              if (Array.isArray(contrib)) {
-                return contrib[0]?.username || 'Unknown';
-              }
-              return contrib?.username || 'Unknown';
-            })(), // Use actual GitHub username
-            repository_name: transformedRepos.find((r) => r.id === pr.repository_id)?.full_name,
-          }));
+          const formattedPRs = prData.map((pr) => {
+            const repoFullName = transformedRepos.find((r) => r.id === pr.repository_id)?.full_name;
+            return {
+              ...pr,
+              author_login: (() => {
+                const contrib = pr.contributors as
+                  | { username?: string; avatar_url?: string }
+                  | { username?: string; avatar_url?: string }[]
+                  | undefined;
+                if (Array.isArray(contrib)) {
+                  return contrib[0]?.username || 'Unknown';
+                }
+                return contrib?.username || 'Unknown';
+              })(), // Use actual GitHub username
+              repository_name: repoFullName,
+              // Construct html_url if not present in database
+              html_url:
+                pr.html_url ||
+                (repoFullName && pr.number
+                  ? `https://github.com/${repoFullName}/pull/${pr.number}`
+                  : undefined),
+            };
+          });
           setFullPRData(formattedPRs);
 
           // Store for trend calculation with commits
@@ -599,7 +606,8 @@ function WorkspacePage() {
             .from('issues')
             .select(
               `id, title, number, created_at, closed_at, state, author_id, repository_id,
-                       contributors!issues_author_id_fkey(username, avatar_url)`
+                       contributors!issues_author_id_fkey(username, avatar_url),
+                       repositories!issues_repository_id_fkey(full_name)`
             )
             .in('repository_id', repoIds)
             .gte('created_at', startDate.toISOString().split('T')[0]) // Use date only format (YYYY-MM-DD)
@@ -611,21 +619,35 @@ function WorkspacePage() {
 
           if (issueData) {
             // Format issue data for activity tab
-            const formattedIssues = issueData.map((issue) => ({
-              ...issue,
-              author_login: (() => {
-                const contrib = issue.contributors as
-                  | { username?: string; avatar_url?: string }
-                  | { username?: string; avatar_url?: string }[]
-                  | undefined;
-                if (Array.isArray(contrib)) {
-                  return contrib[0]?.username || 'Unknown';
-                }
-                return contrib?.username || 'Unknown';
-              })(), // Use actual GitHub username
-              repository_name: transformedRepos.find((r) => r.id === issue.repository_id)
-                ?.full_name,
-            }));
+            const formattedIssues = issueData.map((issue) => {
+              // Extract repository full_name from join
+              const repoData = issue.repositories as
+                | { full_name: string }
+                | { full_name: string }[]
+                | undefined;
+              const repoFullName = Array.isArray(repoData)
+                ? repoData[0]?.full_name
+                : repoData?.full_name;
+
+              return {
+                ...issue,
+                author_login: (() => {
+                  const contrib = issue.contributors as
+                    | { username?: string; avatar_url?: string }
+                    | { username?: string; avatar_url?: string }[]
+                    | undefined;
+                  if (Array.isArray(contrib)) {
+                    return contrib[0]?.username || 'Unknown';
+                  }
+                  return contrib?.username || 'Unknown';
+                })(), // Use actual GitHub username
+                repository_name: repoFullName,
+                html_url:
+                  repoFullName && issue.number
+                    ? `https://github.com/${repoFullName}/issues/${issue.number}`
+                    : undefined,
+              };
+            });
             setFullIssueData(formattedIssues);
 
             // Store for trend calculation

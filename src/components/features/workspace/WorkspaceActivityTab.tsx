@@ -190,16 +190,18 @@ export function WorkspaceActivityTab({
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
-            url:
-              issue.repository_name && issue.number
-                ? `https://github.com/${issue.repository_name}/issues/${issue.number}`
-                : '#',
+            url: issue.html_url || '',
             metadata: {},
           };
         }),
         // Convert reviews to activities with validation
-        ...validReviewData.map(
-          (review, index): ActivityItem => ({
+        ...validReviewData.map((review, index): ActivityItem => {
+          // Construct URL from repository name and PR number if available
+          let reviewUrl = '';
+          if (review.repository_name && review.pr_number) {
+            reviewUrl = `https://github.com/${review.repository_name}/pull/${review.pr_number}`;
+          }
+          return {
             id: `review-${review.id}-${index}`, // Add index to ensure uniqueness
             type: 'review',
             title: review.pr_title ? `Review on: ${review.pr_title}` : `Review on PR`,
@@ -210,16 +212,18 @@ export function WorkspaceActivityTab({
             },
             repository: review.repository_name || 'Unknown Repository',
             status: review.state.toLowerCase() as ActivityItem['status'],
-            url:
-              review.repository_name && review.pr_number
-                ? `https://github.com/${review.repository_name}/pull/${review.pr_number}`
-                : '#',
+            url: reviewUrl,
             metadata: {},
-          })
-        ),
+          };
+        }),
         // Convert comments to activities with validation
-        ...validCommentData.map(
-          (comment, index): ActivityItem => ({
+        ...validCommentData.map((comment, index): ActivityItem => {
+          // Construct URL from repository name and PR number if available
+          let commentUrl = '';
+          if (comment.repository_name && comment.pr_number) {
+            commentUrl = `https://github.com/${comment.repository_name}/pull/${comment.pr_number}`;
+          }
+          return {
             id: `comment-${comment.id}-${index}`, // Add index to ensure uniqueness
             type: 'comment',
             title: comment.pr_title ? `Comment on: ${comment.pr_title}` : `Comment on PR`,
@@ -230,15 +234,17 @@ export function WorkspaceActivityTab({
             },
             repository: comment.repository_name || 'Unknown Repository',
             status: 'open',
-            url:
-              comment.repository_name && comment.pr_number
-                ? `https://github.com/${comment.repository_name}/pull/${comment.pr_number}`
-                : '#',
+            url: commentUrl,
             metadata: {},
-          })
-        ),
+          };
+        }),
         // Convert star events to activities - now individual events
         ...validStarData.map((star, index): ActivityItem => {
+          // Link to the user's GitHub profile instead of the repository
+          let starUrl = '';
+          if (star.actor_login) {
+            starUrl = `https://github.com/${star.actor_login}`;
+          }
           return {
             id: star.id || `star-${index}`,
             type: 'star',
@@ -250,12 +256,21 @@ export function WorkspaceActivityTab({
             },
             repository: star.repository_name || 'Unknown Repository',
             // No status for star events
-            url: star.repository_name ? `https://github.com/${star.repository_name}` : '#',
+            url: starUrl,
             metadata: {},
           };
         }),
         // Convert fork events to activities - now individual events
         ...validForkData.map((fork, index): ActivityItem => {
+          // Link to the user's forked repository
+          let forkUrl = '';
+          if (fork.actor_login && fork.repository_name) {
+            // Extract just the repo name from owner/repo format
+            const repoName = fork.repository_name.split('/')[1];
+            if (repoName) {
+              forkUrl = `https://github.com/${fork.actor_login}/${repoName}`;
+            }
+          }
           return {
             id: fork.id || `fork-${index}`,
             type: 'fork',
@@ -267,7 +282,7 @@ export function WorkspaceActivityTab({
             },
             repository: fork.repository_name || 'Unknown Repository',
             // No status for fork events
-            url: fork.repository_name ? `https://github.com/${fork.repository_name}` : '#',
+            url: forkUrl,
             metadata: {},
           };
         }),

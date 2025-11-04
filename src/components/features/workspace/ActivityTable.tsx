@@ -41,52 +41,6 @@ export interface ActivityTableProps {
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
 
-// Helper function to construct GitHub URL
-const getActivityUrl = (activity: ActivityItem): string => {
-  if (activity.url) return activity.url;
-
-  // Construct URL based on type if not provided
-  const [owner, repo] = activity.repository.split('/');
-  if (!owner || !repo) return '#';
-
-  // Try to extract number from existing URL if available, then from id, then from title
-  let number = '';
-
-  // First try to extract from URL if it exists
-  if (activity.url) {
-    const urlMatch = activity.url.match(/\/(?:pull|issues)\/(\d+)/);
-    if (urlMatch) {
-      number = urlMatch[1];
-    }
-  }
-
-  // If no number found and we have an id that looks like a number, use it
-  if (!number && activity.id && /^\d+$/.test(activity.id)) {
-    number = activity.id;
-  }
-
-  // Fall back to extracting from title as last resort
-  if (!number) {
-    const titleMatch = activity.title.match(/#(\d+)/);
-    number = titleMatch ? titleMatch[1] : '';
-  }
-
-  switch (activity.type) {
-    case 'pr':
-      return number
-        ? `https://github.com/${owner}/${repo}/pull/${number}`
-        : `https://github.com/${owner}/${repo}/pulls`;
-    case 'issue':
-      return number
-        ? `https://github.com/${owner}/${repo}/issues/${number}`
-        : `https://github.com/${owner}/${repo}/issues`;
-    case 'commit':
-      return `https://github.com/${owner}/${repo}/commits`;
-    default:
-      return `https://github.com/${owner}/${repo}`;
-  }
-};
-
 const TYPE_ICONS = {
   pr: GitPullRequest,
   issue: AlertCircle,
@@ -394,14 +348,20 @@ export function ActivityTable({
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <a
-                                    href={getActivityUrl(activity)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                                  >
-                                    {activity.title}
-                                  </a>
+                                  {activity.url ? (
+                                    <a
+                                      href={activity.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                                    >
+                                      {activity.title}
+                                    </a>
+                                  ) : (
+                                    <span className="text-sm font-medium truncate block text-muted-foreground">
+                                      {activity.title}
+                                    </span>
+                                  )}
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
                                   <p className="font-semibold text-sm">{activity.title}</p>
@@ -409,7 +369,7 @@ export function ActivityTable({
                                   <p className="text-xs">
                                     Created: {format(parseISO(activity.created_at), 'PPp')}
                                   </p>
-                                  <p className="text-xs">Click to open in GitHub</p>
+                                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -556,14 +516,20 @@ export function ActivityTable({
 
                           {/* Link */}
                           <div className="w-8 sm:w-12">
-                            <a
-                              href={getActivityUrl(activity)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
+                            {activity.url ? (
+                              <a
+                                href={activity.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
+                                <ExternalLink className="h-4 w-4" />
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
