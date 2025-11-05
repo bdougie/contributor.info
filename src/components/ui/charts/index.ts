@@ -14,6 +14,8 @@ export type { BarChartProps } from './BarChart';
 export { DonutChart } from './DonutChart';
 export type { DonutChartProps, DonutChartData } from './DonutChart';
 
+export * from './heatmap';
+
 export { getChartTheme, getSeriesColors, lightTheme, darkTheme } from './theme-config';
 export type { ChartTheme } from './theme-config';
 
