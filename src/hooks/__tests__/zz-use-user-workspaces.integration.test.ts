@@ -55,8 +55,10 @@ vi.mock('@/lib/utils/avatar', () => ({
 
 describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   let queryClient: QueryClient;
+  let useAuthUserMock: ReturnType<typeof vi.fn>;
+  let useAppUserIdMock: ReturnType<typeof vi.fn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Create a new QueryClient for each test
     queryClient = new QueryClient({
@@ -67,6 +69,11 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
         },
       },
     });
+
+    // Import and setup mocks before each test
+    const authQueryModule = await import('@/hooks/use-auth-query');
+    useAuthUserMock = vi.mocked(authQueryModule.useAuthUser);
+    useAppUserIdMock = vi.mocked(authQueryModule.useAppUserId);
   });
 
   afterEach(() => {
@@ -84,11 +91,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     expect(authUserId).not.toBe(appUserId);
 
     // Mock the auth query hooks
-    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
-      '@/hooks/use-auth-query'
-    );
-
-    vi.mocked(useAuthUser).mockReturnValue({
+    useAuthUserMock.mockReturnValue({
       data: {
         id: authUserId,
         email: 'owner@example.com',
@@ -102,7 +105,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
       isError: false,
     } as never);
 
-    vi.mocked(useAppUserIdHook).mockReturnValue({
+    useAppUserIdMock.mockReturnValue({
       data: appUserId,
       isLoading: false,
       error: null,
@@ -185,11 +188,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     const authUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
 
     // Mock the auth query hooks
-    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
-      '@/hooks/use-auth-query'
-    );
-
-    vi.mocked(useAuthUser).mockReturnValue({
+    useAuthUserMock.mockReturnValue({
       data: {
         id: authUserId,
         email: 'newuser@example.com',
@@ -204,7 +203,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     } as never);
 
     // App user not found
-    vi.mocked(useAppUserIdHook).mockReturnValue({
+    useAppUserIdMock.mockReturnValue({
       data: null,
       isLoading: false,
       error: null,
@@ -246,18 +245,14 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
 
   it('should handle unauthenticated users without querying workspaces', async () => {
     // Mock the auth query hooks for unauthenticated user
-    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
-      '@/hooks/use-auth-query'
-    );
-
-    vi.mocked(useAuthUser).mockReturnValue({
+    useAuthUserMock.mockReturnValue({
       data: null,
       isLoading: false,
       error: null,
       isError: false,
     } as never);
 
-    vi.mocked(useAppUserIdHook).mockReturnValue({
+    useAppUserIdMock.mockReturnValue({
       data: null,
       isLoading: false,
       error: null,

@@ -48,6 +48,8 @@ describe('useUserWorkspaces', () => {
   let authChangeCallback: ((event: string, session: any) => void) | null = null;
   let unsubscribe: () => void;
   let queryClient: QueryClient;
+  let useAuthUserMock: ReturnType<typeof vi.fn>;
+  let useAppUserIdMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     // Reset mocks
@@ -64,10 +66,13 @@ describe('useUserWorkspaces', () => {
       },
     });
 
-    // Mock the auth query hooks with default authenticated state
-    const { useAuthUser, useAppUserId } = await import('@/hooks/use-auth-query');
+    // Import and setup mocks before each test
+    const authQueryModule = await import('@/hooks/use-auth-query');
+    useAuthUserMock = vi.mocked(authQueryModule.useAuthUser);
+    useAppUserIdMock = vi.mocked(authQueryModule.useAppUserId);
     
-    vi.mocked(useAuthUser).mockReturnValue({
+    // Mock the auth query hooks with default authenticated state
+    useAuthUserMock.mockReturnValue({
       data: {
         id: 'auth-user-123',
         email: 'test@example.com',
@@ -81,7 +86,7 @@ describe('useUserWorkspaces', () => {
       isError: false,
     } as never);
 
-    vi.mocked(useAppUserId).mockReturnValue({
+    useAppUserIdMock.mockReturnValue({
       data: 'app-user-123',
       isLoading: false,
       error: null,
