@@ -50,6 +50,7 @@ Created `useAssigneeDistribution` hook that:
 - Returns pre-computed data
 - Supports toggle between excluding/including bots
 - Handles loading and error states
+- **Graceful fallback**: Automatically falls back to client-side calculation if RPC function is not available (e.g., in deploy previews before migration runs)
 
 **File:** `src/hooks/useAssigneeDistribution.ts`
 
@@ -125,6 +126,14 @@ The original `AssigneeDistributionChart.tsx` component is preserved for:
 - Fallback in case of RPC issues
 - Non-workspace contexts that might need client-side processing
 
+### Graceful Degradation
+
+The optimized hook includes automatic fallback logic:
+- If RPC function is not found (migration not applied), it automatically switches to client-side calculation
+- This ensures the feature works in deploy previews and during migration rollouts
+- No user-facing errors - seamless experience
+- Console warning logged for debugging
+
 ## Testing Recommendations
 
 1. **Performance Testing**: Test with workspace containing 1,000+ open issues
@@ -145,11 +154,12 @@ Potential additional improvements:
 
 ## Migration Steps
 
-1. Run migration: `supabase migration up`
-2. Deploy new hook and component
-3. Update lazy loader to use optimized component
-4. Update WorkspaceIssuesTab to pass repositoryIds
-5. Monitor performance metrics
+1. Deploy code changes (includes fallback logic)
+2. Run migration: `supabase migration up`
+3. Verify RPC function works in production
+4. Monitor performance metrics
+
+**Note:** The fallback ensures the feature works even before the migration runs, making this a zero-downtime deployment.
 
 ## Rollback Plan
 
