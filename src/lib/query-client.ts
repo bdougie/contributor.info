@@ -29,24 +29,10 @@ export const queryClient = new QueryClient({
       // Single retry on failure
       retry: 1,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      
-      // Log errors in development
-      onError: (error) => {
-        if (process.env.NODE_ENV === 'development') {
-          logger.error('[React Query] Query error:', error);
-        }
-      },
     },
     mutations: {
       // Single retry for mutations
       retry: 1,
-      
-      // Log errors in development
-      onError: (error) => {
-        if (process.env.NODE_ENV === 'development') {
-          logger.error('[React Query] Mutation error:', error);
-        }
-      },
     },
   },
 });

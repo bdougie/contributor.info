@@ -63,7 +63,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const { data: authUser, isLoading: isAuthLoading } = useAuthUser();
   const { data: appUserId, isLoading: isAppUserLoading } = useAppUserId(authUser?.id);
 
-  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string, currentAuthUser: User | null | undefined) => {
+  const fetchUserWorkspaces = useCallback(async (currentAppUserId: string, currentAuthUser: User | null | undefined) => {
     // Prevent concurrent fetches
     if (isFetchingRef.current) {
       return;
@@ -305,7 +305,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
     // Set new debounce timer
     debouncedFetchRef.current = setTimeout(() => {
-      fetchUserWorkspaces(authUser.id, appUserId, authUser);
+      fetchUserWorkspaces(appUserId, authUser);
     }, 500); // 500ms debounce delay
   }, [fetchUserWorkspaces, authUser, appUserId]);
 
@@ -350,7 +350,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         }
       }, 5000);
 
-      await fetchUserWorkspaces(authUser.id, appUserId, authUser);
+      await fetchUserWorkspaces(appUserId, authUser);
       clearTimeout(loadingTimeout);
     };
 
@@ -380,7 +380,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         debouncedFetchRef.current = setTimeout(() => {
           if (authUser?.id && appUserId) {
             logger.log('[Workspace] User profile updated, refreshing workspace data...');
-            fetchUserWorkspaces(authUser.id, appUserId, authUser);
+            fetchUserWorkspaces(appUserId, authUser);
           }
         }, 1000); // 1 second debounce for USER_UPDATED events
       } else {
@@ -410,7 +410,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
     workspaces,
     loading,
     error,
-    refetch: fetchUserWorkspaces,
+    refetch: async () => {
+      if (authUser?.id && appUserId) {
+        await fetchUserWorkspaces(appUserId, authUser);
+      }
+    },
   };
 }
 
