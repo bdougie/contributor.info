@@ -62,7 +62,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const { data: authUser, isLoading: isAuthLoading } = useAuthUser();
   const { data: appUserId, isLoading: isAppUserLoading } = useAppUserId(authUser?.id);
 
-  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string) => {
+  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string, currentAuthUser: typeof authUser) => {
     // Prevent concurrent fetches
     if (isFetchingRef.current) {
       return;
@@ -255,7 +255,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
         // Use current user's metadata if they're the owner
         // Compare against currentAppUserId since workspace.owner_id is app_users.id
-        const ownerMetadata = workspace.owner_id === currentAppUserId ? authUser?.user_metadata : null;
+        const ownerMetadata = workspace.owner_id === currentAppUserId ? currentAuthUser?.user_metadata : null;
 
         return {
           id: workspace.id,
@@ -304,7 +304,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
     // Set new debounce timer
     debouncedFetchRef.current = setTimeout(() => {
-      fetchUserWorkspaces(authUser.id, appUserId);
+      fetchUserWorkspaces(authUser.id, appUserId, authUser);
     }, 500); // 500ms debounce delay
   }, [fetchUserWorkspaces, authUser, appUserId]);
 
@@ -349,7 +349,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         }
       }, 5000);
 
-      await fetchUserWorkspaces(authUser.id, appUserId);
+      await fetchUserWorkspaces(authUser.id, appUserId, authUser);
       clearTimeout(loadingTimeout);
     };
 
@@ -379,7 +379,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         debouncedFetchRef.current = setTimeout(() => {
           if (authUser?.id && appUserId) {
             logger.log('[Workspace] User profile updated, refreshing workspace data...');
-            fetchUserWorkspaces(authUser.id, appUserId);
+            fetchUserWorkspaces(authUser.id, appUserId, authUser);
           }
         }, 1000); // 1 second debounce for USER_UPDATED events
       } else {
