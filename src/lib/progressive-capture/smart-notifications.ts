@@ -699,10 +699,22 @@ export class SmartDataNotifications {
   }
 }
 
+// Track if smart notifications have been initialized
+let isSmartNotificationsInitialized = false;
+
 // Auto-check repositories when they're viewed
 export function setupSmartNotifications(): void {
+  // Prevent multiple initializations (React Strict Mode, hot reload, explicit calls)
+  if (isSmartNotificationsInitialized) {
+    if (import.meta.env?.DEV) {
+      console.log('⏭️ Smart notifications already initialized, skipping');
+    }
+    return;
+  }
+
   // Listen for route changes to check repositories
   if (typeof window !== 'undefined') {
+    isSmartNotificationsInitialized = true;
     const checkCurrentRoute = () => {
       const path = window.location.pathname;
 
@@ -799,5 +811,16 @@ export function setupSmartNotifications(): void {
   }
 }
 
-// Initialize smart notifications
+/**
+ * Reset initialization state (for testing only)
+ */
+export function resetSmartNotifications(): void {
+  isSmartNotificationsInitialized = false;
+  SmartDataNotifications.reset();
+  if (import.meta.env?.DEV) {
+    console.log('🔄 Smart notifications reset');
+  }
+}
+
+// Initialize smart notifications once on module load
 setupSmartNotifications();
