@@ -3,7 +3,7 @@
  * Critical test: Ensures workspace access uses app_users.id, not auth.users.id
  * Prevents regression of PR #1148 workspace access bug
  * Updated for PR #1188 React Query implementation
- * 
+ *
  * NOTE: These tests verify the React Query integration works correctly.
  * Database query validation is covered in other integration tests.
  */
@@ -49,13 +49,17 @@ vi.mock('@/lib/supabase', () => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
     },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-        })),
-      })),
-    })),
+    from: vi.fn(() => {
+      // Create a chainable mock for .eq() calls
+      const eqChain = {
+        eq: vi.fn(() => eqChain),
+        maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
+      };
+
+      return {
+        select: vi.fn(() => eqChain),
+      };
+    }),
   },
 }));
 
@@ -130,7 +134,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     // Verify React Query hooks were called
     expect(useAuthUserMock).toHaveBeenCalled();
     expect(useAppUserIdMock).toHaveBeenCalled();
-    
+
     // Should return empty workspaces (no data mocked)
     expect(result.current.workspaces).toEqual([]);
     expect(result.current.error).toBeNull();
