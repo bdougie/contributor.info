@@ -33,7 +33,7 @@ export function AssigneeDistributionChart({
   issues,
   onAssigneeClick,
   className,
-  maxVisible = 10,
+  maxVisible = 6,
   showPercentage: initialShowPercentage = false,
   title = 'Issue Assignee Distribution',
 }: AssigneeDistributionChartProps) {
