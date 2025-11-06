@@ -24,8 +24,9 @@ interface UseAssigneeDistributionResult {
 }
 
 /**
- * Fallback client-side calculation when RPC function is not available
- * This happens when the migration hasn't been applied yet (e.g., deploy previews)
+ * Fallback client-side calculation for assignee distribution
+ * Used when RPC function is unavailable
+ * Fetches open issues and calculates distribution in the browser
  */
 async function fetchDistributionClientSide(
   repositoryIds: string[],
@@ -98,8 +99,9 @@ async function fetchDistributionClientSide(
 }
 
 /**
- * Hook to efficiently fetch assignee distribution using database-side aggregation
- * This optimizes performance by moving computation from client to database
+ * Hook to fetch assignee distribution for issues
+ * Uses database-first approach with RPC for optimal performance
+ * Falls back to client-side calculation if RPC is unavailable
  */
 export function useAssigneeDistribution({
   repositoryIds,
@@ -123,6 +125,7 @@ export function useAssigneeDistribution({
       setLoading(true);
       setError(null);
 
+      // Try database-first approach with RPC function
       const { data: result, error: rpcError } = await supabase.rpc(
         'calculate_assignee_distribution',
         {
@@ -132,17 +135,13 @@ export function useAssigneeDistribution({
         }
       );
 
-      // If RPC function doesn't exist (migration not applied), fallback to client-side calculation
+      // If RPC function doesn't exist, fallback to client-side calculation
       if (rpcError && rpcError.message.includes('Could not find the function')) {
         console.warn(
           'RPC function not found, falling back to client-side calculation:',
           rpcError.message
         );
-        const fallbackData = await fetchDistributionClientSide(
-          repositoryIds,
-          excludeBots,
-          limit
-        );
+        const fallbackData = await fetchDistributionClientSide(repositoryIds, excludeBots, limit);
         setData(fallbackData);
         return;
       }
