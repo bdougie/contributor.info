@@ -305,8 +305,10 @@ export function useWorkspaceIssues({
     [maxStaleMinutes]
   );
 
-  // Fetch issues from database
+  // Fetch issues from database with optimized limits
   const fetchFromDatabase = useCallback(async (repoIds: string[]) => {
+    // Fetch most recent 500 issues for better performance
+    // This is still enough for meaningful analysis while being much faster
     const { data, error } = await supabase
       .from('issues')
       .select(
@@ -343,7 +345,7 @@ export function useWorkspaceIssues({
       )
       .in('repository_id', repoIds)
       .order('updated_at', { ascending: false })
-      .limit(100);
+      .limit(500);
 
     if (error) {
       throw new Error(`Failed to fetch issues: ${error.message}`);
