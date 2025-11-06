@@ -70,7 +70,8 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    // Don't restore all mocks - it breaks other tests
+    // Only clear the query client
     queryClient.clear();
   });
 
