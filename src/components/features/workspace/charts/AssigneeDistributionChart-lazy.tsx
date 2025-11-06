@@ -3,14 +3,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { Issue } from '../WorkspaceIssuesTable';
 
-// Lazy load the heavy chart component with error boundary
+// Lazy load the optimized chart component with error boundary
 const AssigneeDistributionChartInner = lazy(() =>
-  import('./AssigneeDistributionChart')
+  import('./AssigneeDistributionChartOptimized')
     .then((module) => ({
-      default: module.AssigneeDistributionChart,
+      default: module.AssigneeDistributionChartOptimized,
     }))
     .catch((error) => {
-      console.error('Failed to load AssigneeDistributionChart:', error);
+      console.error('Failed to load AssigneeDistributionChartOptimized:', error);
       // Return a fallback component
       return {
         default: () => (
@@ -64,6 +64,7 @@ function AssigneeDistributionChartSkeleton({ className }: AssigneeDistributionCh
 }
 
 interface LazyAssigneeDistributionChartProps {
+  repositoryIds: string[];
   issues: Issue[];
   onAssigneeClick?: (assignee: string) => void;
   className?: string;
