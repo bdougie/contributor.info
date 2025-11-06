@@ -2,10 +2,13 @@
  * Regression tests for use-user-workspaces hook
  * Critical test: Ensures workspace access uses app_users.id, not auth.users.id
  * Prevents regression of PR #1148 workspace access bug
+ * Updated for PR #1188 React Query implementation
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { useUserWorkspaces } from '../use-user-workspaces';
 import { supabase } from '@/lib/supabase';
 
@@ -20,6 +23,18 @@ vi.mock('@/lib/supabase', () => ({
       })),
     },
     from: vi.fn(),
+  },
+}));
+
+// Mock the auth query hooks
+vi.mock('@/hooks/use-auth-query', () => ({
+  useAuthUser: vi.fn(),
+  useAppUserId: vi.fn(),
+  authKeys: {
+    all: ['auth'] as const,
+    user: () => ['auth', 'user'] as const,
+    session: () => ['auth', 'session'] as const,
+    appUser: (id: string) => ['auth', 'app-user', id] as const,
   },
 }));
 
@@ -39,12 +54,24 @@ vi.mock('@/lib/utils/avatar', () => ({
 }));
 
 describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
+  let queryClient: QueryClient;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    // Create a new QueryClient for each test
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+        },
+      },
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    queryClient.clear();
   });
 
   it('CRITICAL: should fetch app_users.id before querying workspace_members', async () => {
@@ -55,20 +82,31 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     // These MUST be different - this is the core of the bug
     expect(authUserId).not.toBe(appUserId);
 
-    // Mock authenticated user (returns auth.users.id)
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
+    // Mock the auth query hooks
+    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
+      '@/hooks/use-auth-query'
+    );
+
+    vi.mocked(useAuthUser).mockReturnValue({
       data: {
-        user: {
-          id: authUserId, // This is auth.users.id, not app_users.id
-          email: 'owner@example.com',
-          app_metadata: {},
-          user_metadata: { avatar_url: 'https://example.com/avatar.png' },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
+        id: authUserId,
+        email: 'owner@example.com',
+        app_metadata: {},
+        user_metadata: { avatar_url: 'https://example.com/avatar.png' },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
       },
+      isLoading: false,
       error: null,
-    });
+      isError: false,
+    } as never);
+
+    vi.mocked(useAppUserIdHook).mockReturnValue({
+      data: appUserId,
+      isLoading: false,
+      error: null,
+      isError: false,
+    } as never);
 
     // Track which queries are made and with what IDs
     const queryCalls: Array<{ table: string; eqCalls: Array<[string, string]> }> = [];
@@ -77,10 +115,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     const mockFrom = vi.fn((table: string) => {
       const eqCalls: Array<[string, string]> = [];
 
-      // CRITICAL: Record query immediately when from() is called, not in maybeSingle()
-      // This ensures we capture ALL queries (workspaces, workspace_members, etc.)
-      // even if they don't reach maybeSingle(). Without this, the regression test
-      // would pass even if queries revert to using authUserId.
+      // CRITICAL: Record query immediately when from() is called
       const queryRecord = { table, eqCalls };
       queryCalls.push(queryRecord);
 
@@ -95,10 +130,6 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
         order: vi.fn(() => chainable),
         limit: vi.fn(() => chainable),
         maybeSingle: vi.fn(async () => {
-          if (table === 'app_users') {
-            // CRITICAL: This maps auth_user_id to app_users.id
-            return { data: { id: appUserId }, error: null };
-          }
           return { data: null, error: null };
         }),
         returns: vi.fn(function (this: typeof chainable) {
@@ -111,8 +142,11 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
 
     vi.mocked(supabase.from).mockImplementation(mockFrom as never);
 
-    // Render hook
-    const { result } = renderHook(() => useUserWorkspaces());
+    // Render hook with QueryClient wrapper
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUserWorkspaces(), { wrapper });
 
     // Wait for async operations
     await waitFor(
@@ -122,12 +156,9 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
       { timeout: 3000 }
     );
 
-    // CRITICAL ASSERTION 1: Must query app_users with auth_user_id
-    const appUsersQuery = queryCalls.find((q) => q.table === 'app_users');
-    expect(appUsersQuery).toBeDefined();
-    expect(appUsersQuery?.eqCalls).toContainEqual(['auth_user_id', authUserId]);
-
-    // CRITICAL ASSERTION 2: Workspace queries must use app_users.id, NOT auth.users.id
+    // CRITICAL ASSERTION: Workspace queries must use app_users.id, NOT auth.users.id
+    // With React Query, we don't query app_users directly anymore - it's handled by useAppUserId
+    // We just need to verify that workspace queries use appUserId
     const workspaceQuery = queryCalls.find((q) => q.table === 'workspaces');
     if (workspaceQuery) {
       const ownerIdQuery = workspaceQuery.eqCalls.find(([col]) => col === 'owner_id');
@@ -152,29 +183,38 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   it('should return empty workspaces when app_users record not found', async () => {
     const authUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
 
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
+    // Mock the auth query hooks
+    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
+      '@/hooks/use-auth-query'
+    );
+
+    vi.mocked(useAuthUser).mockReturnValue({
       data: {
-        user: {
-          id: authUserId,
-          email: 'newuser@example.com',
-          app_metadata: {},
-          user_metadata: {},
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
+        id: authUserId,
+        email: 'newuser@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
       },
+      isLoading: false,
       error: null,
-    });
+      isError: false,
+    } as never);
+
+    // App user not found
+    vi.mocked(useAppUserIdHook).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      isError: false,
+    } as never);
 
     const mockFrom = vi.fn((table: string) => {
       const chainable = {
         select: vi.fn(() => chainable),
         eq: vi.fn(() => chainable),
         maybeSingle: vi.fn(async () => {
-          if (table === 'app_users') {
-            // No app_users record found
-            return { data: null, error: null };
-          }
           return { data: null, error: null };
         }),
         returns: vi.fn(function (this: typeof chainable) {
@@ -186,7 +226,10 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
 
     vi.mocked(supabase.from).mockImplementation(mockFrom as never);
 
-    const { result } = renderHook(() => useUserWorkspaces());
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUserWorkspaces(), { wrapper });
 
     await waitFor(
       () => {
@@ -201,15 +244,32 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   });
 
   it('should handle unauthenticated users without querying workspaces', async () => {
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: null },
+    // Mock the auth query hooks for unauthenticated user
+    const { useAuthUser, useAppUserId: useAppUserIdHook } = await import(
+      '@/hooks/use-auth-query'
+    );
+
+    vi.mocked(useAuthUser).mockReturnValue({
+      data: null,
+      isLoading: false,
       error: null,
-    });
+      isError: false,
+    } as never);
+
+    vi.mocked(useAppUserIdHook).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+      isError: false,
+    } as never);
 
     const mockFrom = vi.fn();
     vi.mocked(supabase.from).mockImplementation(mockFrom as never);
 
-    const { result } = renderHook(() => useUserWorkspaces());
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(() => useUserWorkspaces(), { wrapper });
 
     await waitFor(
       () => {
@@ -221,8 +281,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     expect(result.current.workspaces).toEqual([]);
     expect(result.current.error).toBeNull();
 
-    // Should NOT query app_users or workspace tables
-    expect(mockFrom).not.toHaveBeenCalledWith('app_users');
+    // Should NOT query workspace tables when not authenticated
     expect(mockFrom).not.toHaveBeenCalledWith('workspaces');
     expect(mockFrom).not.toHaveBeenCalledWith('workspace_members');
   });
