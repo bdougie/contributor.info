@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import React, { Suspense, lazy, useEffect } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from '@/components/common/theming';
 import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -9,6 +10,7 @@ import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 import { logger } from '@/lib/logger';
+import { queryClient } from '@/lib/query-client';
 // Lazy load core components to reduce initial bundle
 const Layout = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.Layout }))
@@ -461,11 +463,12 @@ function App() {
 
   return (
     <ErrorBoundary context="Application Root">
-      <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
-        <FeatureFlagsProvider>
-          <SVGSpriteInliner />
-          <Router>
-            <WorkspaceProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
+          <FeatureFlagsProvider>
+            <SVGSpriteInliner />
+            <Router>
+              <WorkspaceProvider>
               <OfflineNotification />
               <Suspense fallback={<PageSkeleton />}>
                 <Routes>
@@ -736,10 +739,11 @@ function App() {
                 onInstall={() => logger.debug('PWA installed successfully!')}
                 onDismiss={() => logger.debug('PWA install prompt dismissed')}
               />
-            </WorkspaceProvider>
-          </Router>
-        </FeatureFlagsProvider>
-      </ThemeProvider>
+              </WorkspaceProvider>
+            </Router>
+          </FeatureFlagsProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

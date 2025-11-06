@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
+import { useAuthUser, useAppUserId } from '@/hooks/use-auth-query';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -57,7 +58,11 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const hasInitialLoadRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchUserWorkspaces = useCallback(async () => {
+  // Use React Query hooks for auth - automatic deduplication
+  const { data: authUser, isLoading: isAuthLoading } = useAuthUser();
+  const { data: appUserId, isLoading: isAppUserLoading } = useAppUserId(authUser?.id);
+
+  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string) => {
     // Prevent concurrent fetches
     if (isFetchingRef.current) {
       return;
@@ -70,133 +75,27 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
     // Create new AbortController for this request
     abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
 
     isFetchingRef.current = true;
     try {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with AbortController timeout
-      let user = null;
-
-      // Add timeout using AbortSignal
-      const authTimeoutId = setTimeout(() => {
-        abortControllerRef.current?.abort();
-      }, 2000);
-
-      try {
-        logger.log('[Workspace] Checking auth status...');
-
-        // Check if aborted
-        if (signal.aborted) {
-          throw new Error('Request aborted');
-        }
-
-        const authResult = await supabase.auth.getUser();
-        clearTimeout(authTimeoutId);
-
-        const { data: authData, error: authError } = authResult;
-
-        // If auth error, try to get session as fallback
-        if (authError) {
-          logger.log('[Workspace] Auth error, checking session:', authError.message);
-          try {
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (!session) {
-              logger.log('[Workspace] No session found, user is not authenticated');
-              setWorkspaces([]);
-              setLoading(false);
-              hasInitialLoadRef.current = true;
-              return;
-            }
-            user = session.user;
-          } catch (sessionError) {
-            logger.error('[Workspace] Failed to get session in auth fallback:', sessionError);
-            setWorkspaces([]);
-            setLoading(false);
-            setError(new Error('Unable to verify authentication'));
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } else {
-          user = authData?.user;
-        }
-      } catch {
-        clearTimeout(authTimeoutId);
-
-        if (signal.aborted) {
-          logger.warn('[Workspace] Auth check aborted or timed out, using session fallback');
-        }
-
-        // Try to get session directly as fallback
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session?.user) {
-            user = session.user;
-          } else {
-            logger.log('[Workspace] No session in fallback, setting empty workspaces');
-            setWorkspaces([]);
-            setLoading(false);
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } catch (sessionError) {
-          logger.error('[Workspace] Failed to get session:', sessionError);
-          setWorkspaces([]);
-          setLoading(false);
-          setError(new Error('Unable to verify authentication'));
-          hasInitialLoadRef.current = true;
-          return;
-        }
-      }
-
-      if (!user) {
-        logger.log('[Workspace] No user found after auth check');
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
       logger.log('[Workspace] User authenticated, fetching workspaces...');
-
-      // First, get the app_users.id for this authenticated user
-      // user.id is auth_user_id, but workspace tables use app_users.id
-      const { data: appUser, error: appUserError } = await supabase
-        .from('app_users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-
-      if (appUserError || !appUser) {
-        logger.error('[Workspace] Failed to find app_users record:', appUserError?.message);
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
-      const appUserId = appUser.id;
-      logger.log('[Workspace] Found app_user id for auth user');
 
       // Fetch workspaces where user is owner or member
       // First try to get workspaces where user is the owner
       const { data: ownedWorkspaces } = await supabase
         .from('workspaces')
         .select('id')
-        .eq('owner_id', appUserId)
+        .eq('owner_id', currentAppUserId)
         .eq('is_active', true);
 
       // Then get workspace IDs where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('workspace_members')
         .select('workspace_id, role')
-        .eq('user_id', appUserId);
+        .eq('user_id', currentAppUserId);
 
       if (memberError && !ownedWorkspaces) {
         throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
@@ -355,8 +254,8 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           }) || [];
 
         // Use current user's metadata if they're the owner
-        // Compare against appUserId since workspace.owner_id is app_users.id
-        const ownerMetadata = workspace.owner_id === appUserId ? user.user_metadata : null;
+        // Compare against currentAppUserId since workspace.owner_id is app_users.id
+        const ownerMetadata = workspace.owner_id === currentAppUserId ? authUser?.user_metadata : null;
 
         return {
           id: workspace.id,
@@ -398,11 +297,16 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       clearTimeout(debouncedFetchRef.current);
     }
 
+    // Only debounce if we have auth data
+    if (!authUser?.id || !appUserId) {
+      return;
+    }
+
     // Set new debounce timer
     debouncedFetchRef.current = setTimeout(() => {
-      fetchUserWorkspaces();
+      fetchUserWorkspaces(authUser.id, appUserId);
     }, 500); // 500ms debounce delay
-  }, [fetchUserWorkspaces]);
+  }, [fetchUserWorkspaces, authUser, appUserId]);
 
   useEffect(() => {
     let mounted = true;
@@ -410,6 +314,29 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
     const initFetch = async () => {
       if (!mounted) return;
+
+      // Wait for auth to load
+      if (isAuthLoading || isAppUserLoading) {
+        return;
+      }
+
+      // If no auth user, set empty workspaces
+      if (!authUser) {
+        logger.log('[Workspace] No authenticated user');
+        setWorkspaces([]);
+        setLoading(false);
+        hasInitialLoadRef.current = true;
+        return;
+      }
+
+      // If no app user ID, set empty workspaces
+      if (!appUserId) {
+        logger.log('[Workspace] No app_users record found');
+        setWorkspaces([]);
+        setLoading(false);
+        hasInitialLoadRef.current = true;
+        return;
+      }
 
       // Add a shorter timeout to prevent infinite loading state
       // Reduced from 10s to 5s after Phase 1 optimization
@@ -422,7 +349,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         }
       }, 5000);
 
-      await fetchUserWorkspaces();
+      await fetchUserWorkspaces(authUser.id, appUserId);
       clearTimeout(loadingTimeout);
     };
 
@@ -450,8 +377,10 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           clearTimeout(debouncedFetchRef.current);
         }
         debouncedFetchRef.current = setTimeout(() => {
-          logger.log('[Workspace] User profile updated, refreshing workspace data...');
-          fetchUserWorkspaces();
+          if (authUser?.id && appUserId) {
+            logger.log('[Workspace] User profile updated, refreshing workspace data...');
+            fetchUserWorkspaces(authUser.id, appUserId);
+          }
         }, 1000); // 1 second debounce for USER_UPDATED events
       } else {
         // Ignore other auth events
@@ -474,7 +403,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedFetch]); // Include debouncedFetch in dependencies, exclude others intentionally
+  }, [debouncedFetch, authUser, appUserId, isAuthLoading, isAppUserLoading]); // Include auth state in dependencies
 
   return {
     workspaces,
