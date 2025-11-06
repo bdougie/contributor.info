@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
@@ -62,7 +63,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const { data: authUser, isLoading: isAuthLoading } = useAuthUser();
   const { data: appUserId, isLoading: isAppUserLoading } = useAppUserId(authUser?.id);
 
-  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string, currentAuthUser: typeof authUser) => {
+  const fetchUserWorkspaces = useCallback(async (userId: string, currentAppUserId: string, currentAuthUser: User | null | undefined) => {
     // Prevent concurrent fetches
     if (isFetchingRef.current) {
       return;
