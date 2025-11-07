@@ -41,3 +41,6 @@ export { syncWorkspaceCommentsCron } from './sync-workspace-comments-cron';
 
 // Contributor enrichment (AI-powered insights)
 export { enrichContributorsCron } from './enrich-contributors-cron';
+
+// Slack integration for workspace reports
+export { sendSlackAssigneeReportCron } from './send-slack-assignee-report-cron';

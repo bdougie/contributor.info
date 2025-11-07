@@ -726,3 +726,83 @@ export const getTierInfo = (
   };
   return tierInfo[tier] || tierInfo.free; // Default to free tier if unknown
 };
+
+// =====================================================
+// SLACK INTEGRATION TYPES
+// =====================================================
+
+export type SlackSchedule = 'daily' | 'weekly';
+export type IntegrationStatus = 'success' | 'failure' | 'pending';
+
+/**
+ * Configuration options for Slack integration
+ */
+export interface SlackIntegrationConfig {
+  excludeBots: boolean;
+  maxAssignees: number;
+  repositoryIds: string[];
+}
+
+/**
+ * Slack integration entity
+ */
+export interface SlackIntegration {
+  id: string;
+  workspace_id: string;
+  channel_name: string;
+  webhook_url_encrypted: string;
+  schedule: SlackSchedule;
+  enabled: boolean;
+  config: SlackIntegrationConfig;
+  last_sent_at: string | null;
+  next_scheduled_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Integration log entry for audit trail
+ */
+export interface IntegrationLog {
+  id: string;
+  integration_id: string;
+  workspace_id: string;
+  status: IntegrationStatus;
+  message_sent: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  sent_at: string;
+  created_at: string;
+}
+
+/**
+ * Create Slack integration payload
+ */
+export interface CreateSlackIntegrationInput {
+  workspace_id: string;
+  channel_name: string;
+  webhook_url: string; // Plain text, will be encrypted
+  schedule: SlackSchedule;
+  enabled?: boolean;
+  config?: Partial<SlackIntegrationConfig>;
+}
+
+/**
+ * Update Slack integration payload
+ */
+export interface UpdateSlackIntegrationInput {
+  channel_name?: string;
+  webhook_url?: string; // Plain text, will be encrypted
+  schedule?: SlackSchedule;
+  enabled?: boolean;
+  config?: Partial<SlackIntegrationConfig>;
+}
+
+/**
+ * Slack integration with additional display info
+ */
+export interface SlackIntegrationWithStatus extends SlackIntegration {
+  last_log?: IntegrationLog;
+  recent_failures?: number;
+}

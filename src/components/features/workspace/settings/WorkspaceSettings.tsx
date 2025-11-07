@@ -21,6 +21,7 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
 import { WorkspaceBackfillManager } from '../WorkspaceBackfillManager';
+import { SlackIntegrationCard } from './SlackIntegrationCard';
 
 interface Repository {
   id: string;
@@ -438,6 +439,12 @@ export function WorkspaceSettings({
           </div>
         </CardContent>
       </Card>
+
+      {/* Slack Integration */}
+      <SlackIntegrationCard
+        workspaceId={workspace.id}
+        canEditSettings={permissions.canEditSettings}
+      />
 
       {/* Event Data Backfill Section */}
       {repositories.length > 0 && (
