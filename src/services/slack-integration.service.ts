@@ -5,12 +5,14 @@
 
 import { supabase } from '../lib/supabase';
 import { encryptString, decryptString } from '../lib/encryption';
+import { getSlackChannels, postSlackMessage } from './slack-api.service';
 import type {
   SlackIntegration,
   SlackIntegrationWithStatus,
   CreateSlackIntegrationInput,
   UpdateSlackIntegrationInput,
   IntegrationLog,
+  SlackChannel,
 } from '../types/workspace';
 
 /**
@@ -227,9 +229,6 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
     throw new Error('Integration not found');
   }
 
-  // Decrypt the webhook URL
-  const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-
   // Create a test message
   const message: SlackMessage = {
     text: 'Test message from Contributor.info',
@@ -265,16 +264,44 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
   };
 
   try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(message),
-    });
+    // Check if OAuth or webhook
+    const isOAuth = isOAuthIntegration(integration);
 
-    if (!response.ok) {
-      throw new Error(`Slack API returned ${response.status}`);
+    if (isOAuth) {
+      // OAuth flow
+      if (!integration.bot_token_encrypted || !integration.channel_id) {
+        throw new Error('OAuth integration missing required fields');
+      }
+
+      const botToken = await decryptString(integration.bot_token_encrypted);
+      const success = await postSlackMessage(
+        botToken,
+        integration.channel_id,
+        message.text,
+        message.blocks as unknown as Record<string, unknown>[]
+      );
+
+      if (!success) {
+        throw new Error('Failed to post message via Slack API');
+      }
+    } else {
+      // Webhook flow
+      if (!integration.webhook_url_encrypted) {
+        throw new Error('Webhook integration missing webhook URL');
+      }
+
+      const webhookUrl = await decryptString(integration.webhook_url_encrypted);
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Slack API returned ${response.status}`);
+      }
     }
 
     // Log the test
@@ -284,7 +311,7 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
       'success',
       JSON.stringify(message),
       null,
-      { type: 'test' }
+      { type: 'test', method: isOAuth ? 'oauth' : 'webhook' }
     );
 
     return true;
@@ -378,13 +405,24 @@ export async function sendAssigneeReport(
     return false;
   }
 
-  // Decrypt the webhook URL
-  const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-
   // Format the message
   const message = formatAssigneeReport(workspaceName, assignees, totalIssues, workspaceId);
 
   try {
+    // Check if OAuth or webhook
+    const isOAuth = isOAuthIntegration(integration);
+
+    if (isOAuth) {
+      // Use OAuth method (delegate to sendOAuthReport for consistency)
+      return sendOAuthReport(integrationId, assignees, totalIssues, workspaceName, workspaceId);
+    }
+
+    // Webhook flow
+    if (!integration.webhook_url_encrypted) {
+      throw new Error('Webhook integration missing webhook URL');
+    }
+
+    const webhookUrl = await decryptString(integration.webhook_url_encrypted);
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -401,6 +439,7 @@ export async function sendAssigneeReport(
     await logIntegrationSend(integrationId, workspaceId, 'success', JSON.stringify(message), null, {
       assignee_count: assignees.length,
       total_issues: totalIssues,
+      method: 'webhook',
     });
 
     // Update last_sent_at
@@ -479,4 +518,116 @@ export async function getIntegrationLogs(
   }
 
   return data || [];
+}
+
+/**
+ * OAuth-specific helper functions
+ */
+
+/**
+ * Get channels available for a Slack integration (OAuth only)
+ */
+export async function getChannelsForIntegration(integrationId: string): Promise<SlackChannel[]> {
+  const integration = await getSlackIntegration(integrationId);
+  if (!integration || !integration.bot_token_encrypted) {
+    throw new Error('Integration not found or not OAuth-based');
+  }
+
+  const botToken = await decryptString(integration.bot_token_encrypted);
+  return getSlackChannels(botToken);
+}
+
+/**
+ * Update integration with selected channel
+ */
+export async function setIntegrationChannel(
+  integrationId: string,
+  channelId: string,
+  channelName: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('slack_integrations')
+    .update({
+      channel_id: channelId,
+      channel_name: channelName,
+      enabled: true, // Enable once channel is selected
+    })
+    .eq('id', integrationId);
+
+  if (error) {
+    console.error('Failed to update channel: %s', error.message);
+    throw new Error('Failed to update channel');
+  }
+}
+
+/**
+ * Check if integration uses OAuth (vs webhook)
+ */
+export function isOAuthIntegration(integration: SlackIntegration): boolean {
+  return !!(integration.bot_token_encrypted && integration.slack_team_id);
+}
+
+/**
+ * Send an assignee report using OAuth Web API (for OAuth integrations)
+ */
+export async function sendOAuthReport(
+  integrationId: string,
+  assignees: AssigneeData[],
+  totalIssues: number,
+  workspaceName: string,
+  workspaceId: string
+): Promise<boolean> {
+  const integration = await getSlackIntegration(integrationId);
+  if (!integration || !integration.enabled || !integration.bot_token_encrypted || !integration.channel_id) {
+    return false;
+  }
+
+  // Decrypt the bot token
+  const botToken = await decryptString(integration.bot_token_encrypted);
+
+  // Format the message (reuse existing formatter)
+  const message = formatAssigneeReport(workspaceName, assignees, totalIssues, workspaceId);
+
+  try {
+    const success = await postSlackMessage(
+      botToken,
+      integration.channel_id,
+      message.text,
+      message.blocks as unknown as Record<string, unknown>[]
+    );
+
+    if (!success) {
+      throw new Error('Failed to post message to Slack');
+    }
+
+    // Log the successful send
+    await logIntegrationSend(integrationId, workspaceId, 'success', JSON.stringify(message), null, {
+      assignee_count: assignees.length,
+      total_issues: totalIssues,
+      type: 'oauth',
+    });
+
+    // Update last_sent_at
+    await supabase
+      .from('slack_integrations')
+      .update({ last_sent_at: new Date().toISOString() })
+      .eq('id', integrationId);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send OAuth report: %s', error);
+    await logIntegrationSend(
+      integrationId,
+      workspaceId,
+      'failure',
+      JSON.stringify(message),
+      error instanceof Error ? error.message : 'Unknown error',
+      {
+        assignee_count: assignees.length,
+        total_issues: totalIssues,
+        type: 'oauth',
+      }
+    );
+    return false;
+  }
 }

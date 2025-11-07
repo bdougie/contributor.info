@@ -750,7 +750,12 @@ export interface SlackIntegration {
   id: string;
   workspace_id: string;
   channel_name: string;
-  webhook_url_encrypted: string;
+  channel_id: string | null;
+  slack_team_id: string | null;
+  slack_team_name: string | null;
+  bot_token_encrypted: string | null;
+  bot_user_id: string | null;
+  webhook_url_encrypted: string | null; // Deprecated: kept for backward compatibility
   schedule: SlackSchedule;
   enabled: boolean;
   config: SlackIntegrationConfig;
@@ -759,6 +764,16 @@ export interface SlackIntegration {
   created_by: string;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Slack channel from API
+ */
+export interface SlackChannel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_member: boolean;
 }
 
 /**

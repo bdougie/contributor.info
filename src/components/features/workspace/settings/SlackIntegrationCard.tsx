@@ -1,9 +1,10 @@
 /**
  * SlackIntegrationCard Component
  * Manages Slack integration settings for workspace assignee reports
+ * Supports both OAuth (recommended) and webhook-based integrations
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useSlackIntegrations } from '@/hooks/useSlackIntegrations';
 import { isEncryptionConfigured } from '@/lib/encryption';
-import type { CreateSlackIntegrationInput } from '@/types/workspace';
+import { getChannelsForIntegration, setIntegrationChannel, isOAuthIntegration } from '@/services/slack-integration.service';
+import type { CreateSlackIntegrationInput, SlackChannel } from '@/types/workspace';
 
 interface SlackIntegrationCardProps {
   workspaceId: string;
@@ -36,11 +38,14 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
     updateIntegration,
     deleteIntegration,
     testIntegration,
+    refetch,
   } = useSlackIntegrations({ workspaceId });
 
   const [showForm, setShowForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState<string | null>(null);
+  const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
+  const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
   const [formData, setFormData] = useState<Partial<CreateSlackIntegrationInput>>({
     workspace_id: workspaceId,
     channel_name: '',
@@ -55,6 +60,99 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   });
 
   const encryptionConfigured = isEncryptionConfigured();
+
+  // Check for OAuth callback parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const slackInstall = urlParams.get('slack_install');
+    const teamName = urlParams.get('team');
+    const error = urlParams.get('error');
+
+    if (slackInstall === 'success' && teamName) {
+      toast({
+        title: 'Slack App Installed',
+        description: `Successfully installed for ${decodeURIComponent(teamName)}. Select a channel below.`,
+      });
+      refetch();
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (slackInstall === 'cancelled') {
+      toast({
+        title: 'Installation Cancelled',
+        description: 'Slack app installation was cancelled',
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (slackInstall === 'error' && error) {
+      toast({
+        title: 'Installation Error',
+        description: `Failed to install Slack app: ${error}`,
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleInstallSlackApp = () => {
+    const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
+    const redirectUri = import.meta.env.VITE_SLACK_REDIRECT_URI;
+    const scopes = 'chat:write,channels:read';
+
+    if (!clientId || !redirectUri) {
+      toast({
+        title: 'Configuration Error',
+        description: 'Slack OAuth is not configured. Please contact support.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${workspaceId}`;
+    window.location.href = slackAuthUrl;
+  };
+
+  const fetchChannelsForIntegration = async (integrationId: string) => {
+    setLoadingChannels(integrationId);
+    try {
+      const fetchedChannels = await getChannelsForIntegration(integrationId);
+      setChannels((prev) => ({ ...prev, [integrationId]: fetchedChannels }));
+    } catch (error) {
+      console.error('Failed to fetch channels: %s', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch Slack channels',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingChannels(null);
+    }
+  };
+
+  const handleChannelSelect = async (integrationId: string, channelId: string) => {
+    const integrationChannels = channels[integrationId];
+    const selectedChannel = integrationChannels?.find((ch) => ch.id === channelId);
+
+    if (!selectedChannel) {
+      return;
+    }
+
+    try {
+      await setIntegrationChannel(integrationId, channelId, selectedChannel.name);
+      toast({
+        title: 'Channel Selected',
+        description: `Integration will send reports to #${selectedChannel.name}`,
+      });
+      refetch();
+    } catch (error) {
+      console.error('Failed to set channel: %s', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to set channel',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleCreateIntegration = async () => {
     if (!formData.channel_name || !formData.webhook_url) {
@@ -148,7 +246,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       } else {
         toast({
           title: 'Test Failed',
-          description: 'Failed to send test message. Check your webhook URL.',
+          description: 'Failed to send test message. Check your configuration.',
           variant: 'destructive',
         });
       }
@@ -189,6 +287,11 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
     );
   }
 
+  // Find OAuth integrations that need channel selection
+  const oauthIntegrationsNeedingChannel = integrations.filter(
+    (i) => isOAuthIntegration(i) && !i.channel_id
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -197,25 +300,80 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       </CardHeader>
       <CardContent className="space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading integrations...</p>}
+
         {!loading && integrations.length === 0 && !showForm && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground mb-4">
               No Slack integrations configured yet
             </p>
             {canEditSettings && (
-              <Button onClick={() => setShowForm(true)}>Add Slack Integration</Button>
+              <div className="flex flex-col gap-2 items-center">
+                <Button onClick={handleInstallSlackApp} size="lg">
+                  Install Slack App (Recommended)
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+                  Use Webhook Instead
+                </Button>
+              </div>
             )}
           </div>
         )}
+
         {!loading && (integrations.length > 0 || showForm) && (
           <>
+            {/* OAuth Integrations Needing Channel Selection */}
+            {oauthIntegrationsNeedingChannel.map((integration) => (
+              <div key={integration.id} className="rounded-lg border-2 border-blue-200 dark:border-blue-800 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="default">OAuth App</Badge>
+                  <Badge variant="secondary">Setup Required</Badge>
+                </div>
+                <p className="text-sm">
+                  Slack app installed for <strong>{integration.slack_team_name}</strong>. Select a channel to complete setup:
+                </p>
+                <div>
+                  <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
+                  {!channels[integration.id] && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fetchChannelsForIntegration(integration.id)}
+                      disabled={loadingChannels === integration.id}
+                      className="mt-1 w-full"
+                    >
+                      {loadingChannels === integration.id ? 'Loading channels...' : 'Load Channels'}
+                    </Button>
+                  )}
+                  {channels[integration.id] && (
+                    <Select onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select a channel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {channels[integration.id].map((channel) => (
+                          <SelectItem key={channel.id} value={channel.id}>
+                            #{channel.name} {channel.is_private ? '(private)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+            ))}
+
             {/* Existing Integrations */}
-            {integrations.map((integration) => (
+            {integrations.filter((i) => !isOAuthIntegration(i) || i.channel_id).map((integration) => (
               <div key={integration.id} className="rounded-lg border p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-medium">#{integration.channel_name}</h4>
+                      {isOAuthIntegration(integration) ? (
+                        <Badge variant="default">OAuth App</Badge>
+                      ) : (
+                        <Badge variant="outline">Webhook</Badge>
+                      )}
                       {integration.enabled ? (
                         <Badge variant="default">Enabled</Badge>
                       ) : (
@@ -225,6 +383,11 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                         <Badge variant="destructive">{integration.recent_failures} failures</Badge>
                       )}
                     </div>
+                    {integration.slack_team_name && (
+                      <p className="text-sm text-muted-foreground">
+                        Workspace: {integration.slack_team_name}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       Schedule: {integration.schedule} at 9:00 AM UTC
                     </p>
@@ -270,6 +433,16 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     >
                       {isTesting === integration.id ? 'Testing...' : 'Test Connection'}
                     </Button>
+                    {isOAuthIntegration(integration) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchChannelsForIntegration(integration.id)}
+                        disabled={loadingChannels === integration.id}
+                      >
+                        {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"
@@ -282,10 +455,13 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
               </div>
             ))}
 
-            {/* Add New Integration Form */}
+            {/* Add New Integration Form (Webhook) */}
             {showForm && canEditSettings && (
               <div className="rounded-lg border p-4 space-y-4 bg-muted/50">
-                <h4 className="font-medium">New Slack Integration</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">New Webhook Integration</h4>
+                  <Badge variant="outline">Legacy Method</Badge>
+                </div>
 
                 <div>
                   <Label htmlFor="channel_name">Channel Name</Label>
@@ -387,9 +563,14 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
             {/* Add New Button */}
             {!showForm && canEditSettings && integrations.length > 0 && (
-              <Button variant="outline" onClick={() => setShowForm(true)}>
-                Add Another Integration
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleInstallSlackApp}>
+                  Install Slack App
+                </Button>
+                <Button variant="outline" onClick={() => setShowForm(true)}>
+                  Add Webhook Integration
+                </Button>
+              </div>
             )}
           </>
         )}

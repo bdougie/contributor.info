@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
 import { decryptString } from '../../encryption';
+import { postSlackMessage } from '../../../services/slack-api.service';
 
 /**
  * Assignee distribution data structure from RPC function
@@ -127,7 +128,10 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
           id,
           workspace_id,
           channel_name,
+          channel_id,
           webhook_url_encrypted,
+          bot_token_encrypted,
+          slack_team_id,
           schedule,
           config,
           workspaces!inner(
@@ -209,9 +213,6 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               0
             );
 
-            // Decrypt webhook URL
-            const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-
             // Format the Slack message
             // @ts-expect-error - Supabase returns workspaces as array from join but we know it's a single object
             const workspaceName = integration.workspaces?.name || 'Workspace';
@@ -222,17 +223,44 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               integration.workspace_id
             );
 
-            // Send to Slack
-            const response = await fetch(webhookUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(message),
-            });
+            // Send to Slack (OAuth or webhook)
+            const isOAuth = !!(integration.bot_token_encrypted && integration.slack_team_id);
 
-            if (!response.ok) {
-              throw new Error(`Slack API returned ${response.status}: ${await response.text()}`);
+            if (isOAuth) {
+              // OAuth flow: use chat.postMessage API
+              if (!integration.channel_id) {
+                throw new Error('OAuth integration missing channel_id');
+              }
+
+              const botToken = await decryptString(integration.bot_token_encrypted);
+              const success = await postSlackMessage(
+                botToken,
+                integration.channel_id,
+                message.text,
+                message.blocks as unknown as Record<string, unknown>[]
+              );
+
+              if (!success) {
+                throw new Error('Failed to post message via Slack API');
+              }
+            } else {
+              // Webhook flow: use webhook URL
+              if (!integration.webhook_url_encrypted) {
+                throw new Error('Webhook integration missing webhook_url_encrypted');
+              }
+
+              const webhookUrl = await decryptString(integration.webhook_url_encrypted);
+              const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(message),
+              });
+
+              if (!response.ok) {
+                throw new Error(`Slack API returned ${response.status}: ${await response.text()}`);
+              }
             }
 
             // Log successful send
@@ -246,6 +274,7 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
                 assignee_count: assignees.length,
                 total_issues: totalIssues,
                 type: 'scheduled',
+                method: isOAuth ? 'oauth' : 'webhook',
               },
             });
 
