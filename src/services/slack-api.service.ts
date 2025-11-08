@@ -12,13 +12,16 @@ const SLACK_API_BASE = 'https://slack.com/api';
  */
 export async function getSlackChannels(botToken: string): Promise<SlackChannel[]> {
   try {
-    const response = await fetch(`${SLACK_API_BASE}/conversations.list?types=public_channel,private_channel&limit=200`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${botToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${SLACK_API_BASE}/conversations.list?types=public_channel,private_channel&limit=200`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${botToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     const data = await response.json();
 
@@ -27,17 +30,14 @@ export async function getSlackChannels(botToken: string): Promise<SlackChannel[]
       throw new Error(data.error || 'Failed to fetch channels');
     }
 
-    return data.channels.map((ch: {
-      id: string;
-      name: string;
-      is_private: boolean;
-      is_member: boolean;
-    }) => ({
-      id: ch.id,
-      name: ch.name,
-      is_private: ch.is_private,
-      is_member: ch.is_member,
-    }));
+    return data.channels.map(
+      (ch: { id: string; name: string; is_private: boolean; is_member: boolean }) => ({
+        id: ch.id,
+        name: ch.name,
+        is_private: ch.is_private,
+        is_member: ch.is_member,
+      })
+    );
   } catch (error) {
     console.error('Failed to fetch Slack channels: %s', error);
     throw error;
@@ -57,7 +57,7 @@ export async function postSlackMessage(
     const response = await fetch(`${SLACK_API_BASE}/chat.postMessage`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${botToken}`,
+        Authorization: `Bearer ${botToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -92,7 +92,7 @@ export async function getChannelInfo(
     const response = await fetch(`${SLACK_API_BASE}/conversations.info?channel=${channelId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${botToken}`,
+        Authorization: `Bearer ${botToken}`,
         'Content-Type': 'application/json',
       },
     });

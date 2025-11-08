@@ -191,9 +191,7 @@ export function WorkspaceIssuesTab({
           {/* Assignee Distribution Chart - Optimized */}
           <LazyAssigneeDistributionChart
             repositoryIds={
-              selectedRepositories.length > 0
-                ? selectedRepositories
-                : repositories.map((r) => r.id)
+              selectedRepositories.length > 0 ? selectedRepositories : repositories.map((r) => r.id)
             }
             issues={issues}
             onAssigneeClick={handleAssigneeClick}

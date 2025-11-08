@@ -137,7 +137,7 @@ export function useWorkspaceContributors({
 
         // Get unique contributor IDs from pull requests with optimized query
         // Also fetch dates for last activity calculation
-        let prQuery = supabase
+        const prQuery = supabase
           .from('pull_requests')
           .select('author_id, repository_id, created_at, updated_at')
           .in('repository_id', repoIds);

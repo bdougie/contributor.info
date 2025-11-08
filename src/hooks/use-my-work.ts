@@ -745,7 +745,7 @@ export function useMyWork(
           }) || [];
 
         // Combine and sort by updated_at
-        let allItems = [
+        const allItems = [
           ...reviewPrItems,
           ...issueItems,
           ...discussionItems,
@@ -809,7 +809,15 @@ export function useMyWork(
     }
 
     fetchMyWork();
-  }, [user, workspaceId, page, itemsPerPage, refreshTrigger, filters?.selectedTypes, filters?.activeTab]);
+  }, [
+    user,
+    workspaceId,
+    page,
+    itemsPerPage,
+    refreshTrigger,
+    filters?.selectedTypes,
+    filters?.activeTab,
+  ]);
 
   const refresh = () => setRefreshTrigger((prev) => prev + 1);
 

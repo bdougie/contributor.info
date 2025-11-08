@@ -21,7 +21,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useSlackIntegrations } from '@/hooks/useSlackIntegrations';
 import { isEncryptionConfigured } from '@/lib/encryption';
-import { getChannelsForIntegration, setIntegrationChannel, isOAuthIntegration } from '@/services/slack-integration.service';
+import {
+  getChannelsForIntegration,
+  setIntegrationChannel,
+  isOAuthIntegration,
+} from '@/services/slack-integration.service';
 import type { CreateSlackIntegrationInput, SlackChannel } from '@/types/workspace';
 
 interface SlackIntegrationCardProps {
@@ -323,13 +327,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
           <>
             {/* OAuth Integrations Needing Channel Selection */}
             {oauthIntegrationsNeedingChannel.map((integration) => (
-              <div key={integration.id} className="rounded-lg border-2 border-blue-200 dark:border-blue-800 p-4 space-y-3">
+              <div
+                key={integration.id}
+                className="rounded-lg border-2 border-blue-200 dark:border-blue-800 p-4 space-y-3"
+              >
                 <div className="flex items-center gap-2">
                   <Badge variant="default">OAuth App</Badge>
                   <Badge variant="secondary">Setup Required</Badge>
                 </div>
                 <p className="text-sm">
-                  Slack app installed for <strong>{integration.slack_team_name}</strong>. Select a channel to complete setup:
+                  Slack app installed for <strong>{integration.slack_team_name}</strong>. Select a
+                  channel to complete setup:
                 </p>
                 <div>
                   <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
@@ -345,7 +353,9 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     </Button>
                   )}
                   {channels[integration.id] && (
-                    <Select onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}>
+                    <Select
+                      onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}
+                    >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select a channel" />
                       </SelectTrigger>
@@ -363,97 +373,103 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             ))}
 
             {/* Existing Integrations */}
-            {integrations.filter((i) => !isOAuthIntegration(i) || i.channel_id).map((integration) => (
-              <div key={integration.id} className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-medium">#{integration.channel_name}</h4>
-                      {isOAuthIntegration(integration) ? (
-                        <Badge variant="default">OAuth App</Badge>
-                      ) : (
-                        <Badge variant="outline">Webhook</Badge>
+            {integrations
+              .filter((i) => !isOAuthIntegration(i) || i.channel_id)
+              .map((integration) => (
+                <div key={integration.id} className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium">#{integration.channel_name}</h4>
+                        {isOAuthIntegration(integration) ? (
+                          <Badge variant="default">OAuth App</Badge>
+                        ) : (
+                          <Badge variant="outline">Webhook</Badge>
+                        )}
+                        {integration.enabled ? (
+                          <Badge variant="default">Enabled</Badge>
+                        ) : (
+                          <Badge variant="secondary">Disabled</Badge>
+                        )}
+                        {integration.recent_failures && integration.recent_failures > 0 && (
+                          <Badge variant="destructive">
+                            {integration.recent_failures} failures
+                          </Badge>
+                        )}
+                      </div>
+                      {integration.slack_team_name && (
+                        <p className="text-sm text-muted-foreground">
+                          Workspace: {integration.slack_team_name}
+                        </p>
                       )}
-                      {integration.enabled ? (
-                        <Badge variant="default">Enabled</Badge>
-                      ) : (
-                        <Badge variant="secondary">Disabled</Badge>
-                      )}
-                      {integration.recent_failures && integration.recent_failures > 0 && (
-                        <Badge variant="destructive">{integration.recent_failures} failures</Badge>
-                      )}
-                    </div>
-                    {integration.slack_team_name && (
                       <p className="text-sm text-muted-foreground">
-                        Workspace: {integration.slack_team_name}
+                        Schedule: {integration.schedule} at 9:00 AM UTC
                       </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">
-                      Schedule: {integration.schedule} at 9:00 AM UTC
-                    </p>
-                    {integration.last_sent_at && (
-                      <p className="text-xs text-muted-foreground">
-                        Last sent: {new Date(integration.last_sent_at).toLocaleString()}
-                      </p>
-                    )}
-                    {integration.next_scheduled_at && integration.enabled ? (
-                      <p className="text-xs text-muted-foreground">
-                        Next: {new Date(integration.next_scheduled_at).toLocaleString()}
-                      </p>
-                    ) : null}
-                  </div>
-                  {canEditSettings && (
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={integration.enabled}
-                        onCheckedChange={(enabled) => handleToggleEnabled(integration.id, enabled)}
-                      />
+                      {integration.last_sent_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Last sent: {new Date(integration.last_sent_at).toLocaleString()}
+                        </p>
+                      )}
+                      {integration.next_scheduled_at && integration.enabled ? (
+                        <p className="text-xs text-muted-foreground">
+                          Next: {new Date(integration.next_scheduled_at).toLocaleString()}
+                        </p>
+                      ) : null}
                     </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Max assignees:</span>{' '}
-                    {integration.config.maxAssignees}
+                    {canEditSettings && (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={integration.enabled}
+                          onCheckedChange={(enabled) =>
+                            handleToggleEnabled(integration.id, enabled)
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Exclude bots:</span>{' '}
-                    {integration.config.excludeBots ? 'Yes' : 'No'}
-                  </div>
-                </div>
 
-                {canEditSettings && (
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTestIntegration(integration.id)}
-                      disabled={isTesting === integration.id}
-                    >
-                      {isTesting === integration.id ? 'Testing...' : 'Test Connection'}
-                    </Button>
-                    {isOAuthIntegration(integration) && (
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Max assignees:</span>{' '}
+                      {integration.config.maxAssignees}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Exclude bots:</span>{' '}
+                      {integration.config.excludeBots ? 'Yes' : 'No'}
+                    </div>
+                  </div>
+
+                  {canEditSettings && (
+                    <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => fetchChannelsForIntegration(integration.id)}
-                        disabled={loadingChannels === integration.id}
+                        onClick={() => handleTestIntegration(integration.id)}
+                        disabled={isTesting === integration.id}
                       >
-                        {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
+                        {isTesting === integration.id ? 'Testing...' : 'Test Connection'}
                       </Button>
-                    )}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteIntegration(integration.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+                      {isOAuthIntegration(integration) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchChannelsForIntegration(integration.id)}
+                          disabled={loadingChannels === integration.id}
+                        >
+                          {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteIntegration(integration.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
 
             {/* Add New Integration Form (Webhook) */}
             {showForm && canEditSettings && (
@@ -564,9 +580,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             {/* Add New Button */}
             {!showForm && canEditSettings && integrations.length > 0 && (
               <div className="flex gap-2">
-                <Button onClick={handleInstallSlackApp}>
-                  Install Slack App
-                </Button>
+                <Button onClick={handleInstallSlackApp}>Install Slack App</Button>
                 <Button variant="outline" onClick={() => setShowForm(true)}>
                   Add Webhook Integration
                 </Button>

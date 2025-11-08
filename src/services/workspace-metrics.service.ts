@@ -78,7 +78,7 @@ export function calculateWorkspaceMetrics(
       previousMetrics.commitCount > 0
         ? ((commitCount - previousMetrics.commitCount) / previousMetrics.commitCount) * 100
         : 0;
-    
+
     if (previousMetrics.issueCount !== undefined) {
       issuesTrend =
         previousMetrics.issueCount > 0

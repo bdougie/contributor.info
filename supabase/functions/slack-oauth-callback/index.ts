@@ -128,6 +128,16 @@ serve(async (req) => {
       );
     }
 
+    // Validate state parameter is a valid UUID (workspace_id)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(state)) {
+      console.error('Invalid state parameter format: %s', state);
+      return new Response(
+        JSON.stringify({ error: 'Invalid state parameter' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const workspaceId = state;
 
     // Exchange authorization code for access token

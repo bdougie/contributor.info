@@ -176,10 +176,7 @@ export async function sendInngestEvent<T extends { name: string; data: Record<st
 
         // Check if this was a duplicate request
         if (result.duplicate) {
-          logger.log(
-            'Duplicate request detected via %s, returning cached response',
-            endpoint.name
-          );
+          logger.log('Duplicate request detected via %s, returning cached response', endpoint.name);
         } else {
           logger.log('Event sent successfully via %s', endpoint.name);
         }

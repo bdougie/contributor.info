@@ -367,55 +367,55 @@ export function SingleRepositoryFilter({
                 No repositories found
               </div>
             ) : (
-                          <div className="space-y-1">
-              {filteredRepositories.map((repo) => {
-                const isSelected = repo.id === selectedRepository;
-                return (
-                  <button
-                    key={repo.id}
-                    onClick={() => {
-                      onSelectionChange(repo.id);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
-                      isSelected && 'bg-accent'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 flex-1 text-left">
-                      {repo.avatar_url && (
-                        <img
-                          src={repo.avatar_url}
-                          alt={repo.owner}
-                          className="h-5 w-5 rounded flex-shrink-0"
-                        />
+              <div className="space-y-1">
+                {filteredRepositories.map((repo) => {
+                  const isSelected = repo.id === selectedRepository;
+                  return (
+                    <button
+                      key={repo.id}
+                      onClick={() => {
+                        onSelectionChange(repo.id);
+                        setIsOpen(false);
+                      }}
+                      className={cn(
+                        'w-full flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent transition-colors',
+                        isSelected && 'bg-accent'
                       )}
-                      <div className="flex-1">
-                        <div className="truncate font-medium">{repo.name}</div>
-                        {repo.language && (
-                          <div className="text-xs text-muted-foreground">{repo.language}</div>
+                    >
+                      <div className="flex items-center gap-2 flex-1 text-left">
+                        {repo.avatar_url && (
+                          <img
+                            src={repo.avatar_url}
+                            alt={repo.owner}
+                            className="h-5 w-5 rounded flex-shrink-0"
+                          />
                         )}
+                        <div className="flex-1">
+                          <div className="truncate font-medium">{repo.name}</div>
+                          {repo.language && (
+                            <div className="text-xs text-muted-foreground">{repo.language}</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {(repo.activity_count !== undefined || repo.last_activity) && (
-                      <div className="flex items-center gap-2">
-                        {repo.activity_count !== undefined && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Activity className="h-3 w-3 mr-1" />
-                            {repo.activity_count}
-                          </Badge>
-                        )}
-                        {repo.last_activity && (
-                          <span className="text-xs text-muted-foreground">
-                            {getActivityLabel(repo.last_activity)}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                      {(repo.activity_count !== undefined || repo.last_activity) && (
+                        <div className="flex items-center gap-2">
+                          {repo.activity_count !== undefined && (
+                            <Badge variant="secondary" className="text-xs">
+                              <Activity className="h-3 w-3 mr-1" />
+                              {repo.activity_count}
+                            </Badge>
+                          )}
+                          {repo.last_activity && (
+                            <span className="text-xs text-muted-foreground">
+                              {getActivityLabel(repo.last_activity)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

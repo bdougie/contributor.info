@@ -578,7 +578,12 @@ export async function sendOAuthReport(
   workspaceId: string
 ): Promise<boolean> {
   const integration = await getSlackIntegration(integrationId);
-  if (!integration || !integration.enabled || !integration.bot_token_encrypted || !integration.channel_id) {
+  if (
+    !integration ||
+    !integration.enabled ||
+    !integration.bot_token_encrypted ||
+    !integration.channel_id
+  ) {
     return false;
   }
 
