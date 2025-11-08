@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -25,7 +26,7 @@ import {
   setIntegrationChannel,
   isOAuthIntegration,
 } from '@/services/slack-integration.service';
-import type { SlackChannel } from '@/types/workspace';
+import type { CreateSlackIntegrationInput, SlackChannel } from '@/types/workspace';
 
 interface SlackIntegrationCardProps {
   workspaceId: string;
@@ -34,12 +35,33 @@ interface SlackIntegrationCardProps {
 
 export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackIntegrationCardProps) {
   const { toast } = useToast();
-  const { integrations, loading, updateIntegration, deleteIntegration, testIntegration, refetch } =
-    useSlackIntegrations({ workspaceId });
+  const {
+    integrations,
+    loading,
+    createIntegration,
+    updateIntegration,
+    deleteIntegration,
+    testIntegration,
+    refetch,
+  } = useSlackIntegrations({ workspaceId });
 
+  const [showForm, setShowForm] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState<string | null>(null);
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
   const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
+  const [formData, setFormData] = useState<Partial<CreateSlackIntegrationInput>>({
+    workspace_id: workspaceId,
+    channel_name: '',
+    webhook_url: '',
+    schedule: 'daily',
+    enabled: true,
+    config: {
+      excludeBots: true,
+      maxAssignees: 10,
+      repositoryIds: [],
+    },
+  });
 
   const encryptionConfigured = isEncryptionConfigured();
 
@@ -76,22 +98,35 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleInstallSlackApp = () => {
-    const clientId = import.meta.env.VITE_SLACK_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_SLACK_REDIRECT_URI;
-    const scopes = 'chat:write,channels:read';
+  const handleInstallSlackApp = async () => {
+    try {
+      // Call the edge function to generate a secure OAuth state
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/slack-oauth-initiate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      });
 
-    if (!clientId || !redirectUri) {
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to initiate OAuth');
+      }
+
+      const { oauth_url } = await response.json();
+
+      // Redirect to Slack OAuth URL with secure state
+      window.location.href = oauth_url;
+    } catch (error) {
+      console.error('Failed to initiate Slack OAuth: %s', error);
       toast({
         title: 'Configuration Error',
-        description: 'Slack OAuth is not configured. Please contact support.',
+        description: 'Failed to start Slack app installation. Please try again.',
         variant: 'destructive',
       });
-      return;
     }
-
-    const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${workspaceId}`;
-    window.location.href = slackAuthUrl;
   };
 
   const fetchChannelsForIntegration = async (integrationId: string) => {
@@ -133,6 +168,48 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         description: 'Failed to set channel',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleCreateIntegration = async () => {
+    if (!formData.channel_name || !formData.webhook_url) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please provide both channel name and webhook URL',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await createIntegration(formData as CreateSlackIntegrationInput);
+      toast({
+        title: 'Integration Created',
+        description: `Slack integration for ${formData.channel_name} has been created`,
+      });
+      setShowForm(false);
+      setFormData({
+        workspace_id: workspaceId,
+        channel_name: '',
+        webhook_url: '',
+        schedule: 'daily',
+        enabled: true,
+        config: {
+          excludeBots: true,
+          maxAssignees: 10,
+          repositoryIds: [],
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create integration: %s', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create Slack integration',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -241,30 +318,35 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       <CardContent className="space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading integrations...</p>}
 
-        {!loading && integrations.length === 0 && (
+        {!loading && integrations.length === 0 && !showForm && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground mb-4">
               No Slack integrations configured yet
             </p>
             {canEditSettings && (
-              <button
-                onClick={handleInstallSlackApp}
-                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
-                aria-label="Add to Slack"
-              >
-                <img
-                  alt="Add to Slack"
-                  height="40"
-                  width="139"
-                  src="https://platform.slack-edge.com/img/add_to_slack.png"
-                  srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
-                />
-              </button>
+              <div className="flex flex-col gap-3 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                  aria-label="Add to Slack"
+                >
+                  <img
+                    alt="Add to Slack"
+                    height="40"
+                    width="139"
+                    src="https://platform.slack-edge.com/img/add_to_slack.png"
+                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
+                  />
+                </button>
+                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+                  Use Webhook Instead
+                </Button>
+              </div>
             )}
           </div>
         )}
 
-        {!loading && integrations.length > 0 && (
+        {!loading && (integrations.length > 0 || showForm) && (
           <>
             {/* OAuth Integrations Needing Channel Selection */}
             {oauthIntegrationsNeedingChannel.map((integration) => (
@@ -280,49 +362,59 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                   Slack app installed for <strong>{integration.slack_team_name}</strong>. Select a
                   channel to complete setup:
                 </p>
-                <div>
-                  <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
-                  {!channels[integration.id] && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fetchChannelsForIntegration(integration.id)}
-                      disabled={loadingChannels === integration.id}
-                      className="mt-1 w-full"
-                    >
-                      {loadingChannels === integration.id ? 'Loading channels...' : 'Load Channels'}
-                    </Button>
-                  )}
-                  {channels[integration.id] && (
-                    <Select
-                      onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select a channel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {channels[integration.id].map((channel) => (
-                          <SelectItem key={channel.id} value={channel.id}>
-                            #{channel.name} {channel.is_private ? '(private)' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
+                {canEditSettings ? (
+                  <div>
+                    <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
+                    {!channels[integration.id] && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fetchChannelsForIntegration(integration.id)}
+                        disabled={loadingChannels === integration.id}
+                        className="mt-1 w-full"
+                      >
+                        {loadingChannels === integration.id ? 'Loading channels...' : 'Load Channels'}
+                      </Button>
+                    )}
+                    {channels[integration.id] && (
+                      <Select
+                        onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select a channel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {channels[integration.id].map((channel) => (
+                            <SelectItem key={channel.id} value={channel.id}>
+                              #{channel.name} {channel.is_private ? '(private)' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    You need edit permissions to configure this integration.
+                  </p>
+                )}
               </div>
             ))}
 
             {/* Existing Integrations */}
             {integrations
-              .filter((i) => isOAuthIntegration(i) && i.channel_id)
+              .filter((i) => !isOAuthIntegration(i) || i.channel_id)
               .map((integration) => (
                 <div key={integration.id} className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-medium">#{integration.channel_name}</h4>
-                        <Badge variant="default">OAuth App</Badge>
+                        {isOAuthIntegration(integration) ? (
+                          <Badge variant="default">OAuth App</Badge>
+                        ) : (
+                          <Badge variant="outline">Webhook</Badge>
+                        )}
                         {integration.enabled ? (
                           <Badge variant="default">Enabled</Badge>
                         ) : (
@@ -406,21 +498,128 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                 </div>
               ))}
 
+            {/* Add New Integration Form (Webhook) */}
+            {showForm && canEditSettings && (
+              <div className="rounded-lg border p-4 space-y-4 bg-muted/50">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">New Webhook Integration</h4>
+                  <Badge variant="outline">Legacy Method</Badge>
+                </div>
+
+                <div>
+                  <Label htmlFor="channel_name">Channel Name</Label>
+                  <Input
+                    id="channel_name"
+                    value={formData.channel_name}
+                    onChange={(e) => setFormData({ ...formData, channel_name: e.target.value })}
+                    placeholder="engineering-updates"
+                    disabled={isSaving}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Display name for this integration (not used for sending)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="webhook_url">Slack Webhook URL</Label>
+                  <Input
+                    id="webhook_url"
+                    type="url"
+                    value={formData.webhook_url}
+                    onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
+                    placeholder="https://hooks.slack.com/services/..."
+                    disabled={isSaving}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Get this from Slack: Incoming Webhooks app
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="schedule">Schedule</Label>
+                  <Select
+                    value={formData.schedule}
+                    onValueChange={(value: 'daily' | 'weekly') =>
+                      setFormData({ ...formData, schedule: value })
+                    }
+                    disabled={isSaving}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily (9:00 AM UTC)</SelectItem>
+                      <SelectItem value="weekly">Weekly (Monday 9:00 AM UTC)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="exclude_bots"
+                    checked={formData.config?.excludeBots ?? true}
+                    onCheckedChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        config: { ...formData.config!, excludeBots: checked },
+                      })
+                    }
+                    disabled={isSaving}
+                  />
+                  <Label htmlFor="exclude_bots">Exclude bot accounts</Label>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleCreateIntegration} disabled={isSaving}>
+                    {isSaving ? 'Creating...' : 'Create Integration'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowForm(false);
+                      setFormData({
+                        workspace_id: workspaceId,
+                        channel_name: '',
+                        webhook_url: '',
+                        schedule: 'daily',
+                        enabled: true,
+                        config: {
+                          excludeBots: true,
+                          maxAssignees: 10,
+                          repositoryIds: [],
+                        },
+                      });
+                    }}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Add New Button */}
-            {canEditSettings && integrations.length > 0 && (
-              <button
-                onClick={handleInstallSlackApp}
-                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
-                aria-label="Add to Slack"
-              >
-                <img
-                  alt="Add to Slack"
-                  height="40"
-                  width="139"
-                  src="https://platform.slack-edge.com/img/add_to_slack.png"
-                  srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
-                />
-              </button>
+            {canEditSettings && integrations.length > 0 && !showForm && (
+              <div className="flex gap-3 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                  aria-label="Add to Slack"
+                >
+                  <img
+                    alt="Add to Slack"
+                    height="40"
+                    width="139"
+                    src="https://platform.slack-edge.com/img/add_to_slack.png"
+                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
+                  />
+                </button>
+                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+                  Use Webhook Instead
+                </Button>
+              </div>
             )}
           </>
         )}

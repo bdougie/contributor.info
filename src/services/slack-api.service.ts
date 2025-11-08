@@ -8,36 +8,55 @@ import type { SlackChannel } from '../types/workspace';
 const SLACK_API_BASE = 'https://slack.com/api';
 
 /**
- * Fetch list of channels the bot has access to
+ * Fetch list of channels the bot has access to (with pagination support)
  */
 export async function getSlackChannels(botToken: string): Promise<SlackChannel[]> {
   try {
-    const response = await fetch(
-      `${SLACK_API_BASE}/conversations.list?types=public_channel,private_channel&limit=200`,
-      {
+    const channels: SlackChannel[] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const url = new URL(`${SLACK_API_BASE}/conversations.list`);
+      url.searchParams.set('types', 'public_channel,private_channel');
+      url.searchParams.set('limit', '200'); // Max allowed by Slack API
+      if (cursor) {
+        url.searchParams.set('cursor', cursor);
+      }
+
+      const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${botToken}`,
           'Content-Type': 'application/json',
         },
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        console.error('Slack API error: %s', data.error);
+        throw new Error(data.error || 'Failed to fetch channels');
       }
-    );
 
-    const data = await response.json();
+      // Add channels from this page
+      channels.push(
+        ...data.channels.map(
+          (ch: { id: string; name: string; is_private: boolean; is_member: boolean }) => ({
+            id: ch.id,
+            name: ch.name,
+            is_private: ch.is_private,
+            is_member: ch.is_member,
+          })
+        )
+      );
 
-    if (!data.ok) {
-      console.error('Slack API error: %s', data.error);
-      throw new Error(data.error || 'Failed to fetch channels');
+      // Check if there are more pages
+      cursor = data.response_metadata?.next_cursor;
+      hasMore = !!cursor;
     }
 
-    return data.channels.map(
-      (ch: { id: string; name: string; is_private: boolean; is_member: boolean }) => ({
-        id: ch.id,
-        name: ch.name,
-        is_private: ch.is_private,
-        is_member: ch.is_member,
-      })
-    );
+    return channels;
   } catch (error) {
     console.error('Failed to fetch Slack channels: %s', error);
     throw error;

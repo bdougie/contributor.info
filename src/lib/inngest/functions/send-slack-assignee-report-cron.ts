@@ -103,9 +103,9 @@ function formatAssigneeReport(
  * Runs daily at 9 AM UTC to send reports to configured Slack channels
  *
  * Strategy:
- * - Finds all enabled OAuth Slack integrations that are due for sending
+ * - Finds all enabled Slack integrations (OAuth and Webhook) that are due for sending
  * - Fetches assignee distribution data using the optimized RPC function
- * - Formats and sends reports via Slack Web API (chat.postMessage)
+ * - Formats and sends reports via Slack Web API (OAuth) or Webhook URL
  * - Logs all send attempts for audit trail
  * - Updates next_scheduled_at for next run
  */
@@ -130,6 +130,7 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
           channel_name,
           channel_id,
           bot_token_encrypted,
+          webhook_url_encrypted,
           slack_team_id,
           schedule,
           config,
@@ -141,9 +142,8 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
         `
         )
         .eq('enabled', true)
-        .not('bot_token_encrypted', 'is', null)
-        .not('channel_id', 'is', null)
-        .lte('next_scheduled_at', now);
+        .lte('next_scheduled_at', now)
+        .or('bot_token_encrypted.not.is.null,webhook_url_encrypted.not.is.null');
 
       if (error) {
         console.error('Error fetching Slack integrations: %s', error.message);
@@ -224,21 +224,44 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               integration.workspace_id
             );
 
-            // Send to Slack via OAuth bot token
-            if (!integration.channel_id) {
-              throw new Error('OAuth integration missing channel_id');
+            // Send to Slack based on integration type
+            let success = false;
+
+            if (integration.bot_token_encrypted) {
+              // OAuth integration
+              if (!integration.channel_id) {
+                throw new Error('OAuth integration missing channel_id');
+              }
+
+              const botToken = await decryptString(integration.bot_token_encrypted);
+              success = await postSlackMessage(
+                botToken,
+                integration.channel_id,
+                message.text,
+                message.blocks as unknown as Record<string, unknown>[]
+              );
+            } else if (integration.webhook_url_encrypted) {
+              // Webhook integration
+              const webhookUrl = await decryptString(integration.webhook_url_encrypted);
+
+              const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  text: message.text,
+                  blocks: message.blocks,
+                }),
+              });
+
+              success = response.ok;
+            } else {
+              throw new Error('Integration has neither bot token nor webhook URL');
             }
 
-            const botToken = await decryptString(integration.bot_token_encrypted);
-            const success = await postSlackMessage(
-              botToken,
-              integration.channel_id,
-              message.text,
-              message.blocks as unknown as Record<string, unknown>[]
-            );
-
             if (!success) {
-              throw new Error('Failed to post message via Slack API');
+              throw new Error('Failed to send message to Slack');
             }
 
             // Log successful send
@@ -341,7 +364,20 @@ function calculateNextScheduledAt(schedule: string): string {
     // Next Monday at 9 AM UTC
     const next = new Date(now);
     const dayOfWeek = next.getUTCDay();
-    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+
+    // Calculate days until next Monday
+    let daysUntilMonday;
+    if (dayOfWeek === 1) {
+      // It's Monday - schedule for next Monday
+      daysUntilMonday = 7;
+    } else if (dayOfWeek === 0) {
+      // It's Sunday - Monday is tomorrow
+      daysUntilMonday = 1;
+    } else {
+      // Tuesday through Saturday - calculate days until Monday
+      daysUntilMonday = 8 - dayOfWeek;
+    }
+
     next.setUTCDate(next.getUTCDate() + daysUntilMonday);
     next.setUTCHours(9, 0, 0, 0);
     return next.toISOString();

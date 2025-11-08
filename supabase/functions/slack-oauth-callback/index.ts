@@ -107,15 +107,29 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state'); // workspace_id
+    const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
-    // Check for user-cancelled installation
+    // Create Supabase client with service role early for state validation
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Check for user-cancelled installation - need to extract workspace_id from state
     if (error === 'access_denied') {
+      // Try to look up the workspace_id from the state if provided
+      let workspaceId = null;
+      if (state) {
+        const { data: stateData } = await supabase
+          .from('oauth_states')
+          .select('workspace_id')
+          .eq('state', state)
+          .single();
+        workspaceId = stateData?.workspace_id;
+      }
+
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${state}/settings?slack_install=cancelled`,
+          Location: workspaceId ? `/workspace/${workspaceId}/settings?slack_install=cancelled` : '/?slack_install=cancelled',
         },
       });
     }
@@ -128,17 +142,53 @@ serve(async (req) => {
       );
     }
 
-    // Validate state parameter is a valid UUID (workspace_id)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(state)) {
-      console.error('Invalid state parameter format: %s', state);
+    // Validate state exists and hasn't expired
+    const { data: stateData, error: stateError } = await supabase
+      .from('oauth_states')
+      .select('workspace_id, expires_at, used')
+      .eq('state', state)
+      .single();
+
+    if (stateError || !stateData) {
+      console.error('Invalid OAuth state: %s', state);
       return new Response(
-        JSON.stringify({ error: 'Invalid state parameter' }),
+        JSON.stringify({ error: 'Invalid or expired OAuth state' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const workspaceId = state;
+    // Check if state has already been used
+    if (stateData.used) {
+      console.error('OAuth state already used: %s', state);
+      return new Response(
+        JSON.stringify({ error: 'OAuth state has already been used' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if state has expired
+    const now = new Date();
+    const expiresAt = new Date(stateData.expires_at);
+    if (now > expiresAt) {
+      console.error('OAuth state expired: %s', state);
+      return new Response(
+        JSON.stringify({ error: 'OAuth state has expired' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Mark state as used to prevent replay attacks
+    const { error: updateStateError } = await supabase
+      .from('oauth_states')
+      .update({ used: true })
+      .eq('state', state);
+
+    if (updateStateError) {
+      console.error('Failed to mark state as used: %s', updateStateError.message);
+      // Continue anyway, but log the error
+    }
+
+    const workspaceId = stateData.workspace_id;
 
     // Exchange authorization code for access token
     const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
@@ -168,9 +218,6 @@ serve(async (req) => {
 
     // Encrypt the bot token before storing
     const encryptedToken = await encryptString(tokenData.access_token);
-
-    // Create Supabase client with service role
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Get the user ID from the authorization header
     const authHeader = req.headers.get('Authorization');
