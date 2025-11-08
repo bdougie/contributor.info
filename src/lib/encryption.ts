@@ -16,6 +16,18 @@ function getEncryptionKey(): string {
   if (!key) {
     throw new Error('VITE_SLACK_WEBHOOK_ENCRYPTION_KEY is not configured');
   }
+
+  // Validate key length (minimum 32 characters for security)
+  if (key.length < 32) {
+    throw new Error('VITE_SLACK_WEBHOOK_ENCRYPTION_KEY must be at least 32 characters long');
+  }
+
+  // Validate key format (should be base64 or hex-compatible)
+  const validKeyPattern = /^[A-Za-z0-9+/=\-_]+$/;
+  if (!validKeyPattern.test(key)) {
+    throw new Error('VITE_SLACK_WEBHOOK_ENCRYPTION_KEY contains invalid characters');
+  }
+
   return key;
 }
 
@@ -47,6 +59,11 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
  * Derive a CryptoKey from the encryption key string
  */
 async function deriveKey(keyString: string): Promise<CryptoKey> {
+  // Validate key string before derivation
+  if (!keyString || keyString.length < 32) {
+    throw new Error('Invalid encryption key provided for derivation');
+  }
+
   // Use the key string as material for key derivation
   const encoder = new TextEncoder();
   const keyMaterial = encoder.encode(keyString);

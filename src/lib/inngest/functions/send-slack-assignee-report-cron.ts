@@ -114,6 +114,10 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
     id: 'send-slack-assignee-report-cron',
     name: 'Send Slack Assignee Report (Cron)',
     retries: 2,
+    concurrency: {
+      limit: 1, // Only one instance can run at a time
+      key: 'slack-report-cron', // Global concurrency key
+    },
   },
   { cron: '0 9 * * *' }, // Run daily at 9 AM UTC
   async ({ step }) => {
@@ -163,6 +167,31 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
       integrations.map(async (integration) => {
         return step.run(`send-report-${integration.id}`, async () => {
           try {
+            // Check if we've already sent a report recently (within last hour)
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+            const { data: recentLog } = await supabase
+              .from('integration_logs')
+              .select('id, created_at')
+              .eq('integration_id', integration.id)
+              .eq('status', 'success')
+              .gte('created_at', oneHourAgo)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (recentLog) {
+              console.log('Skipping integration %s - report sent recently at %s',
+                integration.id,
+                recentLog.created_at
+              );
+              return {
+                integration_id: integration.id,
+                status: 'skipped',
+                reason: 'Report sent recently',
+                last_sent: recentLog.created_at,
+              };
+            }
+
             // Get workspace repositories for filtering
             const { data: workspaceRepos } = await supabase
               .from('workspace_repositories')

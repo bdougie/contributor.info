@@ -54,7 +54,7 @@ async function encryptString(plaintext: string): Promise<string> {
     keyMaterial,
     'PBKDF2',
     false,
-    ['deriveBits', 'deriveKey']
+    ['deriveBits', 'deriveKey'],
   );
 
   // Derive the actual encryption key
@@ -69,7 +69,7 @@ async function encryptString(plaintext: string): Promise<string> {
     importedKey,
     { name: 'AES-GCM', length: 256 },
     false,
-    ['encrypt']
+    ['encrypt'],
   );
 
   // Generate random IV
@@ -80,7 +80,7 @@ async function encryptString(plaintext: string): Promise<string> {
   const encrypted = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
-    data
+    data,
   );
 
   // Combine IV and encrypted data
@@ -129,7 +129,9 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: workspaceId ? `/workspace/${workspaceId}/settings?slack_install=cancelled` : '/?slack_install=cancelled',
+          Location: workspaceId
+            ? `/workspace/${workspaceId}/settings?slack_install=cancelled`
+            : '/?slack_install=cancelled',
         },
       });
     }
@@ -138,7 +140,7 @@ serve(async (req) => {
     if (!code || !state) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -153,7 +155,7 @@ serve(async (req) => {
       console.error('Invalid OAuth state: %s', state);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired OAuth state' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -162,7 +164,7 @@ serve(async (req) => {
       console.error('OAuth state already used: %s', state);
       return new Response(
         JSON.stringify({ error: 'OAuth state has already been used' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -173,7 +175,7 @@ serve(async (req) => {
       console.error('OAuth state expired: %s', state);
       return new Response(
         JSON.stringify({ error: 'OAuth state has expired' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
@@ -191,33 +193,78 @@ serve(async (req) => {
     const workspaceId = stateData.workspace_id;
 
     // Exchange authorization code for access token
-    const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: SLACK_CLIENT_ID!,
-        client_secret: SLACK_CLIENT_SECRET!,
-        code,
-        redirect_uri: SLACK_REDIRECT_URI!,
-      }),
-    });
+    let tokenResponse;
+    try {
+      tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: SLACK_CLIENT_ID!,
+          client_secret: SLACK_CLIENT_SECRET!,
+          code,
+          redirect_uri: SLACK_REDIRECT_URI!,
+        }),
+      });
+    } catch (networkError) {
+      console.error('Network error during token exchange: %s', networkError);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=network_error`,
+        },
+      });
+    }
 
-    const tokenData: SlackOAuthResponse = await tokenResponse.json();
+    if (!tokenResponse.ok) {
+      console.error('Slack OAuth HTTP error: status %d', tokenResponse.status);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=oauth_failed`,
+        },
+      });
+    }
+
+    let tokenData: SlackOAuthResponse;
+    try {
+      tokenData = await tokenResponse.json();
+    } catch (parseError) {
+      console.error('Failed to parse Slack OAuth response: %s', parseError);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=invalid_response`,
+        },
+      });
+    }
 
     if (!tokenData.ok || !tokenData.access_token) {
       console.error('Slack OAuth error: %s', tokenData.error);
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=${tokenData.error}`,
+          Location:
+            `/workspace/${workspaceId}/settings?slack_install=error&error=${tokenData.error}`,
         },
       });
     }
 
     // Encrypt the bot token before storing
-    const encryptedToken = await encryptString(tokenData.access_token);
+    let encryptedToken: string;
+    try {
+      encryptedToken = await encryptString(tokenData.access_token);
+    } catch (encryptError) {
+      console.error('Failed to encrypt bot token: %s', encryptError);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location:
+            `/workspace/${workspaceId}/settings?slack_install=error&error=encryption_failed`,
+        },
+      });
+    }
 
     // Get the user ID from the authorization header
     const authHeader = req.headers.get('Authorization');
@@ -273,14 +320,52 @@ serve(async (req) => {
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `/workspace/${workspaceId}/settings?slack_install=success&team=${encodeURIComponent(tokenData.team!.name)}`,
+        Location: `/workspace/${workspaceId}/settings?slack_install=success&team=${
+          encodeURIComponent(tokenData.team!.name)
+        }`,
       },
     });
   } catch (error) {
     console.error('OAuth callback error: %s', error);
+
+    // Try to extract workspace ID from state for better error redirect
+    let workspaceId = null;
+    try {
+      const url = new URL(req.url);
+      const state = url.searchParams.get('state');
+      if (state) {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data } = await supabase
+          .from('oauth_states')
+          .select('workspace_id')
+          .eq('state', state)
+          .single();
+        workspaceId = data?.workspace_id;
+      }
+    } catch {
+      // Ignore errors in error handler
+    }
+
+    // If we have a workspace ID, redirect to settings with error
+    if (workspaceId) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=unexpected_error`,
+        },
+      });
+    }
+
+    // Otherwise return a generic error response
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        error: 'An unexpected error occurred during Slack authentication',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
     );
   }
 });

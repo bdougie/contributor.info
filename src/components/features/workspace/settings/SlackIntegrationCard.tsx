@@ -46,8 +46,19 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   const [isTesting, setIsTesting] = useState<string | null>(null);
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
   const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
+  const [testRateLimits, setTestRateLimits] = useState<Record<string, number>>({});
 
   const encryptionConfigured = isEncryptionConfigured();
+
+  // Update UI when rate limits expire
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Force re-render to update rate limit countdown
+      setTestRateLimits(prev => ({ ...prev }));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Check for OAuth callback parameters
   useEffect(() => {
@@ -194,9 +205,40 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
     }
   };
 
+  // Helper functions for rate limiting UI
+  const isRateLimited = (integrationId: string): boolean => {
+    const lastTestTime = testRateLimits[integrationId] || 0;
+    const timeSinceLastTest = Date.now() - lastTestTime;
+    return timeSinceLastTest < 60000; // 1 minute rate limit
+  };
+
+  const getRemainingSeconds = (integrationId: string): number => {
+    const lastTestTime = testRateLimits[integrationId] || 0;
+    const timeSinceLastTest = Date.now() - lastTestTime;
+    return Math.ceil((60000 - timeSinceLastTest) / 1000);
+  };
+
   const handleTestIntegration = async (integrationId: string) => {
+    // Check rate limit (allow 1 test per minute per integration)
+    const lastTestTime = testRateLimits[integrationId] || 0;
+    const now = Date.now();
+    const timeSinceLastTest = now - lastTestTime;
+    const RATE_LIMIT_MS = 60000; // 1 minute
+
+    if (timeSinceLastTest < RATE_LIMIT_MS) {
+      const secondsRemaining = Math.ceil((RATE_LIMIT_MS - timeSinceLastTest) / 1000);
+      toast({
+        title: 'Rate Limited',
+        description: `Please wait ${secondsRemaining} seconds before testing again`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsTesting(integrationId);
+      setTestRateLimits(prev => ({ ...prev, [integrationId]: now }));
+
       const success = await testIntegration(integrationId);
       if (success) {
         toast({
@@ -414,9 +456,13 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                         variant="outline"
                         size="sm"
                         onClick={() => handleTestIntegration(integration.id)}
-                        disabled={isTesting === integration.id}
+                        disabled={isTesting === integration.id || isRateLimited(integration.id)}
+                        title={isRateLimited(integration.id) ?
+                          `Wait ${getRemainingSeconds(integration.id)} seconds` : undefined}
                       >
-                        {isTesting === integration.id ? 'Testing...' : 'Test Connection'}
+                        {isTesting === integration.id ? 'Testing...' :
+                         isRateLimited(integration.id) ?
+                         `Wait ${getRemainingSeconds(integration.id)}s` : 'Test Connection'}
                       </Button>
                       <Button
                         variant="outline"
