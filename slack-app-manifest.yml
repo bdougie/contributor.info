@@ -1,0 +1,34 @@
+display_information:
+  name: Contributor Info
+  description: Automated issue assignee reports for your GitHub repositories
+  background_color: "#1e293b"
+  long_description: Contributor Info sends daily or weekly reports about issue assignees in your GitHub repositories, helping teams track workload distribution and identify bottlenecks.
+
+features:
+  bot_user:
+    display_name: Contributor Info
+    always_online: true
+
+oauth_config:
+  redirect_urls:
+    # Production URL
+    - https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/slack-oauth-callback
+    # Deploy preview URLs (update with your Netlify preview URLs)
+    - https://deploy-preview-1193--contributor-info.netlify.app/functions/v1/slack-oauth-callback
+    # Local development
+    - http://localhost:54321/functions/v1/slack-oauth-callback
+  scopes:
+    bot:
+      - chat:write
+      - chat:write.public
+      - channels:read
+      - groups:read
+      - im:read
+      - mpim:read
+      - team:read
+      - users:read
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
