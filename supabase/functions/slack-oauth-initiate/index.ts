@@ -38,6 +38,12 @@ function generateStateToken(): string {
 }
 
 serve(async (req) => {
+  console.log('OAuth initiate request received:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries()),
+  });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -58,15 +64,20 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
-        }
-      }
+        },
+      },
     );
   }
 
   try {
     // Validate environment variables
     if (!SLACK_CLIENT_ID || !SLACK_REDIRECT_URI) {
-      console.error('Missing required environment variables');
+      console.error('Missing required environment variables:', {
+        hasClientId: !!SLACK_CLIENT_ID,
+        hasRedirectUri: !!SLACK_REDIRECT_URI,
+        clientIdLength: SLACK_CLIENT_ID?.length || 0,
+        redirectUri: SLACK_REDIRECT_URI || 'NOT_SET',
+      });
       return new Response(
         JSON.stringify({ error: 'Server configuration error' }),
         {
@@ -74,8 +85,8 @@ serve(async (req) => {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-          }
-        }
+          },
+        },
       );
     }
 
@@ -91,8 +102,8 @@ serve(async (req) => {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-          }
-        }
+          },
+        },
       );
     }
 
@@ -124,8 +135,8 @@ serve(async (req) => {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-          }
-        }
+          },
+        },
       );
     }
 
@@ -157,35 +168,40 @@ serve(async (req) => {
     // Add user_scope if we need user-level permissions (optional)
     // slackOAuthUrl.searchParams.append('user_scope', 'identity.basic');
 
-    console.log('OAuth flow initiated for workspace:', workspace_id);
+    console.log('OAuth flow initiated successfully:', {
+      workspace_id,
+      state_token_length: state.length,
+      oauth_url_length: slackOAuthUrl.toString().length,
+      scopes_included: scopes,
+    });
 
     return new Response(
       JSON.stringify({
         oauth_url: slackOAuthUrl.toString(),
-        state: state, // Return state for debugging (remove in production)
+        // Don't return state in production for security
       }),
       {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
-        }
-      }
+        },
+      },
     );
   } catch (error) {
     console.error('OAuth initiation error:', error);
     return new Response(
       JSON.stringify({
         error: 'An unexpected error occurred',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       }),
       {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
-        }
-      }
+        },
+      },
     );
   }
 });
