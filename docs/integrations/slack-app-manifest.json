@@ -13,8 +13,7 @@
   },
   "oauth_config": {
     "redirect_urls": [
-      "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/slack-oauth-callback",
-      "http://localhost:54321/functions/v1/slack-oauth-callback"
+      "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/slack-oauth-callback"
     ],
     "scopes": {
       "bot": [

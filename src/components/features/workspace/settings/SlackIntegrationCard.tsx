@@ -311,10 +311,20 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
               No Slack integrations configured yet
             </p>
             {canEditSettings && (
-              <div className="flex flex-col gap-2 items-center">
-                <Button onClick={handleInstallSlackApp} size="lg">
-                  Install Slack App (Recommended)
-                </Button>
+              <div className="flex flex-col gap-3 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                  aria-label="Add to Slack"
+                >
+                  <img
+                    alt="Add to Slack"
+                    height="40"
+                    width="139"
+                    src="https://platform.slack-edge.com/img/add_to_slack.png"
+                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
+                  />
+                </button>
                 <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
                   Use Webhook Instead
                 </Button>
@@ -579,8 +589,20 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
             {/* Add New Button */}
             {!showForm && canEditSettings && integrations.length > 0 && (
-              <div className="flex gap-2">
-                <Button onClick={handleInstallSlackApp}>Install Slack App</Button>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                  aria-label="Add to Slack"
+                >
+                  <img
+                    alt="Add to Slack"
+                    height="40"
+                    width="139"
+                    src="https://platform.slack-edge.com/img/add_to_slack.png"
+                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
+                  />
+                </button>
                 <Button variant="outline" onClick={() => setShowForm(true)}>
                   Add Webhook Integration
                 </Button>
