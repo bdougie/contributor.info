@@ -7,7 +7,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -26,7 +25,7 @@ import {
   setIntegrationChannel,
   isOAuthIntegration,
 } from '@/services/slack-integration.service';
-import type { CreateSlackIntegrationInput, SlackChannel } from '@/types/workspace';
+import type { SlackChannel } from '@/types/workspace';
 
 interface SlackIntegrationCardProps {
   workspaceId: string;
@@ -38,30 +37,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   const {
     integrations,
     loading,
-    createIntegration,
     updateIntegration,
     deleteIntegration,
     testIntegration,
     refetch,
   } = useSlackIntegrations({ workspaceId });
 
-  const [showForm, setShowForm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState<string | null>(null);
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
   const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
-  const [formData, setFormData] = useState<Partial<CreateSlackIntegrationInput>>({
-    workspace_id: workspaceId,
-    channel_name: '',
-    webhook_url: '',
-    schedule: 'daily',
-    enabled: true,
-    config: {
-      excludeBots: true,
-      maxAssignees: 10,
-      repositoryIds: [],
-    },
-  });
 
   const encryptionConfigured = isEncryptionConfigured();
 
@@ -171,47 +155,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
     }
   };
 
-  const handleCreateIntegration = async () => {
-    if (!formData.channel_name || !formData.webhook_url) {
-      toast({
-        title: 'Missing Information',
-        description: 'Please provide both channel name and webhook URL',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      await createIntegration(formData as CreateSlackIntegrationInput);
-      toast({
-        title: 'Integration Created',
-        description: `Slack integration for ${formData.channel_name} has been created`,
-      });
-      setShowForm(false);
-      setFormData({
-        workspace_id: workspaceId,
-        channel_name: '',
-        webhook_url: '',
-        schedule: 'daily',
-        enabled: true,
-        config: {
-          excludeBots: true,
-          maxAssignees: 10,
-          repositoryIds: [],
-        },
-      });
-    } catch (error) {
-      console.error('Failed to create integration: %s', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create Slack integration',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleToggleEnabled = async (integrationId: string, enabled: boolean) => {
     try {
@@ -318,7 +261,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       <CardContent className="space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading integrations...</p>}
 
-        {!loading && integrations.length === 0 && !showForm && (
+        {!loading && integrations.length === 0 && (
           <div className="text-center py-8">
             <p className="text-sm text-muted-foreground mb-4">
               No Slack integrations configured yet
@@ -338,15 +281,12 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
                   />
                 </button>
-                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                  Use Webhook Instead
-                </Button>
               </div>
             )}
           </div>
         )}
 
-        {!loading && (integrations.length > 0 || showForm) && (
+        {!loading && integrations.length > 0 && (
           <>
             {/* OAuth Integrations Needing Channel Selection */}
             {oauthIntegrationsNeedingChannel.map((integration) => (
@@ -498,110 +438,9 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                 </div>
               ))}
 
-            {/* Add New Integration Form (Webhook) */}
-            {showForm && canEditSettings && (
-              <div className="rounded-lg border p-4 space-y-4 bg-muted/50">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">New Webhook Integration</h4>
-                  <Badge variant="outline">Legacy Method</Badge>
-                </div>
-
-                <div>
-                  <Label htmlFor="channel_name">Channel Name</Label>
-                  <Input
-                    id="channel_name"
-                    value={formData.channel_name}
-                    onChange={(e) => setFormData({ ...formData, channel_name: e.target.value })}
-                    placeholder="engineering-updates"
-                    disabled={isSaving}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Display name for this integration (not used for sending)
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="webhook_url">Slack Webhook URL</Label>
-                  <Input
-                    id="webhook_url"
-                    type="url"
-                    value={formData.webhook_url}
-                    onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
-                    placeholder="https://hooks.slack.com/services/..."
-                    disabled={isSaving}
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Get this from Slack: Incoming Webhooks app
-                  </p>
-                </div>
-
-                <div>
-                  <Label htmlFor="schedule">Schedule</Label>
-                  <Select
-                    value={formData.schedule}
-                    onValueChange={(value: 'daily' | 'weekly') =>
-                      setFormData({ ...formData, schedule: value })
-                    }
-                    disabled={isSaving}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily (9:00 AM UTC)</SelectItem>
-                      <SelectItem value="weekly">Weekly (Monday 9:00 AM UTC)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="exclude_bots"
-                    checked={formData.config?.excludeBots ?? true}
-                    onCheckedChange={(checked) =>
-                      setFormData({
-                        ...formData,
-                        config: { ...formData.config!, excludeBots: checked },
-                      })
-                    }
-                    disabled={isSaving}
-                  />
-                  <Label htmlFor="exclude_bots">Exclude bot accounts</Label>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button onClick={handleCreateIntegration} disabled={isSaving}>
-                    {isSaving ? 'Creating...' : 'Create Integration'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowForm(false);
-                      setFormData({
-                        workspace_id: workspaceId,
-                        channel_name: '',
-                        webhook_url: '',
-                        schedule: 'daily',
-                        enabled: true,
-                        config: {
-                          excludeBots: true,
-                          maxAssignees: 10,
-                          repositoryIds: [],
-                        },
-                      });
-                    }}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
 
             {/* Add New Button */}
-            {canEditSettings && integrations.length > 0 && !showForm && (
+            {canEditSettings && integrations.length > 0 && (
               <div className="flex gap-3 items-center">
                 <button
                   onClick={handleInstallSlackApp}
@@ -616,9 +455,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
                   />
                 </button>
-                <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
-                  Use Webhook Instead
-                </Button>
               </div>
             )}
           </>

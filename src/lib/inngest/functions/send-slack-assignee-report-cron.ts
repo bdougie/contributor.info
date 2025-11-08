@@ -130,7 +130,6 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
           channel_name,
           channel_id,
           bot_token_encrypted,
-          webhook_url_encrypted,
           slack_team_id,
           schedule,
           config,
@@ -143,7 +142,7 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
         )
         .eq('enabled', true)
         .lte('next_scheduled_at', now)
-        .or('bot_token_encrypted.not.is.null,webhook_url_encrypted.not.is.null');
+        .not('bot_token_encrypted', 'is', null);
 
       if (error) {
         console.error('Error fetching Slack integrations: %s', error.message);
@@ -224,41 +223,22 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               integration.workspace_id
             );
 
-            // Send to Slack based on integration type
-            let success = false;
-
-            if (integration.bot_token_encrypted) {
-              // OAuth integration
-              if (!integration.channel_id) {
-                throw new Error('OAuth integration missing channel_id');
-              }
-
-              const botToken = await decryptString(integration.bot_token_encrypted);
-              success = await postSlackMessage(
-                botToken,
-                integration.channel_id,
-                message.text,
-                message.blocks as unknown as Record<string, unknown>[]
-              );
-            } else if (integration.webhook_url_encrypted) {
-              // Webhook integration
-              const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-
-              const response = await fetch(webhookUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  text: message.text,
-                  blocks: message.blocks,
-                }),
-              });
-
-              success = response.ok;
-            } else {
-              throw new Error('Integration has neither bot token nor webhook URL');
+            // Send to Slack via OAuth integration
+            if (!integration.bot_token_encrypted) {
+              throw new Error('Integration missing bot token');
             }
+
+            if (!integration.channel_id) {
+              throw new Error('OAuth integration missing channel_id');
+            }
+
+            const botToken = await decryptString(integration.bot_token_encrypted);
+            const success = await postSlackMessage(
+              botToken,
+              integration.channel_id,
+              message.text,
+              message.blocks as unknown as Record<string, unknown>[]
+            );
 
             if (!success) {
               throw new Error('Failed to send message to Slack');

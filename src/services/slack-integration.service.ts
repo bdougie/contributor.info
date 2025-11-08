@@ -4,12 +4,11 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { encryptString, decryptString } from '../lib/encryption';
+import { decryptString } from '../lib/encryption';
 import { getSlackChannels, postSlackMessage } from './slack-api.service';
 import type {
   SlackIntegration,
   SlackIntegrationWithStatus,
-  CreateSlackIntegrationInput,
   UpdateSlackIntegrationInput,
   IntegrationLog,
   SlackChannel,
@@ -116,45 +115,6 @@ export async function getSlackIntegration(integrationId: string): Promise<SlackI
   return data;
 }
 
-/**
- * Create a new Slack integration (webhook-based)
- */
-export async function createSlackIntegration(
-  input: CreateSlackIntegrationInput
-): Promise<SlackIntegration> {
-  // Encrypt the webhook URL before storing
-  const encryptedUrl = await encryptString(input.webhook_url);
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    throw new Error('User not authenticated');
-  }
-
-  const { data, error } = await supabase
-    .from('slack_integrations')
-    .insert({
-      workspace_id: input.workspace_id,
-      channel_name: input.channel_name,
-      webhook_url_encrypted: encryptedUrl,
-      schedule: input.schedule,
-      enabled: input.enabled ?? true,
-      config: {
-        excludeBots: input.config?.excludeBots ?? true,
-        maxAssignees: input.config?.maxAssignees ?? 10,
-        repositoryIds: input.config?.repositoryIds ?? [],
-      },
-      created_by: userData.user.id,
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) {
-    console.error('Failed to create Slack integration: %s', error?.message);
-    throw new Error('Failed to create Slack integration');
-  }
-
-  return data;
-}
 
 /**
  * Update an existing Slack integration
@@ -167,11 +127,6 @@ export async function updateSlackIntegration(
 
   if (input.channel_name !== undefined) {
     updateData.channel_name = input.channel_name;
-  }
-
-  if (input.webhook_url !== undefined) {
-    // Encrypt the new webhook URL
-    updateData.webhook_url_encrypted = await encryptString(input.webhook_url);
   }
 
   if (input.schedule !== undefined) {
