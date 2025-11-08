@@ -4,12 +4,11 @@
  */
 
 import { supabase } from '../lib/supabase';
-import { encryptString, decryptString } from '../lib/encryption';
+import { decryptString } from '../lib/encryption';
 import { getSlackChannels, postSlackMessage } from './slack-api.service';
 import type {
   SlackIntegration,
   SlackIntegrationWithStatus,
-  CreateSlackIntegrationInput,
   UpdateSlackIntegrationInput,
   IntegrationLog,
   SlackChannel,
@@ -116,45 +115,8 @@ export async function getSlackIntegration(integrationId: string): Promise<SlackI
   return data;
 }
 
-/**
- * Create a new Slack integration
- */
-export async function createSlackIntegration(
-  input: CreateSlackIntegrationInput
-): Promise<SlackIntegration> {
-  // Encrypt the webhook URL before storing
-  const encryptedUrl = await encryptString(input.webhook_url);
-
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) {
-    throw new Error('User not authenticated');
-  }
-
-  const { data, error } = await supabase
-    .from('slack_integrations')
-    .insert({
-      workspace_id: input.workspace_id,
-      channel_name: input.channel_name,
-      webhook_url_encrypted: encryptedUrl,
-      schedule: input.schedule,
-      enabled: input.enabled ?? true,
-      config: {
-        excludeBots: input.config?.excludeBots ?? true,
-        maxAssignees: input.config?.maxAssignees ?? 10,
-        repositoryIds: input.config?.repositoryIds ?? [],
-      },
-      created_by: userData.user.id,
-    })
-    .select()
-    .maybeSingle();
-
-  if (error || !data) {
-    console.error('Failed to create Slack integration: %s', error?.message);
-    throw new Error('Failed to create Slack integration');
-  }
-
-  return data;
-}
+// OAuth integration creation is handled by the Slack OAuth callback function
+// No need for manual creation function since OAuth flow handles it
 
 /**
  * Update an existing Slack integration
@@ -167,11 +129,6 @@ export async function updateSlackIntegration(
 
   if (input.channel_name !== undefined) {
     updateData.channel_name = input.channel_name;
-  }
-
-  if (input.webhook_url !== undefined) {
-    // Encrypt the new webhook URL
-    updateData.webhook_url_encrypted = await encryptString(input.webhook_url);
   }
 
   if (input.schedule !== undefined) {
@@ -264,44 +221,21 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
   };
 
   try {
-    // Check if OAuth or webhook
-    const isOAuth = isOAuthIntegration(integration);
+    // OAuth flow only
+    if (!integration.bot_token_encrypted || !integration.channel_id) {
+      throw new Error('OAuth integration missing required fields');
+    }
 
-    if (isOAuth) {
-      // OAuth flow
-      if (!integration.bot_token_encrypted || !integration.channel_id) {
-        throw new Error('OAuth integration missing required fields');
-      }
+    const botToken = await decryptString(integration.bot_token_encrypted);
+    const success = await postSlackMessage(
+      botToken,
+      integration.channel_id,
+      message.text,
+      message.blocks as unknown as Record<string, unknown>[]
+    );
 
-      const botToken = await decryptString(integration.bot_token_encrypted);
-      const success = await postSlackMessage(
-        botToken,
-        integration.channel_id,
-        message.text,
-        message.blocks as unknown as Record<string, unknown>[]
-      );
-
-      if (!success) {
-        throw new Error('Failed to post message via Slack API');
-      }
-    } else {
-      // Webhook flow
-      if (!integration.webhook_url_encrypted) {
-        throw new Error('Webhook integration missing webhook URL');
-      }
-
-      const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Slack API returned ${response.status}`);
-      }
+    if (!success) {
+      throw new Error('Failed to post message via Slack API');
     }
 
     // Log the test
@@ -311,7 +245,7 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
       'success',
       JSON.stringify(message),
       null,
-      { type: 'test', method: isOAuth ? 'oauth' : 'webhook' }
+      { type: 'test', method: 'oauth' }
     );
 
     return true;
@@ -561,9 +495,11 @@ export async function setIntegrationChannel(
 }
 
 /**
- * Check if integration uses OAuth (vs webhook)
+ * Check if integration is properly configured
+ * All integrations now use OAuth, so we check for required OAuth fields
  */
 export function isOAuthIntegration(integration: SlackIntegration): boolean {
+  // All integrations are OAuth-based now
   return !!(integration.bot_token_encrypted && integration.slack_team_id);
 }
 

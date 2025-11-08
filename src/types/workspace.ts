@@ -792,23 +792,11 @@ export interface IntegrationLog {
 }
 
 /**
- * Create Slack integration payload
- */
-export interface CreateSlackIntegrationInput {
-  workspace_id: string;
-  channel_name: string;
-  webhook_url: string; // Plain text, will be encrypted
-  schedule: SlackSchedule;
-  enabled?: boolean;
-  config?: Partial<SlackIntegrationConfig>;
-}
-
-/**
  * Update Slack integration payload
+ * OAuth integrations are created via the OAuth callback, not manually
  */
 export interface UpdateSlackIntegrationInput {
   channel_name?: string;
-  webhook_url?: string; // Plain text, will be encrypted
   schedule?: SlackSchedule;
   enabled?: boolean;
   config?: Partial<SlackIntegrationConfig>;

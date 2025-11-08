@@ -6,16 +6,11 @@
 import { useState, useEffect } from 'react';
 import {
   getSlackIntegrationsWithStatus,
-  createSlackIntegration,
   updateSlackIntegration,
   deleteSlackIntegration,
   testSlackIntegration,
 } from '../services/slack-integration.service';
-import type {
-  SlackIntegrationWithStatus,
-  CreateSlackIntegrationInput,
-  UpdateSlackIntegrationInput,
-} from '../types/workspace';
+import type { SlackIntegrationWithStatus, UpdateSlackIntegrationInput } from '../types/workspace';
 
 interface UseSlackIntegrationsOptions {
   workspaceId: string;
@@ -27,7 +22,6 @@ interface UseSlackIntegrationsReturn {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createIntegration: (input: CreateSlackIntegrationInput) => Promise<void>;
   updateIntegration: (id: string, input: UpdateSlackIntegrationInput) => Promise<void>;
   deleteIntegration: (id: string) => Promise<void>;
   testIntegration: (id: string) => Promise<boolean>;
@@ -64,18 +58,6 @@ export function useSlackIntegrations({
     fetchIntegrations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, enabled]);
-
-  const handleCreateIntegration = async (input: CreateSlackIntegrationInput) => {
-    try {
-      setError(null);
-      await createSlackIntegration(input);
-      await fetchIntegrations();
-    } catch (err) {
-      console.error('Failed to create Slack integration: %s', err);
-      setError(err instanceof Error ? err.message : 'Failed to create integration');
-      throw err;
-    }
-  };
 
   const handleUpdateIntegration = async (id: string, input: UpdateSlackIntegrationInput) => {
     try {
@@ -119,7 +101,6 @@ export function useSlackIntegrations({
     loading,
     error,
     refetch: fetchIntegrations,
-    createIntegration: handleCreateIntegration,
     updateIntegration: handleUpdateIntegration,
     deleteIntegration: handleDeleteIntegration,
     testIntegration: handleTestIntegration,

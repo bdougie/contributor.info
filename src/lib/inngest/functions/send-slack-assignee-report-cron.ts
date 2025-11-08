@@ -103,9 +103,9 @@ function formatAssigneeReport(
  * Runs daily at 9 AM UTC to send reports to configured Slack channels
  *
  * Strategy:
- * - Finds all enabled Slack integrations that are due for sending
+ * - Finds all enabled OAuth Slack integrations that are due for sending
  * - Fetches assignee distribution data using the optimized RPC function
- * - Formats and sends reports to Slack webhook URLs
+ * - Formats and sends reports via Slack Web API (chat.postMessage)
  * - Logs all send attempts for audit trail
  * - Updates next_scheduled_at for next run
  */
@@ -129,7 +129,6 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
           workspace_id,
           channel_name,
           channel_id,
-          webhook_url_encrypted,
           bot_token_encrypted,
           slack_team_id,
           schedule,
@@ -142,6 +141,8 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
         `
         )
         .eq('enabled', true)
+        .not('bot_token_encrypted', 'is', null)
+        .not('channel_id', 'is', null)
         .lte('next_scheduled_at', now);
 
       if (error) {
@@ -223,44 +224,21 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               integration.workspace_id
             );
 
-            // Send to Slack (OAuth or webhook)
-            const isOAuth = !!(integration.bot_token_encrypted && integration.slack_team_id);
+            // Send to Slack via OAuth bot token
+            if (!integration.channel_id) {
+              throw new Error('OAuth integration missing channel_id');
+            }
 
-            if (isOAuth) {
-              // OAuth flow: use chat.postMessage API
-              if (!integration.channel_id) {
-                throw new Error('OAuth integration missing channel_id');
-              }
+            const botToken = await decryptString(integration.bot_token_encrypted);
+            const success = await postSlackMessage(
+              botToken,
+              integration.channel_id,
+              message.text,
+              message.blocks as unknown as Record<string, unknown>[]
+            );
 
-              const botToken = await decryptString(integration.bot_token_encrypted);
-              const success = await postSlackMessage(
-                botToken,
-                integration.channel_id,
-                message.text,
-                message.blocks as unknown as Record<string, unknown>[]
-              );
-
-              if (!success) {
-                throw new Error('Failed to post message via Slack API');
-              }
-            } else {
-              // Webhook flow: use webhook URL
-              if (!integration.webhook_url_encrypted) {
-                throw new Error('Webhook integration missing webhook_url_encrypted');
-              }
-
-              const webhookUrl = await decryptString(integration.webhook_url_encrypted);
-              const response = await fetch(webhookUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(message),
-              });
-
-              if (!response.ok) {
-                throw new Error(`Slack API returned ${response.status}: ${await response.text()}`);
-              }
+            if (!success) {
+              throw new Error('Failed to post message via Slack API');
             }
 
             // Log successful send
@@ -274,7 +252,7 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
                 assignee_count: assignees.length,
                 total_issues: totalIssues,
                 type: 'scheduled',
-                method: isOAuth ? 'oauth' : 'webhook',
+                method: 'oauth',
               },
             });
 
