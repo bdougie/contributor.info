@@ -38,10 +38,14 @@ function generateStateToken(): string {
 }
 
 serve(async (req) => {
+  // Log request info WITHOUT sensitive headers
   console.log('OAuth initiate request received:', {
     method: req.method,
     url: req.url,
-    headers: Object.fromEntries(req.headers.entries()),
+    // Only log non-sensitive headers
+    hasAuthorization: req.headers.has('authorization'),
+    contentType: req.headers.get('content-type'),
+    origin: req.headers.get('origin'),
   });
 
   // Handle CORS preflight
