@@ -21,7 +21,6 @@ import { ProtectedRoute, AdminRoute } from '@/components/features/auth';
 import { initializeLLMCitationTracking } from '@/lib/llm-citation-tracking';
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
 import { WorkspaceRedirect } from '@/components/WorkspaceRedirect';
-import { SentryTest } from '@/components/sentry-test';
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
@@ -465,7 +464,6 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <FeatureFlagsProvider>
           <SVGSpriteInliner />
-          <SentryTest />
           <Router>
             <WorkspaceProvider>
               <OfflineNotification />
