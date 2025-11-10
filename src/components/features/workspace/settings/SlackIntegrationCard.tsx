@@ -34,14 +34,8 @@ interface SlackIntegrationCardProps {
 
 export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackIntegrationCardProps) {
   const { toast } = useToast();
-  const {
-    integrations,
-    loading,
-    updateIntegration,
-    deleteIntegration,
-    testIntegration,
-    refetch,
-  } = useSlackIntegrations({ workspaceId });
+  const { integrations, loading, updateIntegration, deleteIntegration, testIntegration, refetch } =
+    useSlackIntegrations({ workspaceId });
 
   const [isTesting, setIsTesting] = useState<string | null>(null);
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
@@ -54,7 +48,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   useEffect(() => {
     const timer = setInterval(() => {
       // Force re-render to update rate limit countdown
-      setTestRateLimits(prev => ({ ...prev }));
+      setTestRateLimits((prev) => ({ ...prev }));
     }, 1000);
 
     return () => clearInterval(timer);
@@ -102,7 +96,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          Authorization: `Bearer ${supabaseAnonKey}`,
         },
         body: JSON.stringify({ workspace_id: workspaceId }),
       });
@@ -167,7 +161,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       });
     }
   };
-
 
   const handleToggleEnabled = async (integrationId: string, enabled: boolean) => {
     try {
@@ -239,7 +232,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
     try {
       setIsTesting(integrationId);
-      setTestRateLimits(prev => ({ ...prev, [integrationId]: now }));
+      setTestRateLimits((prev) => ({ ...prev, [integrationId]: now }));
 
       const success = await testIntegration(integrationId);
       if (success) {
@@ -322,7 +315,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     height="40"
                     width="139"
                     src="https://platform.slack-edge.com/img/add_to_slack.png"
-                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
                   />
                 </button>
               </div>
@@ -357,12 +349,16 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                         disabled={loadingChannels === integration.id}
                         className="mt-1 w-full"
                       >
-                        {loadingChannels === integration.id ? 'Loading channels...' : 'Load Channels'}
+                        {loadingChannels === integration.id
+                          ? 'Loading channels...'
+                          : 'Load Channels'}
                       </Button>
                     )}
                     {channels[integration.id] && (
                       <Select
-                        onValueChange={(channelId) => handleChannelSelect(integration.id, channelId)}
+                        onValueChange={(channelId) =>
+                          handleChannelSelect(integration.id, channelId)
+                        }
                       >
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Select a channel" />
@@ -459,12 +455,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                         size="sm"
                         onClick={() => handleTestIntegration(integration.id)}
                         disabled={isTesting === integration.id || isRateLimited(integration.id)}
-                        title={isRateLimited(integration.id) ?
-                          `Wait ${getRemainingSeconds(integration.id)} seconds` : undefined}
+                        title={
+                          isRateLimited(integration.id)
+                            ? `Wait ${getRemainingSeconds(integration.id)} seconds`
+                            : undefined
+                        }
                       >
-                        {isTesting === integration.id ? 'Testing...' :
-                         isRateLimited(integration.id) ?
-                         `Wait ${getRemainingSeconds(integration.id)}s` : 'Test Connection'}
+                        {isTesting === integration.id && 'Testing...'}
+                        {!isTesting &&
+                          isRateLimited(integration.id) &&
+                          `Wait ${getRemainingSeconds(integration.id)}s`}
+                        {!isTesting && !isRateLimited(integration.id) && 'Test Connection'}
                       </Button>
                       <Button
                         variant="outline"
@@ -486,7 +487,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                 </div>
               ))}
 
-
             {/* Add New Button */}
             {canEditSettings && integrations.length > 0 && (
               <div className="flex gap-3 items-center">
@@ -500,7 +500,6 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     height="40"
                     width="139"
                     src="https://platform.slack-edge.com/img/add_to_slack.png"
-                    srcSet="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x"
                   />
                 </button>
               </div>
