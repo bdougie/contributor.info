@@ -7,6 +7,7 @@ import './styles/cls-fixes.css'; // Global CLS fixes
 import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { logger } from './lib/logger';
+import { initSentryAfterLoad, setupGlobalErrorHandlers } from './lib/sentry-lazy';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -19,7 +20,8 @@ const queryClient = new QueryClient({
   },
 });
 
-// Sentry removed - was causing React hooks conflicts
+// Set up lightweight global error handlers (non-blocking)
+setupGlobalErrorHandlers();
 
 // Import service worker client for enhanced caching
 import { swClient } from './lib/service-worker-client';
@@ -88,3 +90,7 @@ root.render(
     </ErrorBoundary>
   </StrictMode>
 );
+
+// Initialize Sentry after app is rendered (non-blocking)
+// This ensures Sentry doesn't impact initial page load
+initSentryAfterLoad();
