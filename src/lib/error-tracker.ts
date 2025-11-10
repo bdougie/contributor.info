@@ -1,8 +1,8 @@
 /**
  * Error tracking utilities for API calls and Supabase queries
- * Provides wrappers and helpers to automatically track errors in PostHog
+ * Provides wrappers and helpers to automatically track errors in PostHog and Sentry
  *
- * Note: All imports from posthog-lazy are done dynamically to avoid bundle bloat
+ * Note: All imports from posthog-lazy and sentry-lazy are done dynamically to avoid bundle bloat
  */
 
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -25,7 +25,7 @@ export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
-      // Lazy load posthog tracking
+      // Lazy load both PostHog and Sentry tracking (non-blocking)
       import('./posthog-lazy')
         .then(({ trackError, ErrorSeverity, ErrorCategory }) => {
           trackError(err, {
@@ -38,6 +38,19 @@ export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
           });
         })
         .catch(console.error);
+
+      // Also send to Sentry (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(err, {
+            level: 'error',
+            tags: {
+              operation: context.operation,
+              category: context.category || 'unknown',
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
 
       throw error;
     }
@@ -69,6 +82,24 @@ export async function trackedFetch(
           });
         })
         .catch(console.error);
+
+      // Also send to Sentry for API errors (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(new Error(`API Error ${response.status}: ${url}`), {
+            level: response.status >= 500 ? 'error' : 'warning',
+            tags: {
+              type: 'api_error',
+              status: response.status.toString(),
+              method: init?.method || 'GET',
+            },
+            extra: {
+              url,
+              errorText: errorText.slice(0, 1000), // Limit size
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
     }
 
     return response;
@@ -84,6 +115,22 @@ export async function trackedFetch(
         });
       })
       .catch(console.error);
+
+    // Also send to Sentry for network errors (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(err, {
+          level: 'error',
+          tags: {
+            type: 'network_error',
+            method: init?.method || 'GET',
+          },
+          extra: {
+            url,
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
 
     throw error;
   }
@@ -109,6 +156,24 @@ export async function trackSupabaseQuery<T>(
           });
         })
         .catch(console.error);
+
+      // Also send to Sentry for Supabase errors (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(new Error(`Supabase Error: ${result.error!.message}`), {
+            level: 'error',
+            tags: {
+              type: 'supabase_error',
+              operation,
+              code: result.error!.code,
+            },
+            extra: {
+              details: result.error!.details,
+              hint: result.error!.hint,
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
     }
 
     return result;
@@ -149,6 +214,18 @@ export function setupGlobalErrorTracking(): void {
         });
       })
       .catch(console.error);
+
+    // Also send to Sentry (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(error, {
+          level: 'error',
+          tags: {
+            type: 'unhandled_rejection',
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
   });
 
   // Track global errors
@@ -170,6 +247,23 @@ export function setupGlobalErrorTracking(): void {
         });
       })
       .catch(console.error);
+
+    // Also send to Sentry (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(error, {
+          level: 'fatal',
+          tags: {
+            type: 'global_error',
+          },
+          extra: {
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
   });
 }
 
