@@ -12,9 +12,11 @@ export function SentryTest() {
   }
 
   const testError = () => {
+    console.log('[SentryTest] Triggering test error...');
     try {
       throw new Error('Test error from Sentry test component');
     } catch (error) {
+      console.log('[SentryTest] Capturing exception:', error);
       captureException(error, {
         level: 'error',
         tags: {
@@ -22,7 +24,14 @@ export function SentryTest() {
           component: 'SentryTest',
         },
       });
-      console.log('Test error sent to Sentry');
+      console.log('[SentryTest] Test error sent to Sentry');
+
+      // Also test if Sentry is loaded directly
+      import('@sentry/react').then((Sentry) => {
+        console.log('[SentryTest] Direct Sentry check - Is initialized?', Sentry.getCurrentScope() !== undefined);
+      }).catch(err => {
+        console.error('[SentryTest] Failed to import Sentry:', err);
+      });
     }
   };
 
@@ -43,6 +52,34 @@ export function SentryTest() {
       await fetch('https://this-domain-does-not-exist-12345.com/api/test');
     } catch (error) {
       console.log('Network error triggered');
+    }
+  };
+
+  const checkSentryStatus = async () => {
+    console.log('[SentryTest] Checking Sentry status...');
+    try {
+      const Sentry = await import('@sentry/react');
+      const scope = Sentry.getCurrentScope();
+      const client = Sentry.getClient();
+      console.log('[SentryTest] Sentry loaded:', !!Sentry);
+      console.log('[SentryTest] Has scope:', !!scope);
+      console.log('[SentryTest] Has client:', !!client);
+
+      if (client) {
+        const options = client.getOptions();
+        console.log('[SentryTest] DSN configured:', !!options.dsn);
+        console.log('[SentryTest] DSN value:', options.dsn?.substring(0, 30) + '...');
+        console.log('[SentryTest] Environment:', options.environment);
+      }
+
+      // Try to send a test message directly
+      if (client) {
+        console.log('[SentryTest] Sending direct test message...');
+        Sentry.captureMessage('Direct test message from SentryTest', 'info');
+        console.log('[SentryTest] Direct message sent!');
+      }
+    } catch (err) {
+      console.error('[SentryTest] Failed to check status:', err);
     }
   };
 
@@ -73,6 +110,12 @@ export function SentryTest() {
           className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
         >
           Test Network
+        </button>
+        <button
+          onClick={checkSentryStatus}
+          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+        >
+          Check Status
         </button>
       </div>
     </div>

@@ -13,9 +13,10 @@ let sentryLoadPromise: Promise<typeof import('@sentry/react')> | null = null;
  * This runs asynchronously and won't block the main thread
  */
 export async function lazyInitSentry() {
-  // Skip in local environment
-  const isLocal = !import.meta.env.PROD || window.location.hostname === 'localhost';
+  // Skip in local environment - TEMPORARILY DISABLED FOR TESTING
+  const isLocal = false; // !import.meta.env.PROD || window.location.hostname === 'localhost';
   if (isLocal) {
+    console.log('[Sentry] Skipped - local environment detected');
     return;
   }
 
@@ -28,9 +29,11 @@ export async function lazyInitSentry() {
     const sentryDsn = env.SENTRY_DSN || 'https://bd5760e6d9e6a0d1fd34033a7068b1b1@o4510341999689728.ingest.us.sentry.io/4510342068436992';
 
     if (!sentryDsn) {
-      console.log('Sentry initialization skipped (no DSN)');
+      console.log('[Sentry] Initialization skipped (no DSN)');
       return Sentry;
     }
+
+    console.log('[Sentry] Initializing with DSN:', sentryDsn.substring(0, 20) + '...');
 
     Sentry.init({
       dsn: sentryDsn,
@@ -66,7 +69,8 @@ export async function lazyInitSentry() {
     });
 
     sentryLoaded = true;
-    console.log('Sentry initialized (lazy-loaded)');
+    console.log('[Sentry] Successfully initialized (lazy-loaded)');
+    console.log('[Sentry] Environment:', import.meta.env.PROD ? 'production' : 'development');
     return Sentry;
   }).catch((error) => {
     console.error('Failed to load Sentry:', error);
@@ -181,16 +185,25 @@ export function addBreadcrumb(
  * Call this from main.tsx after the app is mounted
  */
 export function initSentryAfterLoad() {
-  // Use requestIdleCallback if available, otherwise setTimeout
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      lazyInitSentry();
-    }, { timeout: 5000 });
-  } else {
-    setTimeout(() => {
-      lazyInitSentry();
-    }, 2000);
-  }
+  console.log('[Sentry] Scheduling initialization...');
+
+  // TEMPORARILY: Initialize immediately for testing
+  lazyInitSentry().then(() => {
+    console.log('[Sentry] Initialization completed');
+  }).catch((err) => {
+    console.error('[Sentry] Initialization failed:', err);
+  });
+
+  // Original delayed initialization (commented for testing)
+  // if ('requestIdleCallback' in window) {
+  //   requestIdleCallback(() => {
+  //     lazyInitSentry();
+  //   }, { timeout: 5000 });
+  // } else {
+  //   setTimeout(() => {
+  //     lazyInitSentry();
+  //   }, 2000);
+  // }
 }
 
 /**
