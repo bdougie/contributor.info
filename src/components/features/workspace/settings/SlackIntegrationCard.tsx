@@ -310,12 +310,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                   className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
                   aria-label="Add to Slack"
                 >
-                  <img
-                    alt="Add to Slack"
-                    height="40"
-                    width="139"
-                    src="https://platform.slack-edge.com/img/add_to_slack.png"
-                  />
+                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
                 </button>
               </div>
             )}
@@ -495,12 +490,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                   className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
                   aria-label="Add to Slack"
                 >
-                  <img
-                    alt="Add to Slack"
-                    height="40"
-                    width="139"
-                    src="https://platform.slack-edge.com/img/add_to_slack.png"
-                  />
+                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
                 </button>
               </div>
             )}
