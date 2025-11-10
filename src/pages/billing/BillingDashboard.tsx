@@ -186,94 +186,97 @@ export function BillingDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Billing & Subscription</h1>
         <p className="text-muted-foreground">
-          {user ? 'Manage your subscription and view usage statistics' : 'View our pricing plans and features'}
+          {user
+            ? 'Manage your subscription and view usage statistics'
+            : 'View our pricing plans and features'}
         </p>
       </div>
 
       {/* Current Plan - Only show for authenticated users */}
       {user && (
         <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Current Plan</CardTitle>
-          <CardDescription>Your subscription details and billing information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl font-bold">{SUBSCRIPTION_TIERS[currentTier].name}</span>
-                <Badge variant={currentTier === 'free' ? 'secondary' : 'default'}>
-                  {subscription?.status || 'Active'}
-                </Badge>
+          <CardHeader>
+            <CardTitle>Current Plan</CardTitle>
+            <CardDescription>Your subscription details and billing information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl font-bold">{SUBSCRIPTION_TIERS[currentTier].name}</span>
+                  <Badge variant={currentTier === 'free' ? 'secondary' : 'default'}>
+                    {subscription?.status || 'Active'}
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground">
+                  ${SUBSCRIPTION_TIERS[currentTier].price}/
+                  {SUBSCRIPTION_TIERS[currentTier].interval}
+                </p>
               </div>
-              <p className="text-muted-foreground">
-                ${SUBSCRIPTION_TIERS[currentTier].price}/{SUBSCRIPTION_TIERS[currentTier].interval}
-              </p>
+              {subscription?.current_period_end && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Next billing date</p>
+                  <p className="font-medium">
+                    {formatDistanceToNow(new Date(subscription.current_period_end), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </div>
+              )}
             </div>
-            {subscription?.current_period_end && (
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Next billing date</p>
-                <p className="font-medium">
-                  {formatDistanceToNow(new Date(subscription.current_period_end), {
-                    addSuffix: true,
-                  })}
+
+            {currentTier !== 'free' && subscription?.cancel_at_period_end && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  Your subscription will be canceled at the end of the current billing period.
                 </p>
               </div>
             )}
-          </div>
 
-          {currentTier !== 'free' && subscription?.cancel_at_period_end && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                Your subscription will be canceled at the end of the current billing period.
-              </p>
-            </div>
-          )}
-
-          {currentTier !== 'free' && !subscription?.cancel_at_period_end && (
-            <div className="flex justify-end">
-              <Button
-                variant="outline"
-                onClick={handleCancelSubscription}
-                className="text-red-600 hover:text-red-700"
-              >
-                Cancel Subscription
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {currentTier !== 'free' && !subscription?.cancel_at_period_end && (
+              <div className="flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelSubscription}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Cancel Subscription
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Usage Overview - Only show for authenticated users */}
       {user && (
         <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Usage Overview</CardTitle>
-          <CardDescription>Your current usage against plan limits</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <UsageMetric
-              label="Workspaces"
-              current={usageStats?.usage.workspaces || 0}
-              limit={usageStats?.limits.maxWorkspaces ?? null}
-            />
-            <UsageMetric
-              label="Data Retention"
-              current={`${usageStats?.limits.dataRetentionDays} days`}
-              limit={null}
-              isText
-            />
-            <UsageMetric
-              label="Analytics Level"
-              current={usageStats?.limits.analyticsLevel || 'basic'}
-              limit={null}
-              isText
-            />
-          </div>
-        </CardContent>
-      </Card>
+          <CardHeader>
+            <CardTitle>Usage Overview</CardTitle>
+            <CardDescription>Your current usage against plan limits</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <UsageMetric
+                label="Workspaces"
+                current={usageStats?.usage.workspaces || 0}
+                limit={usageStats?.limits.maxWorkspaces ?? null}
+              />
+              <UsageMetric
+                label="Data Retention"
+                current={`${usageStats?.limits.dataRetentionDays} days`}
+                limit={null}
+                isText
+              />
+              <UsageMetric
+                label="Analytics Level"
+                current={usageStats?.limits.analyticsLevel || 'basic'}
+                limit={null}
+                isText
+              />
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Pricing Plans */}

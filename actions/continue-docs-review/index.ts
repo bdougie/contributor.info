@@ -1268,7 +1268,7 @@ async function postReviewComments(
         }
         const lineRef = issue.line ? `Line ${issue.line}: ` : '';
         reviewBody += `${icon} **${lineRef}${issue.message}**\n\n`;
-        
+
         // Add copyable suggestion in collapsible block
         reviewBody += generateSuggestion(issue);
         reviewBody += '\n';
@@ -1361,7 +1361,7 @@ async function run(): Promise<void> {
 
 function generateSuggestion(issue: DocumentationIssue): string {
   let suggestion = '<details>\n<summary>💡 Suggested fix</summary>\n\n';
-  
+
   // Generate specific suggestions based on the issue
   if (issue.message.includes('passive voice')) {
     suggestion += '```markdown\n';
@@ -1405,7 +1405,10 @@ function generateSuggestion(issue: DocumentationIssue): string {
     suggestion += '|---------|-------------|\n';
     suggestion += '| Item 1  | Details     |\n';
     suggestion += '```\n';
-  } else if (issue.message.includes('long sentence') || issue.message.toLowerCase().includes('too long')) {
+  } else if (
+    issue.message.includes('long sentence') ||
+    issue.message.toLowerCase().includes('too long')
+  ) {
     suggestion += '```markdown\n';
     suggestion += '# Break into smaller sentences:\n';
     suggestion += '# ❌ Bad: One very long sentence with multiple clauses...\n';
@@ -1488,7 +1491,7 @@ function generateSuggestion(issue: DocumentationIssue): string {
     suggestion += 'We chose [technology/approach] because:\n';
     suggestion += '- **Performance**: [specific benefit]\n';
     suggestion += '- **Maintainability**: [specific benefit]\n';
-    suggestion += '- **Trade-offs**: [what we sacrificed and why it\'s acceptable]\n';
+    suggestion += "- **Trade-offs**: [what we sacrificed and why it's acceptable]\n";
     suggestion += '```\n';
   } else if (issue.message.includes('file locations') || issue.message.includes('navigate')) {
     suggestion += '```markdown\n';
@@ -1504,7 +1507,7 @@ function generateSuggestion(issue: DocumentationIssue): string {
     suggestion += '# Add code example:\n';
     suggestion += '\n';
     suggestion += '\\`\\`\\`typescript\n';
-    suggestion += 'import { useFeature } from \'@/hooks/useFeature\';\n';
+    suggestion += "import { useFeature } from '@/hooks/useFeature';\n";
     suggestion += '\n';
     suggestion += 'export function Component() {\n';
     suggestion += '  const { data, loading } = useFeature();\n';
@@ -1524,7 +1527,7 @@ function generateSuggestion(issue: DocumentationIssue): string {
     suggestion += '- Break up long paragraphs\n';
     suggestion += '```\n';
   }
-  
+
   suggestion += '</details>\n';
   return suggestion;
 }

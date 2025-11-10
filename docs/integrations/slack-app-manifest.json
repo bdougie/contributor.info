@@ -1,0 +1,31 @@
+{
+  "display_information": {
+    "name": "Contributor.info Reports",
+    "description": "Automated issue assignee reports for your workspace",
+    "background_color": "#0f172a",
+    "long_description": "Contributor.info automatically sends scheduled reports of issue assignee distribution to your Slack channels. Track who's working on what, monitor workload distribution, and keep your team informed with beautiful, actionable reports delivered daily or weekly."
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Contributor.info",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "redirect_urls": [
+      "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/slack-oauth-callback"
+    ],
+    "scopes": {
+      "bot": [
+        "chat:write",
+        "channels:read"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": true,
+    "socket_mode_enabled": false,
+    "is_hosted": false,
+    "token_rotation_enabled": false
+  }
+}

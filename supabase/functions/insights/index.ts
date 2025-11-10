@@ -48,9 +48,13 @@ serve(async (req) => {
   try {
     console.log('Function started - Processing request');
 
-    // Log request method and headers for debugging
+    // Log request info WITHOUT sensitive headers
     console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Request headers (safe):', {
+      hasAuthorization: req.headers.has('authorization'),
+      contentType: req.headers.get('content-type'),
+      origin: req.headers.get('origin'),
+    });
 
     const body = await req.json();
     console.log('Request body:', JSON.stringify(body, null, 2));

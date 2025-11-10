@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { PullRequest } from '@/lib/types';
 import {
   trackDatabaseOperation,
   trackCacheOperation,
   trackRateLimit,
   setApplicationContext,
 } from '@/lib/simple-logging';
+
+interface Repository {
+  id: string;
+  full_name: string;
+  name: string;
+  owner: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  ai_summary?: string | null;
+  summary_generated_at?: string | null;
+  recent_activity_hash?: string | null;
+}
 
 interface UseRepositorySummaryReturn {
   summary: string | null;
@@ -15,7 +30,7 @@ interface UseRepositorySummaryReturn {
 }
 
 // Helper function to create activity hash (same as edge function)
-function createActivityHash(pullRequests: any[]): string {
+function createActivityHash(pullRequests: PullRequest[]): string {
   const activityData = pullRequests
     .slice(0, 10)
     .map((pr) => `${pr.number}-${pr.merged_at || pr.created_at}`)
@@ -24,7 +39,7 @@ function createActivityHash(pullRequests: any[]): string {
 }
 
 // Check if summary needs regeneration (14 days old or activity changed)
-function needsRegeneration(repo: any, activityHash: string): boolean {
+function needsRegeneration(repo: Repository, activityHash: string): boolean {
   if (!repo.summary_generated_at || !repo.recent_activity_hash) {
     return true;
   }
@@ -47,7 +62,7 @@ function humanizeNumber(num: number): string {
 }
 
 // Generate summary locally as fallback
-async function generateLocalSummary(repository: any, pullRequests: any[]): Promise<string> {
+async function generateLocalSummary(repository: Repository, pullRequests: PullRequest[]): Promise<string> {
   const recentMergedPRs = (pullRequests || []).filter((pr) => pr.merged_at !== null).slice(0, 5);
 
   const recentOpenPRs = (pullRequests || []).filter((pr) => pr.state === 'open').slice(0, 3);
@@ -81,7 +96,7 @@ async function generateLocalSummary(repository: any, pullRequests: any[]): Promi
 export function useRepositorySummary(
   owner: string | undefined,
   repo: string | undefined,
-  pullRequests?: any[]
+  pullRequests?: PullRequest[]
 ): UseRepositorySummaryReturn {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

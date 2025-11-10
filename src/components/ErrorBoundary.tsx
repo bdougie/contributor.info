@@ -18,7 +18,7 @@ interface State {
 
 /**
  * Error Boundary component that tracks errors in PostHog
- * 
+ *
  * Usage:
  * ```tsx
  * <ErrorBoundary fallback={<ErrorFallback />}>
@@ -39,16 +39,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Track error in PostHog (lazy-loaded to avoid bundle bloat)
-    import('@/lib/posthog-lazy').then(({ trackError, ErrorSeverity, ErrorCategory }) => {
-      trackError(error, {
-        severity: ErrorSeverity.HIGH,
-        category: ErrorCategory.UI,
-        metadata: {
-          componentStack: errorInfo.componentStack,
-          errorBoundary: true,
-        },
-      });
-    }).catch(console.error);
+    import('@/lib/posthog-lazy')
+      .then(({ trackError, ErrorSeverity, ErrorCategory }) => {
+        trackError(error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.UI,
+          metadata: {
+            componentStack: errorInfo.componentStack,
+            errorBoundary: true,
+          },
+        });
+      })
+      .catch(console.error);
 
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
@@ -89,8 +91,8 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <p className="mb-4 text-sm text-gray-600">
-              We've encountered an unexpected error. The error has been reported and we'll look
-              into it.
+              We've encountered an unexpected error. The error has been reported and we'll look into
+              it.
             </p>
 
             {import.meta.env.DEV && this.state.error && (
@@ -159,9 +161,7 @@ export const ErrorFallback: React.FC<{
             We're having trouble displaying this section. Try refreshing the page.
           </p>
           {import.meta.env.DEV && error && (
-            <pre className="mt-2 overflow-x-auto text-xs text-yellow-800">
-              {error.toString()}
-            </pre>
+            <pre className="mt-2 overflow-x-auto text-xs text-yellow-800">{error.toString()}</pre>
           )}
           {resetError && (
             <button

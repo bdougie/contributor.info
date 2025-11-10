@@ -726,3 +726,86 @@ export const getTierInfo = (
   };
   return tierInfo[tier] || tierInfo.free; // Default to free tier if unknown
 };
+
+// =====================================================
+// SLACK INTEGRATION TYPES
+// =====================================================
+
+export type SlackSchedule = 'daily' | 'weekly';
+export type IntegrationStatus = 'success' | 'failure' | 'pending';
+
+/**
+ * Configuration options for Slack integration
+ */
+export interface SlackIntegrationConfig {
+  excludeBots: boolean;
+  maxAssignees: number;
+  repositoryIds: string[];
+}
+
+/**
+ * Slack integration entity
+ */
+export interface SlackIntegration {
+  id: string;
+  workspace_id: string;
+  channel_name: string;
+  channel_id: string | null;
+  slack_team_id: string | null;
+  slack_team_name: string | null;
+  bot_token_encrypted: string | null;
+  bot_user_id: string | null;
+  webhook_url_encrypted: string | null; // Deprecated: kept for backward compatibility
+  schedule: SlackSchedule;
+  enabled: boolean;
+  config: SlackIntegrationConfig;
+  last_sent_at: string | null;
+  next_scheduled_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Slack channel from API
+ */
+export interface SlackChannel {
+  id: string;
+  name: string;
+  is_private: boolean;
+  is_member: boolean;
+}
+
+/**
+ * Integration log entry for audit trail
+ */
+export interface IntegrationLog {
+  id: string;
+  integration_id: string;
+  workspace_id: string;
+  status: IntegrationStatus;
+  message_sent: string | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  sent_at: string;
+  created_at: string;
+}
+
+/**
+ * Update Slack integration payload
+ * OAuth integrations are created via the OAuth callback, not manually
+ */
+export interface UpdateSlackIntegrationInput {
+  channel_name?: string;
+  schedule?: SlackSchedule;
+  enabled?: boolean;
+  config?: Partial<SlackIntegrationConfig>;
+}
+
+/**
+ * Slack integration with additional display info
+ */
+export interface SlackIntegrationWithStatus extends SlackIntegration {
+  last_log?: IntegrationLog;
+  recent_failures?: number;
+}
