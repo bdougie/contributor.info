@@ -1,8 +1,8 @@
 /**
  * Error tracking utilities for API calls and Supabase queries
- * Provides wrappers and helpers to automatically track errors in PostHog
- * 
- * Note: All imports from posthog-lazy are done dynamically to avoid bundle bloat
+ * Provides wrappers and helpers to automatically track errors in PostHog and Sentry
+ *
+ * Note: All imports from posthog-lazy and sentry-lazy are done dynamically to avoid bundle bloat
  */
 
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -24,19 +24,34 @@ export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
       return await fn(...args);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      
-      // Lazy load posthog tracking
-      import('./posthog-lazy').then(({ trackError, ErrorSeverity, ErrorCategory }) => {
-        trackError(err, {
-          severity: context.severity || ErrorSeverity.MEDIUM,
-          category: context.category || ErrorCategory.UNKNOWN,
-          metadata: {
-            operation: context.operation,
-            args: args.map((arg) => (typeof arg === 'object' ? '[Object]' : arg)),
-          },
-        });
-      }).catch(console.error);
-      
+
+      // Lazy load both PostHog and Sentry tracking (non-blocking)
+      import('./posthog-lazy')
+        .then(({ trackError, ErrorSeverity, ErrorCategory }) => {
+          trackError(err, {
+            severity: context.severity || ErrorSeverity.MEDIUM,
+            category: context.category || ErrorCategory.UNKNOWN,
+            metadata: {
+              operation: context.operation,
+              args: args.map((arg) => (typeof arg === 'object' ? '[Object]' : arg)),
+            },
+          });
+        })
+        .catch(console.error);
+
+      // Also send to Sentry (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(err, {
+            level: 'error',
+            tags: {
+              operation: context.operation,
+              category: context.category || 'unknown',
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
+
       throw error;
     }
   }) as T;
@@ -50,35 +65,73 @@ export async function trackedFetch(
   init?: RequestInit
 ): Promise<Response> {
   const url = typeof input === 'string' ? input : input.toString();
-  
+
   try {
     const response = await fetch(input, init);
-    
+
     // Track 4xx and 5xx errors
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      
+
       // Lazy load posthog tracking
-      import('./posthog-lazy').then(({ trackApiError }) => {
-        trackApiError(response.status, url, errorText, {
-          method: init?.method || 'GET',
-          headers: init?.headers ? '[REDACTED]' : undefined,
-        });
-      }).catch(console.error);
+      import('./posthog-lazy')
+        .then(({ trackApiError }) => {
+          trackApiError(response.status, url, errorText, {
+            method: init?.method || 'GET',
+            headers: init?.headers ? '[REDACTED]' : undefined,
+          });
+        })
+        .catch(console.error);
+
+      // Also send to Sentry for API errors (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(new Error(`API Error ${response.status}: ${url}`), {
+            level: response.status >= 500 ? 'error' : 'warning',
+            tags: {
+              type: 'api_error',
+              status: response.status.toString(),
+              method: init?.method || 'GET',
+            },
+            extra: {
+              url,
+              errorText: errorText.slice(0, 1000), // Limit size
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
     }
-    
+
     return response;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     // Lazy load posthog tracking
-    import('./posthog-lazy').then(({ trackApiError }) => {
-      trackApiError(0, url, err, {
-        method: init?.method || 'GET',
-        network_error: true,
-      });
-    }).catch(console.error);
-    
+    import('./posthog-lazy')
+      .then(({ trackApiError }) => {
+        trackApiError(0, url, err, {
+          method: init?.method || 'GET',
+          network_error: true,
+        });
+      })
+      .catch(console.error);
+
+    // Also send to Sentry for network errors (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(err, {
+          level: 'error',
+          tags: {
+            type: 'network_error',
+            method: init?.method || 'GET',
+          },
+          extra: {
+            url,
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
+
     throw error;
   }
 }
@@ -92,28 +145,50 @@ export async function trackSupabaseQuery<T>(
 ): Promise<{ data: T | null; error: PostgrestError | null }> {
   try {
     const result = await queryFn();
-    
+
     // Track Supabase-specific errors
     if (result.error) {
       // Lazy load posthog tracking
-      import('./posthog-lazy').then(({ trackSupabaseError }) => {
-        trackSupabaseError(operation, result.error!, {
-          has_data: result.data !== null,
-        });
-      }).catch(console.error);
+      import('./posthog-lazy')
+        .then(({ trackSupabaseError }) => {
+          trackSupabaseError(operation, result.error!, {
+            has_data: result.data !== null,
+          });
+        })
+        .catch(console.error);
+
+      // Also send to Sentry for Supabase errors (non-blocking)
+      import('./sentry-lazy')
+        .then(({ captureException }) => {
+          captureException(new Error(`Supabase Error: ${result.error!.message}`), {
+            level: 'error',
+            tags: {
+              type: 'supabase_error',
+              operation,
+              code: result.error!.code,
+            },
+            extra: {
+              details: result.error!.details,
+              hint: result.error!.hint,
+            },
+          });
+        })
+        .catch(() => {/* Silent fail */});
     }
-    
+
     return result;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    
+
     // Lazy load posthog tracking
-    import('./posthog-lazy').then(({ trackSupabaseError }) => {
-      trackSupabaseError(operation, err, {
-        unexpected_error: true,
-      });
-    }).catch(console.error);
-    
+    import('./posthog-lazy')
+      .then(({ trackSupabaseError }) => {
+        trackSupabaseError(operation, err, {
+          unexpected_error: true,
+        });
+      })
+      .catch(console.error);
+
     throw error;
   }
 }
@@ -124,39 +199,71 @@ export async function trackSupabaseQuery<T>(
 export function setupGlobalErrorTracking(): void {
   // Track unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    const error =
-      event.reason instanceof Error ? event.reason : new Error(String(event.reason));
-    
+    const error = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+
     // Lazy load posthog tracking
-    import('./posthog-lazy').then(({ trackError, ErrorSeverity, ErrorCategory }) => {
-      trackError(error, {
-        severity: ErrorSeverity.HIGH,
-        category: ErrorCategory.UNKNOWN,
-        metadata: {
-          type: 'unhandled_rejection',
-          promise: '[Promise]',
-        },
-      });
-    }).catch(console.error);
+    import('./posthog-lazy')
+      .then(({ trackError, ErrorSeverity, ErrorCategory }) => {
+        trackError(error, {
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.UNKNOWN,
+          metadata: {
+            type: 'unhandled_rejection',
+            promise: '[Promise]',
+          },
+        });
+      })
+      .catch(console.error);
+
+    // Also send to Sentry (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(error, {
+          level: 'error',
+          tags: {
+            type: 'unhandled_rejection',
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
   });
 
   // Track global errors
   window.addEventListener('error', (event) => {
     const error = event.error instanceof Error ? event.error : new Error(event.message);
-    
+
     // Lazy load posthog tracking
-    import('./posthog-lazy').then(({ trackError, ErrorSeverity, ErrorCategory }) => {
-      trackError(error, {
-        severity: ErrorSeverity.CRITICAL,
-        category: ErrorCategory.UNKNOWN,
-        metadata: {
-          type: 'global_error',
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-        },
-      });
-    }).catch(console.error);
+    import('./posthog-lazy')
+      .then(({ trackError, ErrorSeverity, ErrorCategory }) => {
+        trackError(error, {
+          severity: ErrorSeverity.CRITICAL,
+          category: ErrorCategory.UNKNOWN,
+          metadata: {
+            type: 'global_error',
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          },
+        });
+      })
+      .catch(console.error);
+
+    // Also send to Sentry (non-blocking)
+    import('./sentry-lazy')
+      .then(({ captureException }) => {
+        captureException(error, {
+          level: 'fatal',
+          tags: {
+            type: 'global_error',
+          },
+          extra: {
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          },
+        });
+      })
+      .catch(() => {/* Silent fail */});
   });
 }
 
@@ -174,11 +281,13 @@ export class TrackedError extends Error {
   ) {
     super(message);
     this.name = 'TrackedError';
-    
+
     // Track immediately when created (lazy loaded)
-    import('./posthog-lazy').then(({ trackError }) => {
-      trackError(this, this.context);
-    }).catch(console.error);
+    import('./posthog-lazy')
+      .then(({ trackError }) => {
+        trackError(this, this.context);
+      })
+      .catch(console.error);
   }
 }
 
@@ -197,35 +306,37 @@ export async function retryWithTracking<T>(
   const { maxRetries = 3, delay = 1000, operation, category } = options;
   // Default to 'network' string if not provided
   const errorCategory = category || 'network';
-  
+
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt === maxRetries) {
         // Track final failure (lazy loaded)
-        import('./posthog-lazy').then(({ trackError, ErrorSeverity }) => {
-          trackError(lastError!, {
-            severity: ErrorSeverity.HIGH,
-            category: errorCategory as any,
-            metadata: {
-              operation,
-              attempts: maxRetries,
-              final_attempt: true,
-            },
-          });
-        }).catch(console.error);
+        import('./posthog-lazy')
+          .then(({ trackError, ErrorSeverity }) => {
+            trackError(lastError!, {
+              severity: ErrorSeverity.HIGH,
+              category: errorCategory as any,
+              metadata: {
+                operation,
+                attempts: maxRetries,
+                final_attempt: true,
+              },
+            });
+          })
+          .catch(console.error);
         throw lastError;
       }
-      
+
       // Wait before retry
       await new Promise((resolve) => setTimeout(resolve, delay * attempt));
     }
   }
-  
+
   throw lastError || new Error('Retry failed');
 }

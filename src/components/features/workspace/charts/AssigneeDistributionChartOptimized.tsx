@@ -36,7 +36,11 @@ export function AssigneeDistributionChartOptimized({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Use the optimized hook for database-side aggregation
-  const { data: assigneeData, loading, error } = useAssigneeDistribution({
+  const {
+    data: assigneeData,
+    loading,
+    error,
+  } = useAssigneeDistribution({
     repositoryIds,
     excludeBots,
     limit: 100,

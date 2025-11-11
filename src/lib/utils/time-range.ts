@@ -18,13 +18,13 @@ export type TimeRange = keyof typeof TIME_RANGE_DAYS;
 export function getStartDateForTimeRange(timeRange: TimeRange): Date {
   const days = TIME_RANGE_DAYS[timeRange];
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  
+
   // Ensure startDate is valid and not in the future
   if (startDate.getTime() > Date.now()) {
     console.warn('Start date is in the future, using 30 days ago as fallback');
     startDate.setTime(Date.now() - 30 * 24 * 60 * 60 * 1000);
   }
-  
+
   return startDate;
 }
 
@@ -34,13 +34,13 @@ export function getStartDateForTimeRange(timeRange: TimeRange): Date {
 export function getDateBuckets(days: number): string[] {
   const labels = [];
   const today = new Date();
-  
+
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
   }
-  
+
   return labels;
 }
 

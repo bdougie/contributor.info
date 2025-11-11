@@ -369,7 +369,9 @@ export function ActivityTable({
                                   <p className="text-xs">
                                     Created: {format(parseISO(activity.created_at), 'PPp')}
                                   </p>
-                                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
+                                  {activity.url && (
+                                    <p className="text-xs">Click to open in GitHub</p>
+                                  )}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
