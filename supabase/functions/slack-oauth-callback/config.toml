@@ -1,0 +1,3 @@
+# Disable JWT verification for OAuth callback
+# OAuth callbacks come from Slack's servers, not authenticated users
+verify_jwt = false

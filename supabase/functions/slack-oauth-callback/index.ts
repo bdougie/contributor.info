@@ -23,6 +23,7 @@ const SLACK_REDIRECT_URI = Deno.env.get('SLACK_REDIRECT_URI');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
+const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://contributor.info';
 
 interface SlackOAuthResponse {
   ok: boolean;
@@ -130,8 +131,8 @@ serve(async (req) => {
         status: 302,
         headers: {
           Location: workspaceId
-            ? `/workspace/${workspaceId}/settings?slack_install=cancelled`
-            : '/?slack_install=cancelled',
+            ? `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=cancelled`
+            : `${FRONTEND_URL}/?slack_install=cancelled`,
         },
       });
     }
@@ -212,7 +213,7 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=network_error`,
+          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=network_error`,
         },
       });
     }
@@ -222,7 +223,7 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=oauth_failed`,
+          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=oauth_failed`,
         },
       });
     }
@@ -235,7 +236,7 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=invalid_response`,
+          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=invalid_response`,
         },
       });
     }
@@ -246,7 +247,7 @@ serve(async (req) => {
         status: 302,
         headers: {
           Location:
-            `/workspace/${workspaceId}/settings?slack_install=error&error=${tokenData.error}`,
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=${tokenData.error}`,
         },
       });
     }
@@ -261,7 +262,7 @@ serve(async (req) => {
         status: 302,
         headers: {
           Location:
-            `/workspace/${workspaceId}/settings?slack_install=error&error=encryption_failed`,
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=encryption_failed`,
         },
       });
     }
@@ -320,7 +321,7 @@ serve(async (req) => {
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `/workspace/${workspaceId}/settings?slack_install=success&team=${
+        Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=success&team=${
           encodeURIComponent(tokenData.team!.name)
         }`,
       },
@@ -351,7 +352,7 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `/workspace/${workspaceId}/settings?slack_install=error&error=unexpected_error`,
+          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=unexpected_error`,
         },
       });
     }
