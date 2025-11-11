@@ -65,12 +65,24 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const { toast } = useToast();
   const limits = useSubscriptionLimits();
 
-  // Get current user ID
+  // Get current user's app_users.id for proper comparison
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
-        setCurrentUserId(user.user.id);
+        // Get the app_users.id for proper comparison with workspace_members.user_id
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('auth_user_id', user.user.id)
+          .maybeSingle();
+
+        if (appUser) {
+          setCurrentUserId(appUser.id);
+        } else {
+          // If no app_users record exists, we can't properly identify the current user
+          console.warn('No app_users record found for current user');
+        }
       }
     };
     getCurrentUser();
@@ -96,31 +108,41 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     try {
       setLoading(true);
       console.log('Fetching members for workspace:', workspaceId);
+
+      // Optimized query: Use Supabase relationship expansion to get user data in a single query
+      // workspace_members.user_id has a foreign key to app_users.id (workspace_members_user_id_fkey)
       const { data, error } = await supabase
         .from('workspace_members')
-        .select('*')
+        .select(
+          `
+          *,
+          app_users!workspace_members_user_id_fkey (
+            id,
+            auth_user_id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `
+        )
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
       console.log('Members query result:', { data, error });
       if (error) throw error;
 
-      // Fetch user details separately for each member
-      const memberIds = data?.map((m) => m.user_id) || [];
-      const { data: usersData } =
-        memberIds.length > 0
-          ? await supabase
-              .from('app_users')
-              .select('auth_user_id, email, display_name, avatar_url')
-              .in('auth_user_id', memberIds)
-          : { data: [] };
-
-      // Create a map of user data for easy lookup
-      const userMap = new Map((usersData || []).map((u) => [u.auth_user_id, u]));
+      // Log warning if we're missing user data for some members
+      const membersWithoutUsers = data?.filter((m) => !m.app_users) || [];
+      if (membersWithoutUsers.length > 0) {
+        console.warn(
+          '%s member(s) missing from app_users table. Using fallback identifiers. This may indicate the sync trigger needs attention.',
+          membersWithoutUsers.length
+        );
+      }
 
       // Transform the data to match expected structure
       const transformedMembers = (data || []).map((member) => {
-        const userData = userMap.get(member.user_id);
+        const userData = member.app_users;
         return {
           ...member,
           user: userData
@@ -130,7 +152,14 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                 display_name: userData.display_name || userData.email?.split('@')[0],
                 avatar_url: userData.avatar_url,
               }
-            : null,
+            : {
+                // Fallback when no user data is found - use identifiable placeholders
+                // This should be rare if the app_users sync trigger is working correctly
+                id: member.user_id,
+                email: `member-${member.user_id.substring(0, 8)}@pending.sync`,
+                display_name: `Member ${member.user_id.substring(0, 8)}`,
+                avatar_url: null,
+              },
         };
       });
 
