@@ -65,12 +65,24 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   const { toast } = useToast();
   const limits = useSubscriptionLimits();
 
-  // Get current user ID
+  // Get current user's app_users.id for proper comparison
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
-        setCurrentUserId(user.user.id);
+        // Get the app_users.id for proper comparison with workspace_members.user_id
+        const { data: appUser } = await supabase
+          .from('app_users')
+          .select('id')
+          .eq('auth_user_id', user.user.id)
+          .maybeSingle();
+
+        if (appUser) {
+          setCurrentUserId(appUser.id);
+        } else {
+          // If no app_users record exists, we can't properly identify the current user
+          console.warn('No app_users record found for current user');
+        }
       }
     };
     getCurrentUser();
@@ -109,40 +121,49 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       const memberIds = data?.map((m) => m.user_id) || [];
 
       // First try to get user data from app_users table
+      // Note: workspace_members.user_id references app_users.id, not auth_user_id
       const { data: usersData } =
         memberIds.length > 0
           ? await supabase
               .from('app_users')
-              .select('auth_user_id, email, display_name, avatar_url')
-              .in('auth_user_id', memberIds)
+              .select('id, auth_user_id, email, display_name, avatar_url')
+              .in('id', memberIds) // Changed from auth_user_id to id
           : { data: [] };
 
       console.log('App users data:', usersData);
 
-      // Create a map of user data for easy lookup
-      const userMap = new Map((usersData || []).map((u) => [u.auth_user_id, u]));
+      // Create a map of user data for easy lookup using app_users.id as key
+      const userMap = new Map((usersData || []).map((u) => [u.id, u]));
 
       // If we don't have user data from app_users, try to get it from auth.users
       if (userMap.size === 0 && memberIds.length > 0) {
-        console.log('No data from app_users, trying auth.users...');
+        console.log('No data from app_users, trying current user fallback...');
 
-        // Try getting user data from auth admin API (if available)
-        // This requires service role key, so it might not work in client-side
-        // For now, we'll use a fallback approach
-
-        // Get the current user's data as a fallback for owner
+        // For the current user, we can get their auth data and map it
         const { data: currentAuthUser } = await supabase.auth.getUser();
-        if (currentAuthUser.user && memberIds.includes(currentAuthUser.user.id)) {
-          userMap.set(currentAuthUser.user.id, {
-            auth_user_id: currentAuthUser.user.id,
-            email: currentAuthUser.user.email || '',
-            display_name:
-              currentAuthUser.user.user_metadata?.full_name ||
-              currentAuthUser.user.user_metadata?.name ||
-              currentAuthUser.user.email?.split('@')[0] ||
-              'User',
-            avatar_url: currentAuthUser.user.user_metadata?.avatar_url || '',
+        if (currentAuthUser.user) {
+          // Find if the current user is in the members list
+          const currentUserMember = data?.find((m) => {
+            // Check if this member might be the current user
+            // We need to check app_users to match auth_user_id to app_users.id
+            return usersData?.some(
+              (u) => u.id === m.user_id && u.auth_user_id === currentAuthUser.user.id
+            );
           });
+
+          if (currentUserMember) {
+            userMap.set(currentUserMember.user_id, {
+              id: currentUserMember.user_id,
+              auth_user_id: currentAuthUser.user.id,
+              email: currentAuthUser.user.email || '',
+              display_name:
+                currentAuthUser.user.user_metadata?.full_name ||
+                currentAuthUser.user.user_metadata?.name ||
+                currentAuthUser.user.email?.split('@')[0] ||
+                'User',
+              avatar_url: currentAuthUser.user.user_metadata?.avatar_url || '',
+            });
+          }
         }
       }
 
