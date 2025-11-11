@@ -242,12 +242,15 @@ Format the response in clear markdown sections.`;
       // Track the error with PostHog
       if (posthogClient) {
         try {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorType = error instanceof Error ? error.constructor.name : typeof error;
+
           posthogClient.capture({
             distinctId: userId || 'anonymous',
             event: '$ai_generation_error',
             properties: {
-              error_message: error.message,
-              error_type: error.constructor.name,
+              error_message: errorMessage,
+              error_type: errorType,
               feature: 'pr-insights',
               repository: repository,
               trace_id: traceId,
@@ -263,7 +266,7 @@ Format the response in clear markdown sections.`;
         }
       }
 
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('OpenAI API request timed out after 30 seconds');
       }
       throw error;
@@ -272,19 +275,19 @@ Format the response in clear markdown sections.`;
     console.error('Edge function error:', error);
 
     // Provide more specific error messages
-    let errorMessage = error.message;
+    const errorMessage = error instanceof Error ? error.message : String(error);
     let status = 500;
 
-    if (error.message.includes('API key')) {
+    if (errorMessage.includes('API key')) {
       status = 401;
-    } else if (error.message.includes('rate limit')) {
+    } else if (errorMessage.includes('rate limit')) {
       status = 429;
     }
 
     return new Response(
       JSON.stringify({
         error: errorMessage,
-        details: error.message,
+        details: errorMessage,
       }),
       {
         status,
