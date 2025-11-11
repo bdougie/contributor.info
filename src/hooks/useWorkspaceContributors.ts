@@ -103,8 +103,10 @@ export function useWorkspaceContributors({
         throw error;
       }
 
-      // Update local state - refetch to ensure consistency
-      await fetchWorkspaceContributors(allAvailableContributors);
+      // Update local state immediately - filter out the removed contributor
+      setWorkspaceContributorIds((prev) => prev.filter((id) => id !== contributorId));
+      setContributors((prev) => prev.filter((c) => c.id !== contributorId));
+      setAllAvailableContributors((prev) => prev.filter((c) => c.id !== contributorId));
 
       toast.success('Contributor removed from workspace');
     } catch (err) {
