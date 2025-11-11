@@ -108,71 +108,41 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     try {
       setLoading(true);
       console.log('Fetching members for workspace:', workspaceId);
+
+      // Optimized query: Use Supabase relationship expansion to get user data in a single query
+      // workspace_members.user_id has a foreign key to app_users.id (workspace_members_user_id_fkey)
       const { data, error } = await supabase
         .from('workspace_members')
-        .select('*')
+        .select(
+          `
+          *,
+          app_users!workspace_members_user_id_fkey (
+            id,
+            auth_user_id,
+            email,
+            display_name,
+            avatar_url
+          )
+        `
+        )
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
       console.log('Members query result:', { data, error });
       if (error) throw error;
 
-      // Fetch user details separately for each member
-      const memberIds = data?.map((m) => m.user_id) || [];
-
-      // First try to get user data from app_users table
-      // Note: workspace_members.user_id references app_users.id, not auth_user_id
-      const { data: usersData } =
-        memberIds.length > 0
-          ? await supabase
-              .from('app_users')
-              .select('id, auth_user_id, email, display_name, avatar_url')
-              .in('id', memberIds) // Changed from auth_user_id to id
-          : { data: [] };
-
-      console.log('App users data:', usersData);
-
-      // Create a map of user data for easy lookup using app_users.id as key
-      const userMap = new Map((usersData || []).map((u) => [u.id, u]));
-
-      // If we don't have user data from app_users, try to get it from auth.users
-      if (userMap.size === 0 && memberIds.length > 0) {
-        console.log('No data from app_users, trying current user fallback...');
-
-        // Get current authenticated user
-        const { data: currentAuthUser } = await supabase.auth.getUser();
-        if (currentAuthUser.user) {
-          // Fetch the current user's app_users record by auth_user_id
-          const { data: currentUserAppRecord } = await supabase
-            .from('app_users')
-            .select('id, auth_user_id, email, display_name, avatar_url')
-            .eq('auth_user_id', currentAuthUser.user.id)
-            .maybeSingle();
-
-          // If found and this user is in the members list, add to userMap
-          if (currentUserAppRecord && memberIds.includes(currentUserAppRecord.id)) {
-            userMap.set(currentUserAppRecord.id, {
-              id: currentUserAppRecord.id,
-              auth_user_id: currentUserAppRecord.auth_user_id,
-              email: currentUserAppRecord.email || currentAuthUser.user.email || '',
-              display_name:
-                currentUserAppRecord.display_name ||
-                currentAuthUser.user.user_metadata?.full_name ||
-                currentAuthUser.user.user_metadata?.name ||
-                currentAuthUser.user.email?.split('@')[0] ||
-                'User',
-              avatar_url:
-                currentUserAppRecord.avatar_url ||
-                currentAuthUser.user.user_metadata?.avatar_url ||
-                '',
-            });
-          }
-        }
+      // Log warning if we're missing user data for some members
+      const membersWithoutUsers = data?.filter((m) => !m.app_users) || [];
+      if (membersWithoutUsers.length > 0) {
+        console.warn(
+          '%s member(s) missing from app_users table. Using fallback identifiers. This may indicate the sync trigger needs attention.',
+          membersWithoutUsers.length
+        );
       }
 
       // Transform the data to match expected structure
       const transformedMembers = (data || []).map((member) => {
-        const userData = userMap.get(member.user_id);
+        const userData = member.app_users;
         return {
           ...member,
           user: userData
@@ -183,10 +153,11 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                 avatar_url: userData.avatar_url,
               }
             : {
-                // Fallback when no user data is found
+                // Fallback when no user data is found - use identifiable placeholders
+                // This should be rare if the app_users sync trigger is working correctly
                 id: member.user_id,
-                email: `user_${member.user_id.substring(0, 8)}@workspace.local`,
-                display_name: member.role === 'owner' ? 'Workspace Owner' : 'Team Member',
+                email: `member-${member.user_id.substring(0, 8)}@pending.sync`,
+                display_name: `Member ${member.user_id.substring(0, 8)}`,
                 avatar_url: null,
               },
         };
