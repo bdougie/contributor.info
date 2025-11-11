@@ -303,17 +303,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             <p className="text-sm text-muted-foreground mb-4">
               No Slack integrations configured yet
             </p>
-            {canEditSettings && (
-              <div className="flex flex-col gap-3 items-center">
-                <button
-                  onClick={handleInstallSlackApp}
-                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
-                  aria-label="Add to Slack"
-                >
-                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
-                </button>
-              </div>
-            )}
+            <div className="flex flex-col gap-3 items-center">
+              <button
+                onClick={handleInstallSlackApp}
+                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                aria-label="Add to Slack"
+              >
+                <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -483,7 +481,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
               ))}
 
             {/* Add New Button */}
-            {canEditSettings && integrations.length > 0 && (
+            {integrations.length > 0 && (
               <div className="flex gap-3 items-center">
                 <button
                   onClick={handleInstallSlackApp}
