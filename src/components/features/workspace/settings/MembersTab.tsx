@@ -139,29 +139,32 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       if (userMap.size === 0 && memberIds.length > 0) {
         console.log('No data from app_users, trying current user fallback...');
 
-        // For the current user, we can get their auth data and map it
+        // Get current authenticated user
         const { data: currentAuthUser } = await supabase.auth.getUser();
         if (currentAuthUser.user) {
-          // Find if the current user is in the members list
-          const currentUserMember = data?.find((m) => {
-            // Check if this member might be the current user
-            // We need to check app_users to match auth_user_id to app_users.id
-            return usersData?.some(
-              (u) => u.id === m.user_id && u.auth_user_id === currentAuthUser.user.id
-            );
-          });
+          // Fetch the current user's app_users record by auth_user_id
+          const { data: currentUserAppRecord } = await supabase
+            .from('app_users')
+            .select('id, auth_user_id, email, display_name, avatar_url')
+            .eq('auth_user_id', currentAuthUser.user.id)
+            .maybeSingle();
 
-          if (currentUserMember) {
-            userMap.set(currentUserMember.user_id, {
-              id: currentUserMember.user_id,
-              auth_user_id: currentAuthUser.user.id,
-              email: currentAuthUser.user.email || '',
+          // If found and this user is in the members list, add to userMap
+          if (currentUserAppRecord && memberIds.includes(currentUserAppRecord.id)) {
+            userMap.set(currentUserAppRecord.id, {
+              id: currentUserAppRecord.id,
+              auth_user_id: currentUserAppRecord.auth_user_id,
+              email: currentUserAppRecord.email || currentAuthUser.user.email || '',
               display_name:
+                currentUserAppRecord.display_name ||
                 currentAuthUser.user.user_metadata?.full_name ||
                 currentAuthUser.user.user_metadata?.name ||
                 currentAuthUser.user.email?.split('@')[0] ||
                 'User',
-              avatar_url: currentAuthUser.user.user_metadata?.avatar_url || '',
+              avatar_url:
+                currentUserAppRecord.avatar_url ||
+                currentAuthUser.user.user_metadata?.avatar_url ||
+                '',
             });
           }
         }
