@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import type { Contributor } from '@/components/features/workspace/ContributorsList';
+import { verifyWorkspacePermission } from '@/lib/workspace-permissions';
 
 interface UseWorkspaceContributorsProps {
   workspaceId: string;
@@ -92,24 +93,57 @@ export function useWorkspaceContributors({
   // Remove contributor from workspace
   const removeContributorFromWorkspace = async (contributorId: string) => {
     try {
-      const { error } = await supabase
+      // Check permissions first
+      const permissionCheck = await verifyWorkspacePermission(workspaceId, 'canRemoveContributors');
+
+      if (!permissionCheck.allowed) {
+        toast.error(permissionCheck.message || 'You do not have permission to remove contributors');
+        return;
+      }
+
+      // Perform the deletion
+      const { data, error } = await supabase
         .from('workspace_contributors')
         .delete()
         .eq('workspace_id', workspaceId)
-        .eq('contributor_id', contributorId);
+        .eq('contributor_id', contributorId)
+        .select();
 
       if (error) {
-        console.error('Error removing contributor from workspace:', error);
-        throw error;
+        console.error('Error removing contributor from workspace: %s', error.message);
+
+        // Provide more specific error messages
+        if (error.code === 'PGRST301' || error.code === '42501') {
+          // PostgreSQL insufficient_privilege error or RLS policy violation
+          toast.error('You do not have permission to remove contributors from this workspace');
+        } else if (error.code === '23503') {
+          // Foreign key violation
+          toast.error('Cannot remove contributor: They may have dependent data');
+        } else {
+          toast.error(`Failed to remove contributor: ${error.message}`);
+        }
+        return;
       }
 
-      // Update local state - refetch to ensure consistency
-      await fetchWorkspaceContributors(allAvailableContributors);
+      // Verify deletion actually occurred
+      if (!data || data.length === 0) {
+        console.warn('No rows deleted - contributor may not exist in workspace');
+        toast.error('Contributor was not found in this workspace');
+        return;
+      }
+
+      // Update local state immediately - filter out the removed contributor
+      setWorkspaceContributorIds((prev) => prev.filter((id) => id !== contributorId));
+      setContributors((prev) => prev.filter((c) => c.id !== contributorId));
+      // Don't remove from allAvailableContributors as they might still be available to add back
 
       toast.success('Contributor removed from workspace');
     } catch (err) {
-      console.error('Error removing contributor:', err);
-      toast.error('Failed to remove contributor from workspace');
+      console.error(
+        'Error removing contributor: %s',
+        err instanceof Error ? err.message : String(err)
+      );
+      toast.error('An unexpected error occurred while removing the contributor');
     }
   };
 
