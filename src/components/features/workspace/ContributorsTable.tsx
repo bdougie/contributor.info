@@ -412,10 +412,14 @@ export function ContributorsTable({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => onRemoveContributor?.(contributor.id)}
+                  disabled={!isLoggedIn}
                   className="text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Remove from Workspace
+                  {!isLoggedIn && (
+                    <span className="ml-auto text-xs text-muted-foreground">(Login required)</span>
+                  )}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -437,6 +441,7 @@ export function ContributorsTable({
       isAllSelected,
       isPartiallySelected,
       activities,
+      isLoggedIn,
     ]
   );
 
