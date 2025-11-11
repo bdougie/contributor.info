@@ -306,10 +306,10 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             <div className="flex flex-col gap-3 items-center">
               <button
                 onClick={handleInstallSlackApp}
-                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
                 aria-label="Add to Slack"
               >
-                <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
+                <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
               </button>
             </div>
           </div>
@@ -485,10 +485,10 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
               <div className="flex gap-3 items-center">
                 <button
                   onClick={handleInstallSlackApp}
-                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
                   aria-label="Add to Slack"
                 >
-                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.png" />
+                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
                 </button>
               </div>
             )}
