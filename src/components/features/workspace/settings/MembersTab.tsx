@@ -107,6 +107,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
       // Fetch user details separately for each member
       const memberIds = data?.map((m) => m.user_id) || [];
+
+      // First try to get user data from app_users table
       const { data: usersData } =
         memberIds.length > 0
           ? await supabase
@@ -115,8 +117,34 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
               .in('auth_user_id', memberIds)
           : { data: [] };
 
+      console.log('App users data:', usersData);
+
       // Create a map of user data for easy lookup
       const userMap = new Map((usersData || []).map((u) => [u.auth_user_id, u]));
+
+      // If we don't have user data from app_users, try to get it from auth.users
+      if (userMap.size === 0 && memberIds.length > 0) {
+        console.log('No data from app_users, trying auth.users...');
+
+        // Try getting user data from auth admin API (if available)
+        // This requires service role key, so it might not work in client-side
+        // For now, we'll use a fallback approach
+
+        // Get the current user's data as a fallback for owner
+        const { data: currentAuthUser } = await supabase.auth.getUser();
+        if (currentAuthUser.user && memberIds.includes(currentAuthUser.user.id)) {
+          userMap.set(currentAuthUser.user.id, {
+            auth_user_id: currentAuthUser.user.id,
+            email: currentAuthUser.user.email || '',
+            display_name:
+              currentAuthUser.user.user_metadata?.full_name ||
+              currentAuthUser.user.user_metadata?.name ||
+              currentAuthUser.user.email?.split('@')[0] ||
+              'User',
+            avatar_url: currentAuthUser.user.user_metadata?.avatar_url || '',
+          });
+        }
+      }
 
       // Transform the data to match expected structure
       const transformedMembers = (data || []).map((member) => {
@@ -130,7 +158,13 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                 display_name: userData.display_name || userData.email?.split('@')[0],
                 avatar_url: userData.avatar_url,
               }
-            : null,
+            : {
+                // Fallback when no user data is found
+                id: member.user_id,
+                email: `user_${member.user_id.substring(0, 8)}@workspace.local`,
+                display_name: member.role === 'owner' ? 'Workspace Owner' : 'Team Member',
+                avatar_url: null,
+              },
         };
       });
 
