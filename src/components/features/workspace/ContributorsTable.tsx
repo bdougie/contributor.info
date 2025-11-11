@@ -42,6 +42,7 @@ import {
   TrendingDown,
   Minus,
   Plus,
+  Trash2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
@@ -413,6 +414,7 @@ export function ContributorsTable({
                   onClick={() => onRemoveContributor?.(contributor.id)}
                   className="text-destructive"
                 >
+                  <Trash2 className="mr-2 h-4 w-4" />
                   Remove from Workspace
                 </DropdownMenuItem>
               </DropdownMenuContent>
