@@ -115,7 +115,6 @@ export async function getSlackIntegration(integrationId: string): Promise<SlackI
   return data;
 }
 
-
 /**
  * Update an existing Slack integration
  */
