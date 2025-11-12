@@ -270,12 +270,13 @@ serve(async (req) => {
     // Get the workspace owner to use as created_by
     // OAuth callbacks from Slack don't include Authorization headers
     // If not found, we'll set it to null (which is allowed after migration)
+    // Use maybeSingle() to handle cases where workspace might have multiple owners
     const { data: workspaceOwner } = await supabase
       .from('workspace_members')
       .select('user_id')
       .eq('workspace_id', workspaceId)
       .eq('role', 'owner')
-      .single();
+      .maybeSingle();
 
     const userId = workspaceOwner?.user_id || null;
 
