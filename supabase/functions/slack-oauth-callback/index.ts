@@ -267,9 +267,22 @@ serve(async (req) => {
       });
     }
 
-    // Get the user ID from the authorization header
-    const authHeader = req.headers.get('Authorization');
-    const userId = authHeader ? authHeader.replace('Bearer ', '') : null;
+    // Get the workspace owner to use as created_by
+    // OAuth callbacks from Slack don't include Authorization headers
+    // If not found, we'll set it to null (which is allowed after migration)
+    // Use maybeSingle() to handle cases where workspace might have multiple owners
+    const { data: workspaceOwner } = await supabase
+      .from('workspace_members')
+      .select('user_id')
+      .eq('workspace_id', workspaceId)
+      .eq('role', 'owner')
+      .maybeSingle();
+
+    const userId = workspaceOwner?.user_id || null;
+
+    if (!userId) {
+      console.warn('No workspace owner found for workspace %s, setting created_by to null', workspaceId);
+    }
 
     // Check if an integration already exists for this workspace and team
     const { data: existing } = await supabase

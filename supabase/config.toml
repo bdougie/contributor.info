@@ -80,3 +80,8 @@ backend = "postgres"
 
 # Edge Functions configuration
 # (Edge functions are configured per-project in Dashboard)
+
+# Disable JWT verification for Slack OAuth callback
+# OAuth callbacks come from Slack's servers, not authenticated users
+[functions.slack-oauth-callback]
+verify_jwt = false

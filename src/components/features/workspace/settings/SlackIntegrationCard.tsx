@@ -63,10 +63,18 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
     if (slackInstall === 'success' && teamName) {
       toast({
-        title: 'Slack App Installed',
-        description: `Successfully installed for ${decodeURIComponent(teamName)}. Select a channel below.`,
+        title: '✅ Slack App Installed Successfully',
+        description: `Connected to ${decodeURIComponent(teamName)}. Refreshing integrations...`,
       });
-      refetch();
+      // Add a small delay before refetch to ensure database has the new record
+      setTimeout(() => {
+        refetch().then(() => {
+          toast({
+            title: 'Integration Ready',
+            description: 'Please select a channel below to complete setup.',
+          });
+        });
+      }, 1000);
       // Clean up URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (slackInstall === 'cancelled') {
@@ -292,8 +300,24 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Slack Integration</CardTitle>
-        <CardDescription>Send automated issue assignee reports to Slack channels</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Slack Integration</CardTitle>
+            <CardDescription>
+              Send automated issue assignee reports to Slack channels
+            </CardDescription>
+          </div>
+          {!loading && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              title="Refresh integrations"
+            >
+              🔄 Refresh
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading && <p className="text-sm text-muted-foreground">Loading integrations...</p>}
@@ -321,16 +345,27 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             {oauthIntegrationsNeedingChannel.map((integration) => (
               <div
                 key={integration.id}
-                className="rounded-lg border-2 border-blue-200 dark:border-blue-800 p-4 space-y-3"
+                className="rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950/30 dark:border-green-800 p-4 space-y-3"
               >
-                <div className="flex items-center gap-2">
-                  <Badge variant="default">OAuth App</Badge>
-                  <Badge variant="secondary">Setup Required</Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default" className="bg-green-600">
+                      ✅ Installed
+                    </Badge>
+                    <Badge variant="secondary">Setup Required</Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(integration.created_at).toLocaleDateString()}
+                  </span>
                 </div>
-                <p className="text-sm">
-                  Slack app installed for <strong>{integration.slack_team_name}</strong>. Select a
-                  channel to complete setup:
-                </p>
+                <div className="space-y-2">
+                  <p className="font-medium">
+                    Slack workspace: <strong>{integration.slack_team_name}</strong>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ✨ Installation successful! Now select a channel to receive issue reports:
+                  </p>
+                </div>
                 {canEditSettings ? (
                   <div>
                     <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
@@ -377,108 +412,121 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
             {/* Existing Integrations */}
             {integrations
               .filter((i) => !isOAuthIntegration(i) || i.channel_id)
-              .map((integration) => (
-                <div key={integration.id} className="rounded-lg border p-4 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium">#{integration.channel_name}</h4>
-                        {isOAuthIntegration(integration) ? (
-                          <Badge variant="default">OAuth App</Badge>
-                        ) : (
-                          <Badge variant="outline">Webhook</Badge>
+              .map((integration) => {
+                const isOAuth = isOAuthIntegration(integration);
+                const borderClass =
+                  isOAuth && integration.enabled
+                    ? 'border-2 border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/20'
+                    : '';
+
+                return (
+                  <div
+                    key={integration.id}
+                    className={`rounded-lg border p-4 space-y-3 ${borderClass}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium">#{integration.channel_name}</h4>
+                          {isOAuth ? (
+                            <Badge variant="default" className="bg-green-600">
+                              ✅ OAuth App
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Webhook</Badge>
+                          )}
+                          {integration.enabled ? (
+                            <Badge variant="default">Active</Badge>
+                          ) : (
+                            <Badge variant="secondary">Disabled</Badge>
+                          )}
+                          {integration.recent_failures && integration.recent_failures > 0 && (
+                            <Badge variant="destructive">
+                              {integration.recent_failures} failures
+                            </Badge>
+                          )}
+                        </div>
+                        {integration.slack_team_name && (
+                          <p className="text-sm text-muted-foreground">
+                            Workspace: {integration.slack_team_name}
+                          </p>
                         )}
-                        {integration.enabled ? (
-                          <Badge variant="default">Enabled</Badge>
-                        ) : (
-                          <Badge variant="secondary">Disabled</Badge>
-                        )}
-                        {integration.recent_failures && integration.recent_failures > 0 && (
-                          <Badge variant="destructive">
-                            {integration.recent_failures} failures
-                          </Badge>
-                        )}
-                      </div>
-                      {integration.slack_team_name && (
                         <p className="text-sm text-muted-foreground">
-                          Workspace: {integration.slack_team_name}
+                          Schedule: {integration.schedule} at 9:00 AM UTC
                         </p>
+                        {integration.last_sent_at && (
+                          <p className="text-xs text-muted-foreground">
+                            Last sent: {new Date(integration.last_sent_at).toLocaleString()}
+                          </p>
+                        )}
+                        {integration.next_scheduled_at && integration.enabled ? (
+                          <p className="text-xs text-muted-foreground">
+                            Next: {new Date(integration.next_scheduled_at).toLocaleString()}
+                          </p>
+                        ) : null}
+                      </div>
+                      {canEditSettings && (
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={integration.enabled}
+                            onCheckedChange={(enabled) =>
+                              handleToggleEnabled(integration.id, enabled)
+                            }
+                          />
+                        </div>
                       )}
-                      <p className="text-sm text-muted-foreground">
-                        Schedule: {integration.schedule} at 9:00 AM UTC
-                      </p>
-                      {integration.last_sent_at && (
-                        <p className="text-xs text-muted-foreground">
-                          Last sent: {new Date(integration.last_sent_at).toLocaleString()}
-                        </p>
-                      )}
-                      {integration.next_scheduled_at && integration.enabled ? (
-                        <p className="text-xs text-muted-foreground">
-                          Next: {new Date(integration.next_scheduled_at).toLocaleString()}
-                        </p>
-                      ) : null}
                     </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Max assignees:</span>{' '}
+                        {integration.config.maxAssignees}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Exclude bots:</span>{' '}
+                        {integration.config.excludeBots ? 'Yes' : 'No'}
+                      </div>
+                    </div>
+
                     {canEditSettings && (
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={integration.enabled}
-                          onCheckedChange={(enabled) =>
-                            handleToggleEnabled(integration.id, enabled)
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleTestIntegration(integration.id)}
+                          disabled={isTesting === integration.id || isRateLimited(integration.id)}
+                          title={
+                            isRateLimited(integration.id)
+                              ? `Wait ${getRemainingSeconds(integration.id)} seconds`
+                              : undefined
                           }
-                        />
+                        >
+                          {isTesting === integration.id && 'Testing...'}
+                          {!isTesting &&
+                            isRateLimited(integration.id) &&
+                            `Wait ${getRemainingSeconds(integration.id)}s`}
+                          {!isTesting && !isRateLimited(integration.id) && 'Test Connection'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fetchChannelsForIntegration(integration.id)}
+                          disabled={loadingChannels === integration.id}
+                        >
+                          {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteIntegration(integration.id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     )}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Max assignees:</span>{' '}
-                      {integration.config.maxAssignees}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Exclude bots:</span>{' '}
-                      {integration.config.excludeBots ? 'Yes' : 'No'}
-                    </div>
-                  </div>
-
-                  {canEditSettings && (
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleTestIntegration(integration.id)}
-                        disabled={isTesting === integration.id || isRateLimited(integration.id)}
-                        title={
-                          isRateLimited(integration.id)
-                            ? `Wait ${getRemainingSeconds(integration.id)} seconds`
-                            : undefined
-                        }
-                      >
-                        {isTesting === integration.id && 'Testing...'}
-                        {!isTesting &&
-                          isRateLimited(integration.id) &&
-                          `Wait ${getRemainingSeconds(integration.id)}s`}
-                        {!isTesting && !isRateLimited(integration.id) && 'Test Connection'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fetchChannelsForIntegration(integration.id)}
-                        disabled={loadingChannels === integration.id}
-                      >
-                        {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteIntegration(integration.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
 
             {/* Add New Button */}
             {integrations.length > 0 && (
