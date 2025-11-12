@@ -13,10 +13,10 @@ This function proxies Slack API calls to fetch the list of channels a bot has ac
 ## Deployment
 
 ```bash
-supabase functions deploy slack-list-channels --no-verify-jwt
+supabase functions deploy slack-list-channels
 ```
 
-**Note**: The `--no-verify-jwt` flag is required because this function needs to be accessible to authenticated users without requiring a specific JWT format.
+**Security**: This function requires JWT verification and validates workspace membership before decrypting bot tokens. Users must be authenticated members of the workspace to access integration data.
 
 ## Environment Variables
 
@@ -59,15 +59,19 @@ Required (automatically provided in Supabase Edge Functions):
 
 ## Flow
 
-1. Frontend sends `integration_id` to this function
-2. Function fetches the integration from database
-3. Function decrypts the `bot_token_encrypted`
-4. Function calls Slack API `conversations.list` with pagination support
-5. Function returns channel list to frontend
+1. Frontend sends `integration_id` with user's JWT token
+2. Function verifies JWT and authenticates the user
+3. Function fetches the integration from database
+4. Function validates user is a member of the workspace
+5. Function decrypts the `bot_token_encrypted`
+6. Function calls Slack API `conversations.list` with pagination support
+7. Function returns channel list to frontend
 
 ## Security
 
-- Bot tokens are never exposed to the frontend
-- Tokens are decrypted only in the backend
-- Uses service role key to bypass RLS for fetching integration
-- CORS is enabled for frontend access
+- **Authentication**: Requires valid JWT token from authenticated user
+- **Authorization**: Validates user is a workspace member before access
+- **Encryption**: Bot tokens are never exposed to the frontend
+- **Decryption**: Tokens are decrypted only in the backend after authorization
+- **Service Role**: Uses service role key only for authorization checks (bypassing RLS safely)
+- **CORS**: Enabled for frontend access with proper authentication

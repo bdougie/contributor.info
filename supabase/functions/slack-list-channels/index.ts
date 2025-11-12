@@ -114,11 +114,53 @@ serve(async (req) => {
       });
     }
 
-    // Create Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Get JWT token from Authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    // Create Supabase client with service role for authorization checks
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Create Supabase client with user JWT for authentication
+    const supabaseUser = createClient(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader,
+          },
+        },
+      }
+    );
+
+    // Verify the user's JWT and get their auth ID
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
+
+    if (authError || !user) {
+      console.error('Authentication failed: %s', authError?.message);
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
 
     // Fetch the integration and encrypted bot token
-    const { data: integration, error: fetchError } = await supabase
+    const { data: integration, error: fetchError } = await supabaseAdmin
       .from('slack_integrations')
       .select('bot_token_encrypted, workspace_id')
       .eq('id', integration_id)
@@ -133,6 +175,35 @@ serve(async (req) => {
           'Access-Control-Allow-Origin': '*',
         },
       });
+    }
+
+    // Verify user has access to this workspace
+    // Join through app_users to match auth.uid() with app_users.auth_user_id
+    const { data: membership, error: membershipError } = await supabaseAdmin
+      .from('workspace_members')
+      .select(`
+        id,
+        user:app_users!inner(auth_user_id)
+      `)
+      .eq('workspace_id', integration.workspace_id)
+      .eq('app_users.auth_user_id', user.id)
+      .maybeSingle();
+
+    if (membershipError || !membership) {
+      console.error(
+        'Workspace membership check failed: %s',
+        membershipError?.message || 'User not a member'
+      );
+      return new Response(
+        JSON.stringify({ error: 'Access denied: not a member of this workspace' }),
+        {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
     }
 
     // Decrypt the bot token

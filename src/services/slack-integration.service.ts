@@ -460,27 +460,17 @@ export async function getIntegrationLogs(
  * Get channels available for a Slack integration (OAuth only)
  */
 export async function getChannelsForIntegration(integrationId: string): Promise<SlackChannel[]> {
-  // Call the backend Edge Function to fetch channels securely
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/slack-list-channels`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ integration_id: integrationId }),
-    }
-  );
+  // Use Supabase client with user session token for secure authentication
+  const { data, error } = await supabase.functions.invoke('slack-list-channels', {
+    body: { integration_id: integrationId },
+  });
 
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('Failed to fetch channels from backend: %s', error.error);
-    throw new Error(error.error || 'Failed to fetch channels');
+  if (error) {
+    console.error('Failed to fetch channels from backend: %s', error.message);
+    throw new Error(error.message || 'Failed to fetch channels');
   }
 
-  const { channels } = await response.json();
-  return channels;
+  return data.channels;
 }
 
 /**
