@@ -269,6 +269,7 @@ serve(async (req) => {
 
     // Get the workspace owner to use as created_by
     // OAuth callbacks from Slack don't include Authorization headers
+    // If not found, we'll set it to null (which is allowed after migration)
     const { data: workspaceOwner } = await supabase
       .from('workspace_members')
       .select('user_id')
@@ -279,14 +280,7 @@ serve(async (req) => {
     const userId = workspaceOwner?.user_id || null;
 
     if (!userId) {
-      console.error('Failed to find workspace owner for workspace:', workspaceId);
-      return new Response(null, {
-        status: 302,
-        headers: {
-          Location:
-            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=no_owner_found`,
-        },
-      });
+      console.warn('No workspace owner found for workspace %s, setting created_by to null', workspaceId);
     }
 
     // Check if an integration already exists for this workspace and team
