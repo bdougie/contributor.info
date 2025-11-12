@@ -5,7 +5,7 @@
 
 import { supabase } from '../lib/supabase';
 import { decryptString } from '../lib/encryption';
-import { getSlackChannels, postSlackMessage } from './slack-api.service';
+import { postSlackMessage } from './slack-api.service';
 import type {
   SlackIntegration,
   SlackIntegrationWithStatus,
@@ -114,7 +114,6 @@ export async function getSlackIntegration(integrationId: string): Promise<SlackI
 
   return data;
 }
-
 
 /**
  * Update an existing Slack integration
@@ -460,13 +459,17 @@ export async function getIntegrationLogs(
  * Get channels available for a Slack integration (OAuth only)
  */
 export async function getChannelsForIntegration(integrationId: string): Promise<SlackChannel[]> {
-  const integration = await getSlackIntegration(integrationId);
-  if (!integration || !integration.bot_token_encrypted) {
-    throw new Error('Integration not found or not OAuth-based');
+  // Use Supabase client with user session token for secure authentication
+  const { data, error } = await supabase.functions.invoke('slack-list-channels', {
+    body: { integration_id: integrationId },
+  });
+
+  if (error) {
+    console.error('Failed to fetch channels from backend: %s', error.message);
+    throw new Error(error.message || 'Failed to fetch channels');
   }
 
-  const botToken = await decryptString(integration.bot_token_encrypted);
-  return getSlackChannels(botToken);
+  return data.channels;
 }
 
 /**
