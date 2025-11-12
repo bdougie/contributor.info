@@ -16,11 +16,21 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { corsHeaders } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
+
+// CORS headers - inlined for dashboard deployment compatibility
+// Note: HTTP headers are case-insensitive per RFC 7230, but Deno Edge Functions
+// have a bug with case-sensitive header comparison in CORS preflight.
+// Including both cases is a workaround until this is fixed upstream.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-idempotency-key, X-Idempotency-Key, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK, x-inngest-server-kind, X-Inngest-Server-Kind',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
+};
 
 interface RequestBody {
   integration_id: string;
