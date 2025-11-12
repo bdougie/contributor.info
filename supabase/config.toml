@@ -85,3 +85,8 @@ backend = "postgres"
 # OAuth callbacks come from Slack's servers, not authenticated users
 [functions.slack-oauth-callback]
 verify_jwt = false
+
+# Slack list channels needs JWT for user authentication but not for OPTIONS
+# We handle auth manually in the function code
+[functions.slack-list-channels]
+verify_jwt = false
