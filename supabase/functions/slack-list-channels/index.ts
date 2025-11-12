@@ -138,7 +138,7 @@ serve(async (req) => {
             Authorization: authHeader,
           },
         },
-      }
+      },
     );
 
     // Verify the user's JWT and get their auth ID
@@ -171,28 +171,43 @@ serve(async (req) => {
     }
 
     // Verify user has access to this workspace
-    // Join through app_users to match auth.uid() with app_users.auth_user_id
+    // First get the app_user id from auth_user_id
+    const { data: appUser, error: appUserError } = await supabaseAdmin
+      .from('app_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (appUserError || !appUser) {
+      console.error('Failed to find app_user: %s', appUserError?.message || 'User not found');
+      return new Response(
+        JSON.stringify({ error: 'User not found in system' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    // Check workspace membership using app_users.id -> workspace_members.user_id
     const { data: membership, error: membershipError } = await supabaseAdmin
       .from('workspace_members')
-      .select(`
-        id,
-        user:app_users!inner(auth_user_id)
-      `)
+      .select('id')
       .eq('workspace_id', integration.workspace_id)
-      .eq('app_users.auth_user_id', user.id)
+      .eq('user_id', appUser.id)
       .maybeSingle();
 
     if (membershipError || !membership) {
       console.error(
         'Workspace membership check failed: %s',
-        membershipError?.message || 'User not a member'
+        membershipError?.message || 'User not a member',
       );
       return new Response(
         JSON.stringify({ error: 'Access denied: not a member of this workspace' }),
         {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -241,7 +256,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*',
             },
-          }
+          },
         );
       }
 
@@ -258,7 +273,7 @@ serve(async (req) => {
             name: ch.name,
             is_private: ch.is_private,
             is_member: ch.is_member,
-          }))
+          })),
         );
       }
 
@@ -281,7 +296,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });
