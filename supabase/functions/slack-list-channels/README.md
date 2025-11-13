@@ -4,7 +4,8 @@ Backend proxy for fetching Slack channels securely.
 
 ## Purpose
 
-This function proxies Slack API calls to fetch the list of channels a bot has access to. It was created to:
+This function proxies Slack API calls to fetch the list of channels a bot has access to. It was
+created to:
 
 1. **Security**: Keep bot tokens secure by never exposing them to the frontend
 2. **CSP Compliance**: Frontend Content Security Policy blocks direct calls to slack.com
@@ -16,11 +17,14 @@ This function proxies Slack API calls to fetch the list of channels a bot has ac
 supabase functions deploy slack-list-channels
 ```
 
-**Security**: This function requires JWT verification and validates workspace membership before decrypting bot tokens. Users must be authenticated members of the workspace to access integration data.
+**Security**: This function requires JWT verification and validates workspace membership before
+decrypting bot tokens. Users must be authenticated members of the workspace to access integration
+data.
 
 ## Environment Variables
 
 Required (automatically provided in Supabase Edge Functions):
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SLACK_WEBHOOK_ENCRYPTION_KEY` - Same key used for OAuth callback
@@ -30,6 +34,7 @@ Required (automatically provided in Supabase Edge Functions):
 **POST** `/functions/v1/slack-list-channels`
 
 ### Request Body
+
 ```json
 {
   "integration_id": "uuid"
@@ -37,6 +42,7 @@ Required (automatically provided in Supabase Edge Functions):
 ```
 
 ### Response
+
 ```json
 {
   "channels": [
@@ -51,6 +57,7 @@ Required (automatically provided in Supabase Edge Functions):
 ```
 
 ### Error Response
+
 ```json
 {
   "error": "Error message"
