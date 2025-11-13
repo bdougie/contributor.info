@@ -5,6 +5,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { unparse } from 'papaparse';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
@@ -31,6 +32,7 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
+  Download,
 } from '@/components/ui/icon';
 import { getOrgAvatarUrl } from '@/lib/utils/avatar';
 import type { Repository } from '@/components/features/workspace';
@@ -263,6 +265,28 @@ export function WorkspaceContributorsTab({
 
   const handleRemoveContributor = async (contributorId: string) => {
     await removeContributorFromWorkspace(contributorId);
+  };
+
+  const handleExport = () => {
+    const csvData = filteredContributors.map((c) => ({
+      Username: c.username,
+      Name: c.name,
+      'Pull Requests': c.contributions.pull_requests,
+      Issues: c.contributions.issues,
+      Commits: c.contributions.commits,
+      'Repositories Contributed': c.stats.repositories_contributed,
+    }));
+
+    const csv = unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'contributors.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // CRM handler functions
@@ -803,6 +827,17 @@ export function WorkspaceContributorsTab({
                     <Users className="h-4 w-4 mr-1.5" />
                     <span className="hidden sm:inline">Manage Groups</span>
                     <span className="sm:hidden">Groups</span>
+                  </Button>
+                  <Button
+                    onClick={handleExport}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[36px] px-3"
+                    disabled={filteredContributors.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-1.5" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="sm:hidden">Export</span>
                   </Button>
                   <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
                     <Plus className="h-4 w-4 mr-1.5" />
