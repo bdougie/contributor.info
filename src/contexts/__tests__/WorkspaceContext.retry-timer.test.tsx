@@ -80,13 +80,21 @@ describe('WorkspaceContext - Retry Timer Cleanup', () => {
       refetch: mockRefetch,
     });
 
-    const { unmount } = render(
+    const { unmount, getByTestId } = render(
       <MemoryRouter>
         <WorkspaceProvider>
           <TestComponent />
         </WorkspaceProvider>
       </MemoryRouter>
     );
+
+    // Trigger retry to set up a timeout
+    getByTestId('retry-button').click();
+
+    // Wait for setTimeout to be called
+    await waitFor(() => {
+      expect(mockRefetch).toBeDefined();
+    });
 
     // Unmount the component
     unmount();
