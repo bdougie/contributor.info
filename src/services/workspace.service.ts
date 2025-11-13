@@ -422,7 +422,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('Get workspace error:', error);
+      logError('Get workspace error', error, {
+        tags: { feature: 'workspace', operation: 'get' },
+        extra: { workspaceId, userId },
+      });
       return {
         success: false,
         error: 'Failed to get workspace',
@@ -507,7 +510,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('List workspaces error:', error);
+      logError('List workspaces error', error, {
+        tags: { feature: 'workspace', operation: 'list' },
+        extra: { userId, page: filters.page, limit: filters.limit },
+      });
       return {
         success: false,
         error: 'Failed to list workspaces',
@@ -539,7 +545,10 @@ export class WorkspaceService {
         .maybeSingle();
 
       if (queryError) {
-        console.error('[WorkspaceService] Database query error:', queryError);
+        logError('Database query error in checkPermission', queryError, {
+          tags: { feature: 'workspace', operation: 'check_permission' },
+          extra: { workspaceId, userId },
+        });
         return { hasPermission: false };
       }
 
@@ -564,7 +573,10 @@ export class WorkspaceService {
         role: member.role as WorkspaceRole,
       };
     } catch (error) {
-      console.error('[WorkspaceService] Check permission error:', error);
+      logError('Check permission error', error, {
+        tags: { feature: 'workspace', operation: 'check_permission' },
+        extra: { workspaceId, userId, requiredRoles },
+      });
       return { hasPermission: false };
     }
   }
@@ -693,7 +705,10 @@ export class WorkspaceService {
         // Upgraded repository priority to high
       } catch (error) {
         // Log but don't fail the workspace operation
-        console.error('Failed to update repository priority:', error);
+        logError('Failed to update repository priority', error, {
+          tags: { feature: 'workspace', operation: 'add_repository' },
+          extra: { repositoryId: data.repository_id, workspaceId },
+        });
       }
 
       // NEW: Trigger workspace metrics update
@@ -720,7 +735,10 @@ export class WorkspaceService {
         }
       } catch (error) {
         // Log but don't fail the workspace operation
-        console.error('Failed to trigger workspace metrics update:', error);
+        logError('Failed to trigger workspace metrics update', error, {
+          tags: { feature: 'workspace', operation: 'add_repository' },
+          extra: { workspaceId, repositoryId: data.repository_id },
+        });
       }
 
       return {
@@ -729,7 +747,10 @@ export class WorkspaceService {
         statusCode: 201,
       };
     } catch (error) {
-      console.error('Add repository to workspace error:', error);
+      logError('Add repository to workspace error', error, {
+        tags: { feature: 'workspace', operation: 'add_repository' },
+        extra: { workspaceId, repositoryId: data.repository_id, userId },
+      });
       return {
         success: false,
         error: 'Failed to add repository to workspace',
@@ -801,7 +822,10 @@ export class WorkspaceService {
           // Repository still in other workspaces
         }
       } catch (error) {
-        console.error('Failed to downgrade repository priority:', error);
+        logError('Failed to downgrade repository priority', error, {
+          tags: { feature: 'workspace', operation: 'remove_repository' },
+          extra: { repositoryId, workspaceId },
+        });
       }
 
       // NEW: Trigger workspace metrics update
@@ -828,7 +852,10 @@ export class WorkspaceService {
         }
       } catch (error) {
         // Log but don't fail the workspace operation
-        console.error('Failed to trigger workspace metrics update:', error);
+        logError('Failed to trigger workspace metrics update', error, {
+          tags: { feature: 'workspace', operation: 'remove_repository' },
+          extra: { workspaceId, repositoryId },
+        });
       }
 
       return {
@@ -836,7 +863,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('Remove repository from workspace error:', error);
+      logError('Remove repository from workspace error', error, {
+        tags: { feature: 'workspace', operation: 'remove_repository' },
+        extra: { workspaceId, repositoryId, userId },
+      });
       return {
         success: false,
         error: 'Failed to remove repository from workspace',
@@ -905,7 +935,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('Update workspace repository error:', error);
+      logError('Update workspace repository error', error, {
+        tags: { feature: 'workspace', operation: 'update_repository' },
+        extra: { workspaceId, repositoryId, userId },
+      });
       return {
         success: false,
         error: 'Failed to update repository settings',
@@ -1019,7 +1052,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('List workspace repositories error:', error);
+      logError('List workspace repositories error', error, {
+        tags: { feature: 'workspace', operation: 'list_repositories' },
+        extra: { workspaceId, userId },
+      });
       return {
         success: false,
         error: 'Failed to list workspace repositories',
@@ -1166,7 +1202,10 @@ export class WorkspaceService {
 
       if (checkError && checkError.code !== 'PGRST116') {
         // PGRST116 is "no rows found", which is fine
-        console.error('Error checking existing invitation:', checkError);
+        logError('Error checking existing invitation', checkError, {
+          tags: { feature: 'workspace', operation: 'invite' },
+          extra: { workspaceId, email: sanitizedEmail },
+        });
       }
 
       if (existingInvitation) {
@@ -1212,7 +1251,10 @@ export class WorkspaceService {
         .maybeSingle();
 
       if (inviteError) {
-        console.error('Create invitation error:', inviteError);
+        logError('Create invitation error', inviteError, {
+          tags: { feature: 'workspace', operation: 'invite' },
+          extra: { workspaceId, email: sanitizedEmail, role },
+        });
 
         // Handle duplicate invitation error
         if (
@@ -1246,14 +1288,20 @@ export class WorkspaceService {
         );
 
         if (emailError) {
-          console.error('Failed to send invitation email:', emailError);
+          logError('Failed to send invitation email', emailError, {
+            tags: { feature: 'workspace', operation: 'invite' },
+            extra: { invitationId: invitation.id, workspaceId },
+          });
           // Don't fail the invitation creation if email fails
           // The invitation is still valid and can be resent
         } else {
           // Invitation email sent successfully
         }
       } catch (emailErr) {
-        console.error('Error sending invitation email:', emailErr);
+        logError('Error sending invitation email', emailErr, {
+          tags: { feature: 'workspace', operation: 'invite' },
+          extra: { invitationId: invitation.id, workspaceId },
+        });
         // Don't fail the invitation creation if email fails
       }
 
