@@ -439,6 +439,11 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                           id={`channel-search-${integration.id}`}
                           placeholder="Search channels..."
                           autoComplete="off"
+                          role="search"
+                          aria-label="Search Slack channels"
+                          data-1p-ignore
+                          data-lpignore="true"
+                          data-form-type="other"
                           value={channelSearchQuery[integration.id] || ''}
                           onChange={(e) =>
                             setChannelSearchQuery((prev) => ({
@@ -604,6 +609,11 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                               id={`channel-search-existing-${integration.id}`}
                               placeholder="Search channels..."
                               autoComplete="off"
+                              role="search"
+                              aria-label="Search Slack channels"
+                              data-1p-ignore
+                              data-lpignore="true"
+                              data-form-type="other"
                               value={channelSearchQuery[integration.id] || ''}
                               onChange={(e) =>
                                 setChannelSearchQuery((prev) => ({
