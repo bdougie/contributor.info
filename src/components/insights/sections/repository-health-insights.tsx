@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { calculateHealthMetrics, type HealthMetrics } from '@/lib/insights/health-metrics';
 import { llmService, type LLMInsight } from '@/lib/llm';
+import { logError } from '@/lib/error-logging';
 
 interface RepositoryHealthProps {
   owner: string;
@@ -36,7 +37,18 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
         loadLLMInsight(metrics);
       }
     } catch (error) {
-      console.error('Failed to load health metrics:', error);
+      logError('Failed to load health metrics', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-health-metrics',
+          component: 'InsightsHealth',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+        },
+      });
       setHealth(null);
     } finally {
       setLoading(false);
@@ -52,7 +64,18 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
       });
       setLlmInsight(insight);
     } catch (error) {
-      console.error('Failed to load LLM insight:', error);
+      logError('Failed to load LLM insight', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-llm-insight',
+          component: 'InsightsHealth',
+        },
+        extra: {
+          owner,
+          repo,
+          hasHealthData: !!healthData,
+        },
+      });
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);

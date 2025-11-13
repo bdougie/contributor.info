@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
 import { HybridQueueStatus } from '@/components/features/monitoring/hybrid-queue-status';
 import { GitHubActionsMonitor } from '@/components/features/monitoring/github-actions-monitor';
+import { logError } from '@/lib/error-logging';
 
 interface DatabaseMetrics {
   slowQueries: number;
@@ -108,7 +109,13 @@ export function PerformanceMonitoringDashboard() {
         github: githubHealth.status === 'fulfilled' ? githubHealth.value : null,
       };
     } catch (error) {
-      console.error('Error fetching health endpoints:', error);
+      logError('Error fetching health endpoints', error as Error, {
+        tags: {
+          feature: 'monitoring',
+          operation: 'fetch-health',
+          component: 'PerformanceMonitoringDashboard',
+        },
+      });
       return { main: null, database: null, github: null };
     }
   }, []);
@@ -144,7 +151,13 @@ export function PerformanceMonitoringDashboard() {
         });
       }
     } catch (error) {
-      console.error('Error loading CDN metrics:', error);
+      logError('Error loading CDN metrics', error as Error, {
+        tags: {
+          feature: 'monitoring',
+          operation: 'load-cdn-metrics',
+          component: 'PerformanceMonitoringDashboard',
+        },
+      });
     }
   }, []);
 
@@ -192,7 +205,13 @@ export function PerformanceMonitoringDashboard() {
       setAlerts(alertsResult.data || []);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('Error loading performance metrics:', error);
+      logError('Error loading performance metrics', error as Error, {
+        tags: {
+          feature: 'monitoring',
+          operation: 'load-metrics',
+          component: 'PerformanceMonitoringDashboard',
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -203,7 +222,13 @@ export function PerformanceMonitoringDashboard() {
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
     } catch (error) {
-      console.error('Error creating performance snapshot:', error);
+      logError('Error creating performance snapshot', error as Error, {
+        tags: {
+          feature: 'monitoring',
+          operation: 'create-snapshot',
+          component: 'PerformanceMonitoringDashboard',
+        },
+      });
     }
   }, [loadMetrics]);
 
