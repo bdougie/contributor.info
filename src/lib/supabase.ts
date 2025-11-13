@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { env } from './env.ts';
+import { safeGetSession } from './auth/safe-auth';
 
 // Helper function to create the Supabase client
 // CACHE BUST: Fixed 406 errors by removing .single() calls - v2
@@ -41,8 +42,8 @@ export function createSupabaseClient() {
 // Export the Supabase client instance
 export const supabase = createSupabaseClient();
 
-// Helper to debug authentication issues
+// Helper to debug authentication issues with timeout protection
 export const debugAuthSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  return { session: data.session, error };
+  const { session, error } = await safeGetSession();
+  return { session, error };
 };

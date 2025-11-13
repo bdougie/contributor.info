@@ -3,6 +3,7 @@
 
 import { supabase } from '../supabase';
 import type { Notification, CreateNotificationParams, NotificationFilters } from './types';
+import { safeGetUser } from '../auth/safe-auth';
 
 export class NotificationService {
   /**
@@ -12,9 +13,8 @@ export class NotificationService {
     params: CreateNotificationParams,
     userId?: string
   ): Promise<Notification | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Use safe auth utility with timeout protection
+    const { user } = await safeGetUser();
     const targetUserId = userId || user?.id;
 
     if (!targetUserId) {
@@ -49,9 +49,8 @@ export class NotificationService {
    * Get notifications for the current user
    */
   static async getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Use safe auth utility with timeout protection
+    const { user } = await safeGetUser();
 
     if (!user) {
       return [];
@@ -93,9 +92,8 @@ export class NotificationService {
    * Get unread notification count
    */
   static async getUnreadCount(): Promise<number> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Use safe auth utility with timeout protection
+    const { user } = await safeGetUser();
 
     if (!user) {
       return 0;
@@ -136,9 +134,8 @@ export class NotificationService {
    * Mark all notifications as read
    */
   static async markAllAsRead(): Promise<boolean> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Use safe auth utility with timeout protection
+    const { user } = await safeGetUser();
 
     if (!user) {
       return false;
@@ -176,9 +173,8 @@ export class NotificationService {
    * Delete all read notifications
    */
   static async deleteAllRead(): Promise<boolean> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Use safe auth utility with timeout protection
+    const { user } = await safeGetUser();
 
     if (!user) {
       return false;

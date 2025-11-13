@@ -11,8 +11,9 @@ export const WORKSPACE_TIMEOUTS = {
   UI_FEEDBACK: 2000,
 
   // Context loading timeout - max time for workspace context to load
-  // Reduced from 5000ms to 3000ms after Phase 1 optimization (batched queries + materialized view)
-  CONTEXT: 3000,
+  // Increased to 8000ms to accommodate auth layer timeout (2s + 2s fallback + buffer)
+  // This prevents premature timeout errors when auth calls are slow
+  CONTEXT: 8000,
 
   // Hook timeout - max time for workspace hooks to complete
   // Reduced from 10000ms to 5000ms after query optimization

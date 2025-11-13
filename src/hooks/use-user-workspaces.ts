@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
+import { safeGetUser } from '@/lib/auth/safe-auth';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -77,86 +78,33 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with AbortController timeout
-      let user = null;
+      // Check if user is authenticated using safe auth utility with timeout protection
+      logger.log('[Workspace] Checking auth status...');
 
-      // Add timeout using AbortSignal
-      const authTimeoutId = setTimeout(() => {
-        abortControllerRef.current?.abort();
-      }, 2000);
+      // Check if aborted before making auth call
+      if (signal.aborted) {
+        logger.warn('[Workspace] Request aborted before auth check');
+        setWorkspaces([]);
+        setLoading(false);
+        hasInitialLoadRef.current = true;
+        return;
+      }
 
-      try {
-        logger.log('[Workspace] Checking auth status...');
+      // Use centralized safe auth utility with 2-second timeout
+      // This handles timeout protection and automatic session fallback
+      const { user, error: authError } = await safeGetUser(2000);
 
-        // Check if aborted
-        if (signal.aborted) {
-          throw new Error('Request aborted');
-        }
-
-        const authResult = await supabase.auth.getUser();
-        clearTimeout(authTimeoutId);
-
-        const { data: authData, error: authError } = authResult;
-
-        // If auth error, try to get session as fallback
-        if (authError) {
-          logger.log('[Workspace] Auth error, checking session:', authError.message);
-          try {
-            const {
-              data: { session },
-            } = await supabase.auth.getSession();
-            if (!session) {
-              logger.log('[Workspace] No session found, user is not authenticated');
-              setWorkspaces([]);
-              setLoading(false);
-              hasInitialLoadRef.current = true;
-              return;
-            }
-            user = session.user;
-          } catch (sessionError) {
-            logger.error('[Workspace] Failed to get session in auth fallback:', sessionError);
-            setWorkspaces([]);
-            setLoading(false);
-            setError(new Error('Unable to verify authentication'));
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } else {
-          user = authData?.user;
-        }
-      } catch {
-        clearTimeout(authTimeoutId);
-
-        if (signal.aborted) {
-          logger.warn('[Workspace] Auth check aborted or timed out, using session fallback');
-        }
-
-        // Try to get session directly as fallback
-        try {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session?.user) {
-            user = session.user;
-          } else {
-            logger.log('[Workspace] No session in fallback, setting empty workspaces');
-            setWorkspaces([]);
-            setLoading(false);
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } catch (sessionError) {
-          logger.error('[Workspace] Failed to get session:', sessionError);
-          setWorkspaces([]);
-          setLoading(false);
-          setError(new Error('Unable to verify authentication'));
-          hasInitialLoadRef.current = true;
-          return;
-        }
+      if (authError) {
+        logger.error('[Workspace] Authentication check failed:', authError.message);
+        setWorkspaces([]);
+        setLoading(false);
+        setError(new Error('Authentication check timed out. Please refresh the page.'));
+        hasInitialLoadRef.current = true;
+        return;
       }
 
       if (!user) {
-        logger.log('[Workspace] No user found after auth check');
+        logger.log('[Workspace] No user found, user is not authenticated');
         setWorkspaces([]);
         setLoading(false);
         hasInitialLoadRef.current = true;
