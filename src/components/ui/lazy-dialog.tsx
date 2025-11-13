@@ -1,5 +1,6 @@
 import { lazy, Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { logError } from '@/lib/error-logging';
 
 // Export individual lazy components with proper typing
 // Note: Each component imports from the same module, so webpack will
@@ -84,7 +85,16 @@ class DialogErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Dialog loading error:', error, errorInfo);
+    logError('Dialog loading error', error, {
+      tags: {
+        feature: 'ui',
+        operation: 'load-dialog',
+        component: 'DialogErrorBoundary',
+      },
+      extra: {
+        componentStack: errorInfo.componentStack,
+      },
+    });
   }
 
   render() {

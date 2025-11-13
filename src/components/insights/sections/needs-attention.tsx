@@ -18,6 +18,7 @@ import {
   type PrAlert,
   type PrAttentionMetrics,
 } from '@/lib/insights/pr-attention';
+import { logError } from '@/lib/error-logging';
 
 interface NeedsAttentionProps {
   owner: string;
@@ -43,7 +44,18 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
       setAlerts(result.alerts);
       setMetrics(result.metrics);
     } catch (err) {
-      console.error('Failed to load PR alerts:', err);
+      logError('Failed to load PR alerts', err as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-alerts',
+          component: 'NeedsAttention',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+        },
+      });
       setError(err instanceof Error ? err.message : 'Failed to load alerts');
     } finally {
       setLoading(false);

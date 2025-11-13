@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { faqService } from '@/lib/llm/faq-service';
+import { logWarning } from '@/lib/error-logging';
 
 interface FAQ {
   id: string;
@@ -85,7 +86,19 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
         generateStaticFAQs();
       }
     } catch (error) {
-      console.error('Failed to generate AI FAQs, falling back to static:', error);
+      logWarning('Failed to generate AI FAQs, falling back to static', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'generate-faq',
+          component: 'ProjectFAQ',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+          aiAvailable: faqService.isAvailable(),
+        },
+      });
       setUseAI(false);
       generateStaticFAQs();
     }
