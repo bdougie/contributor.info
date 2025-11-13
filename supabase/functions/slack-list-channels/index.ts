@@ -21,6 +21,17 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
 
+// CORS headers - inlined for dashboard deployment compatibility
+// Note: HTTP headers are case-insensitive per RFC 7230, but Deno Edge Functions
+// have a bug with case-sensitive header comparison in CORS preflight.
+// Including both cases is a workaround until this is fixed upstream.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-idempotency-key, X-Idempotency-Key, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK, x-inngest-server-kind, X-Inngest-Server-Kind',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
+};
+
 interface RequestBody {
   integration_id: string;
 }
@@ -80,11 +91,8 @@ serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      status: 200,
+      headers: corsHeaders,
     });
   }
 
@@ -92,10 +100,7 @@ serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -107,10 +112,7 @@ serve(async (req) => {
     if (!integration_id) {
       return new Response(JSON.stringify({ error: 'integration_id is required' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -119,10 +121,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -139,7 +138,7 @@ serve(async (req) => {
             Authorization: authHeader,
           },
         },
-      }
+      },
     );
 
     // Verify the user's JWT and get their auth ID
@@ -152,10 +151,7 @@ serve(async (req) => {
       console.error('Authentication failed: %s', authError?.message);
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -170,39 +166,48 @@ serve(async (req) => {
       console.error('Failed to fetch integration: %s', fetchError?.message);
       return new Response(JSON.stringify({ error: 'Integration not found' }), {
         status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Verify user has access to this workspace
-    // Join through app_users to match auth.uid() with app_users.auth_user_id
+    // First get the app_user id from auth_user_id
+    const { data: appUser, error: appUserError } = await supabaseAdmin
+      .from('app_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (appUserError || !appUser) {
+      console.error('Failed to find app_user: %s', appUserError?.message || 'User not found');
+      return new Response(
+        JSON.stringify({ error: 'User not found in system' }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    // Check workspace membership using app_users.id -> workspace_members.user_id
     const { data: membership, error: membershipError } = await supabaseAdmin
       .from('workspace_members')
-      .select(`
-        id,
-        user:app_users!inner(auth_user_id)
-      `)
+      .select('id')
       .eq('workspace_id', integration.workspace_id)
-      .eq('app_users.auth_user_id', user.id)
+      .eq('user_id', appUser.id)
       .maybeSingle();
 
     if (membershipError || !membership) {
       console.error(
         'Workspace membership check failed: %s',
-        membershipError?.message || 'User not a member'
+        membershipError?.message || 'User not a member',
       );
       return new Response(
         JSON.stringify({ error: 'Access denied: not a member of this workspace' }),
         {
           status: 403,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-        }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
@@ -214,10 +219,7 @@ serve(async (req) => {
       console.error('Failed to decrypt bot token: %s', decryptError);
       return new Response(JSON.stringify({ error: 'Failed to decrypt bot token' }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -254,7 +256,7 @@ serve(async (req) => {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*',
             },
-          }
+          },
         );
       }
 
@@ -271,7 +273,7 @@ serve(async (req) => {
             name: ch.name,
             is_private: ch.is_private,
             is_member: ch.is_member,
-          }))
+          })),
         );
       }
 
@@ -282,10 +284,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ channels }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('List channels error: %s', error);
@@ -296,11 +295,8 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     );
   }
 });
