@@ -268,18 +268,20 @@ export function PerformanceMonitoringDashboard() {
 
   const getOverallHealthStatus = useCallback((): 'good' | 'warning' | 'critical' => {
     const dbStatus = getDatabaseStatus();
-    const githubStatus =
-      healthData.github?.status === 'healthy'
-        ? 'good'
-        : healthData.github?.status === 'degraded'
-          ? 'warning'
-          : 'critical';
-    const mainStatus =
-      healthData.main?.status === 'healthy'
-        ? 'good'
-        : healthData.main?.status === 'degraded'
-          ? 'warning'
-          : 'critical';
+
+    let githubStatus: 'good' | 'warning' | 'critical' = 'critical';
+    if (healthData.github?.status === 'healthy') {
+      githubStatus = 'good';
+    } else if (healthData.github?.status === 'degraded') {
+      githubStatus = 'warning';
+    }
+
+    let mainStatus: 'good' | 'warning' | 'critical' = 'critical';
+    if (healthData.main?.status === 'healthy') {
+      mainStatus = 'good';
+    } else if (healthData.main?.status === 'degraded') {
+      mainStatus = 'warning';
+    }
 
     if (dbStatus === 'critical' || githubStatus === 'critical' || mainStatus === 'critical') {
       return 'critical';
@@ -694,13 +696,11 @@ export function PerformanceMonitoringDashboard() {
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Performance Score</span>
                       <Badge
-                        variant={
-                          cdnMetrics.performanceScore === 'Excellent'
-                            ? 'default'
-                            : cdnMetrics.performanceScore === 'Poor'
-                              ? 'destructive'
-                              : 'secondary'
-                        }
+                        variant={(() => {
+                          if (cdnMetrics.performanceScore === 'Excellent') return 'default';
+                          if (cdnMetrics.performanceScore === 'Poor') return 'destructive';
+                          return 'secondary';
+                        })()}
                       >
                         {cdnMetrics.performanceScore}
                       </Badge>

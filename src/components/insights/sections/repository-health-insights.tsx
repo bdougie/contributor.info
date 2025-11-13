@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Heart, AlertTriangle, Sparkles, Brain } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,11 +20,37 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
   const [llmInsight, setLlmInsight] = useState<LLMInsight | null>(null);
   const [llmLoading, setLlmLoading] = useState(false);
 
-  useEffect(() => {
-    loadHealthMetrics();
-  }, [owner, repo, timeRange]);
+  const loadLLMInsight = useCallback(
+    async (healthData: HealthMetrics) => {
+      setLlmLoading(true);
+      try {
+        const insight = await llmService.generateHealthInsight(healthData, {
+          owner,
+          repo,
+        });
+        setLlmInsight(insight);
+      } catch (error) {
+        logError('Failed to load LLM insight', error as Error, {
+          tags: {
+            feature: 'insights',
+            operation: 'load-llm-insight',
+            component: 'InsightsHealth',
+          },
+          extra: {
+            owner,
+            repo,
+            hasHealthData: !!healthData,
+          },
+        });
+        setLlmInsight(null);
+      } finally {
+        setLlmLoading(false);
+      }
+    },
+    [owner, repo]
+  );
 
-  const loadHealthMetrics = async () => {
+  const loadHealthMetrics = useCallback(async () => {
     setLoading(true);
     setLlmInsight(null);
 
@@ -53,34 +79,11 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange, loadLLMInsight]);
 
-  const loadLLMInsight = async (healthData: HealthMetrics) => {
-    setLlmLoading(true);
-    try {
-      const insight = await llmService.generateHealthInsight(healthData, {
-        owner,
-        repo,
-      });
-      setLlmInsight(insight);
-    } catch (error) {
-      logError('Failed to load LLM insight', error as Error, {
-        tags: {
-          feature: 'insights',
-          operation: 'load-llm-insight',
-          component: 'InsightsHealth',
-        },
-        extra: {
-          owner,
-          repo,
-          hasHealthData: !!healthData,
-        },
-      });
-      setLlmInsight(null);
-    } finally {
-      setLlmLoading(false);
-    }
-  };
+  useEffect(() => {
+    loadHealthMetrics();
+  }, [loadHealthMetrics]);
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return 'text-green-600';
@@ -133,13 +136,14 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
             )}
           </div>
 
-          {llmLoading ? (
+          {llmLoading && (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-4 w-3/4" />
             </div>
-          ) : llmInsight ? (
+          )}
+          {!llmLoading && llmInsight && (
             <div className="space-y-3">
               <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {llmInsight.content}
@@ -148,7 +152,7 @@ export function InsightsHealth({ owner, repo, timeRange }: RepositoryHealthProps
                 Generated {new Date(llmInsight.timestamp).toLocaleTimeString()}
               </p>
             </div>
-          ) : null}
+          )}
         </Card>
       )}
       {/* Recommendations */}

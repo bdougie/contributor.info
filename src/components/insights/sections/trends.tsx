@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -24,11 +24,7 @@ export function Trends({ owner, repo, timeRange }: TrendsProps) {
   const [loading, setLoading] = useState(true);
   const [trends, setTrends] = useState<TrendData[]>([]);
 
-  useEffect(() => {
-    loadTrends();
-  }, [owner, repo, timeRange]);
-
-  const loadTrends = async () => {
+  const loadTrends = useCallback(async () => {
     setLoading(true);
     try {
       const trendData = await calculateTrendMetrics(owner, repo, timeRange);
@@ -50,7 +46,11 @@ export function Trends({ owner, repo, timeRange }: TrendsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange]);
+
+  useEffect(() => {
+    loadTrends();
+  }, [loadTrends]);
 
   const getTrendIcon = (trend: TrendData['trend'], change: number) => {
     if (trend === 'stable' || change === 0) return null;

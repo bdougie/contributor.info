@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -32,11 +32,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
   const [metrics, setMetrics] = useState<PrAttentionMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadAlerts();
-  }, [owner, repo, timeRange]);
-
-  const loadAlerts = async () => {
+  const loadAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -60,7 +56,11 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
 
   const getUrgencyIcon = (urgency: PrAlert['urgency']) => {
     switch (urgency) {
