@@ -12,6 +12,7 @@ import {
 import { WorkspacePermissionService } from './workspace-permissions.service';
 import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
 import { inngest } from '@/lib/inngest/client';
+import { logError } from '@/lib/error-logging';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -107,7 +108,10 @@ export class WorkspaceService {
         .eq('owner_id', userId);
 
       if (countError) {
-        console.error('Error checking workspace count:', countError);
+        logError('Error checking workspace count', countError, {
+          tags: { feature: 'workspace', operation: 'check_count' },
+          extra: { userId },
+        });
         return {
           success: false,
           error: 'Failed to check workspace limit',
@@ -201,7 +205,10 @@ export class WorkspaceService {
         statusCode: 201,
       };
     } catch (error) {
-      console.error('Create workspace error:', error);
+      logError('Create workspace error', error, {
+        tags: { feature: 'workspace', operation: 'create' },
+        extra: { workspaceName: data.name, ownerId: userId },
+      });
       return {
         success: false,
         error: 'Failed to create workspace',
@@ -283,7 +290,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('Update workspace error:', error);
+      logError('Update workspace error', error, {
+        tags: { feature: 'workspace', operation: 'update' },
+        extra: { workspaceId, userId },
+      });
       return {
         success: false,
         error: 'Failed to update workspace',
@@ -338,7 +348,10 @@ export class WorkspaceService {
         statusCode: 200,
       };
     } catch (error) {
-      console.error('Delete workspace error:', error);
+      logError('Delete workspace error', error, {
+        tags: { feature: 'workspace', operation: 'delete' },
+        extra: { workspaceId, userId },
+      });
       return {
         success: false,
         error: 'Failed to delete workspace',
