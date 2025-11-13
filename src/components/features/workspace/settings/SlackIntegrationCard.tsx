@@ -38,6 +38,7 @@ import {
   isOAuthIntegration,
 } from '@/services/slack-integration.service';
 import type { SlackChannel } from '@/types/workspace';
+import { logError } from '@/lib/error-logging';
 
 interface SlackIntegrationCardProps {
   workspaceId: string;
@@ -147,7 +148,16 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       // Redirect to Slack OAuth URL with secure state
       window.location.href = oauth_url;
     } catch (error) {
-      console.error('Failed to initiate Slack OAuth: %s', error);
+      logError('Failed to initiate Slack OAuth', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'oauth-init',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+        },
+      });
       toast({
         title: 'Configuration Error',
         description: 'Failed to start Slack app installation. Please try again.',
@@ -162,7 +172,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       const fetchedChannels = await getChannelsForIntegration(integrationId);
       setChannels((prev) => ({ ...prev, [integrationId]: fetchedChannels }));
     } catch (error) {
-      console.error('Failed to fetch channels: %s', error);
+      logError('Failed to fetch Slack channels', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'fetch-channels',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationId,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to fetch Slack channels',
@@ -189,7 +209,19 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       });
       refetch();
     } catch (error) {
-      console.error('Failed to set channel: %s', error);
+      logError('Failed to set Slack channel', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'set-channel',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationId,
+          channelId,
+          channelName: selectedChannel?.name,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to set channel',
@@ -206,7 +238,18 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         description: `The Slack integration has been ${enabled ? 'enabled' : 'disabled'}`,
       });
     } catch (error) {
-      console.error('Failed to toggle integration: %s', error);
+      logError('Failed to toggle Slack integration', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'toggle-enabled',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationId,
+          enabled,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to update integration',
@@ -227,7 +270,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         description: 'The Slack integration has been removed',
       });
     } catch (error) {
-      console.error('Failed to delete integration: %s', error);
+      logError('Failed to delete Slack integration', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'delete',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationId,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to delete integration',
@@ -246,7 +299,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         description: 'All Slack integrations have been removed',
       });
     } catch (error) {
-      console.error('Failed to disconnect all integrations: %s', error);
+      logError('Failed to disconnect all Slack integrations', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'disconnect-all',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationCount: integrations.length,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to disconnect all integrations',
@@ -305,7 +368,17 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         });
       }
     } catch (error) {
-      console.error('Failed to test integration: %s', error);
+      logError('Failed to test Slack integration', error as Error, {
+        tags: {
+          feature: 'slack',
+          operation: 'test',
+          component: 'SlackIntegrationCard',
+        },
+        extra: {
+          workspaceId,
+          integrationId,
+        },
+      });
       toast({
         title: 'Error',
         description: 'Failed to test integration',

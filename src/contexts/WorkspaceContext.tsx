@@ -19,6 +19,7 @@ import {
   WORKSPACE_LIMITS,
 } from '@/lib/workspace-config';
 import { parseWorkspaceIdentifier } from '@/types/workspace-identifier';
+import { logError, logWarning } from '@/lib/error-logging';
 
 // Extend WorkspacePreviewData to include additional fields that might be needed
 interface Workspace extends Omit<WorkspacePreviewData, 'slug'> {
@@ -206,10 +207,19 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       timeoutRef.current = setTimeout(() => {
         // Double-check if still loading to avoid race condition
         if (workspacesLoading) {
-          console.error(
-            '[WorkspaceContext] Workspace loading timed out after',
-            WORKSPACE_TIMEOUTS.CONTEXT,
-            'ms'
+          logWarning(
+            'Workspace loading timed out',
+            new Error(`Workspace loading timed out after ${WORKSPACE_TIMEOUTS.CONTEXT}ms`),
+            {
+              tags: {
+                feature: 'workspace',
+                operation: 'load',
+                component: 'WorkspaceContext',
+              },
+              extra: {
+                timeoutMs: WORKSPACE_TIMEOUTS.CONTEXT,
+              },
+            }
           );
           setHasTimedOut(true);
         }
@@ -233,7 +243,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Log workspace errors
   useEffect(() => {
     if (workspacesError) {
-      console.error('[WorkspaceContext] Workspace loading error:', workspacesError);
+      logError('Workspace loading error', workspacesError, {
+        tags: {
+          feature: 'workspace',
+          operation: 'load',
+          component: 'WorkspaceContext',
+        },
+        extra: {
+          errorMessage: workspacesError.message,
+        },
+      });
       setError(workspacesError.message);
     }
   }, [workspacesError]);
@@ -275,7 +294,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       const workspace = findWorkspace(idOrSlug);
       if (!workspace) {
         const errorMsg = WORKSPACE_ERROR_MESSAGES.NOT_FOUND(idOrSlug);
-        console.error(errorMsg);
+        logError('Workspace not found', new Error(errorMsg), {
+          tags: {
+            feature: 'workspace',
+            operation: 'switch',
+            component: 'WorkspaceContext',
+          },
+          extra: {
+            idOrSlug,
+          },
+        });
         setError(errorMsg);
         return;
       }
@@ -304,7 +332,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : WORKSPACE_ERROR_MESSAGES.SWITCH_FAILED;
-        console.error('Failed to switch workspace:', errorMessage);
+        logError('Failed to switch workspace', error as Error, {
+          tags: {
+            feature: 'workspace',
+            operation: 'switch',
+            component: 'WorkspaceContext',
+          },
+          extra: {
+            idOrSlug,
+            errorMessage,
+          },
+        });
         setError(errorMessage);
         throw new Error(errorMessage);
       } finally {

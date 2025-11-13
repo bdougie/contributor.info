@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { analyzePullRequests, type PRAnalysisResult } from '../../lib/insights/pullRequests';
+import { logError } from '@/lib/error-logging';
 
 interface PullRequestInsightsProps {
   owner: string;
@@ -26,7 +27,18 @@ export function PullRequestInsights({ owner, repo, dateRange }: PullRequestInsig
         const analysis = await analyzePullRequests(owner, repo, dateRange);
         setPrAnalysis(analysis.totalPRs > 0 ? analysis : null);
       } catch (err) {
-        console.error('Error fetching PR analysis:', err);
+        logError('Error fetching PR analysis', err as Error, {
+          tags: {
+            feature: 'insights',
+            operation: 'fetch-pr-analysis',
+            component: 'PullRequestInsights',
+          },
+          extra: {
+            owner,
+            repo,
+            hasDateRange: !!dateRange,
+          },
+        });
         setError('Failed to analyze pull requests. Please try again.');
       } finally {
         setLoading(false);
