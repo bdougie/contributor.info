@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
+import { safeGetSession } from '@/lib/auth/safe-auth';
 
 /**
  * Hook for managing GitHub authentication state and actions
@@ -58,9 +59,12 @@ export function useGitHubAuth() {
         }
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      // Use safe session check with timeout protection
+      const { session, error: sessionError } = await safeGetSession();
+      if (sessionError) {
+        // Handle session check error gracefully
+        console.error('Session check error:', sessionError);
+      }
       const isAuthenticated = !!session;
       setIsLoggedIn(isAuthenticated);
 
@@ -180,11 +184,11 @@ export function useGitHubAuth() {
   };
 
   /**
-   * Force check the current session
+   * Force check the current session with timeout protection
    */
   const checkSession = async () => {
-    const { data } = await supabase.auth.getSession();
-    return !!data.session;
+    const { session } = await safeGetSession();
+    return !!session;
   };
 
   return {

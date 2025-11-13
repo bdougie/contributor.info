@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
+import { safeGetUser } from '@/lib/auth/safe-auth';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -77,117 +78,33 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with hard timeout using Promise.race
-      let user = null;
+      // Check if user is authenticated using safe auth utility with timeout protection
+      logger.log('[Workspace] Checking auth status...');
 
-      // Helper to wrap auth calls with hard timeout
-      const withTimeout = <T>(
-        promise: Promise<T>,
-        timeoutMs: number,
-        timeoutError: string
-      ): Promise<T> => {
-        return Promise.race([
-          promise,
-          new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error(timeoutError)), timeoutMs)
-          ),
-        ]);
-      };
+      // Check if aborted before making auth call
+      if (signal.aborted) {
+        logger.warn('[Workspace] Request aborted before auth check');
+        setWorkspaces([]);
+        setLoading(false);
+        hasInitialLoadRef.current = true;
+        return;
+      }
 
-      // Track slow auth for logging
-      const slowAuthTimer = setTimeout(() => {
-        logger.log('[Workspace] Auth taking longer than expected (>1s)...');
-      }, 1000);
+      // Use centralized safe auth utility with 2-second timeout
+      // This handles timeout protection and automatic session fallback
+      const { user, error: authError } = await safeGetUser(2000);
 
-      try {
-        logger.log('[Workspace] Checking auth status...');
-
-        // Check if aborted
-        if (signal.aborted) {
-          throw new Error('Request aborted');
-        }
-
-        // Wrap getUser with 2-second hard timeout
-        const authResult = await withTimeout(supabase.auth.getUser(), 2000, 'Auth timeout');
-        clearTimeout(slowAuthTimer);
-
-        const { data: authData, error: authError } = authResult;
-
-        // If auth error, try to get session as fallback
-        if (authError) {
-          logger.log('[Workspace] Auth error, checking session:', authError.message);
-          try {
-            // Wrap getSession with 2-second hard timeout
-            const sessionResult = await withTimeout(
-              supabase.auth.getSession(),
-              2000,
-              'Session timeout'
-            );
-            const {
-              data: { session },
-            } = sessionResult;
-
-            if (!session) {
-              logger.log('[Workspace] No session found, user is not authenticated');
-              setWorkspaces([]);
-              setLoading(false);
-              hasInitialLoadRef.current = true;
-              return;
-            }
-            user = session.user;
-          } catch (sessionError) {
-            logger.error('[Workspace] Failed to get session in auth fallback:', sessionError);
-            setWorkspaces([]);
-            setLoading(false);
-            setError(new Error('Unable to verify authentication'));
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } else {
-          user = authData?.user;
-        }
-      } catch {
-        clearTimeout(slowAuthTimer);
-
-        // Check if this was a timeout or abort
-        if (signal.aborted) {
-          logger.warn('[Workspace] Auth check aborted, using session fallback');
-        } else {
-          logger.warn('[Workspace] Auth check timed out after 2s, using session fallback');
-        }
-
-        // Try to get session directly as fallback with timeout
-        try {
-          const sessionResult = await withTimeout(
-            supabase.auth.getSession(),
-            2000,
-            'Session fallback timeout'
-          );
-          const {
-            data: { session },
-          } = sessionResult;
-
-          if (session?.user) {
-            user = session.user;
-          } else {
-            logger.log('[Workspace] No session in fallback, treating as unauthenticated');
-            setWorkspaces([]);
-            setLoading(false);
-            hasInitialLoadRef.current = true;
-            return;
-          }
-        } catch (sessionError) {
-          logger.error('[Workspace] Session fallback also timed out or failed:', sessionError);
-          setWorkspaces([]);
-          setLoading(false);
-          setError(new Error('Authentication check timed out. Please refresh the page.'));
-          hasInitialLoadRef.current = true;
-          return;
-        }
+      if (authError) {
+        logger.error('[Workspace] Authentication check failed:', authError.message);
+        setWorkspaces([]);
+        setLoading(false);
+        setError(new Error('Authentication check timed out. Please refresh the page.'));
+        hasInitialLoadRef.current = true;
+        return;
       }
 
       if (!user) {
-        logger.log('[Workspace] No user found after auth check');
+        logger.log('[Workspace] No user found, user is not authenticated');
         setWorkspaces([]);
         setLoading(false);
         hasInitialLoadRef.current = true;

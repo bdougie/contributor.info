@@ -96,6 +96,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasTimedOut, setHasTimedOut] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
 
   // Find active workspace from the list (support both ID and slug)
@@ -229,6 +230,11 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       setHasTimedOut(false);
       // Reset retry count on successful load
       retryCountRef.current = 0;
+      // Clear any pending retry since data loaded successfully
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     }
 
     // Cleanup function
@@ -236,6 +242,11 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      // Also clear retry timeout on cleanup
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
       }
     };
   }, [workspacesLoading, hasTimedOut]);
@@ -372,17 +383,25 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setError(null);
     setHasTimedOut(false);
 
-    // Clear any existing timeout
+    // Clear any existing loading timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
 
-    // Trigger refetch after backoff delay
-    setTimeout(() => {
+    // Clear any existing retry timeout to prevent duplicate retries
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    // Trigger refetch after backoff delay and store the timeout handle
+    retryTimeoutRef.current = setTimeout(() => {
       if (refetch) {
         refetch();
       }
+      // Clear the timeout ref after it fires
+      retryTimeoutRef.current = null;
     }, backoffDelay);
   }, [refetch]);
 
