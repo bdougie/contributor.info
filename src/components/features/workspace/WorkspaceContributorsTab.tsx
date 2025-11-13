@@ -5,8 +5,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { unparse } from 'papaparse';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { exportContributorsToCSV } from '@/lib/utils/csv-export';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -268,25 +268,7 @@ export function WorkspaceContributorsTab({
   };
 
   const handleExport = () => {
-    const csvData = filteredContributors.map((c) => ({
-      Username: c.username,
-      Name: c.name,
-      'Pull Requests': c.contributions.pull_requests,
-      Issues: c.contributions.issues,
-      Commits: c.contributions.commits,
-      'Repositories Contributed': c.stats.repositories_contributed,
-    }));
-
-    const csv = unparse(csvData);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'contributors.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportContributorsToCSV(filteredContributors, 'contributors.csv');
   };
 
   // CRM handler functions
