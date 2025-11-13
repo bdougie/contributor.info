@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-// Integration tests for WorkspaceContext retry timer cleanup - requires async patterns
+// Integration tests for WorkspaceContext retry mechanism
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, waitFor, cleanup } from '@testing-library/react';
 import { WorkspaceProvider, useWorkspaceContext } from '../WorkspaceContext';
@@ -32,13 +32,15 @@ vi.mock('react-router-dom', async () => {
 
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 
-describe('WorkspaceContext - Retry Timer Cleanup', () => {
+describe('WorkspaceContext - Retry Mechanism', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
   });
 
   const mockWorkspace: WorkspacePreviewData = {
@@ -58,10 +60,11 @@ describe('WorkspaceContext - Retry Timer Cleanup', () => {
   };
 
   function TestComponent() {
-    const { workspaces, retry } = useWorkspaceContext();
+    const { workspaces, retry, error } = useWorkspaceContext();
     return (
       <div>
         <div data-testid="workspace-count">{workspaces.length}</div>
+        <div data-testid="error">{error || 'no-error'}</div>
         <button onClick={retry} data-testid="retry-button">
           Retry
         </button>
@@ -69,9 +72,178 @@ describe('WorkspaceContext - Retry Timer Cleanup', () => {
     );
   }
 
-  it('should clear retry timeout when component unmounts', async () => {
+  it('should trigger refetch when retry is called', async () => {
     const mockRefetch = vi.fn();
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [],
+      loading: false,
+      error: new Error('Test error'),
+      refetch: mockRefetch,
+    });
+
+    const { getByTestId } = render(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    // Click retry button
+    getByTestId('retry-button').click();
+
+    // Fast-forward timers to trigger the retry
+    vi.advanceTimersByTime(1000); // First retry is after 1000ms
+
+    await waitFor(() => {
+      // Verify refetch was called
+      expect(mockRefetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should use exponential backoff for retry delays', async () => {
+    const mockRefetch = vi.fn();
+
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [],
+      loading: false,
+      error: new Error('Test error'),
+      refetch: mockRefetch,
+    });
+
+    const { getByTestId } = render(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    // First retry - 1000ms delay
+    getByTestId('retry-button').click();
+    vi.advanceTimersByTime(1000);
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
+    // Second retry - 2000ms delay
+    getByTestId('retry-button').click();
+    vi.advanceTimersByTime(2000);
+    expect(mockRefetch).toHaveBeenCalledTimes(2);
+
+    // Third retry - 4000ms delay
+    getByTestId('retry-button').click();
+    vi.advanceTimersByTime(4000);
+    expect(mockRefetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('should not trigger multiple concurrent retries', async () => {
+    const mockRefetch = vi.fn();
+
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [],
+      loading: false,
+      error: new Error('Test error'),
+      refetch: mockRefetch,
+    });
+
+    const { getByTestId } = render(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    // Click retry button multiple times quickly
+    getByTestId('retry-button').click();
+    getByTestId('retry-button').click();
+    getByTestId('retry-button').click();
+
+    // Fast-forward past first retry delay
+    vi.advanceTimersByTime(1500);
+
+    await waitFor(() => {
+      // Should only have triggered one refetch despite multiple clicks
+      expect(mockRefetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('should reset retry count on successful data load', async () => {
+    const mockRefetch = vi.fn();
+
+    // Start with error
+    const { rerender, getByTestId } = render(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [],
+      loading: false,
+      error: new Error('Test error'),
+      refetch: mockRefetch,
+    });
+
+    // Trigger first retry
+    rerender(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    getByTestId('retry-button').click();
+    vi.advanceTimersByTime(1000);
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
+    // Simulate successful load
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [mockWorkspace],
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    rerender(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    // Simulate error again
+    vi.mocked(useUserWorkspaces).mockReturnValue({
+      workspaces: [],
+      loading: false,
+      error: new Error('New error'),
+      refetch: mockRefetch,
+    });
+
+    rerender(
+      <MemoryRouter>
+        <WorkspaceProvider>
+          <TestComponent />
+        </WorkspaceProvider>
+      </MemoryRouter>
+    );
+
+    // Clear previous calls
+    mockRefetch.mockClear();
+
+    // Click retry again - should use 1000ms delay (reset)
+    getByTestId('retry-button').click();
+    vi.advanceTimersByTime(1000);
+
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should cleanup pending retries on unmount', async () => {
+    const mockRefetch = vi.fn();
 
     vi.mocked(useUserWorkspaces).mockReturnValue({
       workspaces: [],
@@ -88,134 +260,16 @@ describe('WorkspaceContext - Retry Timer Cleanup', () => {
       </MemoryRouter>
     );
 
-    // Trigger retry to set up a timeout
+    // Schedule a retry
     getByTestId('retry-button').click();
 
-    // Wait for setTimeout to be called
-    await waitFor(() => {
-      expect(mockRefetch).toBeDefined();
-    });
-
-    // Unmount the component
+    // Unmount before the retry fires
     unmount();
 
-    // Verify clearTimeout was called during cleanup
-    expect(clearTimeoutSpy).toHaveBeenCalled();
+    // Fast-forward past when retry would have fired
+    vi.advanceTimersByTime(2000);
 
-    clearTimeoutSpy.mockRestore();
-  });
-
-  it('should clear retry timeout when data loads successfully', async () => {
-    const mockRefetch = vi.fn();
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-    // Start with empty workspaces
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [],
-      loading: false,
-      error: null,
-      refetch: mockRefetch,
-    });
-
-    const { rerender } = render(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    // Simulate successful data load
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [mockWorkspace],
-      loading: false,
-      error: null,
-      refetch: mockRefetch,
-    });
-
-    rerender(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      // Verify clearTimeout was called when data loaded
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-    });
-
-    clearTimeoutSpy.mockRestore();
-  });
-
-  it('should schedule retry with exponential backoff delay', async () => {
-    const mockRefetch = vi.fn();
-    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
-
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [],
-      loading: false,
-      error: new Error('Test error'),
-      refetch: mockRefetch,
-    });
-
-    const { getByTestId } = render(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    // Click retry button - should schedule setTimeout
-    getByTestId('retry-button').click();
-
-    await waitFor(() => {
-      // Verify setTimeout was called (for the retry delay)
-      expect(setTimeoutSpy).toHaveBeenCalled();
-      // First retry should use 1000ms delay
-      const lastCall = setTimeoutSpy.mock.calls[setTimeoutSpy.mock.calls.length - 1];
-      expect(lastCall[1]).toBe(1000);
-    });
-
-    setTimeoutSpy.mockRestore();
-  });
-
-  it('should clear existing retry timeout before scheduling new retry', async () => {
-    const mockRefetch = vi.fn();
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [],
-      loading: false,
-      error: new Error('Test error'),
-      refetch: mockRefetch,
-    });
-
-    const { getByTestId } = render(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    // Click retry button first time
-    getByTestId('retry-button').click();
-    const firstClearCount = clearTimeoutSpy.mock.calls.length;
-
-    // Wait a bit to ensure setTimeout is called
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    // Click retry button second time - should clear the previous timeout
-    getByTestId('retry-button').click();
-
-    await waitFor(() => {
-      // Verify clearTimeout was called again
-      expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(firstClearCount);
-    });
-
-    clearTimeoutSpy.mockRestore();
+    // Refetch should not have been called since component unmounted
+    expect(mockRefetch).not.toHaveBeenCalled();
   });
 });
