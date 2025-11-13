@@ -352,7 +352,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     [activeWorkspaceId, navigate, addToRecent, findWorkspace]
   );
 
-  // Add retry functionality
+  // Add retry functionality with exponential backoff
   const retry = useCallback(() => {
     if (retryCountRef.current >= WORKSPACE_TIMEOUTS.MAX_RETRIES) {
       setError(WORKSPACE_ERROR_MESSAGES.GENERIC);
@@ -360,8 +360,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }
 
     retryCountRef.current += 1;
+
+    // Calculate exponential backoff delay: 1s, 2s, 4s (capped at 5s)
+    const backoffDelay = Math.min(1000 * Math.pow(2, retryCountRef.current - 1), 5000);
+
     console.log(
-      `[WorkspaceContext] Retrying workspace fetch (attempt ${retryCountRef.current}/${WORKSPACE_TIMEOUTS.MAX_RETRIES})`
+      `[WorkspaceContext] Retrying workspace fetch (attempt ${retryCountRef.current}/${WORKSPACE_TIMEOUTS.MAX_RETRIES}) after ${backoffDelay}ms`
     );
 
     // Clear error and timeout states
@@ -374,10 +378,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       timeoutRef.current = null;
     }
 
-    // Trigger refetch if available
-    if (refetch) {
-      refetch();
-    }
+    // Trigger refetch after backoff delay
+    setTimeout(() => {
+      if (refetch) {
+        refetch();
+      }
+    }, backoffDelay);
   }, [refetch]);
 
   const value: WorkspaceContextValue = {

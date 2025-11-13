@@ -77,13 +77,27 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       setLoading(true);
       setError(null);
 
-      // Check if user is authenticated - with AbortController timeout
+      // Check if user is authenticated - with hard timeout using Promise.race
       let user = null;
 
-      // Add timeout using AbortSignal
-      const authTimeoutId = setTimeout(() => {
-        abortControllerRef.current?.abort();
-      }, 2000);
+      // Helper to wrap auth calls with hard timeout
+      const withTimeout = <T>(
+        promise: Promise<T>,
+        timeoutMs: number,
+        timeoutError: string
+      ): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(timeoutError)), timeoutMs)
+          ),
+        ]);
+      };
+
+      // Track slow auth for logging
+      const slowAuthTimer = setTimeout(() => {
+        logger.log('[Workspace] Auth taking longer than expected (>1s)...');
+      }, 1000);
 
       try {
         logger.log('[Workspace] Checking auth status...');
@@ -93,8 +107,9 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           throw new Error('Request aborted');
         }
 
-        const authResult = await supabase.auth.getUser();
-        clearTimeout(authTimeoutId);
+        // Wrap getUser with 2-second hard timeout
+        const authResult = await withTimeout(supabase.auth.getUser(), 2000, 'Auth timeout');
+        clearTimeout(slowAuthTimer);
 
         const { data: authData, error: authError } = authResult;
 
@@ -102,9 +117,16 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
         if (authError) {
           logger.log('[Workspace] Auth error, checking session:', authError.message);
           try {
+            // Wrap getSession with 2-second hard timeout
+            const sessionResult = await withTimeout(
+              supabase.auth.getSession(),
+              2000,
+              'Session timeout'
+            );
             const {
               data: { session },
-            } = await supabase.auth.getSession();
+            } = sessionResult;
+
             if (!session) {
               logger.log('[Workspace] No session found, user is not authenticated');
               setWorkspaces([]);
@@ -125,31 +147,40 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
           user = authData?.user;
         }
       } catch {
-        clearTimeout(authTimeoutId);
+        clearTimeout(slowAuthTimer);
 
+        // Check if this was a timeout or abort
         if (signal.aborted) {
-          logger.warn('[Workspace] Auth check aborted or timed out, using session fallback');
+          logger.warn('[Workspace] Auth check aborted, using session fallback');
+        } else {
+          logger.warn('[Workspace] Auth check timed out after 2s, using session fallback');
         }
 
-        // Try to get session directly as fallback
+        // Try to get session directly as fallback with timeout
         try {
+          const sessionResult = await withTimeout(
+            supabase.auth.getSession(),
+            2000,
+            'Session fallback timeout'
+          );
           const {
             data: { session },
-          } = await supabase.auth.getSession();
+          } = sessionResult;
+
           if (session?.user) {
             user = session.user;
           } else {
-            logger.log('[Workspace] No session in fallback, setting empty workspaces');
+            logger.log('[Workspace] No session in fallback, treating as unauthenticated');
             setWorkspaces([]);
             setLoading(false);
             hasInitialLoadRef.current = true;
             return;
           }
         } catch (sessionError) {
-          logger.error('[Workspace] Failed to get session:', sessionError);
+          logger.error('[Workspace] Session fallback also timed out or failed:', sessionError);
           setWorkspaces([]);
           setLoading(false);
-          setError(new Error('Unable to verify authentication'));
+          setError(new Error('Authentication check timed out. Please refresh the page.'));
           hasInitialLoadRef.current = true;
           return;
         }
