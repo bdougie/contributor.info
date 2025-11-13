@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { calculateTrendMetrics, type TrendData } from '@/lib/insights/trends-metrics';
+import { logError } from '@/lib/error-logging';
 
 interface TrendsProps {
   owner: string;
@@ -23,22 +24,33 @@ export function Trends({ owner, repo, timeRange }: TrendsProps) {
   const [loading, setLoading] = useState(true);
   const [trends, setTrends] = useState<TrendData[]>([]);
 
-  useEffect(() => {
-    loadTrends();
-  }, [owner, repo, timeRange]);
-
-  const loadTrends = async () => {
+  const loadTrends = useCallback(async () => {
     setLoading(true);
     try {
       const trendData = await calculateTrendMetrics(owner, repo, timeRange);
       setTrends(trendData);
     } catch (error) {
-      console.error('Failed to load trends:', error);
+      logError('Failed to load trends', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-trends',
+          component: 'Trends',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+        },
+      });
       setTrends([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange]);
+
+  useEffect(() => {
+    loadTrends();
+  }, [loadTrends]);
 
   const getTrendIcon = (trend: TrendData['trend'], change: number) => {
     if (trend === 'stable' || change === 0) return null;

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, ChevronRight, HelpCircle } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { faqService } from '@/lib/llm/faq-service';
+import { logWarning } from '@/lib/error-logging';
 
 interface FAQ {
   id: string;
@@ -36,64 +37,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [useAI, setUseAI] = useState(faqService.isAvailable());
 
-  useEffect(() => {
-    generateFAQs();
-  }, [owner, repo, stats.pullRequests, timeRange, useAI]);
-
-  const generateFAQs = async () => {
-    if (!stats.pullRequests || stats.pullRequests.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      if (useAI) {
-        // Use AI-powered FAQ generation
-        const repositoryData = {
-          pullRequests: stats.pullRequests,
-        };
-
-        const aiAnswers = await faqService.generateFAQAnswers(
-          owner,
-          repo,
-          timeRange,
-          repositoryData
-        );
-
-        const aiFAQs: FAQ[] = aiAnswers.map((answer) => ({
-          id: answer.id,
-          question: answer.question,
-          answer: answer.answer,
-          confidence: answer.confidence,
-          sources: answer.sources,
-          isAIGenerated: true,
-          schema: {
-            '@type': 'Question',
-            name: answer.question,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: answer.answer,
-            },
-          },
-        }));
-
-        setFaqs(aiFAQs.slice(0, 8));
-      } else {
-        // Fallback to static FAQ generation
-        generateStaticFAQs();
-      }
-    } catch (error) {
-      console.error('Failed to generate AI FAQs, falling back to static:', error);
-      setUseAI(false);
-      generateStaticFAQs();
-    }
-
-    setLoading(false);
-  };
-
-  const generateStaticFAQs = () => {
+  const generateStaticFAQs = useCallback(() => {
     const generatedFAQs: FAQ[] = [
       {
         id: 'contributor-count',
@@ -189,7 +133,77 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
     ];
 
     setFaqs(generatedFAQs.slice(0, 8)); // Limit to 8 FAQs
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner, repo, stats.pullRequests]);
+
+  const generateFAQs = useCallback(async () => {
+    if (!stats.pullRequests || stats.pullRequests.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (useAI) {
+        // Use AI-powered FAQ generation
+        const repositoryData = {
+          pullRequests: stats.pullRequests,
+        };
+
+        const aiAnswers = await faqService.generateFAQAnswers(
+          owner,
+          repo,
+          timeRange,
+          repositoryData
+        );
+
+        const aiFAQs: FAQ[] = aiAnswers.map((answer) => ({
+          id: answer.id,
+          question: answer.question,
+          answer: answer.answer,
+          confidence: answer.confidence,
+          sources: answer.sources,
+          isAIGenerated: true,
+          schema: {
+            '@type': 'Question',
+            name: answer.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: answer.answer,
+            },
+          },
+        }));
+
+        setFaqs(aiFAQs.slice(0, 8));
+      } else {
+        // Fallback to static FAQ generation
+        generateStaticFAQs();
+      }
+    } catch (error) {
+      logWarning('Failed to generate AI FAQs, falling back to static', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'generate-faq',
+          component: 'ProjectFAQ',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+          aiAvailable: faqService.isAvailable(),
+        },
+      });
+      setUseAI(false);
+      generateStaticFAQs();
+    }
+
+    setLoading(false);
+  }, [owner, repo, stats.pullRequests, timeRange, useAI, generateStaticFAQs]);
+
+  useEffect(() => {
+    generateFAQs();
+  }, [generateFAQs]);
 
   const generateContributorCountAnswer = (): string => {
     if (!stats.pullRequests) return 'Data is still loading...';

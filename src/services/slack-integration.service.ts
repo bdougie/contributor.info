@@ -6,6 +6,7 @@
 import { supabase } from '../lib/supabase';
 import { decryptString } from '../lib/encryption';
 import { postSlackMessage } from './slack-api.service';
+import { logError } from '../lib/error-logging';
 import type {
   SlackIntegration,
   SlackIntegrationWithStatus,
@@ -59,7 +60,10 @@ export async function getSlackIntegrations(workspaceId: string): Promise<SlackIn
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch Slack integrations: %s', error.message);
+    logError('Failed to fetch Slack integrations', error, {
+      tags: { feature: 'slack', operation: 'fetch_integrations' },
+      extra: { workspaceId },
+    });
     throw new Error('Failed to fetch Slack integrations');
   }
 
@@ -108,7 +112,10 @@ export async function getSlackIntegration(integrationId: string): Promise<SlackI
     .maybeSingle();
 
   if (error) {
-    console.error('Failed to fetch Slack integration: %s', error.message);
+    logError('Failed to fetch Slack integration', error, {
+      tags: { feature: 'slack', operation: 'fetch_integration' },
+      extra: { integrationId },
+    });
     return null;
   }
 
@@ -155,7 +162,10 @@ export async function updateSlackIntegration(
     .maybeSingle();
 
   if (error || !data) {
-    console.error('Failed to update Slack integration: %s', error?.message);
+    logError('Failed to update Slack integration', error || new Error('No data returned'), {
+      tags: { feature: 'slack', operation: 'update_integration' },
+      extra: { integrationId, updateData },
+    });
     throw new Error('Failed to update Slack integration');
   }
 
@@ -169,7 +179,10 @@ export async function deleteSlackIntegration(integrationId: string): Promise<voi
   const { error } = await supabase.from('slack_integrations').delete().eq('id', integrationId);
 
   if (error) {
-    console.error('Failed to delete Slack integration: %s', error.message);
+    logError('Failed to delete Slack integration', error, {
+      tags: { feature: 'slack', operation: 'delete_integration' },
+      extra: { integrationId },
+    });
     throw new Error('Failed to delete Slack integration');
   }
 }
@@ -247,7 +260,10 @@ export async function testSlackIntegration(integrationId: string): Promise<boole
 
     return true;
   } catch (error) {
-    console.error('Failed to send test message: %s', error);
+    logError('Failed to send test message', error, {
+      tags: { feature: 'slack', operation: 'test_integration' },
+      extra: { integrationId, channelId: integration.channel_id },
+    });
     await logIntegrationSend(
       integrationId,
       integration.workspace_id,
@@ -381,7 +397,15 @@ export async function sendAssigneeReport(
 
     return true;
   } catch (error) {
-    console.error('Failed to send assignee report: %s', error);
+    logError('Failed to send assignee report', error, {
+      tags: { feature: 'slack', operation: 'send_assignee_report' },
+      extra: {
+        integrationId,
+        workspaceId,
+        assigneeCount: assignees.length,
+        totalIssues,
+      },
+    });
     await logIntegrationSend(
       integrationId,
       workspaceId,
@@ -422,7 +446,10 @@ async function logIntegrationSend(
     .maybeSingle();
 
   if (error) {
-    console.error('Failed to log integration send: %s', error.message);
+    logError('Failed to log integration send', error, {
+      tags: { feature: 'slack', operation: 'log_integration_send' },
+      extra: { integrationId, workspaceId, status },
+    });
     return null;
   }
 
@@ -444,7 +471,10 @@ export async function getIntegrationLogs(
     .limit(limit);
 
   if (error) {
-    console.error('Failed to fetch integration logs: %s', error.message);
+    logError('Failed to fetch integration logs', error, {
+      tags: { feature: 'slack', operation: 'fetch_logs' },
+      extra: { workspaceId, limit },
+    });
     return [];
   }
 
@@ -465,7 +495,10 @@ export async function getChannelsForIntegration(integrationId: string): Promise<
   });
 
   if (error) {
-    console.error('Failed to fetch channels from backend: %s', error.message);
+    logError('Failed to fetch channels from backend', error, {
+      tags: { feature: 'slack', operation: 'fetch_channels' },
+      extra: { integrationId },
+    });
     throw new Error(error.message || 'Failed to fetch channels');
   }
 
@@ -490,7 +523,10 @@ export async function setIntegrationChannel(
     .eq('id', integrationId);
 
   if (error) {
-    console.error('Failed to update channel: %s', error.message);
+    logError('Failed to update channel', error, {
+      tags: { feature: 'slack', operation: 'set_channel' },
+      extra: { integrationId, channelId, channelName },
+    });
     throw new Error('Failed to update channel');
   }
 }
@@ -557,7 +593,16 @@ export async function sendOAuthReport(
 
     return true;
   } catch (error) {
-    console.error('Failed to send OAuth report: %s', error);
+    logError('Failed to send OAuth report', error, {
+      tags: { feature: 'slack', operation: 'send_oauth_report' },
+      extra: {
+        integrationId,
+        workspaceId,
+        assigneeCount: assignees.length,
+        totalIssues,
+        channelId: integration.channel_id,
+      },
+    });
     await logIntegrationSend(
       integrationId,
       workspaceId,

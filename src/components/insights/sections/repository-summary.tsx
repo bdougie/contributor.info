@@ -5,6 +5,7 @@ import { useRepositorySummary } from '@/hooks/use-repository-summary';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { Markdown } from '@/components/common/layout';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { logError } from '@/lib/error-logging';
 // Removed Sentry import - using simple logging instead
 
 interface RepositorySummaryProps {
@@ -108,12 +109,18 @@ export function RepositorySummary({ owner, repo, timeRange }: RepositorySummaryP
       }
       onError={(error, errorInfo) => {
         // Simple error logging without analytics
-        console.error('AI summary error:', {
-          owner,
-          repo,
-          timeRange,
-          error: error.message,
-          componentStack: errorInfo.componentStack,
+        logError('AI summary error', error, {
+          tags: {
+            feature: 'insights',
+            operation: 'ai-summary',
+            component: 'RepositorySummary',
+          },
+          extra: {
+            owner,
+            repo,
+            timeRange,
+            componentStack: errorInfo.componentStack,
+          },
         });
       }}
     >

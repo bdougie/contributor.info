@@ -21,17 +21,6 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
 
-// CORS headers - inlined for dashboard deployment compatibility
-// Note: HTTP headers are case-insensitive per RFC 7230, but Deno Edge Functions
-// have a bug with case-sensitive header comparison in CORS preflight.
-// Including both cases is a workaround until this is fixed upstream.
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-idempotency-key, X-Idempotency-Key, x-inngest-signature, X-Inngest-Signature, x-inngest-sdk, X-Inngest-SDK, x-inngest-server-kind, X-Inngest-Server-Kind',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, HEAD',
-};
-
 interface RequestBody {
   integration_id: string;
 }
@@ -92,7 +81,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 200,
-      headers: corsHeaders,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Max-Age': '86400',
+      },
     });
   }
 
@@ -100,7 +94,10 @@ serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 
@@ -112,7 +109,10 @@ serve(async (req) => {
     if (!integration_id) {
       return new Response(JSON.stringify({ error: 'integration_id is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
     }
 
@@ -121,7 +121,10 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
     }
 
@@ -151,7 +154,10 @@ serve(async (req) => {
       console.error('Authentication failed: %s', authError?.message);
       return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
     }
 
@@ -166,35 +172,23 @@ serve(async (req) => {
       console.error('Failed to fetch integration: %s', fetchError?.message);
       return new Response(JSON.stringify({ error: 'Integration not found' }), {
         status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
     }
 
     // Verify user has access to this workspace
-    // First get the app_user id from auth_user_id
-    const { data: appUser, error: appUserError } = await supabaseAdmin
-      .from('app_users')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .maybeSingle();
-
-    if (appUserError || !appUser) {
-      console.error('Failed to find app_user: %s', appUserError?.message || 'User not found');
-      return new Response(
-        JSON.stringify({ error: 'User not found in system' }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        },
-      );
-    }
-
-    // Check workspace membership using app_users.id -> workspace_members.user_id
+    // Join through app_users to match auth.uid() with app_users.auth_user_id
     const { data: membership, error: membershipError } = await supabaseAdmin
       .from('workspace_members')
-      .select('id')
+      .select(`
+        id,
+        user:app_users!inner(auth_user_id)
+      `)
       .eq('workspace_id', integration.workspace_id)
-      .eq('user_id', appUser.id)
+      .eq('app_users.auth_user_id', user.id)
       .maybeSingle();
 
     if (membershipError || !membership) {
@@ -206,7 +200,10 @@ serve(async (req) => {
         JSON.stringify({ error: 'Access denied: not a member of this workspace' }),
         {
           status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
         },
       );
     }
@@ -219,7 +216,10 @@ serve(async (req) => {
       console.error('Failed to decrypt bot token: %s', decryptError);
       return new Response(JSON.stringify({ error: 'Failed to decrypt bot token' }), {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       });
     }
 
@@ -284,7 +284,10 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ channels }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   } catch (error) {
     console.error('List channels error: %s', error);
@@ -295,7 +298,10 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
       },
     );
   }

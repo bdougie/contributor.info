@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   type PrAlert,
   type PrAttentionMetrics,
 } from '@/lib/insights/pr-attention';
+import { logError } from '@/lib/error-logging';
 
 interface NeedsAttentionProps {
   owner: string;
@@ -31,11 +32,7 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
   const [metrics, setMetrics] = useState<PrAttentionMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadAlerts();
-  }, [owner, repo, timeRange]);
-
-  const loadAlerts = async () => {
+  const loadAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -43,12 +40,27 @@ export function NeedsAttention({ owner, repo, timeRange }: NeedsAttentionProps) 
       setAlerts(result.alerts);
       setMetrics(result.metrics);
     } catch (err) {
-      console.error('Failed to load PR alerts:', err);
+      logError('Failed to load PR alerts', err as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-alerts',
+          component: 'NeedsAttention',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+        },
+      });
       setError(err instanceof Error ? err.message : 'Failed to load alerts');
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo, timeRange]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
 
   const getUrgencyIcon = (urgency: PrAlert['urgency']) => {
     switch (urgency) {

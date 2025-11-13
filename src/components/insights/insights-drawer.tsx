@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { analyzePullRequests } from '@/lib/insights/pullRequests';
 import { useParams } from 'react-router-dom';
+import { logError } from '@/lib/error-logging';
 
 // Lazy load ReactMarkdown
 const ReactMarkdown = lazy(() => import('react-markdown'));
@@ -40,7 +41,17 @@ export function InsightsDrawer() {
       setInsights(insightsMarkdown);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate insights';
-      console.error('Error generating insights:', err);
+      logError('Error generating insights', err as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'generate',
+          component: 'InsightsDrawer',
+        },
+        extra: {
+          owner,
+          repo,
+        },
+      });
       setError(errorMessage);
     } finally {
       setLoading(false);

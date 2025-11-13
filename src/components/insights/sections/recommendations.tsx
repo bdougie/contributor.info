@@ -12,6 +12,7 @@ import {
   type ActivityMetrics,
 } from '@/lib/insights/pr-activity-metrics';
 import { calculateTrendMetrics, type TrendData } from '@/lib/insights/trends-metrics';
+import { logError } from '@/lib/error-logging';
 
 interface Recommendation {
   id: string;
@@ -63,7 +64,18 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
         loadLLMRecommendations(healthData, activityData, trendsData);
       }
     } catch (error) {
-      console.error('Failed to load recommendations:', error);
+      logError('Failed to load recommendations', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-recommendations',
+          component: 'Recommendations',
+        },
+        extra: {
+          owner,
+          repo,
+          timeRange,
+        },
+      });
 
       // Fallback recommendations
       setRecommendations(getFallbackRecommendations());
@@ -96,7 +108,20 @@ export function Recommendations({ owner, repo, timeRange }: RecommendationsProps
       const insight = await llmService.generateRecommendations(combinedData, { owner, repo });
       setLlmInsight(insight);
     } catch (error) {
-      console.error('Failed to load LLM recommendations:', error);
+      logError('Failed to load LLM recommendations', error as Error, {
+        tags: {
+          feature: 'insights',
+          operation: 'load-llm-recommendations',
+          component: 'Recommendations',
+        },
+        extra: {
+          owner,
+          repo,
+          hasHealthData: !!healthData,
+          hasActivityData: !!activityData,
+          hasTrendsData: !!trendsData,
+        },
+      });
       setLlmInsight(null);
     } finally {
       setLlmLoading(false);
