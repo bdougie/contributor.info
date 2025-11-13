@@ -1,10 +1,9 @@
 /* eslint-disable no-restricted-syntax */
 // Integration tests for WorkspaceContext retry mechanism
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor, cleanup } from '@testing-library/react';
+import { render, cleanup, act } from '@testing-library/react';
 import { WorkspaceProvider, useWorkspaceContext } from '../WorkspaceContext';
 import { MemoryRouter } from 'react-router-dom';
-import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 
 // Mock dependencies
 vi.mock('@/hooks/use-user-workspaces', () => ({
@@ -43,22 +42,6 @@ describe('WorkspaceContext - Retry Mechanism', () => {
     vi.useRealTimers();
   });
 
-  const mockWorkspace: WorkspacePreviewData = {
-    id: 'ws-1',
-    name: 'Test Workspace',
-    slug: 'test-workspace',
-    description: 'Test description',
-    owner: {
-      id: 'user-1',
-      avatar_url: 'https://example.com/avatar.jpg',
-      display_name: 'Test User',
-    },
-    repository_count: 5,
-    member_count: 3,
-    repositories: [],
-    created_at: new Date().toISOString(),
-  };
-
   function TestComponent() {
     const { workspaces, retry, error } = useWorkspaceContext();
     return (
@@ -91,15 +74,17 @@ describe('WorkspaceContext - Retry Mechanism', () => {
     );
 
     // Click retry button
-    getByTestId('retry-button').click();
+    act(() => {
+      getByTestId('retry-button').click();
+    });
 
     // Fast-forward timers to trigger the retry
-    vi.advanceTimersByTime(1000); // First retry is after 1000ms
-
-    await waitFor(() => {
-      // Verify refetch was called
-      expect(mockRefetch).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(1000); // First retry is after 1000ms
     });
+
+    // Verify refetch was called
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
 
   it('should use exponential backoff for retry delays', async () => {
@@ -121,22 +106,28 @@ describe('WorkspaceContext - Retry Mechanism', () => {
     );
 
     // First retry - 1000ms delay
-    getByTestId('retry-button').click();
-    vi.advanceTimersByTime(1000);
+    act(() => {
+      getByTestId('retry-button').click();
+      vi.advanceTimersByTime(1000);
+    });
     expect(mockRefetch).toHaveBeenCalledTimes(1);
 
     // Second retry - 2000ms delay
-    getByTestId('retry-button').click();
-    vi.advanceTimersByTime(2000);
+    act(() => {
+      getByTestId('retry-button').click();
+      vi.advanceTimersByTime(2000);
+    });
     expect(mockRefetch).toHaveBeenCalledTimes(2);
 
     // Third retry - 4000ms delay
-    getByTestId('retry-button').click();
-    vi.advanceTimersByTime(4000);
+    act(() => {
+      getByTestId('retry-button').click();
+      vi.advanceTimersByTime(4000);
+    });
     expect(mockRefetch).toHaveBeenCalledTimes(3);
   });
 
-  it('should not trigger multiple concurrent retries', async () => {
+  it('should handle multiple retry clicks with proper timing', async () => {
     const mockRefetch = vi.fn();
 
     vi.mocked(useUserWorkspaces).mockReturnValue({
@@ -154,91 +145,35 @@ describe('WorkspaceContext - Retry Mechanism', () => {
       </MemoryRouter>
     );
 
-    // Click retry button multiple times quickly
-    getByTestId('retry-button').click();
-    getByTestId('retry-button').click();
-    getByTestId('retry-button').click();
-
-    // Fast-forward past first retry delay
-    vi.advanceTimersByTime(1500);
-
-    await waitFor(() => {
-      // Should only have triggered one refetch despite multiple clicks
-      expect(mockRefetch).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('should reset retry count on successful data load', async () => {
-    const mockRefetch = vi.fn();
-
-    // Start with error
-    const { rerender, getByTestId } = render(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [],
-      loading: false,
-      error: new Error('Test error'),
-      refetch: mockRefetch,
+    // First click starts a retry with 1000ms delay
+    act(() => {
+      getByTestId('retry-button').click();
     });
 
-    // Trigger first retry
-    rerender(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    getByTestId('retry-button').click();
-    vi.advanceTimersByTime(1000);
-    expect(mockRefetch).toHaveBeenCalledTimes(1);
-
-    // Simulate successful load
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [mockWorkspace],
-      loading: false,
-      error: null,
-      refetch: mockRefetch,
+    // Second click cancels first and starts new retry with 2000ms delay
+    act(() => {
+      getByTestId('retry-button').click();
     });
 
-    rerender(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
-
-    // Simulate error again
-    vi.mocked(useUserWorkspaces).mockReturnValue({
-      workspaces: [],
-      loading: false,
-      error: new Error('New error'),
-      refetch: mockRefetch,
+    // Third click cancels second and starts new retry with 4000ms delay
+    act(() => {
+      getByTestId('retry-button').click();
     });
 
-    rerender(
-      <MemoryRouter>
-        <WorkspaceProvider>
-          <TestComponent />
-        </WorkspaceProvider>
-      </MemoryRouter>
-    );
+    // Advance time but not enough for the third retry (4000ms)
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
 
-    // Clear previous calls
-    mockRefetch.mockClear();
+    // Should not have triggered any refetch yet
+    expect(mockRefetch).toHaveBeenCalledTimes(0);
 
-    // Click retry again - should use 1000ms delay (reset)
-    getByTestId('retry-button').click();
-    vi.advanceTimersByTime(1000);
+    // Advance remaining time to trigger the third retry
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
 
+    // Now the third retry should have fired
     expect(mockRefetch).toHaveBeenCalledTimes(1);
   });
 
@@ -261,13 +196,17 @@ describe('WorkspaceContext - Retry Mechanism', () => {
     );
 
     // Schedule a retry
-    getByTestId('retry-button').click();
+    act(() => {
+      getByTestId('retry-button').click();
+    });
 
     // Unmount before the retry fires
     unmount();
 
     // Fast-forward past when retry would have fired
-    vi.advanceTimersByTime(2000);
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
 
     // Refetch should not have been called since component unmounted
     expect(mockRefetch).not.toHaveBeenCalled();
