@@ -6,6 +6,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
+import { exportContributorsToCSV } from '@/lib/utils/csv-export';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
+  Download,
 } from '@/components/ui/icon';
 import { getOrgAvatarUrl } from '@/lib/utils/avatar';
 import type { Repository } from '@/components/features/workspace';
@@ -263,6 +265,10 @@ export function WorkspaceContributorsTab({
 
   const handleRemoveContributor = async (contributorId: string) => {
     await removeContributorFromWorkspace(contributorId);
+  };
+
+  const handleExport = () => {
+    exportContributorsToCSV(filteredContributors, 'contributors.csv');
   };
 
   // CRM handler functions
@@ -590,15 +596,15 @@ export function WorkspaceContributorsTab({
           <CardHeader>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle>Add Contributors to Workspace</CardTitle>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {selectedContributorsToAdd.length} selected
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleCancelAdd}
-                  className="min-h-[44px]"
+                  className="min-h-[44px] flex-1 sm:flex-none"
                 >
                   Cancel
                 </Button>
@@ -606,7 +612,7 @@ export function WorkspaceContributorsTab({
                   size="sm"
                   onClick={handleSubmitContributors}
                   disabled={selectedContributorsToAdd.length === 0}
-                  className="min-h-[44px]"
+                  className="min-h-[44px] flex-1 sm:flex-none"
                 >
                   Add Selected
                 </Button>
@@ -773,7 +779,7 @@ export function WorkspaceContributorsTab({
                     {selectedFilterGroup && ` • ${contributors.length} total`}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                     <Button
                       variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -800,14 +806,22 @@ export function WorkspaceContributorsTab({
                     variant="outline"
                     className="min-h-[36px] px-3"
                   >
-                    <Users className="h-4 w-4 mr-1.5" />
+                    <Users className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Manage Groups</span>
-                    <span className="sm:hidden">Groups</span>
+                  </Button>
+                  <Button
+                    onClick={handleExport}
+                    size="sm"
+                    variant="outline"
+                    className="min-h-[36px] px-3"
+                    disabled={filteredContributors.length === 0}
+                  >
+                    <Download className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Export CSV</span>
                   </Button>
                   <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
-                    <Plus className="h-4 w-4 mr-1.5" />
+                    <Plus className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Add Contributors</span>
-                    <span className="sm:hidden">Add</span>
                   </Button>
                 </div>
               </div>
