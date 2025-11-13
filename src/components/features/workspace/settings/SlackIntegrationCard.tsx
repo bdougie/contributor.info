@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -17,6 +18,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useSlackIntegrations } from '@/hooks/useSlackIntegrations';
 import { isEncryptionConfigured } from '@/lib/encryption';
@@ -41,8 +53,24 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
   const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
   const [testRateLimits, setTestRateLimits] = useState<Record<string, number>>({});
+  const [channelSearchQuery, setChannelSearchQuery] = useState<Record<string, string>>({});
+  const [disconnectingAll, setDisconnectingAll] = useState(false);
 
   const encryptionConfigured = isEncryptionConfigured();
+
+  // Filter channels based on search query for each integration
+  const getFilteredChannels = (integrationId: string): SlackChannel[] => {
+    const integrationChannels = channels[integrationId] || [];
+    const searchQuery = channelSearchQuery[integrationId]?.toLowerCase() || '';
+
+    if (!searchQuery) {
+      return integrationChannels;
+    }
+
+    return integrationChannels.filter((channel) =>
+      channel.name.toLowerCase().includes(searchQuery)
+    );
+  };
 
   // Update UI when rate limits expire
   useEffect(() => {
@@ -205,6 +233,27 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         description: 'Failed to delete integration',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleDisconnectAll = async () => {
+    setDisconnectingAll(true);
+    try {
+      // Delete all integrations
+      await Promise.all(integrations.map((integration) => deleteIntegration(integration.id)));
+      toast({
+        title: 'All Integrations Disconnected',
+        description: 'All Slack integrations have been removed',
+      });
+    } catch (error) {
+      console.error('Failed to disconnect all integrations: %s', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to disconnect all integrations',
+        variant: 'destructive',
+      });
+    } finally {
+      setDisconnectingAll(false);
     }
   };
 
@@ -383,22 +432,50 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                       </Button>
                     )}
                     {channels[integration.id] && (
-                      <Select
-                        onValueChange={(channelId) =>
-                          handleChannelSelect(integration.id, channelId)
-                        }
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Select a channel" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {channels[integration.id].map((channel) => (
-                            <SelectItem key={channel.id} value={channel.id}>
-                              #{channel.name} {channel.is_private ? '(private)' : ''}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2">
+                        <Input
+                          type="search"
+                          name={`channel-search-${integration.id}`}
+                          id={`channel-search-${integration.id}`}
+                          placeholder="Search channels..."
+                          autoComplete="off"
+                          role="search"
+                          aria-label="Search Slack channels"
+                          data-1p-ignore
+                          data-lpignore="true"
+                          data-form-type="other"
+                          value={channelSearchQuery[integration.id] || ''}
+                          onChange={(e) =>
+                            setChannelSearchQuery((prev) => ({
+                              ...prev,
+                              [integration.id]: e.target.value,
+                            }))
+                          }
+                          className="mt-1"
+                        />
+                        <Select
+                          onValueChange={(channelId) =>
+                            handleChannelSelect(integration.id, channelId)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a channel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getFilteredChannels(integration.id).length === 0 ? (
+                              <div className="p-2 text-sm text-muted-foreground text-center">
+                                No channels found
+                              </div>
+                            ) : (
+                              getFilteredChannels(integration.id).map((channel) => (
+                                <SelectItem key={channel.id} value={channel.id}>
+                                  #{channel.name} {channel.is_private ? '(private)' : ''}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -489,55 +566,127 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     </div>
 
                     {canEditSettings && (
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleTestIntegration(integration.id)}
-                          disabled={isTesting === integration.id || isRateLimited(integration.id)}
-                          title={
-                            isRateLimited(integration.id)
-                              ? `Wait ${getRemainingSeconds(integration.id)} seconds`
-                              : undefined
-                          }
-                        >
-                          {isTesting === integration.id && 'Testing...'}
-                          {!isTesting &&
-                            isRateLimited(integration.id) &&
-                            `Wait ${getRemainingSeconds(integration.id)}s`}
-                          {!isTesting && !isRateLimited(integration.id) && 'Test Connection'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fetchChannelsForIntegration(integration.id)}
-                          disabled={loadingChannels === integration.id}
-                        >
-                          {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteIntegration(integration.id)}
-                        >
-                          Delete
-                        </Button>
+                      <div className="space-y-2 pt-2">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleTestIntegration(integration.id)}
+                            disabled={isTesting === integration.id || isRateLimited(integration.id)}
+                            title={
+                              isRateLimited(integration.id)
+                                ? `Wait ${getRemainingSeconds(integration.id)} seconds`
+                                : undefined
+                            }
+                          >
+                            {isTesting === integration.id && 'Testing...'}
+                            {!isTesting &&
+                              isRateLimited(integration.id) &&
+                              `Wait ${getRemainingSeconds(integration.id)}s`}
+                            {!isTesting && !isRateLimited(integration.id) && 'Test Connection'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fetchChannelsForIntegration(integration.id)}
+                            disabled={loadingChannels === integration.id}
+                          >
+                            {loadingChannels === integration.id ? 'Loading...' : 'Change Channel'}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteIntegration(integration.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                        {channels[integration.id] && (
+                          <div className="space-y-2">
+                            <Input
+                              type="search"
+                              name={`channel-search-existing-${integration.id}`}
+                              id={`channel-search-existing-${integration.id}`}
+                              placeholder="Search channels..."
+                              autoComplete="off"
+                              role="search"
+                              aria-label="Search Slack channels"
+                              data-1p-ignore
+                              data-lpignore="true"
+                              data-form-type="other"
+                              value={channelSearchQuery[integration.id] || ''}
+                              onChange={(e) =>
+                                setChannelSearchQuery((prev) => ({
+                                  ...prev,
+                                  [integration.id]: e.target.value,
+                                }))
+                              }
+                            />
+                            <Select
+                              onValueChange={(channelId) =>
+                                handleChannelSelect(integration.id, channelId)
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a new channel" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {getFilteredChannels(integration.id).length === 0 ? (
+                                  <div className="p-2 text-sm text-muted-foreground text-center">
+                                    No channels found
+                                  </div>
+                                ) : (
+                                  getFilteredChannels(integration.id).map((channel) => (
+                                    <SelectItem key={channel.id} value={channel.id}>
+                                      #{channel.name} {channel.is_private ? '(private)' : ''}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
 
-            {/* Add New Button */}
-            {integrations.length > 0 && (
-              <div className="flex gap-3 items-center">
-                <button
-                  onClick={handleInstallSlackApp}
-                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
-                  aria-label="Add to Slack"
-                >
-                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
-                </button>
+            {/* Disconnect Slack Button */}
+            {integrations.length > 0 && canEditSettings && (
+              <div className="flex gap-3 items-center pt-4 border-t">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" disabled={disconnectingAll}>
+                      {disconnectingAll ? 'Disconnecting...' : 'Disconnect Slack Integration'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Disconnect Slack Integration?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove{' '}
+                        {integrations.length > 1 ? `all ${integrations.length}` : 'the'} Slack
+                        integration
+                        {integrations.length > 1 ? 's' : ''} from this workspace. You will stop
+                        receiving automated reports in Slack.
+                        <br />
+                        <br />
+                        <strong>This action cannot be undone.</strong> You will need to reinstall
+                        the Slack app to set up new integrations.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDisconnectAll}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Disconnect
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </>
