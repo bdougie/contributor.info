@@ -9,14 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -29,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { ChannelSearchCommand } from '@/components/ui/channel-search-command';
 import { useToast } from '@/hooks/use-toast';
 import { useSlackIntegrations } from '@/hooks/useSlackIntegrations';
 import { isEncryptionConfigured } from '@/lib/encryption';
@@ -54,24 +47,9 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   const [loadingChannels, setLoadingChannels] = useState<string | null>(null);
   const [channels, setChannels] = useState<Record<string, SlackChannel[]>>({});
   const [testRateLimits, setTestRateLimits] = useState<Record<string, number>>({});
-  const [channelSearchQuery, setChannelSearchQuery] = useState<Record<string, string>>({});
   const [disconnectingAll, setDisconnectingAll] = useState(false);
 
   const encryptionConfigured = isEncryptionConfigured();
-
-  // Filter channels based on search query for each integration
-  const getFilteredChannels = (integrationId: string): SlackChannel[] => {
-    const integrationChannels = channels[integrationId] || [];
-    const searchQuery = channelSearchQuery[integrationId]?.toLowerCase() || '';
-
-    if (!searchQuery) {
-      return integrationChannels;
-    }
-
-    return integrationChannels.filter(
-      (channel) => channel?.name?.toLowerCase().includes(searchQuery) ?? false
-    );
-  };
 
   // Update UI when rate limits expire
   useEffect(() => {
@@ -489,7 +467,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                   </p>
                 </div>
                 {canEditSettings ? (
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor={`channel-${integration.id}`}>Select Channel</Label>
                     {!channels[integration.id] && (
                       <Button
@@ -505,50 +483,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                       </Button>
                     )}
                     {channels[integration.id] && (
-                      <div className="space-y-2">
-                        <Input
-                          type="search"
-                          name={`channel-search-${integration.id}`}
-                          id={`channel-search-${integration.id}`}
-                          placeholder="Search channels..."
-                          autoComplete="off"
-                          role="search"
-                          aria-label="Search Slack channels"
-                          data-1p-ignore
-                          data-lpignore="true"
-                          data-form-type="other"
-                          value={channelSearchQuery[integration.id] || ''}
-                          onChange={(e) =>
-                            setChannelSearchQuery((prev) => ({
-                              ...prev,
-                              [integration.id]: e.target.value,
-                            }))
-                          }
-                          className="mt-1"
-                        />
-                        <Select
-                          onValueChange={(channelId) =>
-                            handleChannelSelect(integration.id, channelId)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a channel" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {getFilteredChannels(integration.id).length === 0 ? (
-                              <div className="p-2 text-sm text-muted-foreground text-center">
-                                No channels found
-                              </div>
-                            ) : (
-                              getFilteredChannels(integration.id).map((channel) => (
-                                <SelectItem key={channel.id} value={channel.id}>
-                                  #{channel.name} {channel.is_private ? '(private)' : ''}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <ChannelSearchCommand
+                        channels={channels[integration.id]}
+                        onChannelSelect={(channelId) =>
+                          handleChannelSelect(integration.id, channelId)
+                        }
+                        placeholder="Search channels..."
+                        emptyMessage="No channels found"
+                        className="mt-2"
+                      />
                     )}
                   </div>
                 ) : (
@@ -675,49 +618,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                           </Button>
                         </div>
                         {channels[integration.id] && (
-                          <div className="space-y-2">
-                            <Input
-                              type="search"
-                              name={`channel-search-existing-${integration.id}`}
-                              id={`channel-search-existing-${integration.id}`}
-                              placeholder="Search channels..."
-                              autoComplete="off"
-                              role="search"
-                              aria-label="Search Slack channels"
-                              data-1p-ignore
-                              data-lpignore="true"
-                              data-form-type="other"
-                              value={channelSearchQuery[integration.id] || ''}
-                              onChange={(e) =>
-                                setChannelSearchQuery((prev) => ({
-                                  ...prev,
-                                  [integration.id]: e.target.value,
-                                }))
-                              }
-                            />
-                            <Select
-                              onValueChange={(channelId) =>
-                                handleChannelSelect(integration.id, channelId)
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a new channel" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {getFilteredChannels(integration.id).length === 0 ? (
-                                  <div className="p-2 text-sm text-muted-foreground text-center">
-                                    No channels found
-                                  </div>
-                                ) : (
-                                  getFilteredChannels(integration.id).map((channel) => (
-                                    <SelectItem key={channel.id} value={channel.id}>
-                                      #{channel.name} {channel.is_private ? '(private)' : ''}
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <ChannelSearchCommand
+                            channels={channels[integration.id]}
+                            onChannelSelect={(channelId) =>
+                              handleChannelSelect(integration.id, channelId)
+                            }
+                            selectedChannelId={integration.channel_id}
+                            placeholder="Search channels..."
+                            emptyMessage="No channels found"
+                          />
                         )}
                       </div>
                     )}
