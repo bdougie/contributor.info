@@ -292,14 +292,59 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   const handleDisconnectAll = async () => {
     setDisconnectingAll(true);
     try {
-      // Delete all integrations
-      await Promise.all(integrations.map((integration) => deleteIntegration(integration.id)));
-      toast({
-        title: 'All Integrations Disconnected',
-        description: 'All Slack integrations have been removed',
-      });
+      // Use allSettled to ensure all deletions are attempted
+      const results = await Promise.allSettled(
+        integrations.map((integration) => deleteIntegration(integration.id))
+      );
+
+      // Analyze results
+      const failures = results.filter((r) => r.status === 'rejected');
+      const successes = results.filter((r) => r.status === 'fulfilled');
+
+      // Log failures with context
+      if (failures.length > 0) {
+        failures.forEach((failure, index) => {
+          const failureReason = failure.status === 'rejected' ? failure.reason : null;
+          logError('Failed to delete integration during disconnect all', failureReason as Error, {
+            tags: {
+              feature: 'slack',
+              operation: 'disconnect-all',
+              component: 'SlackIntegrationCard',
+            },
+            extra: {
+              workspaceId,
+              integrationId: integrations[index]?.id,
+              integrationIndex: index,
+              totalIntegrations: integrations.length,
+              successCount: successes.length,
+              failureCount: failures.length,
+            },
+          });
+        });
+      }
+
+      // Provide specific user feedback
+      if (failures.length === 0) {
+        toast({
+          title: 'All Integrations Disconnected',
+          description: `Successfully removed all ${integrations.length} integration${integrations.length !== 1 ? 's' : ''}`,
+        });
+      } else if (failures.length === integrations.length) {
+        toast({
+          title: 'Failed to Disconnect Integrations',
+          description: 'All integration deletions failed. Please try again or contact support.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Partial Disconnection',
+          description: `Successfully disconnected ${successes.length} of ${integrations.length} integrations. ${failures.length} failed.`,
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
-      logError('Failed to disconnect all Slack integrations', error as Error, {
+      // This should rarely happen with allSettled, but handle it anyway
+      logError('Unexpected error in disconnect all', error as Error, {
         tags: {
           feature: 'slack',
           operation: 'disconnect-all',
@@ -312,7 +357,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       });
       toast({
         title: 'Error',
-        description: 'Failed to disconnect all integrations',
+        description: 'An unexpected error occurred. Please try again.',
         variant: 'destructive',
       });
     } finally {
