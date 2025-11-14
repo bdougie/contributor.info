@@ -11,7 +11,14 @@
  * - Base64 encoding for storage
  */
 
-const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
+const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY');
+
+if (!ENCRYPTION_KEY) {
+  throw new Error(
+    'Missing required environment variable: SLACK_WEBHOOK_ENCRYPTION_KEY. ' +
+      'This variable is required for encrypting/decrypting Slack bot tokens.',
+  );
+}
 
 // Shared salt for consistent key derivation across all edge functions
 const SALT = 'slack-webhook-salt';
