@@ -150,15 +150,27 @@ serve(async (req) => {
       });
     }
 
+    // Get the app_users record for this authenticated user
+    const { data: appUser, error: appUserError } = await supabaseAdmin
+      .from('app_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (appUserError || !appUser) {
+      console.error('Failed to find app_users record: %s', appUserError?.message);
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Verify user has access to this workspace
     const { data: membership, error: membershipError } = await supabaseAdmin
       .from('workspace_members')
-      .select(`
-        id,
-        user:app_users!inner(auth_user_id)
-      `)
+      .select('id')
       .eq('workspace_id', integration.workspace_id)
-      .eq('app_users.auth_user_id', user.id)
+      .eq('user_id', appUser.id)
       .maybeSingle();
 
     if (membershipError || !membership) {
