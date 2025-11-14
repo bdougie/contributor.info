@@ -68,8 +68,8 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
       return integrationChannels;
     }
 
-    return integrationChannels.filter(
-      (channel) => channel?.name?.toLowerCase().includes(searchQuery) ?? false
+    return integrationChannels.filter((channel) =>
+      channel?.name?.toLowerCase()?.includes(searchQuery) ?? false
     );
   };
 
