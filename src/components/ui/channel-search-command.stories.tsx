@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { useState } from 'react';
 import { ChannelSearchCommand } from './channel-search-command';
 import type { SlackChannel } from '@/types/workspace';
 
@@ -6,9 +7,16 @@ const meta = {
   title: 'UI/ChannelSearchCommand',
   component: ChannelSearchCommand,
   parameters: {
-    layout: 'centered',
+    layout: 'padded',
   },
   tags: ['autodocs'],
+  decorators: [
+    (Story) => (
+      <div className="max-w-md">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof ChannelSearchCommand>;
 
 export default meta;
@@ -50,6 +58,18 @@ export const WithSelection: Story = {
   },
 };
 
+export const PrivateChannelSelected: Story = {
+  args: {
+    channels: mockChannels,
+    onChannelSelect: (channelId: string) => {
+      console.log('Selected channel:', channelId);
+    },
+    selectedChannelId: '7',
+    placeholder: 'Search channels...',
+    emptyMessage: 'No channels found',
+  },
+};
+
 export const EmptyChannels: Story = {
   args: {
     channels: [],
@@ -68,7 +88,30 @@ export const Disabled: Story = {
       console.log('Selected channel:', channelId);
     },
     disabled: true,
+    selectedChannelId: '2',
     placeholder: 'Search channels...',
     emptyMessage: 'No channels found',
   },
+};
+
+export const Interactive = () => {
+  const [selectedId, setSelectedId] = useState<string | null>('2');
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-muted-foreground">
+        Click the button to open the channel selector. Selection automatically closes the popover.
+      </div>
+      <ChannelSearchCommand
+        channels={mockChannels}
+        onChannelSelect={(channelId: string) => {
+          console.log('Selected channel:', channelId);
+          setSelectedId(channelId);
+        }}
+        selectedChannelId={selectedId}
+        placeholder="Search channels..."
+        emptyMessage="No channels found"
+      />
+    </div>
+  );
 };
