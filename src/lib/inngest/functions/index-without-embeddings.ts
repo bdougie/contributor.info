@@ -22,3 +22,6 @@ export { discoverNewRepository } from './discover-new-repository';
 // Discussion capture
 export { captureRepositoryDiscussions } from './capture-repository-discussions';
 export { syncDiscussionsCron } from './sync-discussions-cron';
+
+// Slack integration cron jobs
+export { sendSlackAssigneeReportCron } from './send-slack-assignee-report-cron';
