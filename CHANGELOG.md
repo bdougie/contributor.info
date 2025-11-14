@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Slack: Disconnect All Race Condition** ([#1212](https://github.com/bdougie/contributor.info/issues/1212), [#1224](https://github.com/bdougie/contributor.info/issues/1224))
+  - Fixed race condition in Slack disconnect all functionality using `Promise.allSettled`
+  - Replaced fail-fast `Promise.all` with resilient `Promise.allSettled`
+  - All integration deletions now attempted regardless of individual failures
+  - Added granular user feedback for all success, partial failure, and all failure scenarios
+  - Enhanced error logging with detailed context for each failed deletion
+  - Prevents inconsistent state from partial deletions
+  - Matches pattern already used in `MembersTab.tsx` for consistency
+  - Migration: See `docs/migrations/2025-11-slack-disconnect-all-promise-allsettled.md`
+
 - **Database: Workspace user relations** ([#1147](https://github.com/bdougie/contributor.info/issues/1147))
   - Fixed database relation error preventing workspace creation
   - Created `users` view mapping to `app_users` for PostgREST compatibility
