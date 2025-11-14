@@ -189,89 +189,29 @@ export async function deleteSlackIntegration(integrationId: string): Promise<voi
 
 /**
  * Test a Slack integration by sending a test message
+ * Uses backend edge function to avoid CORS issues
  */
 export async function testSlackIntegration(integrationId: string): Promise<boolean> {
-  const integration = await getSlackIntegration(integrationId);
-  if (!integration) {
-    throw new Error('Integration not found');
-  }
-
-  // Create a test message
-  const message: SlackMessage = {
-    text: 'Test message from Contributor.info',
-    blocks: [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: '🧪 Test Message',
-        },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'This is a test message to verify your Slack integration is working correctly.',
-        },
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Channel:*\n${integration.channel_name}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Schedule:*\n${integration.schedule}`,
-          },
-        ],
-      },
-    ],
-  };
-
   try {
-    // OAuth flow only
-    if (!integration.bot_token_encrypted || !integration.channel_id) {
-      throw new Error('OAuth integration missing required fields');
-    }
-
-    const botToken = await decryptString(integration.bot_token_encrypted);
-    const success = await postSlackMessage(
-      botToken,
-      integration.channel_id,
-      message.text,
-      message.blocks as unknown as Record<string, unknown>[]
-    );
-
-    if (!success) {
-      throw new Error('Failed to post message via Slack API');
-    }
-
-    // Log the test
-    await logIntegrationSend(
-      integrationId,
-      integration.workspace_id,
-      'success',
-      JSON.stringify(message),
-      null,
-      { type: 'test', method: 'oauth' }
-    );
-
-    return true;
-  } catch (error) {
-    logError('Failed to send test message', error, {
-      tags: { feature: 'slack', operation: 'test_integration' },
-      extra: { integrationId, channelId: integration.channel_id },
+    // Use Supabase edge function to test integration (avoids CORS issues)
+    const { data, error } = await supabase.functions.invoke('slack-test-integration', {
+      body: { integration_id: integrationId },
     });
-    await logIntegrationSend(
-      integrationId,
-      integration.workspace_id,
-      'failure',
-      JSON.stringify(message),
-      error instanceof Error ? error.message : 'Unknown error',
-      { type: 'test' }
-    );
+
+    if (error) {
+      logError('Failed to test Slack integration via edge function', error, {
+        tags: { feature: 'slack', operation: 'test_integration' },
+        extra: { integrationId },
+      });
+      return false;
+    }
+
+    return data?.success ?? false;
+  } catch (error) {
+    logError('Failed to test Slack integration', error, {
+      tags: { feature: 'slack', operation: 'test_integration' },
+      extra: { integrationId },
+    });
     return false;
   }
 }

@@ -16,10 +16,10 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { decryptString } from '../_shared/encryption.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
 
 interface RequestBody {
   integration_id: string;
@@ -30,50 +30,6 @@ interface SlackChannel {
   name: string;
   is_private: boolean;
   is_member: boolean;
-}
-
-/**
- * Decrypt a string using Web Crypto API (same as OAuth callback encryption)
- */
-async function decryptString(encrypted: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyMaterial = encoder.encode(ENCRYPTION_KEY);
-
-  // Import the key material
-  const importedKey = await crypto.subtle.importKey(
-    'raw',
-    keyMaterial,
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey'],
-  );
-
-  // Derive the actual decryption key
-  const salt = encoder.encode('slack-webhook-salt');
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: 100000,
-      hash: 'SHA-256',
-    },
-    importedKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['decrypt'],
-  );
-
-  // Decode from base64
-  const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
-
-  // Extract IV and encrypted data
-  const iv = combined.slice(0, 12);
-  const data = combined.slice(12);
-
-  // Decrypt
-  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, data);
-
-  return new TextDecoder().decode(decrypted);
 }
 
 serve(async (req) => {

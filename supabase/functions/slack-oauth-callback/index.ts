@@ -16,13 +16,13 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encryptString } from '../_shared/encryption.ts';
 
 const SLACK_CLIENT_ID = Deno.env.get('SLACK_CLIENT_ID');
 const SLACK_CLIENT_SECRET = Deno.env.get('SLACK_CLIENT_SECRET');
 const SLACK_REDIRECT_URI = Deno.env.get('SLACK_REDIRECT_URI');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ENCRYPTION_KEY = Deno.env.get('SLACK_WEBHOOK_ENCRYPTION_KEY')!;
 const FRONTEND_URL = Deno.env.get('FRONTEND_URL') || 'https://contributor.info';
 
 interface SlackOAuthResponse {
@@ -40,57 +40,6 @@ interface SlackOAuthResponse {
     id: string;
   };
   error?: string;
-}
-
-/**
- * Encrypt a string using Web Crypto API (same as client-side encryption.ts)
- */
-async function encryptString(plaintext: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyMaterial = encoder.encode(ENCRYPTION_KEY);
-
-  // Import the key material
-  const importedKey = await crypto.subtle.importKey(
-    'raw',
-    keyMaterial,
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey'],
-  );
-
-  // Derive the actual encryption key
-  const salt = encoder.encode('slack-webhook-salt');
-  const key = await crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: 100000,
-      hash: 'SHA-256',
-    },
-    importedKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt'],
-  );
-
-  // Generate random IV
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-
-  // Encrypt
-  const data = encoder.encode(plaintext);
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    data,
-  );
-
-  // Combine IV and encrypted data
-  const combined = new Uint8Array(iv.length + encrypted.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encrypted), iv.length);
-
-  // Return as base64
-  return btoa(String.fromCharCode(...combined));
 }
 
 serve(async (req) => {

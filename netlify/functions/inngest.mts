@@ -12,6 +12,7 @@ import {
   classifySingleRepository,
   discoverNewRepository,
   syncDiscussionsCron,
+  sendSlackAssigneeReportCron,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
 
 // Create the Inngest serve handler
@@ -32,6 +33,8 @@ const inngestHandler = serve({
     discoverNewRepository,
     // Discussion sync cron
     syncDiscussionsCron,
+    // Slack integration cron
+    sendSlackAssigneeReportCron,
   ],
   servePath: '/.netlify/functions/inngest',
 });
@@ -55,6 +58,7 @@ export default async (req: Request, context: Context) => {
           'classify-single-repository',
           'discover-new-repository',
           'sync-discussions-cron',
+          'send-slack-assignee-report-cron',
         ],
         environment: {
           context: process.env.CONTEXT || 'unknown',
