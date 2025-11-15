@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
 import DemoWorkspacePage from '../demo-workspace-page';
+import { TestRouter } from '@/components/__tests__/test-utils';
 
 // Mock the demo data cache
 vi.mock('@/lib/demo/demo-data-cache', () => ({
@@ -209,7 +209,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const renderWithRouter = (component: React.ReactElement) => {
-  return render(<BrowserRouter>{component}</BrowserRouter>);
+  return render(<TestRouter>{component}</TestRouter>);
 };
 
 describe('DemoWorkspacePage', () => {

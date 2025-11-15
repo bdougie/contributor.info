@@ -17,7 +17,12 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <div className="min-h-screen bg-background p-8">
           <Story />
         </div>
@@ -213,7 +218,12 @@ export const DarkMode: Story = {
   },
   decorators: [
     (Story) => (
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <div className="dark min-h-screen bg-background p-8">
           <Story />
         </div>

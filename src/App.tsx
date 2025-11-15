@@ -464,7 +464,12 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <FeatureFlagsProvider>
           <SVGSpriteInliner />
-          <Router>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
             <WorkspaceProvider>
               <OfflineNotification />
               <Suspense fallback={<PageSkeleton />}>

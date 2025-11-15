@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { BrowserRouter } from 'react-router-dom';
 import { WorkspaceCreateModal } from './WorkspaceCreateModal';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
+import { TestRouter } from '@/components/__tests__/test-utils';
 
 const meta = {
   title: 'Features/Workspace/WorkspaceCreateModal',
@@ -20,9 +20,9 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <BrowserRouter>
+      <TestRouter>
         <Story />
-      </BrowserRouter>
+      </TestRouter>
     ),
   ],
 } satisfies Meta<typeof WorkspaceCreateModal>;

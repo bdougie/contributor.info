@@ -29,9 +29,26 @@ export const mockRepoStats: RepoStats = {
   error: null,
 };
 
+/**
+ * Router wrapper with v7 future flags enabled for React Router.
+ * Use this in tests and stories to prevent console warnings.
+ */
+export function TestRouter({ children }: { children: ReactNode }) {
+  return (
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
+      {children}
+    </Router>
+  );
+}
+
 export function TestRepoStatsProvider({ children }: { children: ReactNode }) {
   return (
-    <Router>
+    <TestRouter>
       <MetaTagsProvider>
         <RepoStatsContext.Provider
           value={{
@@ -45,6 +62,6 @@ export function TestRepoStatsProvider({ children }: { children: ReactNode }) {
           {children}
         </RepoStatsContext.Provider>
       </MetaTagsProvider>
-    </Router>
+    </TestRouter>
   );
 }

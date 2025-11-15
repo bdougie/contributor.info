@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
 import { RepoView } from '../features/repository';
 import { MetaTagsProvider } from '../common/layout';
+import { TestRouter } from './test-utils';
 
 // Mock the Supabase client BEFORE importing any hooks
 vi.mock('@/lib/supabase', () => ({
@@ -131,9 +131,9 @@ describe('Login behavior for repository search', () => {
 
     render(
       <MetaTagsProvider>
-        <BrowserRouter>
+        <TestRouter>
           <RepoView />
-        </BrowserRouter>
+        </TestRouter>
       </MetaTagsProvider>
     );
 
@@ -159,9 +159,9 @@ describe('Login behavior for repository search', () => {
 
     render(
       <MetaTagsProvider>
-        <BrowserRouter>
+        <TestRouter>
           <RepoView />
-        </BrowserRouter>
+        </TestRouter>
       </MetaTagsProvider>
     );
 
@@ -192,9 +192,9 @@ describe('Login behavior for repository search', () => {
 
     render(
       <MetaTagsProvider>
-        <BrowserRouter>
+        <TestRouter>
           <RepoView />
-        </BrowserRouter>
+        </TestRouter>
       </MetaTagsProvider>
     );
 
@@ -237,9 +237,9 @@ describe('Login behavior for repository search', () => {
 
     render(
       <MetaTagsProvider>
-        <BrowserRouter>
+        <TestRouter>
           <RepoView />
-        </BrowserRouter>
+        </TestRouter>
       </MetaTagsProvider>
     );
 
