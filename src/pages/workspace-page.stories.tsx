@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { BrowserRouter } from 'react-router-dom';
+import { TestRouter } from '@/components/__tests__/test-utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -382,11 +382,11 @@ const meta: Meta<typeof ContributorsTableView> = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <BrowserRouter>
+      <TestRouter>
         <div className="container max-w-7xl mx-auto p-6">
           <Story />
         </div>
-      </BrowserRouter>
+      </TestRouter>
     ),
   ],
 };

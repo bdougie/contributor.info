@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { WorkspaceOnboarding, WorkspaceOnboardingCompact } from './WorkspaceOnboarding';
 import { useState } from 'react';
 import { WorkspaceCreateModal } from './WorkspaceCreateModal';
-import { BrowserRouter } from 'react-router-dom';
+import { TestRouter } from '@/components/__tests__/test-utils';
 
 const meta = {
   title: 'Features/Workspace/WorkspaceOnboarding',
@@ -19,11 +19,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story) => (
-      <BrowserRouter>
+      <TestRouter>
         <div className="container max-w-2xl">
           <Story />
         </div>
-      </BrowserRouter>
+      </TestRouter>
     ),
   ],
 } satisfies Meta<typeof WorkspaceOnboarding>;

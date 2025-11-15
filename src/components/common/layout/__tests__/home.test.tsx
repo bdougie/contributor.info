@@ -4,9 +4,9 @@
  */
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import Home from '../home';
+import { TestRouter } from '../../../__tests__/test-utils';
 
 // Mock the navigation hook with a test implementation
 const mockNavigate = vi.fn();
@@ -128,7 +128,7 @@ vi.mock('@/components/ui/workspace-list-fallback', () => ({
 function renderWithRouter(component: JSX.Element) {
   return render(
     <HelmetProvider>
-      <BrowserRouter>{component}</BrowserRouter>
+      <TestRouter>{component}</TestRouter>
     </HelmetProvider>
   );
 }

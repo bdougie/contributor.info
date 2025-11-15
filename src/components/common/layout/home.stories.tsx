@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { BrowserRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import Home from './home';
+import { TestRouter } from '@/components/__tests__/test-utils';
 
 const meta = {
   title: 'Pages/Home',
@@ -19,9 +19,9 @@ const meta = {
   decorators: [
     (Story) => (
       <HelmetProvider>
-        <BrowserRouter>
+        <TestRouter>
           <Story />
-        </BrowserRouter>
+        </TestRouter>
       </HelmetProvider>
     ),
   ],
