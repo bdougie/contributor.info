@@ -6,6 +6,11 @@ const isDev = import.meta.env.DEV;
 const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
 const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
+// Retry and timeout configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const REQUEST_TIMEOUT = 10000; // 10 seconds
+
 logger.debug('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
 
 interface CreateShortUrlOptions {
@@ -37,6 +42,77 @@ interface ShortUrlResponse {
   title?: string | null;
   description?: string | null;
   image?: string | null;
+}
+
+/**
+ * Sleep for a given number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch with timeout
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+  initialDelay: number = INITIAL_RETRY_DELAY
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Don't retry on certain errors
+      if (error instanceof Error) {
+        // Don't retry on 4xx errors (except 429 rate limit)
+        if (error.message.includes('status: 4') && !error.message.includes('status: 429')) {
+          throw error;
+        }
+      }
+
+      if (attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        logger.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, {
+          error: lastError.message,
+        });
+        await sleep(delay);
+      }
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
 }
 
 /**
@@ -96,38 +172,48 @@ export async function createShortUrl({
       description,
     });
 
-    // Call Dub API directly
-    const response = await fetch('https://api.dub.co/links', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${DUB_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        domain: DOMAIN,
-        key,
-        title,
-        description,
-        expiresAt,
-        rewrite,
-        utmSource: 'contributor-info',
-        utmMedium: 'chart-share',
-        utmCampaign: 'social-sharing',
-      }),
+    // Call Dub API with retry and timeout
+    const data = await retryWithBackoff(async () => {
+      const response = await fetchWithTimeout(
+        'https://api.dub.co/links',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${DUB_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url,
+            domain: DOMAIN,
+            key,
+            title,
+            description,
+            expiresAt,
+            rewrite,
+            utmSource: 'contributor-info',
+            utmMedium: 'chart-share',
+            utmCampaign: 'social-sharing',
+          }),
+        },
+        REQUEST_TIMEOUT
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`Dub API error: status: ${response.status}`);
+        logger.error('Dub API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url,
+          domain: DOMAIN,
+        });
+        throw error;
+      }
+
+      return response.json();
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error('Dub API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
-      return null;
-    }
-
-    const data = await response.json();
     logger.log('URL shortening success:', data.shortLink);
 
     // Track the short URL creation in Supabase for analytics
@@ -155,7 +241,11 @@ export async function createShortUrl({
       image: data.image,
     };
   } catch (error) {
-    logger.error('Failed to create short URL:', error);
+    logger.error('Failed to create short URL after retries:', {
+      error: error instanceof Error ? error.message : String(error),
+      url,
+      domain: DOMAIN,
+    });
     return null;
   }
 }
