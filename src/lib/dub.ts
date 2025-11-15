@@ -3,8 +3,6 @@ import { logger } from './logger';
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
-const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
-const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
 
 // Retry and timeout configuration
 const MAX_RETRIES = 3;
@@ -145,54 +143,33 @@ export async function createShortUrl({
     };
   }
 
-  // Check if API key is available
-  if (!DUB_API_KEY) {
-    logger.warn('DUB_API_KEY not configured, returning original URL');
-    return {
-      id: 'no-api-key',
-      domain: 'original',
-      key: key || 'original',
-      url: url,
-      shortLink: url,
-      qrCode: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      clicks: 0,
-      title: title || null,
-      description: description || null,
-    };
-  }
+  // API key is now handled securely in the Netlify function
+  // No need to check it on the client side
 
   try {
-    logger.log('Creating short URL via Dub API:', {
+    logger.log('Creating short URL via Netlify function:', {
       url,
-      domain: DOMAIN,
       key,
       title,
       description,
     });
 
-    // Call Dub API with retry and timeout
+    // Call our Netlify serverless function (bypasses CORS, keeps API key secure)
     const data = await retryWithBackoff(async () => {
       const response = await fetchWithTimeout(
-        'https://api.dub.co/links',
+        '/api/create-short-url',
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${DUB_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             url,
-            domain: DOMAIN,
             key,
             title,
             description,
             expiresAt,
             rewrite,
-            utmSource: 'contributor-info',
-            utmMedium: 'chart-share',
-            utmCampaign: 'social-sharing',
           }),
         },
         REQUEST_TIMEOUT
@@ -200,13 +177,12 @@ export async function createShortUrl({
 
       if (!response.ok) {
         const errorText = await response.text();
-        const error = new Error(`Dub API error: status: ${response.status}`);
-        logger.error('Dub API error:', {
+        const error = new Error(`Short URL API error: status: ${response.status}`);
+        logger.error('Short URL API error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorText,
           url,
-          domain: DOMAIN,
         });
         throw error;
       }
@@ -244,7 +220,6 @@ export async function createShortUrl({
     logger.error('Failed to create short URL after retries:', {
       error: error instanceof Error ? error.message : String(error),
       url,
-      domain: DOMAIN,
     });
     return null;
   }
@@ -395,8 +370,7 @@ export async function trackClick(shortUrl: string, metadata?: Record<string, unk
  */
 export function getDubConfig() {
   return {
-    domain: DOMAIN,
     isDev,
-    hasApiKey: !!DUB_API_KEY,
+    usesServerlessFunction: true, // Now using Netlify function for security
   };
 }
