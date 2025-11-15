@@ -77,12 +77,12 @@ export function SocialMetaTags({
           const [, owner, repo] = pathMatch;
           // Validate that we have reasonable owner/repo names (not empty, not query params)
           if (owner && repo && !owner.includes('?') && !repo.includes('?')) {
-            imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+            imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&format=png`;
           } else {
-            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home?format=png`;
           }
         } else {
-          imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          imageUrl = `${socialCardsBaseUrl}/social-cards/home?format=png`;
         }
       } else if (image === 'social-cards/user') {
         // For user cards, extract username from URL (pattern: /{username})
@@ -93,17 +93,17 @@ export function SocialMetaTags({
           const username = pathSegments[0];
           // Validate username (no query params, reasonable length)
           if (!username.includes('?') && username.length > 0 && username.length < 100) {
-            imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}`;
+            imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${encodeURIComponent(username)}&format=png`;
           } else {
-            imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+            imageUrl = `${socialCardsBaseUrl}/social-cards/home?format=png`;
           }
         } else {
           // Multiple segments or no match - fallback to home
-          imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+          imageUrl = `${socialCardsBaseUrl}/social-cards/home?format=png`;
         }
       } else {
         // For home/general cards - use Fly.io service
-        imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
+        imageUrl = `${socialCardsBaseUrl}/social-cards/home?format=png`;
       }
 
       // Use local static fallback as backup
@@ -131,6 +131,7 @@ export function SocialMetaTags({
       <meta property="og:site_name" content={siteName} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+      <meta property="og:image:type" content="image/png" />
 
       {/* Twitter Card Meta Tags */}
       <meta name="twitter:card" content={twitterCard} />

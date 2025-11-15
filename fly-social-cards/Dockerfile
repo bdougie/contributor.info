@@ -1,6 +1,17 @@
 # Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
 
+# Install build dependencies for sharp (native module)
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev
+
 # Set working directory
 WORKDIR /app
 

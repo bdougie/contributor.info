@@ -13,8 +13,9 @@ We migrated from Netlify Edge Functions to Fly.io due to:
 ## Features
 
 - ✅ Dynamic SVG generation for social media cards
+- ✅ **PNG/JPEG conversion for social media compatibility**
 - ✅ Real-time data from Supabase database
-- ✅ Sub-100ms generation time (target)
+- ✅ Sub-2-second response time (social crawler requirement)
 - ✅ Proper caching headers for CDN optimization
 - ✅ Fallback mechanisms for database failures
 - ✅ Support for home, repository, and user cards
@@ -35,20 +36,29 @@ GET /metrics
 
 #### Home Page Card
 ```
-GET /social-cards/home
+GET /social-cards/home?format=png
 ```
 
 #### Repository Card
 ```
-GET /social-cards/repo?owner={owner}&repo={repo}
+GET /social-cards/repo?owner={owner}&repo={repo}&format=png
 ```
-Example: `/social-cards/repo?owner=facebook&repo=react`
+Example: `/social-cards/repo?owner=facebook&repo=react&format=png`
 
 #### User Card
 ```
-GET /social-cards/user?username={username}
+GET /social-cards/user?username={username}&format=png
 ```
-Example: `/social-cards/user?username=bdougie`
+Example: `/social-cards/user?username=bdougie&format=png`
+
+#### Format Options
+
+The `format` query parameter supports:
+- `png` (default) - Best for social media (Twitter, Facebook, LinkedIn)
+- `jpeg` or `jpg` - Alternative raster format
+- `svg` - Vector format for development/testing
+
+**Note**: Social media platforms (Twitter, Facebook, LinkedIn, Discord) require PNG or JPEG format. SVG is not supported for Open Graph images.
 
 ### Legacy Compatibility
 ```
@@ -77,7 +87,13 @@ npm run dev
 4. Test locally:
 ```bash
 curl http://localhost:8080/health
-curl http://localhost:8080/social-cards/home > test-home.svg
+
+# Test PNG generation (default for social media)
+curl http://localhost:8080/social-cards/home?format=png > test-home.png
+open test-home.png
+
+# Test SVG generation (for development)
+curl http://localhost:8080/social-cards/home?format=svg > test-home.svg
 open test-home.svg
 ```
 
@@ -163,8 +179,13 @@ fly ssh console
 # Install autocannon
 npm install -g autocannon
 
-# Run load test
-autocannon -c 10 -d 30 https://contributor-info-social-cards.fly.dev/social-cards/home
+# Run load test (PNG format - realistic social media crawler scenario)
+autocannon -c 10 -d 30 https://contributor-info-social-cards.fly.dev/social-cards/home?format=png
+```
+
+### Run Tests
+```bash
+npm test
 ```
 
 ## Architecture
