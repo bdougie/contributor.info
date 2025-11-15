@@ -16,7 +16,15 @@ export function DubTest() {
       const currentUrl = window.location.href;
       const shortUrl = await createChartShareUrl(currentUrl, 'test-chart', 'test-repo');
 
-      setResult(`✅ Success! Short URL: ${shortUrl}`);
+      if (shortUrl === currentUrl) {
+        setResult(
+          `⚠️ Fallback mode: API key not configured\n\n` +
+            `Original URL returned: ${shortUrl}\n\n` +
+            `To enable link shortening, set VITE_DUB_CO_KEY in Netlify environment variables.`
+        );
+      } else {
+        setResult(`✅ Success! Short URL: ${shortUrl}`);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setResult(`❌ Error: ${errorMessage}`);

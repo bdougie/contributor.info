@@ -176,12 +176,19 @@ export async function createShortUrl({
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
+        const errorData = await response.json().catch(() => null);
+
+        // If API key not configured, gracefully fall back to original URL
+        if (errorData?.fallback) {
+          logger.warn('Dub.co API key not configured, returning original URL');
+          return null;
+        }
+
         const error = new Error(`Short URL API error: status: ${response.status}`);
         logger.error('Short URL API error:', {
           status: response.status,
           statusText: response.statusText,
-          error: errorText,
+          error: errorData,
           url,
         });
         throw error;
@@ -189,6 +196,12 @@ export async function createShortUrl({
 
       return response.json();
     });
+
+    // If API returned null (fallback mode), return original URL
+    if (!data) {
+      logger.warn('Falling back to original URL (API key not configured)');
+      return null;
+    }
 
     logger.log('URL shortening success:', data.shortLink);
 
