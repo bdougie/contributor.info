@@ -74,9 +74,14 @@ The test page shows:
 
 **Symptom**: Clicking copy or share buttons returns URLs like `https://deploy-preview-123--contributor-info.netlify.app/...`
 
-**Cause**: `VITE_DUB_CO_KEY` is not configured for deploy preview context
+**Possible Causes**:
+1. **CSP blocking API calls** (most common): Content Security Policy doesn't include `https://api.dub.co` in the `connect-src` directive
+2. **Missing API key**: `VITE_DUB_CO_KEY` is not configured for deploy preview context
 
-**Fix**: Add the environment variable to deploy previews in Netlify Dashboard (see Configuration Steps above)
+**Fixes**:
+1. Ensure `https://api.dub.co` is in the CSP `connect-src` directive (see `public/_headers:16`)
+2. Add the environment variable to deploy previews in Netlify Dashboard (see Configuration Steps above)
+3. Check browser console for CSP violation errors
 
 ### Links use dub.sh instead of oss.fyi
 
