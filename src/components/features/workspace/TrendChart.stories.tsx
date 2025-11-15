@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import React from 'react';
 import { TrendChart, TrendChartSkeleton } from './TrendChart';
 
 // Generate sample data for the last 30 days
@@ -197,41 +198,66 @@ export const ComparisonChart: Story = {
 };
 
 export const MultipleCharts: Story = {
-  render: () => (
-    <div className="space-y-4">
-      <TrendChart
-        title="Pull Request Activity"
-        data={{
-          labels: generateSampleData(30).labels,
-          datasets: [generateSampleData(30).datasets[0]],
-        }}
-        height={250}
-        showLegend={false}
-      />
-      <TrendChart
-        title="Issue Resolution"
-        data={{
-          labels: generateSampleData(30).labels,
-          datasets: [generateSampleData(30).datasets[1]],
-        }}
-        height={250}
-        showLegend={false}
-      />
-      <TrendChart
-        title="Commit Frequency"
-        data={{
-          labels: generateSampleData(30).labels,
-          datasets: [generateSampleData(30).datasets[2]],
-        }}
-        height={250}
-        showLegend={false}
-      />
-    </div>
-  ),
+  render: () => {
+    const [expandedChart, setExpandedChart] = React.useState<number | null>(null);
+
+    const charts = [
+      {
+        title: 'Pull Request Activity',
+        dataset: generateSampleData(30).datasets[0],
+      },
+      {
+        title: 'Issue Resolution',
+        dataset: generateSampleData(30).datasets[1],
+      },
+    ];
+
+    return (
+      <div className="flex gap-4 transition-all duration-500 ease-in-out">
+        {charts.map((chart, index) => {
+          const isExpanded = expandedChart === index;
+          const isHidden = expandedChart !== null && expandedChart !== index;
+
+          // Determine width based on state
+          let width = '50%';
+          if (isExpanded) {
+            width = '100%';
+          } else if (isHidden) {
+            width = '0%';
+          }
+
+          return (
+            <div
+              key={index}
+              className="transition-all duration-500 ease-in-out"
+              style={{
+                width,
+                opacity: isHidden ? 0 : 1,
+                overflow: isHidden ? 'hidden' : 'visible',
+              }}
+            >
+              <TrendChart
+                title={chart.title}
+                data={{
+                  labels: generateSampleData(30).labels,
+                  datasets: [chart.dataset],
+                }}
+                height={300}
+                showLegend={false}
+                isExpanded={isExpanded}
+                onExpandToggle={() => setExpandedChart(isExpanded ? null : index)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  },
   parameters: {
     docs: {
       description: {
-        story: 'Multiple charts showing different metrics separately',
+        story:
+          'Two charts side by side with expand/collapse functionality. Click the expand icon to view a chart in full width.',
       },
     },
   },
