@@ -46,6 +46,8 @@
   VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
   VITE_DEPLOY_URL = "$DEPLOY_URL"
   VITE_URL = "$URL"
+  # NOTE: VITE_DUB_CO_KEY must be set in Netlify UI for oss.fyi link shortening
+  # Without it, share buttons will return original URLs instead of short links
 
 [context.branch-deploy.environment]
   # Branch deploy specific env vars
