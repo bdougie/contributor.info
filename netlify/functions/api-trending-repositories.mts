@@ -1,5 +1,6 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import * as Sentry from '@sentry/react';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL;
 const supabaseAnonKey =
@@ -10,6 +11,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Initialize Sentry for error tracking
+const sentryDsn = process.env.VITE_SENTRY_DSN;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: process.env.CONTEXT || 'development',
+    tracesSampleRate: 0.1,
+  });
+}
 
 interface TrendingQuery {
   period?: '24h' | '7d' | '30d';
@@ -71,9 +82,9 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     console.log('Fetching trending repositories with params:', query);
 
-    // Call the trending repositories function with fallback
+    // Call the trending repositories function
     const { data: trendingRepos, error } = await supabase.rpc(
-      'get_trending_repositories_with_fallback',
+      'get_trending_repositories',
       {
         p_time_period: intervalMap[query.period],
         p_limit: query.limit,
@@ -84,6 +95,24 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     if (error) {
       console.error('Error fetching trending repositories:', error);
+      
+      // Track error in Sentry
+      if (sentryDsn) {
+        Sentry.captureException(error, {
+          tags: {
+            function: 'api-trending-repositories',
+            rpc_function: 'get_trending_repositories',
+          },
+          extra: {
+            query,
+            error_message: error.message,
+            error_details: error.details,
+            error_hint: error.hint,
+            error_code: error.code,
+          },
+        });
+      }
+      
       return {
         statusCode: 500,
         headers,
@@ -147,6 +176,21 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     };
   } catch (error) {
     console.error('Error in trending repositories API:', error);
+    
+    // Track error in Sentry
+    if (sentryDsn) {
+      Sentry.captureException(error, {
+        tags: {
+          function: 'api-trending-repositories',
+          error_type: 'uncaught_exception',
+        },
+        extra: {
+          event_method: event.httpMethod,
+          event_path: event.path,
+          query_params: event.queryStringParameters,
+        },
+      });
+    }
 
     return {
       statusCode: 500,
