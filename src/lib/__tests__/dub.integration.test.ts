@@ -140,9 +140,8 @@ describe('dub.ts', () => {
 
       // In test environment, this should return dev config
       expect(config.isDev).toBe(true);
-      expect(config.domain).toBe('dub.sh');
-      // hasApiKey depends on actual environment variables
-      expect(typeof config.hasApiKey).toBe('boolean');
+      // Now uses serverless function for security (API key not exposed to client)
+      expect(config.usesServerlessFunction).toBe(true);
     });
   });
 
