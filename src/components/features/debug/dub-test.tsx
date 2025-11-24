@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { createChartShareUrl, getDubConfig } from '@/lib/dub';
-import { getDubKeyStatus } from '@/lib/utils/data-type-mapping';
 
 export function DubTest() {
   const [result, setResult] = useState<string>('');
@@ -17,7 +16,15 @@ export function DubTest() {
       const currentUrl = window.location.href;
       const shortUrl = await createChartShareUrl(currentUrl, 'test-chart', 'test-repo');
 
-      setResult(`✅ Success! Short URL: ${shortUrl}`);
+      if (shortUrl === currentUrl) {
+        setResult(
+          `⚠️ Fallback mode: API key not configured\n\n` +
+            `Original URL returned: ${shortUrl}\n\n` +
+            `To enable link shortening, set VITE_DUB_CO_KEY in Netlify environment variables.`
+        );
+      } else {
+        setResult(`✅ Success! Short URL: ${shortUrl}`);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setResult(`❌ Error: ${errorMessage}`);
@@ -33,18 +40,20 @@ export function DubTest() {
 
       <div className="space-y-2 text-sm">
         <div>Environment: {config.isDev ? 'Development' : 'Production'}</div>
-        <div>Domain: {config.domain}</div>
-        <div>API Key: {config.hasApiKey ? '✅ Present' : '❌ Missing'}</div>
         <div>
-          API Key from import.meta.env:{' '}
-          {import.meta.env.VITE_DUB_CO_KEY ? '✅ Present' : '❌ Missing'}
+          Architecture:{' '}
+          {config.usesServerlessFunction ? 'Serverless Function (CORS-free)' : 'Direct API'}
         </div>
-        <div>API Key format: {getDubKeyStatus(import.meta.env.VITE_DUB_CO_KEY)}</div>
         <div>
-          API Mode: {import.meta.env.DEV ? 'Development (mocked)' : 'Production (Netlify function)'}
+          Mode:{' '}
+          {import.meta.env.DEV
+            ? 'Development (mocked)'
+            : 'Production (calls /api/create-short-url)'}
         </div>
-        <div>Environment DEV: {import.meta.env.DEV ? 'true' : 'false'}</div>
-        <div>Environment MODE: {import.meta.env.MODE}</div>
+        <div>Domain: {import.meta.env.DEV ? 'dub.sh' : 'oss.fyi'}</div>
+        <div className="text-xs text-gray-500 mt-2">
+          Note: API key is securely stored in Netlify serverless function (not exposed to browser)
+        </div>
       </div>
 
       <Button onClick={testDubAPI} disabled={loading}>
