@@ -177,6 +177,7 @@ The application uses an intelligent hybrid routing system to handle repository s
 - Deno (edge functions runtime & testing)
 - ESLint (code quality)
 - GitHub Actions (CI/CD)
+- [Continue](https://continue.dev) (AI-powered development assistant)
 
 **Infrastructure**
 - Performance Monitoring ([see guide](./docs/dev/performance-monitoring.md))
