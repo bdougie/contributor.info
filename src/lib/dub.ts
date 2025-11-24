@@ -370,15 +370,6 @@ export async function createChartShareUrl(
 }
 
 /**
- * Track a click event for analytics
- */
-export async function trackClick(shortUrl: string, metadata?: Record<string, unknown>) {
-  // This will be automatically tracked by dub.co when the link is clicked
-  // Additional custom tracking can be added here if needed
-  logger.log('Click tracked for:', shortUrl, metadata);
-}
-
-/**
  * Get current environment info
  */
 export function getDubConfig() {
