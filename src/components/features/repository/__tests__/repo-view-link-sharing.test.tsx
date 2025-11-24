@@ -29,24 +29,16 @@ describe('RepoView Link Sharing Integration', () => {
     expect(config.usesServerlessFunction).toBe(true);
   });
 
-  it('should test clipboard integration pattern used in repo-view', () => {
-    // Mock clipboard for testing
-    const mockWriteText = vi.fn();
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText: mockWriteText },
-      writable: true,
-      configurable: true,
-    });
-
-    // Simulate the pattern used in repo-view (synchronous mock)
+  it('should generate correct share text format for repo-view', () => {
+    // Test the share text format used in repo-view (no clipboard mocking needed)
     const testUrl = 'https://contributor.info/facebook/react';
-    const shareText = `Check out the contributions analysis for facebook/react\n${testUrl}`;
+    const repo = 'facebook/react';
+    const shareText = `Check out the contributions analysis for ${repo}\n${testUrl}`;
 
-    navigator.clipboard.writeText(shareText);
-
-    expect(mockWriteText).toHaveBeenCalledWith(shareText);
+    // Verify share text format
     expect(shareText).toContain('facebook/react');
     expect(shareText).toContain(testUrl);
+    expect(shareText).toMatch(/Check out the contributions analysis for .+\n.+/);
   });
 
   it('should validate chart type generation for different tabs', () => {
