@@ -106,7 +106,7 @@ export async function syncClickAnalytics(
       share_event_id: shareEventId || null,
       dub_link_id: dubLinkId,
       total_clicks: analytics.clicks,
-      unique_clicks: analytics.uniqueClicks || analytics.clicks,
+      unique_clicks: analytics.uniqueClicks ?? analytics.clicks,
       click_data: {
         country: analytics.country,
         city: analytics.city,
@@ -120,8 +120,18 @@ export async function syncClickAnalytics(
     });
 
     if (insertError) {
-      // Might fail due to duplicate, which is okay
-      logger.debug('Analytics insert result:', { dubLinkId, error: insertError.message });
+      // Check if it's a duplicate key error (which is acceptable)
+      const isDuplicateError =
+        insertError.code === '23505' || insertError.message?.includes('duplicate');
+      if (isDuplicateError) {
+        logger.debug('Analytics already exists for period:', { dubLinkId });
+      } else {
+        logger.error('Failed to insert click analytics:', {
+          dubLinkId,
+          error: insertError.message,
+        });
+        return false;
+      }
     }
 
     logger.log('Click analytics synced successfully', {
