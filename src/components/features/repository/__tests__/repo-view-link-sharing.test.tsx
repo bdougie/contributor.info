@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getDubConfig } from '@/lib/dub';
 
-// Mock the dub module
+// Mock the dub module for URL shortening (avoid API calls)
 vi.mock('@/lib/dub', () => ({
   createChartShareUrl: vi.fn().mockReturnValue('https://contributor.info/facebook/react'),
   getDubConfig: vi.fn().mockReturnValue({
@@ -10,27 +9,15 @@ vi.mock('@/lib/dub', () => ({
   }),
 }));
 
-// Simple unit test for the updated functionality
+// Unit tests for repo-view link sharing patterns
+// Note: getDubConfig implementation is tested in src/lib/__tests__/dub.integration.test.ts
 describe('RepoView Link Sharing Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should verify dub config for repo-view integration', () => {
-    const config = getDubConfig();
-
-    // Verify config structure needed by repo-view
-    expect(config).toHaveProperty('isDev');
-    expect(config).toHaveProperty('usesServerlessFunction');
-
-    // In development mode
-    expect(config.isDev).toBe(true);
-    // Now uses serverless function for security (API key not exposed to client)
-    expect(config.usesServerlessFunction).toBe(true);
-  });
-
   it('should generate correct share text format for repo-view', () => {
-    // Test the share text format used in repo-view (no clipboard mocking needed)
+    // Test the share text format used in repo-view
     const testUrl = 'https://contributor.info/facebook/react';
     const repo = 'facebook/react';
     const shareText = `Check out the contributions analysis for ${repo}\n${testUrl}`;
