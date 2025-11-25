@@ -1,25 +1,21 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { createClient } from '@supabase/supabase-js';
-import * as Sentry from '@sentry/react';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL;
-const supabaseAnonKey =
-  process.env.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_ANON_KEY;
+// Use SUPABASE_URL first (server-side convention), fallback to VITE_ prefix
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Lazy initialization to avoid crashing at module load time
+let supabase: SupabaseClient | null = null;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Initialize Sentry for error tracking
-const sentryDsn = process.env.VITE_SENTRY_DSN;
-if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: process.env.CONTEXT || 'development',
-    tracesSampleRate: 0.1,
-  });
+function getSupabase(): SupabaseClient {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY)');
+  }
+  if (!supabase) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return supabase;
 }
 
 interface TrendingQuery {
@@ -83,36 +79,22 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     console.log('Fetching trending repositories with params:', query);
 
     // Call the trending repositories function
-    const { data: trendingRepos, error } = await supabase.rpc(
-      'get_trending_repositories',
-      {
-        p_time_period: intervalMap[query.period],
-        p_limit: query.limit,
-        p_language: query.language,
-        p_min_stars: query.minStars,
-      }
-    );
+    const { data: trendingRepos, error } = await getSupabase().rpc('get_trending_repositories', {
+      p_time_period: intervalMap[query.period],
+      p_limit: query.limit,
+      p_language: query.language,
+      p_min_stars: query.minStars,
+    });
 
     if (error) {
-      console.error('Error fetching trending repositories:', error);
-      
-      // Track error in Sentry
-      if (sentryDsn) {
-        Sentry.captureException(error, {
-          tags: {
-            function: 'api-trending-repositories',
-            rpc_function: 'get_trending_repositories',
-          },
-          extra: {
-            query,
-            error_message: error.message,
-            error_details: error.details,
-            error_hint: error.hint,
-            error_code: error.code,
-          },
-        });
-      }
-      
+      console.error('Error fetching trending repositories:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        query,
+      });
+
       return {
         statusCode: 500,
         headers,
@@ -135,7 +117,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     }
 
     // Get trending statistics for metadata
-    const { data: stats } = await supabase.rpc('get_trending_statistics', {
+    const { data: stats } = await getSupabase().rpc('get_trending_statistics', {
       p_time_period: intervalMap[query.period],
     });
 
@@ -175,22 +157,10 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error('Error in trending repositories API:', error);
-    
-    // Track error in Sentry
-    if (sentryDsn) {
-      Sentry.captureException(error, {
-        tags: {
-          function: 'api-trending-repositories',
-          error_type: 'uncaught_exception',
-        },
-        extra: {
-          event_method: event.httpMethod,
-          event_path: event.path,
-          query_params: event.queryStringParameters,
-        },
-      });
-    }
+    console.error('Error in trending repositories API:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return {
       statusCode: 500,
