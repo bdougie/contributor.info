@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { TrendingRepositoryData } from '@/components/features/trending';
+import { captureException } from '@/lib/sentry-lazy';
 
 export interface TrendingQuery {
   period?: '24h' | '7d' | '30d';
@@ -82,6 +83,18 @@ export function useTrendingRepositories(
       setStatistics(data.metadata.statistics);
     } catch (err) {
       console.error('Error fetching trending repositories:', err);
+      
+      // Track error in Sentry
+      captureException(err, {
+        tags: {
+          hook: 'useTrendingRepositories',
+          endpoint: 'api-trending-repositories',
+        },
+        extra: {
+          query: currentQuery,
+        },
+      });
+      
       setError(err instanceof Error ? err.message : 'Failed to fetch trending repositories');
       setRepositories([]);
       setStatistics(null);
@@ -141,6 +154,18 @@ export function useTrendingStatistics(period: '24h' | '7d' | '30d' = '7d') {
         setStatistics(data.metadata.statistics);
       } catch (err) {
         console.error('Error fetching trending statistics:', err);
+        
+        // Track error in Sentry
+        captureException(err, {
+          tags: {
+            hook: 'useTrendingStatistics',
+            endpoint: 'api-trending-repositories',
+          },
+          extra: {
+            period,
+          },
+        });
+        
         setError(err instanceof Error ? err.message : 'Failed to fetch trending statistics');
         setStatistics(null);
       } finally {

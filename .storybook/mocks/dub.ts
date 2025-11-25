@@ -6,5 +6,3 @@ export const createChartShareUrl = fn().mockResolvedValue(
 );
 
 export const getDubConfig = fn().mockReturnValue({ isDev: false });
-
-export const trackClick = fn();
