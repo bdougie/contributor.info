@@ -21,6 +21,9 @@ interface RepositoryTrackingCardProps {
   className?: string;
 }
 
+// Type for tracking flow stage (for PLG abandonment tracking)
+type TrackingStage = 'viewing' | 'clicked_track' | 'waiting_for_data';
+
 export function RepositoryTrackingCard({
   owner,
   repo,
@@ -33,6 +36,11 @@ export function RepositoryTrackingCard({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // PLG Tracking: Track user stage and timing for abandonment detection
+  const trackingStageRef = useRef<TrackingStage>('viewing');
+  const trackingStartTimeRef = useRef<number | null>(null);
+  const hasCompletedRef = useRef(false); // Track if user completed the flow
 
   // Safe trackEvent wrapper with error handling
   const safeTrackEvent = useCallback(
@@ -96,6 +104,10 @@ export function RepositoryTrackingCard({
       return;
     }
 
+    // PLG Tracking: Update stage and start timing
+    trackingStageRef.current = 'clicked_track';
+    trackingStartTimeRef.current = Date.now();
+
     // Track button click
     safeTrackEvent('clicked_track_repository', {
       repository: `${owner}/${repo}`,
@@ -156,6 +168,9 @@ export function RepositoryTrackingCard({
         throw new Error(result?.message || 'Tracking failed');
       }
 
+      // PLG Tracking: Update stage to waiting
+      trackingStageRef.current = 'waiting_for_data';
+
       // Start polling for completion
       startPollingForData();
     } catch (err) {
@@ -190,10 +205,25 @@ export function RepositoryTrackingCard({
     }
   };
 
-  // Cleanup polling and timeouts on unmount
+  // Cleanup polling and timeouts on unmount + PLG abandonment tracking
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+
+      // PLG Tracking: Fire abandonment event if user left during active tracking flow
+      // Only fire if user was actively engaged (past 'viewing' stage) and didn't complete
+      if (!hasCompletedRef.current && trackingStageRef.current !== 'viewing') {
+        const timeInFlow = trackingStartTimeRef.current
+          ? Date.now() - trackingStartTimeRef.current
+          : undefined;
+
+        safeTrackEvent('track_repository_abandoned', {
+          repository: `${owner}/${repo}`,
+          abandon_stage: trackingStageRef.current,
+          time_in_flow_ms: timeInFlow,
+        });
+      }
+
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
@@ -203,7 +233,7 @@ export function RepositoryTrackingCard({
         viewEventTimeoutRef.current = null;
       }
     };
-  }, []);
+  }, [owner, repo, safeTrackEvent]);
 
   const startPollingForData = () => {
     let pollCount = 0;
@@ -232,6 +262,9 @@ export function RepositoryTrackingCard({
           if (!isMountedRef.current) {
             return;
           }
+
+          // PLG Tracking: Mark flow as completed (prevents abandonment event)
+          hasCompletedRef.current = true;
 
           // Track when data becomes available
           safeTrackEvent('repository_data_ready', {
@@ -267,6 +300,17 @@ export function RepositoryTrackingCard({
 
           // Only proceed if component is still mounted
           if (isMountedRef.current) {
+            // PLG Tracking: Calculate wait duration for timeout event
+            const waitDurationMs = trackingStartTimeRef.current
+              ? Date.now() - trackingStartTimeRef.current
+              : pollCount * 2000; // Fallback: 2 seconds per poll
+
+            // PLG Tracking: Fire timeout viewed event
+            safeTrackEvent('track_repository_timeout_viewed', {
+              repository: `${owner}/${repo}`,
+              wait_duration_ms: waitDurationMs,
+            });
+
             // Track the polling timeout as a failure event
             safeTrackEvent('repository_tracking_failed', {
               repository: `${owner}/${repo}`,
