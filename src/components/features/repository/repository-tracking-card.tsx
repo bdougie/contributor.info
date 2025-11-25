@@ -42,6 +42,12 @@ export function RepositoryTrackingCard({
   const trackingStartTimeRef = useRef<number | null>(null);
   const hasCompletedRef = useRef(false); // Track if user completed the flow
 
+  // Store current owner/repo in refs to avoid stale closures in cleanup effect
+  const ownerRef = useRef(owner);
+  const repoRef = useRef(repo);
+  ownerRef.current = owner;
+  repoRef.current = repo;
+
   // Safe trackEvent wrapper with error handling
   const safeTrackEvent = useCallback(
     async (eventName: string, properties?: Record<string, unknown>) => {
@@ -206,6 +212,8 @@ export function RepositoryTrackingCard({
   };
 
   // Cleanup polling and timeouts on unmount + PLG abandonment tracking
+  // Note: Uses refs for owner/repo to avoid stale closures and prevent effect from
+  // running on prop changes (which would incorrectly set isMountedRef to false)
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
@@ -218,7 +226,7 @@ export function RepositoryTrackingCard({
           : undefined;
 
         safeTrackEvent('track_repository_abandoned', {
-          repository: `${owner}/${repo}`,
+          repository: `${ownerRef.current}/${repoRef.current}`,
           abandon_stage: trackingStageRef.current,
           time_in_flow_ms: timeInFlow,
         });
@@ -233,7 +241,7 @@ export function RepositoryTrackingCard({
         viewEventTimeoutRef.current = null;
       }
     };
-  }, [owner, repo, safeTrackEvent]);
+  }, [safeTrackEvent]); // Only safeTrackEvent - use refs for owner/repo to run only on unmount
 
   const startPollingForData = () => {
     let pollCount = 0;

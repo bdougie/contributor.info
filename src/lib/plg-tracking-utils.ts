@@ -177,12 +177,16 @@ export function getReferrerDomain(referrer: string): string | null {
 
 /**
  * Check if the current visit is organic (no referrer or no UTM params).
+ * A visit is NOT organic if ANY UTM parameter is present.
  */
 export function isOrganicVisit(referrer: string, searchString: string): boolean {
   // No referrer = direct/organic
   if (!referrer) return true;
 
-  // Has UTM params = paid/campaign
+  // Has ANY UTM params = paid/campaign (not organic)
   const params = new URLSearchParams(searchString);
-  return !params.has('utm_source');
+  const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+  const hasAnyUtmParam = utmKeys.some((key) => params.has(key));
+
+  return !hasAnyUtmParam;
 }
