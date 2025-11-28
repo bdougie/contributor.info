@@ -101,55 +101,55 @@
     <loc>https://contributor.info/ohmyzsh/ohmyzsh</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.377Z</lastmod>
+    <lastmod>2025-11-28T00:40:48.965Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ohmyzsh/ohmyzsh/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.377Z</lastmod>
+    <lastmod>2025-11-28T00:40:48.965Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ohmyzsh/ohmyzsh/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.377Z</lastmod>
+    <lastmod>2025-11-28T00:40:48.965Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/vscode</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:12.574Z</lastmod>
+    <lastmod>2025-11-28T00:40:49.188Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/vscode/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:12.574Z</lastmod>
+    <lastmod>2025-11-28T00:40:49.188Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/vscode/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:12.574Z</lastmod>
+    <lastmod>2025-11-28T00:40:49.188Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ollama/ollama</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.520Z</lastmod>
+    <lastmod>2025-11-28T00:40:50.738Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ollama/ollama/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.520Z</lastmod>
+    <lastmod>2025-11-28T00:40:50.738Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ollama/ollama/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:19.520Z</lastmod>
+    <lastmod>2025-11-28T00:40:50.738Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/next.js</loc>
@@ -173,271 +173,271 @@
     <loc>https://contributor.info/kubernetes/kubernetes</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:42:07.540Z</lastmod>
+    <lastmod>2025-11-28T00:42:09.704Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/kubernetes/kubernetes/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:07.540Z</lastmod>
+    <lastmod>2025-11-28T00:42:09.704Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/kubernetes/kubernetes/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:07.540Z</lastmod>
+    <lastmod>2025-11-28T00:42:09.704Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/TypeScript</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-26T21:31:52.248Z</lastmod>
+    <lastmod>2025-11-28T00:42:41.022Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/TypeScript/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-26T21:31:52.248Z</lastmod>
+    <lastmod>2025-11-28T00:42:41.022Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/microsoft/TypeScript/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-26T21:31:52.248Z</lastmod>
+    <lastmod>2025-11-28T00:42:41.022Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vitejs/vite</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:30.890Z</lastmod>
+    <lastmod>2025-11-28T00:40:57.058Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vitejs/vite/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:30.890Z</lastmod>
+    <lastmod>2025-11-28T00:40:57.058Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vitejs/vite/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:30.890Z</lastmod>
+    <lastmod>2025-11-28T00:40:57.058Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/punkpeye/awesome-mcp-servers</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:23.308Z</lastmod>
+    <lastmod>2025-11-28T00:42:38.361Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/punkpeye/awesome-mcp-servers/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:23.308Z</lastmod>
+    <lastmod>2025-11-28T00:42:38.361Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/punkpeye/awesome-mcp-servers/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:23.308Z</lastmod>
+    <lastmod>2025-11-28T00:42:38.361Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/appwrite/appwrite</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:14.595Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.838Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/appwrite/appwrite/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:14.595Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.838Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/appwrite/appwrite/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:14.595Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.838Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/etcd-io/etcd</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:40.844Z</lastmod>
+    <lastmod>2025-11-28T00:40:25.934Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/etcd-io/etcd/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:40.844Z</lastmod>
+    <lastmod>2025-11-28T00:40:25.934Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/etcd-io/etcd/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:40.844Z</lastmod>
+    <lastmod>2025-11-28T00:40:25.934Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/fastify/fastify</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:05.063Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.220Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/fastify/fastify/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:05.063Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.220Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/fastify/fastify/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:05.063Z</lastmod>
+    <lastmod>2025-11-28T00:42:14.220Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:55.718Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.631Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:55.718Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.631Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/continuedev/continue/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:55.718Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.631Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/atuinsh/atuin</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:48.533Z</lastmod>
+    <lastmod>2025-11-28T00:41:50.227Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/atuinsh/atuin/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:48.533Z</lastmod>
+    <lastmod>2025-11-28T00:41:50.227Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/atuinsh/atuin/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:48.533Z</lastmod>
+    <lastmod>2025-11-28T00:41:50.227Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:07.226Z</lastmod>
+    <lastmod>2025-11-28T00:40:42.014Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:07.226Z</lastmod>
+    <lastmod>2025-11-28T00:40:42.014Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/argoproj/argo-cd/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:07.226Z</lastmod>
+    <lastmod>2025-11-28T00:40:42.014Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:17.768Z</lastmod>
+    <lastmod>2025-11-28T00:40:22.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:17.768Z</lastmod>
+    <lastmod>2025-11-28T00:40:22.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/vercel/ai/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:17.768Z</lastmod>
+    <lastmod>2025-11-28T00:40:22.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pgvector/pgvector</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:21.508Z</lastmod>
+    <lastmod>2025-11-28T00:42:21.352Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pgvector/pgvector/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:21.508Z</lastmod>
+    <lastmod>2025-11-28T00:42:21.352Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pgvector/pgvector/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:21.508Z</lastmod>
+    <lastmod>2025-11-28T00:42:21.352Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/better-auth/better-auth</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:58.073Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.786Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/better-auth/better-auth/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:58.073Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.786Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/better-auth/better-auth/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:58.073Z</lastmod>
+    <lastmod>2025-11-28T00:41:49.786Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/github/docs</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:34.110Z</lastmod>
+    <lastmod>2025-11-28T00:42:36.714Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/github/docs/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:34.110Z</lastmod>
+    <lastmod>2025-11-28T00:42:36.714Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/github/docs/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:34.110Z</lastmod>
+    <lastmod>2025-11-28T00:42:36.714Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/Kilo-Org/kilocode</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:15.271Z</lastmod>
+    <lastmod>2025-11-28T00:40:44.533Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/Kilo-Org/kilocode/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:15.271Z</lastmod>
+    <lastmod>2025-11-28T00:40:44.533Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/Kilo-Org/kilocode/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:15.271Z</lastmod>
+    <lastmod>2025-11-28T00:40:44.533Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/CGCookie/retopoflow</loc>
@@ -461,85 +461,85 @@
     <loc>https://contributor.info/atuinsh/desktop</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:37.269Z</lastmod>
+    <lastmod>2025-11-28T00:41:41.754Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/atuinsh/desktop/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:37.269Z</lastmod>
+    <lastmod>2025-11-28T00:41:41.754Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/atuinsh/desktop/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:37.269Z</lastmod>
+    <lastmod>2025-11-28T00:41:41.754Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/PyPSA/PyPSA</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:26.409Z</lastmod>
+    <lastmod>2025-11-28T00:40:59.191Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/PyPSA/PyPSA/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:26.409Z</lastmod>
+    <lastmod>2025-11-28T00:40:59.191Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/PyPSA/PyPSA/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:26.409Z</lastmod>
+    <lastmod>2025-11-28T00:40:59.191Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/zuplo/zudoku</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:38.415Z</lastmod>
+    <lastmod>2025-11-28T00:40:53.409Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/zuplo/zudoku/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:38.415Z</lastmod>
+    <lastmod>2025-11-28T00:40:53.409Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/zuplo/zudoku/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:38.415Z</lastmod>
+    <lastmod>2025-11-28T00:40:53.409Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/husamql3/pstrack</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:06.157Z</lastmod>
+    <lastmod>2025-11-28T00:40:12.539Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/husamql3/pstrack/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:06.157Z</lastmod>
+    <lastmod>2025-11-28T00:40:12.539Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/husamql3/pstrack/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:06.157Z</lastmod>
+    <lastmod>2025-11-28T00:40:12.539Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/GalsenDev221/made.in.senegal</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:15.952Z</lastmod>
+    <lastmod>2025-11-28T00:42:16.478Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/FZJ-IEK3-VSA/FINE</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:01.304Z</lastmod>
+    <lastmod>2025-11-28T00:40:24.778Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/theopenlane/core</loc>
@@ -557,133 +557,133 @@
     <loc>https://contributor.info/rexdivakar/Notifly</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:46.446Z</lastmod>
+    <lastmod>2025-11-28T00:40:08.512Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/GalsenDev221/first.contributions</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:55.675Z</lastmod>
+    <lastmod>2025-11-28T00:41:02.871Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/bdougie/contributor.info</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:01.283Z</lastmod>
+    <lastmod>2025-11-28T00:40:36.316Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/grenzbotin/strapi-llm-translator</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:08.096Z</lastmod>
+    <lastmod>2025-11-28T00:39:32.751Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/sujithq/sujithq</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:14.493Z</lastmod>
+    <lastmod>2025-11-28T00:39:40.496Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/sujithq/myenergy</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:45.594Z</lastmod>
+    <lastmod>2025-11-28T00:40:08.793Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/sujithq/sujithq.github.io</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:37.729Z</lastmod>
+    <lastmod>2025-11-28T00:39:56.738Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/ArshadMahalkari/StockApp</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:07.389Z</lastmod>
+    <lastmod>2025-11-28T00:39:32.113Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/dachosen1/nearquake</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:40.455Z</lastmod>
+    <lastmod>2025-11-28T00:41:45.017Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/Ad-Astra-Innovia/frontend</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:00.557Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/vue/vue</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:24.423Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/rexdivakar/HippocampAI</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:15.534Z</lastmod>
+    <lastmod>2025-11-28T00:39:31.351Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/Supabase/supabase</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:28.533Z</lastmod>
+    <lastmod>2025-11-28T00:42:25.098Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/vue/vue</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-11-28T00:39:51.131Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/rexdivakar/HippocampAI</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-11-28T00:39:43.850Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/BlueMatthew/WechatExporter</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:12.680Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/Robdel12/DraftPatch</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:07.543Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/zulip/zulip</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:53.639Z</lastmod>
+    <lastmod>2025-11-28T00:39:39.643Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/axios/axios</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:01.279Z</lastmod>
+    <lastmod>2025-11-28T00:42:08.604Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/supabase/supabase</loc>
+    <loc>https://contributor.info/Robdel12/DraftPatch</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:28.922Z</lastmod>
+    <lastmod>2025-11-28T00:39:26.103Z</lastmod>
   </url>
   <url>
-    <loc>https://contributor.info/anthropics/claude-code</loc>
+    <loc>https://contributor.info/zulip/zulip</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:02.659Z</lastmod>
+    <lastmod>2025-11-28T00:42:05.540Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/tensorflow/tensorflow</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:40:32.698Z</lastmod>
+    <lastmod>2025-11-28T00:39:59.608Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/tensorflow/tensorflow/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:32.698Z</lastmod>
+    <lastmod>2025-11-28T00:39:59.608Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/tensorflow/tensorflow/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:32.698Z</lastmod>
+    <lastmod>2025-11-28T00:39:59.608Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/anthropics/claude-code</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-11-28T00:42:02.074Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/supabase/supabase</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-11-28T00:42:25.586Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/topoteretes/cognee</loc>
@@ -695,241 +695,241 @@
     <loc>https://contributor.info/lodash/lodash</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:43:26.892Z</lastmod>
+    <lastmod>2025-11-28T00:44:14.073Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/analogjs/analog</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:49.884Z</lastmod>
+    <lastmod>2025-11-28T00:42:03.096Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/golang/go</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:52.589Z</lastmod>
+    <lastmod>2025-11-28T00:41:58.013Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/golang/go/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:52.589Z</lastmod>
+    <lastmod>2025-11-28T00:41:58.013Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/golang/go/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:52.589Z</lastmod>
+    <lastmod>2025-11-28T00:41:58.013Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/shadcn/ui</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:43.298Z</lastmod>
+    <lastmod>2025-11-28T00:41:44.967Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/expressjs/express</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:15.138Z</lastmod>
+    <lastmod>2025-11-28T00:42:41.035Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/rivet-gg/rivetkit</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:29.030Z</lastmod>
+    <lastmod>2025-11-28T00:41:38.174Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/facebook/docusaurus</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:33.213Z</lastmod>
+    <lastmod>2025-11-28T00:41:44.539Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/grafana/grafana</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:40:55.967Z</lastmod>
+    <lastmod>2025-11-28T00:40:30.242Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/grafana/grafana/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:55.967Z</lastmod>
+    <lastmod>2025-11-28T00:40:30.242Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/grafana/grafana/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:55.967Z</lastmod>
+    <lastmod>2025-11-28T00:40:30.242Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/moment/moment</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:24.372Z</lastmod>
+    <lastmod>2025-11-28T00:41:39.523Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/excalidraw/excalidraw</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:27.842Z</lastmod>
+    <lastmod>2025-11-28T00:42:23.291Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:40:58.634Z</lastmod>
+    <lastmod>2025-11-28T00:40:32.233Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:58.634Z</lastmod>
+    <lastmod>2025-11-28T00:40:32.233Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pytorch/pytorch/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:40:58.634Z</lastmod>
+    <lastmod>2025-11-28T00:40:32.233Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/open-sauced/app</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:28.520Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/langchain-ai/langchain</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:22.155Z</lastmod>
+    <lastmod>2025-11-28T00:41:03.170Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/cline/cline</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:03.969Z</lastmod>
+    <lastmod>2025-11-28T00:40:40.458Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/langchain-ai/langchain</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2025-11-28T00:42:25.601Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/huggingface/transformers</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:10.314Z</lastmod>
+    <lastmod>2025-11-28T00:40:45.744Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/zml/zml</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:50.132Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/prometheus/prometheus</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:33.496Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/prometheus/prometheus/health</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:33.496Z</lastmod>
-  </url>
-  <url>
-    <loc>https://contributor.info/prometheus/prometheus/distribution</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:33.496Z</lastmod>
+    <lastmod>2025-11-28T00:41:59.685Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/terraform-providers/terraform-provider-aws</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:45.859Z</lastmod>
+    <lastmod>2025-11-28T00:40:51.610Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/duckdb/duckdb</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:08.771Z</lastmod>
+    <lastmod>2025-11-28T00:42:07.730Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/prometheus/prometheus</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <lastmod>2025-11-28T00:41:33.331Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/prometheus/prometheus/health</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-11-28T00:41:33.331Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/prometheus/prometheus/distribution</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2025-11-28T00:41:33.331Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/facebook/react</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:49.686Z</lastmod>
+    <lastmod>2025-11-28T00:41:40.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/facebook/react/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:49.686Z</lastmod>
+    <lastmod>2025-11-28T00:41:40.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/facebook/react/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:49.686Z</lastmod>
+    <lastmod>2025-11-28T00:41:40.322Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/nestjs/nest</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:42.617Z</lastmod>
+    <lastmod>2025-11-28T00:40:06.821Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/fastapi/fastapi</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:41:07.394Z</lastmod>
+    <lastmod>2025-11-28T00:40:30.437Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/clickhouse/clickhouse</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:42:02.865Z</lastmod>
+    <lastmod>2025-11-28T00:41:55.108Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/rust-lang/rust</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:42:10.069Z</lastmod>
+    <lastmod>2025-11-28T00:42:31.652Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/rust-lang/rust/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:10.069Z</lastmod>
+    <lastmod>2025-11-28T00:42:31.652Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/rust-lang/rust/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:42:10.069Z</lastmod>
+    <lastmod>2025-11-28T00:42:31.652Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/angular/angular</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-    <lastmod>2025-11-27T00:41:32.163Z</lastmod>
+    <lastmod>2025-11-28T00:42:27.084Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/angular/angular/health</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:32.163Z</lastmod>
+    <lastmod>2025-11-28T00:42:27.084Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/angular/angular/distribution</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
-    <lastmod>2025-11-27T00:41:32.163Z</lastmod>
+    <lastmod>2025-11-28T00:42:27.084Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/pingcap/tidb</loc>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
-    <lastmod>2025-11-27T00:40:55.631Z</lastmod>
+    <lastmod>2025-11-28T00:40:37.851Z</lastmod>
   </url>
   <url>
     <loc>https://contributor.info/dlt-hub/dlt</loc>
