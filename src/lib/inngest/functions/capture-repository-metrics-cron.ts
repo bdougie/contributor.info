@@ -112,86 +112,122 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       return counts;
     });
 
-    // Step 4: Capture metrics in batches
+    // Step 4: Capture metrics in batches, tracking failures
     let totalMetricsInserted = 0;
-    const batches = Math.ceil(repositories.length / BATCH_SIZE);
+    let failedBatches = 0;
+    const totalBatches = Math.ceil(repositories.length / BATCH_SIZE);
+    const failedBatchErrors: string[] = [];
 
-    for (let i = 0; i < batches; i++) {
+    for (let i = 0; i < totalBatches; i++) {
       const batchStart = i * BATCH_SIZE;
       const batchEnd = Math.min((i + 1) * BATCH_SIZE, repositories.length);
       const batch = repositories.slice(batchStart, batchEnd);
 
-      const batchResult = await step.run(`capture-metrics-batch-${i}`, async () => {
-        const metricsToCapture: MetricCapture[] = [];
+      const batchResult = await step.run(
+        `capture-metrics-batch-${i}`,
+        async (): Promise<{ inserted: number; error: string | null }> => {
+          const metricsToCapture: MetricCapture[] = [];
 
-        for (const repo of batch) {
-          // Add base metrics from repository table
-          metricsToCapture.push(
-            {
-              repository_id: repo.id,
-              metric_type: 'stars',
-              current_value: repo.stargazers_count || 0,
-            },
-            { repository_id: repo.id, metric_type: 'forks', current_value: repo.forks_count || 0 },
-            {
-              repository_id: repo.id,
-              metric_type: 'issues',
-              current_value: repo.open_issues_count || 0,
-            },
-            {
-              repository_id: repo.id,
-              metric_type: 'watchers',
-              current_value: repo.watchers_count || 0,
+          for (const repo of batch) {
+            // Add base metrics from repository table
+            metricsToCapture.push(
+              {
+                repository_id: repo.id,
+                metric_type: 'stars',
+                current_value: repo.stargazers_count || 0,
+              },
+              {
+                repository_id: repo.id,
+                metric_type: 'forks',
+                current_value: repo.forks_count || 0,
+              },
+              {
+                repository_id: repo.id,
+                metric_type: 'issues',
+                current_value: repo.open_issues_count || 0,
+              },
+              {
+                repository_id: repo.id,
+                metric_type: 'watchers',
+                current_value: repo.watchers_count || 0,
+              }
+            );
+
+            // Add contributor count if available
+            const contributorCount = contributorCounts[repo.id];
+            if (contributorCount !== undefined) {
+              metricsToCapture.push({
+                repository_id: repo.id,
+                metric_type: 'contributors',
+                current_value: contributorCount,
+              });
             }
-          );
 
-          // Add contributor count if available
-          const contributorCount = contributorCounts[repo.id];
-          if (contributorCount !== undefined) {
-            metricsToCapture.push({
-              repository_id: repo.id,
-              metric_type: 'contributors',
-              current_value: contributorCount,
-            });
+            // Add PR count if available
+            const prCount = prCounts[repo.id];
+            if (prCount !== undefined) {
+              metricsToCapture.push({
+                repository_id: repo.id,
+                metric_type: 'pull_requests',
+                current_value: prCount,
+              });
+            }
           }
 
-          // Add PR count if available
-          const prCount = prCounts[repo.id];
-          if (prCount !== undefined) {
-            metricsToCapture.push({
-              repository_id: repo.id,
-              metric_type: 'pull_requests',
-              current_value: prCount,
-            });
+          // Use batch_capture_metrics RPC for efficient insertion
+          const { data, error } = await supabase.rpc('batch_capture_metrics', {
+            metrics_data: metricsToCapture,
+          });
+
+          if (error) {
+            console.error('[Metrics Cron] Error capturing batch %d: %s', i, error.message);
+            return { inserted: 0, error: `Batch ${i}: ${error.message}` };
           }
+
+          return { inserted: data || 0, error: null };
         }
+      );
 
-        // Use batch_capture_metrics RPC for efficient insertion
-        const { data, error } = await supabase.rpc('batch_capture_metrics', {
-          metrics_data: metricsToCapture,
-        });
-
-        if (error) {
-          console.error('[Metrics Cron] Error capturing batch %d: %s', i, error.message);
-          return 0;
-        }
-
-        return data || 0;
-      });
-
-      totalMetricsInserted += batchResult;
+      totalMetricsInserted += batchResult.inserted;
+      if (batchResult.error) {
+        failedBatches++;
+        failedBatchErrors.push(batchResult.error);
+      }
     }
 
-    console.log(
-      '[Metrics Cron] ✅ Completed: %d repositories processed, %d metrics inserted',
-      repositories.length,
-      totalMetricsInserted
-    );
+    // Determine success based on failure rate
+    // Fail if more than 50% of batches failed, or if all batches failed
+    const failureRate = failedBatches / totalBatches;
+    const isSuccess = failedBatches === 0 || (failureRate < 0.5 && totalMetricsInserted > 0);
+
+    if (failedBatches > 0) {
+      console.warn(
+        '[Metrics Cron] ⚠️ Completed with errors: %d/%d batches failed',
+        failedBatches,
+        totalBatches
+      );
+    } else {
+      console.log(
+        '[Metrics Cron] ✅ Completed: %d repositories processed, %d metrics inserted',
+        repositories.length,
+        totalMetricsInserted
+      );
+    }
+
+    // Throw if too many failures to trigger Inngest retry
+    if (!isSuccess) {
+      throw new Error(
+        `Metrics capture failed: ${failedBatches}/${totalBatches} batches failed. Errors: ${failedBatchErrors.join('; ')}`
+      );
+    }
 
     return {
-      success: true,
+      success: isSuccess,
       repositoriesProcessed: repositories.length,
       metricsInserted: totalMetricsInserted,
+      totalBatches,
+      failedBatches,
+      failedBatchErrors: failedBatchErrors.length > 0 ? failedBatchErrors : undefined,
       completedAt: new Date().toISOString(),
     };
   }
