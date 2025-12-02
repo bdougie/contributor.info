@@ -44,3 +44,9 @@ export { enrichContributorsCron } from './enrich-contributors-cron';
 
 // Slack integration for workspace reports
 export { sendSlackAssigneeReportCron } from './send-slack-assignee-report-cron';
+
+// Repository metrics capture for trending detection
+export {
+  captureRepositoryMetricsCron,
+  captureRepositoryMetricsManual,
+} from './capture-repository-metrics-cron';
