@@ -241,7 +241,8 @@ export function RepositoryTrackingCard({
         viewEventTimeoutRef.current = null;
       }
     };
-  }, [safeTrackEvent]); // Only safeTrackEvent - use refs for owner/repo to run only on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - cleanup should only run on unmount, uses refs to avoid stale closures
 
   const startPollingForData = () => {
     let pollCount = 0;
