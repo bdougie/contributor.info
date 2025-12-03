@@ -20,6 +20,7 @@ import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetc
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { useAnalytics } from '@/hooks/use-analytics';
 
 // Lazy load the command palette
 const CommandPalette = lazy(() =>
@@ -44,6 +45,9 @@ export default function Layout() {
   const needsOnboarding = workspaces.length === 0;
   const onboardingLoading = workspacesLoading;
   const hasTrackedCTA = useRef(false);
+
+  // PLG Tracking: First page view tracking
+  const { trackFirstPageView } = useAnalytics();
 
   // Prefetch handlers for navigation links
   const trendingPrefetch = usePrefetchOnIntent('/trending');
@@ -88,6 +92,12 @@ export default function Layout() {
       preventDefault: true,
     })),
   ]);
+
+  // PLG Tracking: Track first page view of the session
+  useEffect(() => {
+    // Fire once per session - utility handles deduplication
+    trackFirstPageView();
+  }, [trackFirstPageView]);
 
   // Track workspace CTA visibility
   useEffect(() => {

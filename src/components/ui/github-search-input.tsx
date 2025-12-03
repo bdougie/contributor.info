@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,26 @@ import { useTimeFormatter } from '@/hooks/use-time-formatter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
+
+// Debounce utility for search query tracking
+function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
+  callback: T,
+  delay: number
+): T {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  return useCallback(
+    ((...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    }) as T,
+    [callback, delay]
+  );
+}
 
 interface GitHubSearchInputProps {
   placeholder?: string;
@@ -61,7 +81,15 @@ export function GitHubSearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
-  const { trackSearchResultsViewed, trackRepositorySelectedFromSearch } = useAnalytics();
+  const {
+    trackSearchResultsViewed,
+    trackRepositorySelectedFromSearch,
+    trackRepoSearchInitiated,
+    trackRepoSearchQueryEntered,
+    trackRepoSearchResultClicked,
+    trackRepoSearchCompleted,
+  } = useAnalytics();
+  const hasTrackedFocusRef = useRef(false);
 
   const { setQuery, results, loading } = useGitHubSearch({
     debounceMs: 300,
@@ -73,6 +101,20 @@ export function GitHubSearchInput({
   useEffect(() => {
     setQuery(inputValue);
   }, [inputValue, setQuery]);
+
+  // PLG Tracking: Debounced query tracking
+  const trackQueryDebounced = useDebouncedCallback((query: string, hasResults: boolean) => {
+    if (query.length >= 2) {
+      trackRepoSearchQueryEntered(searchLocation, query.length, hasResults);
+    }
+  }, 500);
+
+  // Track query entered when results change
+  useEffect(() => {
+    if (inputValue.length >= 2) {
+      trackQueryDebounced(inputValue, results.length > 0);
+    }
+  }, [inputValue, results.length, trackQueryDebounced]);
 
   // Show dropdown when we have results
   useEffect(() => {
@@ -91,6 +133,15 @@ export function GitHubSearchInput({
     setInputValue(e.target.value);
   };
 
+  // PLG Tracking: Handle input focus to track search initiation
+  const handleInputFocus = () => {
+    // Only track focus once per component mount to avoid noise
+    if (!hasTrackedFocusRef.current) {
+      hasTrackedFocusRef.current = true;
+      trackRepoSearchInitiated(searchLocation);
+    }
+  };
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +158,16 @@ export function GitHubSearchInput({
 
   // Handle repository selection
   const handleSelectRepository = (repository: GitHubRepository, resultIndex?: number) => {
+    // Existing tracking
     trackRepositorySelectedFromSearch(searchLocation, resultIndex);
+
+    // PLG Tracking: Track result click and completion
+    if (resultIndex !== undefined) {
+      trackRepoSearchResultClicked(searchLocation, resultIndex, 'api_result');
+    }
+    // Track search completion which also handles activation milestone
+    trackRepoSearchCompleted(searchLocation, repository.full_name);
+
     setInputValue(''); // Clear the input when selecting a repository
     setShowDropdown(false);
     setSelectedIndex(-1);
@@ -178,6 +238,7 @@ export function GitHubSearchInput({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
+            onFocus={handleInputFocus}
             className="w-full pr-8"
             autoComplete="off"
           />
