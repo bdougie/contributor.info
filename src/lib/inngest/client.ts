@@ -132,4 +132,7 @@ export type DataCaptureEvents = {
       repo: string;
     };
   };
+  'metrics/repository.capture': {
+    data: Record<string, never>; // No data needed for manual trigger
+  };
 };
