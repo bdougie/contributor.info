@@ -78,13 +78,17 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     console.log('Fetching trending repositories with params:', query);
 
-    // Call the trending repositories function
-    const { data: trendingRepos, error } = await getSupabase().rpc('get_trending_repositories', {
-      p_time_period: intervalMap[query.period],
-      p_limit: query.limit,
-      p_language: query.language,
-      p_min_stars: query.minStars,
-    });
+    // Call the trending repositories function with fallback
+    // This will return top repos by stars if no recent metrics data exists
+    const { data: trendingRepos, error } = await getSupabase().rpc(
+      'get_trending_repositories_with_fallback',
+      {
+        p_time_period: intervalMap[query.period],
+        p_limit: query.limit,
+        p_language: query.language,
+        p_min_stars: query.minStars,
+      }
+    );
 
     if (error) {
       console.error('Error fetching trending repositories:', {

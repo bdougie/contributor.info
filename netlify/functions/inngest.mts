@@ -13,6 +13,8 @@ import {
   discoverNewRepository,
   syncDiscussionsCron,
   sendSlackAssigneeReportCron,
+  captureRepositoryMetricsCron,
+  captureRepositoryMetricsManual,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
 
 // Create the Inngest serve handler
@@ -35,6 +37,9 @@ const inngestHandler = serve({
     syncDiscussionsCron,
     // Slack integration cron
     sendSlackAssigneeReportCron,
+    // Repository metrics capture for trending
+    captureRepositoryMetricsCron,
+    captureRepositoryMetricsManual,
   ],
   servePath: '/.netlify/functions/inngest',
 });
@@ -59,6 +64,8 @@ export default async (req: Request, context: Context) => {
           'discover-new-repository',
           'sync-discussions-cron',
           'send-slack-assignee-report-cron',
+          'capture-repository-metrics-cron',
+          'capture-repository-metrics-manual',
         ],
         environment: {
           context: process.env.CONTEXT || 'unknown',
