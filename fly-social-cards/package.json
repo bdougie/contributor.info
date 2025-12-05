@@ -15,7 +15,7 @@
     "node": ">=18.11.0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.75.1",
+    "@supabase/supabase-js": "^2.81.1",
     "express": "^4.18.2",
     "dotenv": "^16.3.1",
     "sharp": "^0.33.5"
