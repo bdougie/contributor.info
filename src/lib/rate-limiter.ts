@@ -158,3 +158,32 @@ export const githubRateLimiter = new RateLimiter({
   minDelay: 100,
   maxRetries: 3,
 });
+
+// GraphQL rate limiter for batch operations (higher concurrency for linked PR fetching)
+// 10 concurrent requests with 50ms delay to avoid rate limiting
+export const graphqlRateLimiter = new RateLimiter({
+  maxConcurrent: 10,
+  minDelay: 50,
+  maxRetries: 3,
+});
+
+/**
+ * Execute an array of async functions with rate limiting
+ * Replacement for Promise.all that respects rate limits
+ * Failed requests don't block successful ones - they return null/undefined
+ */
+export async function executeWithRateLimit<T>(
+  tasks: Array<() => Promise<T>>,
+  rateLimiter: RateLimiter = graphqlRateLimiter
+): Promise<Array<T | null>> {
+  const results = await Promise.allSettled(tasks.map((task) => rateLimiter.enqueue(task)));
+
+  return results.map((result) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    }
+    // Log failed requests but don't throw - return null instead
+    console.warn('Rate-limited request failed:', result.reason);
+    return null;
+  });
+}
