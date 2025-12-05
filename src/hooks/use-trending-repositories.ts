@@ -83,7 +83,7 @@ export function useTrendingRepositories(
       setStatistics(data.metadata.statistics);
     } catch (err) {
       console.error('Error fetching trending repositories:', err);
-      
+
       // Track error in Sentry
       captureException(err, {
         tags: {
@@ -94,7 +94,7 @@ export function useTrendingRepositories(
           query: currentQuery,
         },
       });
-      
+
       setError(err instanceof Error ? err.message : 'Failed to fetch trending repositories');
       setRepositories([]);
       setStatistics(null);
@@ -154,7 +154,7 @@ export function useTrendingStatistics(period: '24h' | '7d' | '30d' = '7d') {
         setStatistics(data.metadata.statistics);
       } catch (err) {
         console.error('Error fetching trending statistics:', err);
-        
+
         // Track error in Sentry
         captureException(err, {
           tags: {
@@ -165,7 +165,7 @@ export function useTrendingStatistics(period: '24h' | '7d' | '30d' = '7d') {
             period,
           },
         });
-        
+
         setError(err instanceof Error ? err.message : 'Failed to fetch trending statistics');
         setStatistics(null);
       } finally {
