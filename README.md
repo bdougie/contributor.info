@@ -33,7 +33,7 @@ _https://contributor.info/widgets_
 
 ## 📊 Embeddable Widgets
 
-Display repository statistics directly in your README with our embeddable widgets!
+Display repository statistics directly in your README with our embeddable widgets.
 
 ### Live Examples
 
