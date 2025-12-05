@@ -47,30 +47,29 @@
 @layer base {
   :root {
     /* Light mode - Improved contrast with more grays and off-whites */
-    --background: 210 20% 96%;        /* #F1F3F5 - Medium gray background for better contrast */
-    --foreground: 215 25% 27%;        /* #11181C - slate-12 */
-    --card: 210 20% 98%;              /* #F8F9FA - Off-white for cards instead of pure white */
-    --card-foreground: 215 25% 27%;   /* #11181C - slate-12 */
-    --popover: 210 20% 98%;           /* #F8F9FA - Off-white for popovers */
+    --background: 210 20% 96%; /* #F1F3F5 - Medium gray background for better contrast */
+    --foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --card: 210 20% 98%; /* #F8F9FA - Off-white for cards instead of pure white */
+    --card-foreground: 215 25% 27%; /* #11181C - slate-12 */
+    --popover: 210 20% 98%; /* #F8F9FA - Off-white for popovers */
     --popover-foreground: 215 25% 27%; /* #11181C - slate-12 */
-    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for buttons/links */
-    --primary-foreground: 0 0% 100%;  /* White text on bright orange */
-    --secondary: 210 20% 92%;         /* #E1E5E9 - Slightly darker gray for sections */
+    --primary: 14 100% 50%; /* #FF5402 - Bright Orange for buttons/links */
+    --primary-foreground: 0 0% 100%; /* White text on bright orange */
+    --secondary: 210 20% 92%; /* #E1E5E9 - Slightly darker gray for sections */
     --secondary-foreground: 215 25% 27%; /* #11181C - slate-12 */
-    --muted: 210 20% 92%;             /* #E1E5E9 - Slightly darker gray for muted elements */
-    --muted-foreground: 215 16% 47%;  /* #889096 - slate-09 */
-    --accent: 210 20% 92%;            /* #E1E5E9 - Slightly darker gray for accent elements */
+    --muted: 210 20% 92%; /* #E1E5E9 - Slightly darker gray for muted elements */
+    --muted-foreground: 215 16% 47%; /* #889096 - slate-09 */
+    --accent: 210 20% 92%; /* #E1E5E9 - Slightly darker gray for accent elements */
     --accent-foreground: 215 25% 27%; /* #11181C - slate-12 */
-    --destructive: 0 84.2% 60.2%;     /* Keep existing red */
+    --destructive: 0 84.2% 60.2%; /* Keep existing red */
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;            /* #DCE0E4 - Slightly darker border for better definition */
-    --input: 210 20% 94%;             /* #ECEEF0 - Slightly darker input backgrounds */
-    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for light mode focus */
+    --border: 220 13% 88%; /* #DCE0E4 - Slightly darker border for better definition */
+    --input: 210 20% 94%; /* #ECEEF0 - Slightly darker input backgrounds */
+    --ring: 14 100% 50%; /* #FF5402 - Bright Orange for light mode focus */
     --radius: 0.5rem;
-    
+
     /* Content area backgrounds */
     --content-background: 210 20% 94%; /* #ECEEF0 - darker slate for main content areas */
-    
   }
 
   .dark {
@@ -80,8 +79,8 @@
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 14 100% 50%;           /* #FF5402 - Bright Orange for dark mode */
-    --primary-foreground: 0 0% 100%;  /* White text on orange background */
+    --primary: 14 100% 50%; /* #FF5402 - Bright Orange for dark mode */
+    --primary-foreground: 0 0% 100%; /* White text on orange background */
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
@@ -92,7 +91,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
-    --ring: 14 100% 50%;              /* #FF5402 - Bright Orange for dark mode focus */
+    --ring: 14 100% 50%; /* #FF5402 - Bright Orange for dark mode focus */
   }
 }
 
@@ -103,12 +102,12 @@
   body {
     @apply bg-background text-foreground;
   }
-  
+
   /* Prevent horizontal scroll on mobile */
   html {
     overflow-x: hidden;
   }
-  
+
   @media (max-width: 768px) {
     body {
       overflow-x: hidden;
@@ -125,26 +124,27 @@
     transform: translateZ(0); /* Force hardware acceleration */
     backface-visibility: hidden; /* Reduce paint complexity */
   }
-  
+
   .animate-pulse-optimized {
     animation: pulse-optimized 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  
+
   @keyframes pulse-optimized {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
       opacity: 0.5;
     }
   }
-  
+
   /* Reduce paint complexity for skeleton elements */
   .skeleton-container {
     contain: layout style paint;
     isolation: isolate;
   }
-  
+
   /* Optimize for frequent DOM updates */
   .skeleton-list-item {
     contain: layout style;
@@ -154,16 +154,16 @@
   /* Hide all sharing elements when in social card layout */
   .social-card-layout [data-shareable-card],
   .social-card-layout .shareable-card,
-  .social-card-layout button[title*="Copy"],
-  .social-card-layout button[title*="Share"],
-  .social-card-layout button[title*="Download"] {
+  .social-card-layout button[title*='Copy'],
+  .social-card-layout button[title*='Share'],
+  .social-card-layout button[title*='Download'] {
     display: none !important;
   }
 
   /* Hide tooltips during capture to prevent them from appearing in downloaded images */
-  .capturing [data-state="delayed-open"],
-  .capturing [data-state="instant-open"],
-  .capturing [role="tooltip"],
+  .capturing [data-state='delayed-open'],
+  .capturing [data-state='instant-open'],
+  .capturing [role='tooltip'],
   .capturing .tooltip-trigger,
   .capturing [data-radix-tooltip-trigger] {
     display: none !important;
@@ -174,106 +174,102 @@
   .light .bg-card {
     @apply shadow-card;
   }
-  
+
   /* Enhanced focus states for light mode */
   .light *:focus-visible {
     @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
-  
+
   /* Content area backgrounds in light mode - target the main container */
   .light main.container {
     @apply bg-content;
   }
-  
+
   /* Ensure specific layout areas get the darker slate background */
   .light .main-content,
-  .light [role="main"] {
+  .light [role='main'] {
     @apply bg-content;
   }
-  
+
   /* Ensure proper text color in dark mode for search and input components */
-  .dark input[type="text"],
-  .dark input[type="search"],
+  .dark input[type='text'],
+  .dark input[type='search'],
   .dark input[placeholder] {
     @apply text-foreground;
   }
-  
+
   /* Ensure bright orange for primary elements in both modes */
   .bg-primary,
   button.bg-primary {
     background-color: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;
   }
-  
+
   /* Ensure all primary buttons have white text */
-  .dark button[class*="bg-primary"],
+  .dark button[class*='bg-primary'],
   .dark .bg-primary {
     color: hsl(0 0% 100%) !important;
   }
-  
+
   /* Fix switch component visibility */
-  /* Switch background uses primary color when checked */
-  [data-state="checked"] {
+  /* Switch background uses primary color when checked - scoped to switch elements */
+  button[role='switch'][data-state='checked'] {
     background-color: hsl(var(--primary)) !important;
   }
-  
+
   /* Switch thumb should be white/contrasting when checked for visibility */
-  [data-state="checked"] .pointer-events-none {
+  button[role='switch'][data-state='checked'] .pointer-events-none {
     background-color: hsl(var(--background)) !important;
     border: 1px solid hsl(var(--border));
   }
-  
+
   /* Ensure switch thumb has proper contrast in dark mode */
-  .dark [data-state="checked"] .pointer-events-none {
+  .dark button[role='switch'][data-state='checked'] .pointer-events-none {
     background-color: hsl(0 0% 0%) !important;
     border: 1px solid hsl(0 0% 10%);
   }
-  
+
   /* SPECIFIC: Search button on home page should be white with black text in dark mode ONLY */
   /* Override Tailwind classes with high specificity */
-  .dark form button[type="submit"][aria-label="Analyze"] {
+  .dark form button[type='submit'][aria-label='Analyze'] {
     background-color: hsl(0 0% 100%) !important;
     color: hsl(0 0% 0%) !important;
     border: 1px solid hsl(0 0% 80%) !important;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
   }
-  
-  .dark form button[type="submit"][aria-label="Analyze"].bg-primary {
-    background-color: hsl(0 0% 100%) !important;
-    color: hsl(0 0% 0%) !important;
-  }
-  
-  .dark form button[type="submit"][aria-label="Analyze"]:hover {
+
+  /* Note: Removed .bg-primary suffix - the base selector already handles this case
+     and the suffix was causing CSS minifier issues with Tailwind's data-[state] utilities */
+
+  .dark form button[type='submit'][aria-label='Analyze']:hover {
     background-color: hsl(0 0% 95%) !important;
     color: hsl(0 0% 0%) !important;
   }
-  
-  .dark form button[type="submit"][aria-label="Analyze"]:focus-visible {
+
+  .dark form button[type='submit'][aria-label='Analyze']:focus-visible {
     background-color: hsl(0 0% 100%) !important;
     color: hsl(0 0% 0%) !important;
     outline: 2px solid hsl(0 0% 60%) !important;
     outline-offset: 2px !important;
   }
-  
+
   /* SPECIFIC: Search button in repo-view should be white with black text in dark mode ONLY */
-  .dark form button[type="submit"][aria-label="Search"] {
+  .dark form button[type='submit'][aria-label='Search'] {
     background-color: hsl(0 0% 100%) !important;
     color: hsl(0 0% 0%) !important;
     border: 1px solid hsl(0 0% 80%) !important;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
   }
-  
-  .dark form button[type="submit"][aria-label="Search"].bg-primary {
-    background-color: hsl(0 0% 100%) !important;
-    color: hsl(0 0% 0%) !important;
-  }
-  
-  .dark form button[type="submit"][aria-label="Search"]:hover {
+
+  /* Note: Removed .bg-primary suffix - the base selector already handles this case
+     and the suffix was causing CSS minifier issues with Tailwind's data-[state] utilities */
+
+  .dark form button[type='submit'][aria-label='Search']:hover {
     background-color: hsl(0 0% 95%) !important;
     color: hsl(0 0% 0%) !important;
   }
-  
-  .dark form button[type="submit"][aria-label="Search"]:focus-visible {
+
+  .dark form button[type='submit'][aria-label='Search']:focus-visible {
     background-color: hsl(0 0% 100%) !important;
     color: hsl(0 0% 0%) !important;
     outline: 2px solid hsl(0 0% 60%) !important;
@@ -287,27 +283,27 @@
     border: 1px solid hsl(0 0% 80%) !important;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
   }
-  
+
   .btn-primary-white:hover {
     background-color: hsl(0 0% 95%) !important;
     color: hsl(0 0% 0%) !important;
   }
-  
+
   .btn-primary-white:focus-visible {
     background-color: hsl(0 0% 100%) !important;
     color: hsl(0 0% 0%) !important;
     outline: 2px solid hsl(0 0% 60%) !important;
     outline-offset: 2px !important;
   }
-  
+
   /* Hide scrollbars for better mobile UX */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari and Opera */
+    display: none; /* Chrome, Safari and Opera */
   }
 
   /* Offline notification animations */
@@ -329,12 +325,12 @@
   /* Adjust main content when sidebar is present on repository pages */
   @media (min-width: 768px) {
     /* Adjust body padding for insights sidebar on repository pages */
-    body:has([class*="fixed"][class*="right-0"]) .container {
+    body:has([class*='fixed'][class*='right-0']) .container {
       padding-right: 4rem; /* Base padding + space for collapsed sidebar */
     }
-    
+
     /* When sidebar is expanded (not collapsed), adjust for full width */
-    body:has([class*="fixed"][class*="right-0"][class*="w-[420px]"]) .container {
+    body:has([class*='fixed'][class*='right-0'][class*='w-[420px]']) .container {
       padding-right: calc(420px + 1rem); /* Sidebar width + base padding */
     }
   }

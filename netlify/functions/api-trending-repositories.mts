@@ -1,15 +1,22 @@
 import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_URL;
-const supabaseAnonKey =
-  process.env.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_ANON_KEY;
+// Use SUPABASE_URL first (server-side convention), fallback to VITE_ prefix
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+// Lazy initialization to avoid crashing at module load time
+let supabase: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY)');
+  }
+  if (!supabase) {
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+  }
+  return supabase;
 }
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface TrendingQuery {
   period?: '24h' | '7d' | '30d';
@@ -72,7 +79,8 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     console.log('Fetching trending repositories with params:', query);
 
     // Call the trending repositories function with fallback
-    const { data: trendingRepos, error } = await supabase.rpc(
+    // This will return top repos by stars if no recent metrics data exists
+    const { data: trendingRepos, error } = await getSupabase().rpc(
       'get_trending_repositories_with_fallback',
       {
         p_time_period: intervalMap[query.period],
@@ -83,7 +91,14 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     );
 
     if (error) {
-      console.error('Error fetching trending repositories:', error);
+      console.error('Error fetching trending repositories:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        query,
+      });
+
       return {
         statusCode: 500,
         headers,
@@ -106,7 +121,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     }
 
     // Get trending statistics for metadata
-    const { data: stats } = await supabase.rpc('get_trending_statistics', {
+    const { data: stats } = await getSupabase().rpc('get_trending_statistics', {
       p_time_period: intervalMap[query.period],
     });
 
@@ -146,7 +161,10 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error('Error in trending repositories API:', error);
+    console.error('Error in trending repositories API:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     return {
       statusCode: 500,

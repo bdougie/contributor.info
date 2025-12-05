@@ -3,8 +3,11 @@ import { logger } from './logger';
 
 // Environment-specific configuration
 const isDev = import.meta.env.DEV;
-const DOMAIN = isDev ? 'dub.sh' : 'oss.fyi';
-const DUB_API_KEY = import.meta.env.VITE_DUB_CO_KEY;
+
+// Retry and timeout configuration
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000; // 1 second
+const REQUEST_TIMEOUT = 10000; // 10 seconds
 
 logger.debug('Environment:', isDev ? 'Development' : 'Production', '- Using Dub API directly');
 
@@ -40,6 +43,77 @@ interface ShortUrlResponse {
 }
 
 /**
+ * Sleep for a given number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fetch with timeout
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeout: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+  initialDelay: number = INITIAL_RETRY_DELAY
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Don't retry on certain errors
+      if (error instanceof Error) {
+        // Don't retry on 4xx errors (except 429 rate limit)
+        if (error.message.includes('status: 4') && !error.message.includes('status: 429')) {
+          throw error;
+        }
+      }
+
+      if (attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt);
+        logger.warn(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`, {
+          error: lastError.message,
+        });
+        await sleep(delay);
+      }
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
+
+/**
  * Create a short URL for chart/metric sharing
  * Uses Dub API directly from client
  */
@@ -69,65 +143,66 @@ export async function createShortUrl({
     };
   }
 
-  // Check if API key is available
-  if (!DUB_API_KEY) {
-    logger.warn('DUB_API_KEY not configured, returning original URL');
-    return {
-      id: 'no-api-key',
-      domain: 'original',
-      key: key || 'original',
-      url: url,
-      shortLink: url,
-      qrCode: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      clicks: 0,
-      title: title || null,
-      description: description || null,
-    };
-  }
+  // API key is now handled securely in the Netlify function
+  // No need to check it on the client side
 
   try {
-    logger.log('Creating short URL via Dub API:', {
+    logger.log('Creating short URL via Netlify function:', {
       url,
-      domain: DOMAIN,
       key,
       title,
       description,
     });
 
-    // Call Dub API directly
-    const response = await fetch('https://api.dub.co/links', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${DUB_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url,
-        domain: DOMAIN,
-        key,
-        title,
-        description,
-        expiresAt,
-        rewrite,
-        utmSource: 'contributor-info',
-        utmMedium: 'chart-share',
-        utmCampaign: 'social-sharing',
-      }),
+    // Call our Netlify serverless function (bypasses CORS, keeps API key secure)
+    const data = await retryWithBackoff(async () => {
+      const response = await fetchWithTimeout(
+        '/api/create-short-url',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url,
+            key,
+            title,
+            description,
+            expiresAt,
+            rewrite,
+          }),
+        },
+        REQUEST_TIMEOUT
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+
+        // If API key not configured, gracefully fall back to original URL
+        if (errorData?.fallback) {
+          logger.warn('Dub.co API key not configured, returning original URL');
+          return null;
+        }
+
+        const error = new Error(`Short URL API error: status: ${response.status}`);
+        logger.error('Short URL API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url,
+        });
+        throw error;
+      }
+
+      return response.json();
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error('Dub API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
+    // If API returned null (fallback mode), return original URL
+    if (!data) {
+      logger.warn('Falling back to original URL (API key not configured)');
       return null;
     }
 
-    const data = await response.json();
     logger.log('URL shortening success:', data.shortLink);
 
     // Track the short URL creation in Supabase for analytics
@@ -155,7 +230,10 @@ export async function createShortUrl({
       image: data.image,
     };
   } catch (error) {
-    logger.error('Failed to create short URL:', error);
+    logger.error('Failed to create short URL after retries:', {
+      error: error instanceof Error ? error.message : String(error),
+      url,
+    });
     return null;
   }
 }
@@ -292,21 +370,11 @@ export async function createChartShareUrl(
 }
 
 /**
- * Track a click event for analytics
- */
-export async function trackClick(shortUrl: string, metadata?: Record<string, unknown>) {
-  // This will be automatically tracked by dub.co when the link is clicked
-  // Additional custom tracking can be added here if needed
-  logger.log('Click tracked for:', shortUrl, metadata);
-}
-
-/**
  * Get current environment info
  */
 export function getDubConfig() {
   return {
-    domain: DOMAIN,
     isDev,
-    hasApiKey: !!DUB_API_KEY,
+    usesServerlessFunction: true, // Now using Netlify function for security
   };
 }

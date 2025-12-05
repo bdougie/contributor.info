@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
+import { markAuthRedirectStart, getAuthRedirectDuration } from '@/lib/plg-tracking-utils';
 import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
@@ -164,6 +165,15 @@ export function AuthButton() {
           user_id: user.id,
           is_new_user: !user.last_sign_in_at || user.created_at === user.last_sign_in_at,
         });
+
+        // PLG Tracking: Track OAuth redirect completion with timing
+        const redirectDuration = getAuthRedirectDuration();
+        const hadRedirectDestination = !!localStorage.getItem('redirectAfterLogin');
+        trackEvent('auth_redirect_completed', {
+          auth_provider: 'github',
+          had_redirect_destination: hadRedirectDestination,
+          time_to_complete_ms: redirectDuration,
+        });
       } else if (event === 'SIGNED_OUT') {
         // Track logout
         trackEvent('user_logout', {
@@ -185,6 +195,9 @@ export function AuthButton() {
         source: 'header',
         page_path: window.location.pathname,
       });
+
+      // PLG Tracking: Mark OAuth redirect start time for duration calculation
+      markAuthRedirectStart();
 
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;

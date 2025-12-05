@@ -2,6 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { generateSocialCard } from './card-generator.js';
+import { getConverter } from './svg-to-png.js';
 
 // Load environment variables
 dotenv.config();
@@ -89,7 +90,7 @@ app.get('/social-cards/:type?', rateLimit, async (req, res) => {
 
   try {
     const { type = 'home' } = req.params;
-    const { owner, repo, username, title, subtitle } = req.query;
+    const { owner, repo, username, title, subtitle, format = 'png' } = req.query;
 
     // Validate inputs
     if (!validateInput(owner) || !validateInput(repo) || !validateInput(username)) {
@@ -271,20 +272,39 @@ app.get('/social-cards/:type?', rateLimit, async (req, res) => {
     // Generate the SVG
     const svg = generateSocialCard(cardData);
 
+    // Convert to requested format (default: PNG for social media compatibility)
+    const requestedFormat = (format || 'png').toLowerCase();
+    const converter = getConverter(requestedFormat);
+
+    let imageData;
+    let contentType;
+
+    if (converter) {
+      // Convert SVG to PNG or JPEG
+      imageData = await converter(svg, { width: 1200, height: 630 });
+      contentType =
+        requestedFormat === 'jpeg' || requestedFormat === 'jpg' ? 'image/jpeg' : 'image/png';
+    } else {
+      // Return SVG directly
+      imageData = svg;
+      contentType = 'image/svg+xml';
+    }
+
     // Track performance
     const responseTime = Date.now() - startTime;
     global.avgResponseTime = (global.avgResponseTime || 0) * 0.9 + responseTime * 0.1;
 
     // Send response with appropriate headers
     res.set({
-      'Content-Type': 'image/svg+xml',
+      'Content-Type': contentType,
       'Cache-Control': 'public, max-age=3600, s-maxage=86400', // 1h client, 24h CDN
       'Access-Control-Allow-Origin': '*',
       'X-Response-Time': `${responseTime}ms`,
       'X-Data-Source': cardData.stats ? 'database' : 'fallback',
+      'X-Image-Format': requestedFormat,
     });
 
-    res.status(200).send(svg);
+    res.status(200).send(imageData);
   } catch (error) {
     console.error('Social card generation error: %s', error.message);
 

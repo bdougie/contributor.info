@@ -1,6 +1,10 @@
 # Use Node.js 20 Alpine for smaller image size
 FROM node:20-alpine
 
+# Install vips for sharp (SVG to PNG conversion)
+# Sharp requires libvips to convert SVG to raster formats
+RUN apk add --no-cache vips-dev
+
 # Set working directory
 WORKDIR /app
 
