@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Sparkles } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { WorkspaceIssueMetricsAndTrends } from '@/components/features/workspace/WorkspaceIssueMetricsAndTrends';
 import {
@@ -16,6 +17,90 @@ import { useWorkspaceIssues } from '@/hooks/useWorkspaceIssues';
 import type { TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { Repository } from '@/components/features/workspace';
 import type { WorkspaceMemberWithUser, Workspace } from '@/types/workspace';
+
+// Skeleton for the metrics and chart section to prevent CLS
+function IssuesMetricsSkeleton() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* Metrics skeleton */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-8 w-8" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <Skeleton className="h-4 w-16 mb-3" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-4 rounded" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-8 w-12 mt-2" />
+                  <Skeleton className="h-3 w-16 mt-1" />
+                </Card>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Skeleton className="h-4 w-14 mb-3" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-4 rounded" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-3 w-16 mt-1" />
+                </Card>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {/* Assignee chart skeleton */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-6 w-48" />
+            <div className="flex gap-4">
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-6 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t flex items-center justify-between">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 interface WorkspaceIssuesTabProps {
   repositories: Repository[];
@@ -131,6 +216,22 @@ export function WorkspaceIssuesTab({
   // Check if there are any issues with assignees
   const hasAssignees = issues.some((issue) => issue.assignees && issue.assignees.length > 0);
 
+  // Track if we've determined the layout (to prevent layout shift)
+  // Once we know the layout, keep it stable even during refreshes
+  const hasLoadedOnce = useRef(false);
+  const [stableHasAssignees, setStableHasAssignees] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Only update stable state on initial load or when we have data
+    if (!loading && issues.length > 0 && !hasLoadedOnce.current) {
+      hasLoadedOnce.current = true;
+      setStableHasAssignees(hasAssignees);
+    }
+  }, [loading, issues.length, hasAssignees]);
+
+  // Use stable layout during refreshes to prevent CLS
+  const shouldShowTwoColumns = stableHasAssignees ?? hasAssignees;
+
   // Display error message if there's an error
   if (error) {
     return (
@@ -177,7 +278,11 @@ export function WorkspaceIssuesTab({
       </div>
 
       {/* Conditionally render side-by-side or full width based on assignee data */}
-      {hasAssignees ? (
+      {/* Show skeleton during initial load to prevent CLS */}
+      {loading && stableHasAssignees === null && <IssuesMetricsSkeleton />}
+
+      {/* Two-column layout when assignees exist */}
+      {!(loading && stableHasAssignees === null) && shouldShowTwoColumns && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Issue Metrics and Trends */}
           <WorkspaceIssueMetricsAndTrends
@@ -198,8 +303,10 @@ export function WorkspaceIssuesTab({
             maxVisible={8}
           />
         </div>
-      ) : (
-        /* Full width Metrics and Trends when no assignees */
+      )}
+
+      {/* Full width Metrics and Trends when no assignees */}
+      {!(loading && stableHasAssignees === null) && !shouldShowTwoColumns && (
         <WorkspaceIssueMetricsAndTrends
           repositories={repositories}
           selectedRepositories={selectedRepositories}
