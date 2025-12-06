@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION batch_update_issues_linked_prs(
 )
 RETURNS INTEGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 AS $$
 DECLARE
   updated_count INTEGER := 0;
@@ -37,8 +37,8 @@ BEGIN
 END;
 $$;
 
--- Grant execute permission to authenticated users and anon for RLS compatibility
+-- Grant execute permission to authenticated users only
+-- Using SECURITY INVOKER ensures RLS policies are respected
 GRANT EXECUTE ON FUNCTION batch_update_issues_linked_prs(JSONB) TO authenticated;
-GRANT EXECUTE ON FUNCTION batch_update_issues_linked_prs(JSONB) TO anon;
 
 COMMENT ON FUNCTION batch_update_issues_linked_prs IS 'Batch update issues with linked PRs data. Accepts a JSONB array of {id, linked_prs} objects and updates all matching issues in a single transaction.';
