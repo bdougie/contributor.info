@@ -20,7 +20,38 @@ export function IssueVolumeCalendarCard({ volumeData, loading }: IssueVolumeCale
   if (loading) {
     return (
       <Card className="p-3 min-w-0">
-        <Skeleton className="h-24 w-full" />
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-3" />
+        </div>
+        {/* Calendar grid - 2 rows of 7 days */}
+        <div className="space-y-1 mb-3">
+          <div className="flex gap-1">
+            {[...Array(7)].map((_, i) => (
+              <Skeleton key={i} className="w-4 h-4 rounded-sm" />
+            ))}
+          </div>
+          <div className="flex gap-1">
+            {[...Array(7)].map((_, i) => (
+              <Skeleton key={i + 7} className="w-4 h-4 rounded-sm" />
+            ))}
+          </div>
+        </div>
+        {/* Day labels */}
+        <div className="flex gap-1 mb-3">
+          {[...Array(7)].map((_, i) => (
+            <Skeleton key={i} className="w-4 h-3" />
+          ))}
+        </div>
+        {/* Stats */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
       </Card>
     );
   }

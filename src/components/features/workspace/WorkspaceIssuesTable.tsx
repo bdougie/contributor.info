@@ -685,13 +685,65 @@ export function WorkspaceIssuesTable({
     return (
       <Card className={cn('w-full', className)}>
         <CardHeader>
-          <CardTitle>Issues</CardTitle>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-16 hidden sm:block" />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Skeleton className="h-10 w-full sm:w-[300px]" />
+              </div>
+            </div>
+            {/* Filter skeleton */}
+            <div className="flex flex-wrap gap-2">
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-28" />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
+          <div className="rounded-md border">
+            <div className="overflow-x-auto">
+              {/* Table header skeleton */}
+              <div className="flex gap-4 px-4 py-3 border-b bg-muted/30">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              {/* Table rows skeleton */}
+              {[...Array(10)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-4 py-4 border-b last:border-0">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-12" />
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-5 w-5 rounded" />
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                  <Skeleton className="h-6 w-6 rounded-full" />
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-8" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Pagination skeleton */}
+          <div className="flex items-center justify-between mt-4">
+            <Skeleton className="h-4 w-48" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-9 w-20" />
+            </div>
           </div>
         </CardContent>
       </Card>
