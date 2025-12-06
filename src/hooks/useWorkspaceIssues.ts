@@ -260,21 +260,25 @@ async function syncLinkedPRsForRepository(
       return;
     }
 
-    // Batch update the database
-    const now = new Date().toISOString();
-    for (const update of updates) {
-      await supabase
-        .from('issues')
-        .update({
-          linked_prs: update.linked_prs,
-          linked_prs_synced_at: now,
-          last_synced_at: now,
-        })
-        .eq('id', update.id);
+    // Batch update the database using PostgreSQL function for better performance
+    const updatePayload = updates.map((update) => ({
+      id: update.id,
+      linked_prs: update.linked_prs,
+    }));
+
+    const { data: updatedCount, error: batchError } = await supabase.rpc(
+      'batch_update_issues_linked_prs',
+      { updates: updatePayload }
+    );
+
+    if (batchError) {
+      console.error(`Batch update failed for %s/%s: %o`, owner, repo, batchError);
+      return;
     }
 
     console.log(
-      `Successfully synced linked PRs for %d issues in %s/%s`,
+      `Successfully batch updated linked PRs for %d/%d issues in %s/%s`,
+      updatedCount,
       updates.length,
       owner,
       repo
