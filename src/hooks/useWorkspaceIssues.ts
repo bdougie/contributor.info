@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
+import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
 
@@ -212,23 +213,26 @@ async function syncLinkedPRsForRepository(
       return;
     }
 
-    console.log(`Syncing linked PRs for ${issues.length} issues in ${owner}/${repo}`);
-
-    // Fetch linked PRs for each issue
-    const updates = await Promise.all(
-      issues.map(async (issue) => {
-        const linkedPRs = await fetchLinkedPRsForIssue(owner, repo, issue.number, githubToken);
-
-        // Only update if we got data
-        if (linkedPRs) {
-          return {
-            id: issue.id,
-            linked_prs: linkedPRs,
-          };
-        }
-        return null;
-      })
+    console.log(
+      `Syncing linked PRs for ${issues.length} issues in ${owner}/${repo} (throttled, max 10 concurrent)`
     );
+
+    // Fetch linked PRs for each issue using rate-limited queue
+    // This prevents network saturation by limiting to 10 concurrent requests
+    const tasks = issues.map((issue) => async () => {
+      const linkedPRs = await fetchLinkedPRsForIssue(owner, repo, issue.number, githubToken);
+
+      // Only return update if we got data
+      if (linkedPRs) {
+        return {
+          id: issue.id,
+          linked_prs: linkedPRs,
+        };
+      }
+      return null;
+    });
+
+    const updates = await executeWithRateLimit(tasks, graphqlRateLimiter);
 
     // Filter out null results and update database
     const validUpdates = updates.filter((u) => u !== null);
@@ -453,16 +457,16 @@ export function useWorkspaceIssues({
                 githubToken
               );
 
-              // Also sync linked PRs for each repository
-              await Promise.all(
-                filteredRepos.map(async (repo) => {
-                  try {
-                    await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
-                  } catch (err) {
-                    console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
-                  }
-                })
-              );
+              // Also sync linked PRs for each repository (sequentially to avoid overwhelming the API)
+              // Each repository's issues are already throttled internally, so we process repos one at a time
+              for (const repo of filteredRepos) {
+                try {
+                  await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+                } catch (err) {
+                  // Log but don't block other repositories
+                  console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
+                }
+              }
 
               setLastSynced(new Date());
               setIsStale(false);
