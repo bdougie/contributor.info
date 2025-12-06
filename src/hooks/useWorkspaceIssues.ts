@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
+import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
 
@@ -228,30 +229,32 @@ async function syncLinkedPRsForRepository(
     }
 
     console.log(
-      `Syncing linked PRs for %d stale/new issues in %s/%s (skipping recently synced)`,
+      `Syncing linked PRs for %d stale/new issues in %s/%s (throttled, max 10 concurrent)`,
       issues.length,
       owner,
       repo
     );
 
-    // Process issues sequentially with a small delay to avoid rate limiting
-    const updates: Array<{ id: string; linked_prs: Issue['linked_pull_requests'] }> = [];
-
-    for (const issue of issues) {
+    // Fetch linked PRs for each issue using rate-limited queue
+    // This prevents network saturation by limiting to 10 concurrent requests
+    const tasks = issues.map((issue) => async () => {
       const linkedPRs = await fetchLinkedPRsForIssue(owner, repo, issue.number, githubToken);
 
-      // Always update synced_at timestamp, even if no PRs found
+      // Always return update with synced_at timestamp, even if no PRs found
       // This prevents re-fetching issues that genuinely have no linked PRs
-      updates.push({
+      return {
         id: issue.id,
         linked_prs: linkedPRs,
-      });
+      };
+    });
 
-      // Small delay between requests to avoid rate limiting
-      if (issues.length > 10) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
+    const rawUpdates = await executeWithRateLimit(tasks, graphqlRateLimiter);
+
+    // Filter out null results from failed requests
+    const updates = rawUpdates.filter(
+      (update): update is { id: string; linked_prs: Issue['linked_pull_requests'] } =>
+        update !== null
+    );
 
     if (updates.length === 0) {
       return;
@@ -476,16 +479,16 @@ export function useWorkspaceIssues({
                 githubToken
               );
 
-              // Also sync linked PRs for each repository
-              await Promise.all(
-                filteredRepos.map(async (repo) => {
-                  try {
-                    await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
-                  } catch (err) {
-                    console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
-                  }
-                })
-              );
+              // Also sync linked PRs for each repository (sequentially to avoid overwhelming the API)
+              // Each repository's issues are already throttled internally, so we process repos one at a time
+              for (const repo of filteredRepos) {
+                try {
+                  await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+                } catch (err) {
+                  // Log but don't block other repositories
+                  console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
+                }
+              }
 
               setLastSynced(new Date());
               setIsStale(false);
