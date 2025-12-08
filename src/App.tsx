@@ -427,7 +427,7 @@ function App() {
       const criticalImports = [
         import('@/components/features/repository/repo-view'),
         import('@/components/features/auth/login-page'),
-        import('@/lib/supabase'), // Critical for data loading
+        // Supabase deferred to first interaction - see supabase-lazy.ts
         import('@/hooks/use-cached-repo-data'),
       ];
 

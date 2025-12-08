@@ -14,7 +14,7 @@ import { Plus } from '@/components/ui/icon';
 import { LazyNavigationSheet } from './lazy-navigation-sheet';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { NotificationDropdown } from '@/components/notifications';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -120,22 +120,33 @@ export default function Layout() {
   }, [navigate]);
 
   useEffect(() => {
-    // Check login status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Initialize Supabase lazily and set up auth listeners
+    const initAuth = async () => {
+      const supabase = await getSupabase();
+
+      // Check login status
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setIsLoggedIn(!!session);
-    });
+
+      // Listen for auth changes
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        setIsLoggedIn(!!session);
+      });
+      subscription = data.subscription;
+    };
+
+    initAuth();
 
     // Prefetch critical routes after initial load
     prefetchCriticalRoutes();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   return (
