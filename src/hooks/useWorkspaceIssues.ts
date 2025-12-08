@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
+import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
 
@@ -186,8 +187,15 @@ async function fetchLinkedPRsForIssue(
   }
 }
 
+// TTL for linked PRs cache: 1 hour for open issues
+const LINKED_PRS_TTL_HOURS = 1;
+
 /**
- * Sync linked PRs for all issues in a repository
+ * Sync linked PRs for issues in a repository that need updating
+ * Only fetches for issues where:
+ * - linked_prs_synced_at is null (never synced), OR
+ * - linked_prs_synced_at is older than TTL
+ * Closed issues are skipped entirely as they won't get new linked PRs
  */
 async function syncLinkedPRsForRepository(
   owner: string,
@@ -196,15 +204,23 @@ async function syncLinkedPRsForRepository(
   repoId: string
 ): Promise<void> {
   try {
-    // Fetch all issues for this repository from our database
+    const staleThreshold = new Date(
+      Date.now() - LINKED_PRS_TTL_HOURS * 60 * 60 * 1000
+    ).toISOString();
+
+    // Only fetch open issues that need linked PR sync:
+    // - linked_prs_synced_at is null (never synced), OR
+    // - linked_prs_synced_at is older than threshold
     const { data: issues, error: fetchError } = await supabase
       .from('issues')
-      .select('id, number')
+      .select('id, number, linked_prs_synced_at')
       .eq('repository_id', repoId)
-      .eq('state', 'open'); // Only sync open issues to reduce API calls
+      .eq('state', 'open')
+      .or(`linked_prs_synced_at.is.null,linked_prs_synced_at.lt.${staleThreshold}`)
+      .limit(50); // Limit batch size to prevent overwhelming the API
 
     if (fetchError) {
-      console.error(`Failed to fetch issues for ${owner}/${repo}:`, fetchError);
+      console.error(`Failed to fetch issues for %s/%s: %o`, owner, repo, fetchError);
       return;
     }
 
@@ -212,49 +228,63 @@ async function syncLinkedPRsForRepository(
       return;
     }
 
-    console.log(`Syncing linked PRs for ${issues.length} issues in ${owner}/${repo}`);
-
-    // Fetch linked PRs for each issue
-    const updates = await Promise.all(
-      issues.map(async (issue) => {
-        const linkedPRs = await fetchLinkedPRsForIssue(owner, repo, issue.number, githubToken);
-
-        // Only update if we got data
-        if (linkedPRs) {
-          return {
-            id: issue.id,
-            linked_prs: linkedPRs,
-          };
-        }
-        return null;
-      })
+    console.log(
+      `Syncing linked PRs for %d stale/new issues in %s/%s (throttled, max 10 concurrent)`,
+      issues.length,
+      owner,
+      repo
     );
 
-    // Filter out null results and update database
-    const validUpdates = updates.filter((u) => u !== null);
+    // Fetch linked PRs for each issue using rate-limited queue
+    // This prevents network saturation by limiting to 10 concurrent requests
+    const tasks = issues.map((issue) => async () => {
+      const linkedPRs = await fetchLinkedPRsForIssue(owner, repo, issue.number, githubToken);
 
-    if (validUpdates.length === 0) {
+      // Always return update with synced_at timestamp, even if no PRs found
+      // This prevents re-fetching issues that genuinely have no linked PRs
+      return {
+        id: issue.id,
+        linked_prs: linkedPRs,
+      };
+    });
+
+    const rawUpdates = await executeWithRateLimit(tasks, graphqlRateLimiter);
+
+    // Filter out null results from failed requests
+    const updates = rawUpdates.filter(
+      (update): update is { id: string; linked_prs: Issue['linked_pull_requests'] } =>
+        update !== null
+    );
+
+    if (updates.length === 0) {
       return;
     }
 
-    // Batch update the database
-    for (const update of validUpdates) {
-      if (update) {
-        await supabase
-          .from('issues')
-          .update({
-            linked_prs: update.linked_prs,
-            last_synced_at: new Date().toISOString(),
-          })
-          .eq('id', update.id);
-      }
+    // Batch update the database using PostgreSQL function for better performance
+    const updatePayload = updates.map((update) => ({
+      id: update.id,
+      linked_prs: update.linked_prs,
+    }));
+
+    const { data: updatedCount, error: batchError } = await supabase.rpc(
+      'batch_update_issues_linked_prs',
+      { updates: updatePayload }
+    );
+
+    if (batchError) {
+      console.error(`Batch update failed for %s/%s: %o`, owner, repo, batchError);
+      return;
     }
 
     console.log(
-      `Successfully synced linked PRs for ${validUpdates.length} issues in ${owner}/${repo}`
+      `Successfully batch updated linked PRs for %d/%d issues in %s/%s`,
+      updatedCount,
+      updates.length,
+      owner,
+      repo
     );
   } catch (error) {
-    console.error(`Error syncing linked PRs for ${owner}/${repo}:`, error);
+    console.error(`Error syncing linked PRs for %s/%s: %o`, owner, repo, error);
   }
 }
 
@@ -453,16 +483,16 @@ export function useWorkspaceIssues({
                 githubToken
               );
 
-              // Also sync linked PRs for each repository
-              await Promise.all(
-                filteredRepos.map(async (repo) => {
-                  try {
-                    await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
-                  } catch (err) {
-                    console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
-                  }
-                })
-              );
+              // Also sync linked PRs for each repository (sequentially to avoid overwhelming the API)
+              // Each repository's issues are already throttled internally, so we process repos one at a time
+              for (const repo of filteredRepos) {
+                try {
+                  await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+                } catch (err) {
+                  // Log but don't block other repositories
+                  console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
+                }
+              }
 
               setLastSynced(new Date());
               setIsStale(false);

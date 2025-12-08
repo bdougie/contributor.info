@@ -8,7 +8,6 @@ A web application that visualizes GitHub repository contributors' information, p
 [![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
 [![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
 
-[![Contributor Stats](https://contributor.info/api/widgets/stat-card?owner=bdougie&repo=contributor.info&theme=light&size=medium)](https://contributor.info/bdougie/contributor.info)
 
 _https://contributor.info/widgets_
 
@@ -34,7 +33,7 @@ _https://contributor.info/widgets_
 
 ## 📊 Embeddable Widgets
 
-Display repository statistics directly in your README with our embeddable widgets!
+Display repository statistics directly in your README with our embeddable widgets.
 
 ### Live Examples
 

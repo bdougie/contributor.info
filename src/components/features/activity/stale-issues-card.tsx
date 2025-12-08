@@ -12,7 +12,12 @@ export function StaleIssuesCard({ staleCount, totalCount, loading }: StaleIssues
   if (loading) {
     return (
       <Card className="p-3 min-w-0">
-        <Skeleton className="h-16 w-full" />
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+        <Skeleton className="h-8 w-10 mt-2" />
+        <Skeleton className="h-3 w-20 mt-1" />
       </Card>
     );
   }
