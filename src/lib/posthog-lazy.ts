@@ -775,17 +775,14 @@ export async function initPostHog(): Promise<PostHogInstance | null> {
  * Call this after 10 seconds or after a meaningful user interaction
  */
 export async function enableSessionRecording(): Promise<void> {
-  // Prevent multiple calls
+  // Prevent multiple calls (check and set flag synchronously to avoid race condition)
   if (sessionRecordingEnabled) {
     return;
   }
+  sessionRecordingEnabled = true;
 
   if (!shouldEnablePostHog()) {
-    return;
-  }
-
-  // Skip in development unless explicitly enabled for testing
-  if (env.DEV && !localStorage.getItem(POSTHOG_DEV_ENABLED_KEY)) {
+    sessionRecordingEnabled = false;
     return;
   }
 
@@ -793,19 +790,24 @@ export async function enableSessionRecording(): Promise<void> {
     const posthog = await loadPostHog();
     if (posthog && typeof posthog.startSessionRecording === 'function') {
       posthog.startSessionRecording();
-      sessionRecordingEnabled = true;
       if (env.DEV) {
         console.log('[PostHog] Session recording enabled');
       }
+    } else {
+      sessionRecordingEnabled = false;
     }
   } catch (error) {
+    sessionRecordingEnabled = false;
+    
     // Log errors in both dev and production for monitoring
     // In production, this will be captured by error monitoring (Sentry, PostHog, etc.)
     console.error('[PostHog] Failed to enable session recording:', error);
     
     // Track the error in PostHog itself if available (for production monitoring)
     if (posthogInstance && typeof posthogInstance.captureException === 'function') {
-      posthogInstance.captureException(error as Error, {
+      // Safely convert unknown error to Error object
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      posthogInstance.captureException(errorObj, {
         context: 'enable_session_recording',
         severity: ErrorSeverity.MEDIUM,
       });
