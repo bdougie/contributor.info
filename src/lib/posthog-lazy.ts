@@ -797,8 +797,16 @@ export async function enableSessionRecording(): Promise<void> {
       console.log('[PostHog] Session recording enabled');
     }
   } catch (error) {
-    if (env.DEV) {
-      console.error('Failed to enable session recording:', error);
+    // Log errors in both dev and production for monitoring
+    // In production, this will be captured by error monitoring (Sentry, PostHog, etc.)
+    console.error('[PostHog] Failed to enable session recording:', error);
+    
+    // Track the error in PostHog itself if available (for production monitoring)
+    if (posthogInstance && typeof posthogInstance.captureException === 'function') {
+      posthogInstance.captureException(error as Error, {
+        context: 'enable_session_recording',
+        severity: ErrorSeverity.MEDIUM,
+      });
     }
   }
 }
