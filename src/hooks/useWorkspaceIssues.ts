@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
@@ -18,6 +18,7 @@ interface UseWorkspaceIssuesOptions {
 interface UseWorkspaceIssuesResult {
   issues: Issue[];
   loading: boolean;
+  isSyncing: boolean;
   error: string | null;
   lastSynced: Date | null;
   isStale: boolean;
@@ -302,9 +303,11 @@ export function useWorkspaceIssues({
 }: UseWorkspaceIssuesOptions): UseWorkspaceIssuesResult {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Check if data needs refresh
   const checkStaleness = useCallback(
@@ -436,9 +439,110 @@ export function useWorkspaceIssues({
     };
   }, []);
 
-  // Main fetch function
+  // Get filtered repository IDs
+  const getFilteredRepoIds = useCallback(() => {
+    const filteredRepos =
+      selectedRepositories.length > 0
+        ? repositories.filter((r) => selectedRepositories.includes(r.id))
+        : repositories;
+    return filteredRepos.map((r) => r.id);
+  }, [repositories, selectedRepositories]);
+
+  // Get filtered repositories
+  const getFilteredRepos = useCallback(() => {
+    return selectedRepositories.length > 0
+      ? repositories.filter((r) => selectedRepositories.includes(r.id))
+      : repositories;
+  }, [repositories, selectedRepositories]);
+
+  // Background sync function - runs without blocking UI
+  const backgroundSync = useCallback(
+    async (repoIds: string[], forceSync = false) => {
+      // Abort any in-flight sync
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+
+      try {
+        // Check staleness
+        const { needsSync, oldestSync } = await checkStaleness(repoIds);
+        setLastSynced(oldestSync);
+        setIsStale(needsSync);
+
+        // Only sync if needed (or forced)
+        if (!forceSync && !needsSync) {
+          return;
+        }
+
+        if (!autoSyncOnMount && !forceSync) {
+          return;
+        }
+
+        setIsSyncing(true);
+
+        // Get GitHub token
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const githubToken = session?.provider_token || env.GITHUB_TOKEN;
+
+        if (!githubToken) {
+          console.warn('No GitHub token available for syncing issues');
+          return;
+        }
+
+        const filteredRepos = getFilteredRepos();
+
+        // Sync issue data from GitHub
+        await syncWorkspaceIssuesForRepositories(
+          filteredRepos.map((repo) => ({
+            id: repo.id,
+            owner: repo.owner,
+            name: repo.name,
+          })),
+          githubToken
+        );
+
+        // Sync linked PRs for each repository
+        for (const repo of filteredRepos) {
+          // Check if aborted
+          if (abortControllerRef.current?.signal.aborted) {
+            return;
+          }
+          try {
+            await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+          } catch (err) {
+            console.error(`Failed to sync linked PRs for %s/%s:`, repo.owner, repo.name, err);
+          }
+        }
+
+        // Check if aborted before updating state
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
+        // Re-fetch from database with fresh data
+        const dbIssues = await fetchFromDatabase(repoIds);
+        const transformedIssues = dbIssues.map(transformIssue);
+
+        setIssues(transformedIssues);
+        setLastSynced(new Date());
+        setIsStale(false);
+      } catch (err) {
+        // Don't log abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
+        console.error('Background sync failed:', err);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [checkStaleness, fetchFromDatabase, transformIssue, getFilteredRepos, autoSyncOnMount]
+  );
+
+  // Main fetch function - shows cached data immediately, syncs in background
   const fetchIssues = useCallback(
-    async (forceRefresh = false, skipSync = false) => {
+    async (forceRefresh = false) => {
       if (repositories.length === 0) {
         setIssues([]);
         setLoading(false);
@@ -449,81 +553,30 @@ export function useWorkspaceIssues({
         setLoading(true);
         setError(null);
 
-        const filteredRepos =
-          selectedRepositories.length > 0
-            ? repositories.filter((r) => selectedRepositories.includes(r.id))
-            : repositories;
+        const repoIds = getFilteredRepoIds();
 
-        const repoIds = filteredRepos.map((r) => r.id);
-
-        const { needsSync, oldestSync } = await checkStaleness(repoIds);
-        setLastSynced(oldestSync);
-        setIsStale(needsSync);
-
-        const shouldSync = !skipSync && (forceRefresh || (needsSync && autoSyncOnMount));
-
-        if (shouldSync) {
-          // Get GitHub token
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          const githubToken = session?.provider_token || env.GITHUB_TOKEN;
-
-          if (!githubToken) {
-            console.warn('No GitHub token available for syncing issues');
-          } else {
-            try {
-              // Sync issue data (assignees, labels, etc.) from GitHub
-              await syncWorkspaceIssuesForRepositories(
-                filteredRepos.map((repo) => ({
-                  id: repo.id,
-                  owner: repo.owner,
-                  name: repo.name,
-                })),
-                githubToken
-              );
-
-              // Also sync linked PRs for each repository (sequentially to avoid overwhelming the API)
-              // Each repository's issues are already throttled internally, so we process repos one at a time
-              for (const repo of filteredRepos) {
-                try {
-                  await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
-                } catch (err) {
-                  // Log but don't block other repositories
-                  console.error(`Failed to sync linked PRs for ${repo.owner}/${repo.name}:`, err);
-                }
-              }
-
-              setLastSynced(new Date());
-              setIsStale(false);
-            } catch (err) {
-              console.error('Error during sync:', err);
-              // Don't throw - let the hook continue with cached data
-            }
-          }
-        }
-
-        // Fetch from database (now with updated data if synced)
+        // 1. Immediately fetch and display cached data
         const dbIssues = await fetchFromDatabase(repoIds);
         const transformedIssues = dbIssues.map(transformIssue);
-
         setIssues(transformedIssues);
+        setLoading(false); // UI unblocks here!
+
+        // 2. Background sync (non-blocking unless forced)
+        if (forceRefresh) {
+          // Wait for sync to complete on manual refresh
+          await backgroundSync(repoIds, true);
+        } else {
+          // Fire and forget for initial load
+          backgroundSync(repoIds, false);
+        }
       } catch (err) {
         console.error('Error fetching issues:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch issues');
         setIssues([]);
-      } finally {
         setLoading(false);
       }
     },
-    [
-      repositories,
-      selectedRepositories,
-      checkStaleness,
-      fetchFromDatabase,
-      transformIssue,
-      autoSyncOnMount,
-    ]
+    [repositories, getFilteredRepoIds, fetchFromDatabase, transformIssue, backgroundSync]
   );
 
   // Initial fetch
@@ -547,11 +600,19 @@ export function useWorkspaceIssues({
     }
   }, [refreshInterval, fetchIssues]);
 
+  // Cleanup on unmount - abort any in-flight sync
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const refresh = useCallback(() => fetchIssues(true), [fetchIssues]);
 
   return {
     issues,
     loading,
+    isSyncing,
     error,
     lastSynced,
     isStale,
