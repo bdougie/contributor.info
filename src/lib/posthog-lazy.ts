@@ -784,8 +784,8 @@ export async function enableSessionRecording(): Promise<void> {
     return;
   }
 
-  // Skip in development
-  if (env.DEV) {
+  // Skip in development unless explicitly enabled for testing
+  if (env.DEV && !localStorage.getItem(POSTHOG_DEV_ENABLED_KEY)) {
     return;
   }
 
@@ -794,7 +794,9 @@ export async function enableSessionRecording(): Promise<void> {
     if (posthog && typeof posthog.startSessionRecording === 'function') {
       posthog.startSessionRecording();
       sessionRecordingEnabled = true;
-      console.log('[PostHog] Session recording enabled');
+      if (env.DEV) {
+        console.log('[PostHog] Session recording enabled');
+      }
     }
   } catch (error) {
     // Log errors in both dev and production for monitoring
