@@ -16,7 +16,8 @@ interface PostHogInstance {
   identify: (userId: string, properties?: Record<string, unknown>) => void;
   opt_out_capturing: () => void;
   opt_in_capturing: () => void;
-  startSessionRecording: () => void;
+  // Optional: startSessionRecording may not be available in all PostHog versions
+  startSessionRecording?: () => void;
   people: {
     set: (properties: Record<string, unknown>) => void;
   };
@@ -799,18 +800,20 @@ export async function enableSessionRecording(): Promise<void> {
   } catch (error) {
     sessionRecordingEnabled = false;
     
-    // Log errors in both dev and production for monitoring
-    // In production, this will be captured by error monitoring (Sentry, PostHog, etc.)
-    console.error('[PostHog] Failed to enable session recording:', error);
-    
-    // Track the error in PostHog itself if available (for production monitoring)
-    if (posthogInstance && typeof posthogInstance.captureException === 'function') {
-      // Safely convert unknown error to Error object
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      posthogInstance.captureException(errorObj, {
-        context: 'enable_session_recording',
-        severity: ErrorSeverity.MEDIUM,
-      });
+    // Log the error in development for debugging
+    if (env.DEV) {
+      console.error('[PostHog] Failed to enable session recording:', error);
     }
+    
+    // Track error using centralized error tracking (handles type conversion and PostHog reporting)
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await trackError(errorObj, {
+      severity: ErrorSeverity.MEDIUM,
+      category: ErrorCategory.API,
+      metadata: {
+        context: 'enable_session_recording',
+        function: 'enableSessionRecording',
+      },
+    });
   }
 }
