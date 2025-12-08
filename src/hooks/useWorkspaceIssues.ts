@@ -6,6 +6,20 @@ import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
 
+/**
+ * Shallow compare two Issue arrays by id and updated_at to skip no-op updates.
+ * Exported for testing.
+ */
+export function issuesAreEqual(a: Issue[], b: Issue[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].id !== b[i].id || a[i].updated_at !== b[i].updated_at) {
+      return false;
+    }
+  }
+  return true;
+}
+
 interface UseWorkspaceIssuesOptions {
   repositories: Repository[];
   selectedRepositories: string[];
@@ -323,17 +337,6 @@ export function useWorkspaceIssues({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const DEBOUNCE_MS = 150;
 
-  // Shallow compare for Issue arrays to skip no-op updates
-  const issuesAreEqual = useCallback((a: Issue[], b: Issue[]): boolean => {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i].id !== b[i].id || a[i].updated_at !== b[i].updated_at) {
-        return false;
-      }
-    }
-    return true;
-  }, []);
-
   // Flush all pending state updates in a single batch
   const flushPendingUpdates = useCallback(() => {
     const pending = pendingUpdateRef.current;
@@ -355,7 +358,7 @@ export function useWorkspaceIssues({
     if (pending.error !== undefined) setError(pending.error);
     if (pending.lastSynced !== undefined) setLastSynced(pending.lastSynced);
     if (pending.isStale !== undefined) setIsStale(pending.isStale);
-  }, [issuesAreEqual]);
+  }, []);
 
   // Queue a state update and schedule debounced flush
   const queueStateUpdate = useCallback(

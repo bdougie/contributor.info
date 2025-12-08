@@ -1,7 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useWorkspaceIssues } from '../useWorkspaceIssues';
+import { useWorkspaceIssues, issuesAreEqual } from '../useWorkspaceIssues';
 import type { Repository } from '@/components/features/workspace';
+import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 
 // Mock dependencies
 vi.mock('@/lib/supabase', () => ({
@@ -211,5 +212,77 @@ describe('useWorkspaceIssues', () => {
     // 1. Navigate away during sync
     // 2. No console errors about updating unmounted component
     // 3. AbortController properly cancels in-flight requests
+  });
+});
+
+describe('issuesAreEqual', () => {
+  const createMockIssue = (overrides: Partial<Issue> = {}): Issue => ({
+    id: 'issue-1',
+    number: 1,
+    title: 'Test Issue',
+    state: 'open',
+    repository: { name: 'test-repo', owner: 'test-owner', avatar_url: '' },
+    author: { username: 'testuser', avatar_url: '' },
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-02T00:00:00Z',
+    comments_count: 0,
+    labels: [],
+    assignees: [],
+    url: 'https://github.com/test-owner/test-repo/issues/1',
+    responded_by: null,
+    responded_at: null,
+    ...overrides,
+  });
+
+  it('returns true for identical empty arrays', () => {
+    expect(issuesAreEqual([], [])).toBe(true);
+  });
+
+  it('returns true for arrays with same issues', () => {
+    const issues = [createMockIssue({ id: '1', updated_at: '2024-01-01' })];
+    const sameIssues = [createMockIssue({ id: '1', updated_at: '2024-01-01' })];
+    expect(issuesAreEqual(issues, sameIssues)).toBe(true);
+  });
+
+  it('returns false for different lengths', () => {
+    const a = [createMockIssue({ id: '1' })];
+    const b: Issue[] = [];
+    expect(issuesAreEqual(a, b)).toBe(false);
+  });
+
+  it('returns false when id differs', () => {
+    const a = [createMockIssue({ id: '1', updated_at: '2024-01-01' })];
+    const b = [createMockIssue({ id: '2', updated_at: '2024-01-01' })];
+    expect(issuesAreEqual(a, b)).toBe(false);
+  });
+
+  it('returns false when updated_at differs', () => {
+    const a = [createMockIssue({ id: '1', updated_at: '2024-01-01' })];
+    const b = [createMockIssue({ id: '1', updated_at: '2024-01-02' })];
+    expect(issuesAreEqual(a, b)).toBe(false);
+  });
+
+  it('returns true for multiple issues with same ids and updated_at', () => {
+    const a = [
+      createMockIssue({ id: '1', updated_at: '2024-01-01' }),
+      createMockIssue({ id: '2', updated_at: '2024-01-02' }),
+    ];
+    const b = [
+      createMockIssue({ id: '1', updated_at: '2024-01-01' }),
+      createMockIssue({ id: '2', updated_at: '2024-01-02' }),
+    ];
+    expect(issuesAreEqual(a, b)).toBe(true);
+  });
+
+  it('returns false when order differs', () => {
+    const a = [
+      createMockIssue({ id: '1', updated_at: '2024-01-01' }),
+      createMockIssue({ id: '2', updated_at: '2024-01-02' }),
+    ];
+    const b = [
+      createMockIssue({ id: '2', updated_at: '2024-01-02' }),
+      createMockIssue({ id: '1', updated_at: '2024-01-01' }),
+    ];
+    expect(issuesAreEqual(a, b)).toBe(false);
   });
 });
