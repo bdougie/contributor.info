@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { Sparkles } from '@/components/ui/icon';
+import { Sparkles, RefreshCw } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -128,7 +128,7 @@ export function WorkspaceIssuesTab({
   const navigate = useNavigate();
 
   // Use the new hook for automatic issue syncing and caching
-  const { issues, loading, error, lastSynced, isStale, refresh } = useWorkspaceIssues({
+  const { issues, loading, isSyncing, error, lastSynced, isStale, refresh } = useWorkspaceIssues({
     repositories,
     selectedRepositories,
     workspaceId,
@@ -254,14 +254,22 @@ export function WorkspaceIssuesTab({
     <div className="space-y-6">
       {/* Auto-sync indicator and action buttons at top */}
       <div className="flex items-center justify-between px-1">
-        <WorkspaceAutoSync
-          workspaceId={workspaceId}
-          workspaceSlug={workspace?.slug || 'workspace'}
-          repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-          onSyncComplete={refresh}
-          syncIntervalMinutes={60}
-          className="text-sm text-muted-foreground"
-        />
+        <div className="flex items-center gap-3">
+          <WorkspaceAutoSync
+            workspaceId={workspaceId}
+            workspaceSlug={workspace?.slug || 'workspace'}
+            repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
+            onSyncComplete={refresh}
+            syncIntervalMinutes={60}
+            className="text-sm text-muted-foreground"
+          />
+          {isSyncing && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <RefreshCw className="h-3 w-3 animate-spin" />
+              Syncing...
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {ctaRepo && (
             <Button
