@@ -309,6 +309,83 @@ export function useWorkspaceIssues({
   const [isStale, setIsStale] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Debounce infrastructure for batching state updates
+  interface PendingStateUpdate {
+    issues?: Issue[];
+    loading?: boolean;
+    isSyncing?: boolean;
+    error?: string | null;
+    lastSynced?: Date | null;
+    isStale?: boolean;
+  }
+
+  const pendingUpdateRef = useRef<PendingStateUpdate>({});
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const DEBOUNCE_MS = 150;
+
+  // Shallow compare for Issue arrays to skip no-op updates
+  const issuesAreEqual = useCallback((a: Issue[], b: Issue[]): boolean => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i].id !== b[i].id || a[i].updated_at !== b[i].updated_at) {
+        return false;
+      }
+    }
+    return true;
+  }, []);
+
+  // Flush all pending state updates in a single batch
+  const flushPendingUpdates = useCallback(() => {
+    const pending = pendingUpdateRef.current;
+    pendingUpdateRef.current = {};
+
+    if (Object.keys(pending).length === 0) return;
+
+    // Apply all state updates - React 18 batches these automatically
+    if (pending.issues !== undefined) {
+      setIssues((current) => {
+        if (issuesAreEqual(current, pending.issues as Issue[])) {
+          return current;
+        }
+        return pending.issues as Issue[];
+      });
+    }
+    if (pending.loading !== undefined) setLoading(pending.loading);
+    if (pending.isSyncing !== undefined) setIsSyncing(pending.isSyncing);
+    if (pending.error !== undefined) setError(pending.error);
+    if (pending.lastSynced !== undefined) setLastSynced(pending.lastSynced);
+    if (pending.isStale !== undefined) setIsStale(pending.isStale);
+  }, [issuesAreEqual]);
+
+  // Queue a state update and schedule debounced flush
+  const queueStateUpdate = useCallback(
+    (update: PendingStateUpdate) => {
+      pendingUpdateRef.current = {
+        ...pendingUpdateRef.current,
+        ...update,
+      };
+
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null;
+        flushPendingUpdates();
+      }, DEBOUNCE_MS);
+    },
+    [flushPendingUpdates]
+  );
+
+  // Immediate flush for critical updates (loading, error, sync indicators)
+  const flushImmediately = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    flushPendingUpdates();
+  }, [flushPendingUpdates]);
+
   // Check if data needs refresh
   const checkStaleness = useCallback(
     async (repoIds: string[]) => {
@@ -465,8 +542,7 @@ export function useWorkspaceIssues({
       try {
         // Check staleness
         const { needsSync, oldestSync } = await checkStaleness(repoIds);
-        setLastSynced(oldestSync);
-        setIsStale(needsSync);
+        queueStateUpdate({ lastSynced: oldestSync, isStale: needsSync });
 
         // Only sync if needed (or forced)
         if (!forceSync && !needsSync) {
@@ -477,7 +553,8 @@ export function useWorkspaceIssues({
           return;
         }
 
-        setIsSyncing(true);
+        queueStateUpdate({ isSyncing: true });
+        flushImmediately();
 
         // Get GitHub token
         const {
@@ -524,9 +601,11 @@ export function useWorkspaceIssues({
         const dbIssues = await fetchFromDatabase(repoIds);
         const transformedIssues = dbIssues.map(transformIssue);
 
-        setIssues(transformedIssues);
-        setLastSynced(new Date());
-        setIsStale(false);
+        queueStateUpdate({
+          issues: transformedIssues,
+          lastSynced: new Date(),
+          isStale: false,
+        });
       } catch (err) {
         // Don't log abort errors
         if (err instanceof Error && err.name === 'AbortError') {
@@ -534,32 +613,41 @@ export function useWorkspaceIssues({
         }
         console.error('Background sync failed:', err);
       } finally {
-        setIsSyncing(false);
+        queueStateUpdate({ isSyncing: false });
+        flushImmediately();
       }
     },
-    [checkStaleness, fetchFromDatabase, transformIssue, getFilteredRepos, autoSyncOnMount]
+    [
+      checkStaleness,
+      fetchFromDatabase,
+      transformIssue,
+      getFilteredRepos,
+      autoSyncOnMount,
+      queueStateUpdate,
+      flushImmediately,
+    ]
   );
 
   // Main fetch function - shows cached data immediately, syncs in background
   const fetchIssues = useCallback(
     async (forceRefresh = false) => {
       if (repositories.length === 0) {
-        setIssues([]);
-        setLoading(false);
+        queueStateUpdate({ issues: [], loading: false });
+        flushImmediately();
         return;
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        queueStateUpdate({ loading: true, error: null });
+        flushImmediately();
 
         const repoIds = getFilteredRepoIds();
 
         // 1. Immediately fetch and display cached data
         const dbIssues = await fetchFromDatabase(repoIds);
         const transformedIssues = dbIssues.map(transformIssue);
-        setIssues(transformedIssues);
-        setLoading(false); // UI unblocks here!
+        queueStateUpdate({ issues: transformedIssues, loading: false });
+        flushImmediately(); // UI unblocks here!
 
         // 2. Background sync (non-blocking unless forced)
         if (forceRefresh) {
@@ -571,12 +659,23 @@ export function useWorkspaceIssues({
         }
       } catch (err) {
         console.error('Error fetching issues:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch issues');
-        setIssues([]);
-        setLoading(false);
+        queueStateUpdate({
+          error: err instanceof Error ? err.message : 'Failed to fetch issues',
+          issues: [],
+          loading: false,
+        });
+        flushImmediately();
       }
     },
-    [repositories, getFilteredRepoIds, fetchFromDatabase, transformIssue, backgroundSync]
+    [
+      repositories,
+      getFilteredRepoIds,
+      fetchFromDatabase,
+      transformIssue,
+      backgroundSync,
+      queueStateUpdate,
+      flushImmediately,
+    ]
   );
 
   // Initial fetch
@@ -600,10 +699,13 @@ export function useWorkspaceIssues({
     }
   }, [refreshInterval, fetchIssues]);
 
-  // Cleanup on unmount - abort any in-flight sync
+  // Cleanup on unmount - abort any in-flight sync and clear debounce timer
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
   }, []);
 
