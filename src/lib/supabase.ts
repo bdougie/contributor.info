@@ -56,7 +56,7 @@ export const supabase = createSupabaseClient();
 setSupabaseInstance(supabase);
 
 // Re-export lazy functions for code that wants deferred loading
-export { getSupabase, ensureSupabase, isSupabaseInitialized } from './supabase-lazy';
+export { getSupabase, isSupabaseInitialized } from './supabase-lazy';
 
 // Export createClient function for backwards compatibility
 export { createSupabaseClient };

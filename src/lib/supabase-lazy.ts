@@ -7,7 +7,7 @@
  * Usage:
  * - Use `getSupabase()` for async access (recommended for new code)
  * - Use `getSupabaseSync()` for sync access after initialization
- * - Use `ensureSupabase()` to guarantee client is ready before sync access
+ * - Use `isSupabaseInitialized()` to check if client is ready
  *
  * @see https://github.com/open-sauced/contributor.info/issues/1278
  */
@@ -56,13 +56,6 @@ export function getSupabaseSync(): SupabaseClient {
  */
 export function isSupabaseInitialized(): boolean {
   return supabaseInstance !== null;
-}
-
-/**
- * Ensure Supabase is initialized before proceeding.
- */
-export async function ensureSupabase(): Promise<SupabaseClient> {
-  return getSupabase();
 }
 
 /**

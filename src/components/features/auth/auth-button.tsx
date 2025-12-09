@@ -177,7 +177,12 @@ export function AuthButton() {
 
             // PLG Tracking: Track OAuth redirect completion with timing
             const redirectDuration = getAuthRedirectDuration();
-            const hadRedirectDestination = !!localStorage.getItem('redirectAfterLogin');
+            let hadRedirectDestination = false;
+            try {
+              hadRedirectDestination = !!localStorage.getItem('redirectAfterLogin');
+            } catch {
+              // localStorage may be unavailable in some contexts
+            }
             trackEvent('auth_redirect_completed', {
               auth_provider: 'github',
               had_redirect_destination: hadRedirectDestination,
@@ -276,17 +281,20 @@ export function AuthButton() {
     );
   }
 
-  if (error) {
-    // Error is already displayed in UI state
-  }
-
   if (!user) {
     return (
-      <Button variant="outline" onClick={handleLogin}>
-        <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />
-        <span className="hidden sm:inline">Login with GitHub</span>
-        <span className="sm:hidden">Login</span>
-      </Button>
+      <div className="flex items-center gap-2">
+        {error && (
+          <span className="text-xs text-destructive hidden sm:inline" title={error}>
+            Login failed
+          </span>
+        )}
+        <Button variant="outline" onClick={handleLogin}>
+          <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">Login with GitHub</span>
+          <span className="sm:hidden">Login</span>
+        </Button>
+      </div>
     );
   }
 
