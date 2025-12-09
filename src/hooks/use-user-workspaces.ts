@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
@@ -112,6 +112,9 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
       }
 
       logger.log('[Workspace] User authenticated, fetching workspaces...');
+
+      // Get Supabase client asynchronously
+      const supabase = await getSupabase();
 
       // First, get the app_users.id for this authenticated user
       // user.id is auth_user_id, but workspace tables use app_users.id
@@ -355,6 +358,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   useEffect(() => {
     let mounted = true;
     let loadingTimeout: NodeJS.Timeout;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     const initFetch = async () => {
       if (!mounted) return;
@@ -372,43 +376,50 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
 
       await fetchUserWorkspaces();
       clearTimeout(loadingTimeout);
+
+      // Set up auth listener after initial fetch
+      try {
+        const supabase = await getSupabase();
+        if (!mounted) return;
+
+        // Listen for auth state changes with better filtering
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
+          if (!mounted) return;
+
+          // Auth event received - only process SIGNED_IN and SIGNED_OUT events
+
+          // Only refetch on actual sign in/out events, ignore token refreshes and other events
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            // Use debounced fetch to prevent rapid successive calls
+            debouncedFetch();
+          } else if (event === 'TOKEN_REFRESHED') {
+            // Explicitly ignore token refresh events to prevent unnecessary refetches
+          } else if (event === 'USER_UPDATED') {
+            // USER_UPDATED can change user metadata (avatar_url, display_name) which is used
+            // for workspace owner info. Use a longer debounce to avoid excessive refetches
+            // if multiple profile fields are updated in quick succession
+            if (debouncedFetchRef.current) {
+              clearTimeout(debouncedFetchRef.current);
+            }
+            debouncedFetchRef.current = setTimeout(() => {
+              logger.log('[Workspace] User profile updated, refreshing workspace data...');
+              fetchUserWorkspaces();
+            }, 1000); // 1 second debounce for USER_UPDATED events
+          } else {
+            // Ignore other auth events
+          }
+        });
+        subscription = authListener.subscription;
+      } catch (error) {
+        logger.error('[Workspace] Error setting up auth listener:', error);
+      }
     };
 
     initFetch();
 
-    // Listen for auth state changes with better filtering
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
-      if (!mounted) return;
-
-      // Auth event received - only process SIGNED_IN and SIGNED_OUT events
-
-      // Only refetch on actual sign in/out events, ignore token refreshes and other events
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        // Use debounced fetch to prevent rapid successive calls
-        debouncedFetch();
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Explicitly ignore token refresh events to prevent unnecessary refetches
-      } else if (event === 'USER_UPDATED') {
-        // USER_UPDATED can change user metadata (avatar_url, display_name) which is used
-        // for workspace owner info. Use a longer debounce to avoid excessive refetches
-        // if multiple profile fields are updated in quick succession
-        if (debouncedFetchRef.current) {
-          clearTimeout(debouncedFetchRef.current);
-        }
-        debouncedFetchRef.current = setTimeout(() => {
-          logger.log('[Workspace] User profile updated, refreshing workspace data...');
-          fetchUserWorkspaces();
-        }, 1000); // 1 second debounce for USER_UPDATED events
-      } else {
-        // Ignore other auth events
-      }
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
       if (loadingTimeout) clearTimeout(loadingTimeout);
       // Clear debounce timer
       if (debouncedFetchRef.current) {
