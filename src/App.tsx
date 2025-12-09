@@ -360,19 +360,26 @@ function App() {
   // Load PostHog on user interaction (Phase 3 optimization)
   useEffect(() => {
     let isPostHogLoaded = false;
+    let sessionRecordingTimer: ReturnType<typeof setTimeout> | null = null;
 
     const loadPostHogOnInteraction = () => {
       if (isPostHogLoaded) return;
       isPostHogLoaded = true;
 
       // Load PostHog and enable it for web vitals
-      import('./lib/posthog-lazy').then(({ initPostHog }) => {
+      import('./lib/posthog-lazy').then(({ initPostHog, enableSessionRecording }) => {
         initPostHog().then(() => {
           // Add PostHog to analytics providers after it loads
           import('./lib/web-vitals-analytics').then(({ getWebVitalsAnalytics }) => {
             const analytics = getWebVitalsAnalytics();
             analytics.setProviders(['supabase', 'posthog']);
           });
+
+          // Enable session recording after 10 seconds (deferred for LCP improvement)
+          // This delays loading the heavy rrweb library until after LCP
+          sessionRecordingTimer = setTimeout(() => {
+            enableSessionRecording();
+          }, 10000);
         });
       });
 
@@ -386,12 +393,15 @@ function App() {
       document.addEventListener(e, loadPostHogOnInteraction, { once: true, passive: true })
     );
 
-    // Fallback: load after 3 seconds if no interaction
-    const fallbackTimer = setTimeout(loadPostHogOnInteraction, 3000);
+    // Fallback: load after 5 seconds if no interaction (extended from 3s for LCP improvement)
+    const fallbackTimer = setTimeout(loadPostHogOnInteraction, 5000);
 
     return () => {
       events.forEach((e) => document.removeEventListener(e, loadPostHogOnInteraction));
       clearTimeout(fallbackTimer);
+      if (sessionRecordingTimer) {
+        clearTimeout(sessionRecordingTimer);
+      }
     };
   }, []);
 

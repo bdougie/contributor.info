@@ -16,6 +16,8 @@ interface PostHogInstance {
   identify: (userId: string, properties?: Record<string, unknown>) => void;
   opt_out_capturing: () => void;
   opt_in_capturing: () => void;
+  // Optional: startSessionRecording may not be available in all PostHog versions
+  startSessionRecording?: () => void;
   people: {
     set: (properties: Record<string, unknown>) => void;
   };
@@ -25,6 +27,9 @@ interface PostHogInstance {
 // PostHog instance cache
 let posthogInstance: PostHogInstance | null = null;
 let posthogLoadPromise: Promise<PostHogInstance | null> | null = null;
+
+// Track if session recording has been enabled (deferred for LCP improvement)
+let sessionRecordingEnabled = false;
 
 // Rate limiting for events
 const rateLimiter = {
@@ -150,7 +155,7 @@ const POSTHOG_CONFIG = {
   autocapture: true, // Enable autocapture for better tracking
   capture_pageview: true, // Track page views
   capture_pageleave: true, // Track page leaves
-  disable_session_recording: false, // Enable session recording
+  disable_session_recording: true, // Defer session recording for LCP improvement (enabled after 10s or interaction)
   enable_recording_console_log: false, // Don't record console logs
   // Error tracking configuration
   capture_exceptions: true, // Enable automatic error capture
@@ -251,10 +256,8 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
       // Initialize PostHog with privacy-first configuration
       posthog.init(env.POSTHOG_KEY!, POSTHOG_CONFIG);
 
-      // In production, ensure session recording is started
-      if (!env.DEV && typeof posthog.startSessionRecording === 'function') {
-        posthog.startSessionRecording();
-      }
+      // Note: Session recording is deferred and enabled via enableSessionRecording()
+      // after 10s or meaningful user interaction to improve LCP
 
       // Don't identify users automatically - only after login
       // This uses anonymous events which are 4x cheaper
@@ -765,4 +768,52 @@ export async function trackSupabaseError(
  */
 export async function initPostHog(): Promise<PostHogInstance | null> {
   return loadPostHog();
+}
+
+/**
+ * Enable session recording after PostHog is loaded
+ * This is deferred from initial load to improve LCP performance
+ * Call this after 10 seconds or after a meaningful user interaction
+ */
+export async function enableSessionRecording(): Promise<void> {
+  // Prevent multiple calls (check and set flag synchronously to avoid race condition)
+  if (sessionRecordingEnabled) {
+    return;
+  }
+  sessionRecordingEnabled = true;
+
+  if (!shouldEnablePostHog()) {
+    sessionRecordingEnabled = false;
+    return;
+  }
+
+  try {
+    const posthog = await loadPostHog();
+    if (posthog && typeof posthog.startSessionRecording === 'function') {
+      posthog.startSessionRecording();
+      if (env.DEV) {
+        console.log('[PostHog] Session recording enabled');
+      }
+    } else {
+      sessionRecordingEnabled = false;
+    }
+  } catch (error) {
+    sessionRecordingEnabled = false;
+    
+    // Log the error in development for debugging
+    if (env.DEV) {
+      console.error('[PostHog] Failed to enable session recording:', error);
+    }
+    
+    // Track error using centralized error tracking (handles type conversion and PostHog reporting)
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    await trackError(errorObj, {
+      severity: ErrorSeverity.MEDIUM,
+      category: ErrorCategory.API,
+      metadata: {
+        context: 'enable_session_recording',
+        function: 'enableSessionRecording',
+      },
+    });
+  }
 }
