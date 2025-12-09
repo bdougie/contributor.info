@@ -7,7 +7,7 @@
  * @see https://github.com/supabase/supabase-js/issues/1234 - Known hanging issue
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { logger } from '@/lib/logger';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 
@@ -42,6 +42,8 @@ export async function safeGetUser(
   timeoutMs: number = DEFAULT_AUTH_TIMEOUT_MS
 ): Promise<{ user: User | null; error: AuthError | Error | null }> {
   try {
+    const supabase = await getSupabase();
+
     // Track slow auth calls for monitoring
     const slowAuthTimer = setTimeout(() => {
       logger.log(`[Auth] getUser() taking longer than expected (>${timeoutMs}ms)...`);
@@ -91,6 +93,7 @@ export async function safeGetSession(
   timeoutMs: number = DEFAULT_AUTH_TIMEOUT_MS
 ): Promise<{ user: User | null; session: Session | null; error: AuthError | Error | null }> {
   try {
+    const supabase = await getSupabase();
     const result = await withTimeout(supabase.auth.getSession(), timeoutMs, 'getSession');
 
     if (result.error) {

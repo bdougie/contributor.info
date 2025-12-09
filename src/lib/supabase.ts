@@ -1,11 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
-import { env } from './env.ts';
-import { safeGetSession } from './auth/safe-auth';
+/**
+ * Supabase Client - Synchronous Export
+ *
+ * This file provides the synchronous Supabase client for backwards compatibility.
+ * For new code that benefits from deferred loading, use getSupabase() from supabase-lazy.ts.
+ *
+ * @see https://github.com/open-sauced/contributor.info/issues/1278
+ */
 
-// Helper function to create the Supabase client
-// CACHE BUST: Fixed 406 errors by removing .single() calls - v2
-export function createSupabaseClient() {
-  // Use universal environment access (works in both browser and server)
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { env } from './env';
+import { setSupabaseInstance } from './supabase-lazy';
+
+// Create Supabase client synchronously for backwards compatibility
+function createSupabaseClient(): SupabaseClient {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseAnonKey = env.SUPABASE_ANON_KEY;
 
@@ -25,7 +32,7 @@ export function createSupabaseClient() {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true, // Enable automatic session detection for OAuth redirects
+      detectSessionInUrl: true,
       flowType: 'implicit',
     },
     db: {
@@ -39,11 +46,17 @@ export function createSupabaseClient() {
   });
 }
 
-// Export the Supabase client instance
+/**
+ * Synchronous Supabase client instance.
+ * For new code, consider using getSupabase() from supabase-lazy.ts for deferred loading.
+ */
 export const supabase = createSupabaseClient();
 
-// Helper to debug authentication issues with timeout protection
-export const debugAuthSession = async () => {
-  const { session, error } = await safeGetSession();
-  return { session, error };
-};
+// Share the instance with supabase-lazy.ts to avoid duplicate clients
+setSupabaseInstance(supabase);
+
+// Re-export lazy functions for code that wants deferred loading
+export { getSupabase, isSupabaseInitialized } from './supabase-lazy';
+
+// Export createClient function for backwards compatibility
+export { createSupabaseClient };

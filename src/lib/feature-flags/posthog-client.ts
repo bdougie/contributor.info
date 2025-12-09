@@ -1,10 +1,12 @@
 /**
  * PostHog feature flag client
  * Handles feature flag evaluation and A/B testing with PostHog
+ *
+ * Uses the shared PostHog instance from posthog-lazy.ts to avoid duplicate initialization
  */
 
 import type { PostHog } from 'posthog-js';
-import { env } from '../env';
+import { initPostHog } from '../posthog-lazy';
 import { logger } from '../logger';
 import type {
   FeatureFlagName,
@@ -100,31 +102,16 @@ export class PostHogFeatureFlagClient {
 
   /**
    * Initialize the client with PostHog instance
+   * Uses the shared instance from posthog-lazy.ts to avoid duplicate initialization
    */
   async initialize(): Promise<void> {
-    // Dynamically import PostHog to keep bundle size small
     try {
-      const { default: posthog } = await import('posthog-js');
-
-      // Initialize PostHog with feature flags enabled
-      posthog.init(env.POSTHOG_KEY!, {
-        api_host: env.POSTHOG_HOST || 'https://us.i.posthog.com',
-        person_profiles: 'identified_only',
-        autocapture: !env.DEV,
-        capture_pageview: true,
-        capture_pageleave: true,
-        disable_session_recording: true,
-        // Enable feature flags
-        advanced_disable_decide: false, // Enable feature flag evaluation
-        disable_surveys: true,
-        disable_compression: false,
-        loaded: (ph) => {
-          logger.log('[FeatureFlags] PostHog initialized with feature flags enabled');
-          this.posthog = ph;
-        },
-      });
-
-      this.posthog = posthog;
+      // Use the shared PostHog instance from posthog-lazy.ts
+      const posthog = await initPostHog();
+      if (posthog) {
+        this.posthog = posthog as unknown as PostHog;
+        logger.log('[FeatureFlags] PostHog feature flags client initialized with shared instance');
+      }
     } catch (error) {
       console.error('[FeatureFlags] Failed to initialize PostHog:', error);
       // Continue with default values if PostHog fails

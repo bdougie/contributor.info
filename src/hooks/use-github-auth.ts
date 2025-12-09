@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
 import { safeGetSession } from '@/lib/auth/safe-auth';
 
@@ -14,8 +14,11 @@ export function useGitHubAuth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check login status
-    async function checkAuth() {
+    let subscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
+
+    // Check login status and set up listeners
+    async function initAuth() {
       setLoading(true);
 
       // Check for test mode authentication first (CI/E2E tests)
@@ -24,10 +27,16 @@ export function useGitHubAuth() {
       const isTestMode =
         supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
       if (isTestMode && localStorage.getItem('test-auth-user')) {
-        setIsLoggedIn(true);
-        setLoading(false);
+        if (isMounted) {
+          setIsLoggedIn(true);
+          setLoading(false);
+        }
         return;
       }
+
+      // Get Supabase client asynchronously
+      const supabase = await getSupabase();
+      if (!isMounted) return;
 
       // Check URL for auth tokens first and handle them manually
       // This prevents 401 errors that occur when Supabase's automatic detection fails
@@ -66,11 +75,13 @@ export function useGitHubAuth() {
         console.error('Session check error:', sessionError);
       }
       const isAuthenticated = !!session;
-      setIsLoggedIn(isAuthenticated);
+      if (isMounted) {
+        setIsLoggedIn(isAuthenticated);
+      }
 
       // Close login dialog if logged in
       if (isAuthenticated) {
-        if (showLoginDialog) {
+        if (showLoginDialog && isMounted) {
           setShowLoginDialog(false);
         }
 
@@ -87,52 +98,48 @@ export function useGitHubAuth() {
         }
       }
 
-      setLoading(false);
-    }
+      if (isMounted) {
+        setLoading(false);
+      }
 
-    checkAuth();
+      // Listen for auth changes
+      try {
+        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+          if (!isMounted) return;
+          const loggedIn = !!session;
+          setIsLoggedIn(loggedIn);
 
-    // Listen for auth changes
-    try {
-      const authSubscription = supabase.auth.onAuthStateChange((_, session) => {
-        const loggedIn = !!session;
-        setIsLoggedIn(loggedIn);
+          // Close login dialog if logged in
+          if (loggedIn) {
+            if (showLoginDialog) {
+              setShowLoginDialog(false);
+            }
 
-        // Close login dialog if logged in
-        if (loggedIn) {
-          if (showLoginDialog) {
-            setShowLoginDialog(false);
-          }
-
-          // Only redirect if we're on the login page
-          // OAuth redirect will handle returning to the original page
-          if (window.location.pathname === '/login') {
-            const redirectPath = localStorage.getItem('redirectAfterLogin');
-            if (redirectPath) {
-              // Clear the stored path
-              localStorage.removeItem('redirectAfterLogin');
-              // Navigate to the stored path
-              navigate(redirectPath);
+            // Only redirect if we're on the login page
+            // OAuth redirect will handle returning to the original page
+            if (window.location.pathname === '/login') {
+              const redirectPath = localStorage.getItem('redirectAfterLogin');
+              if (redirectPath) {
+                // Clear the stored path
+                localStorage.removeItem('redirectAfterLogin');
+                // Navigate to the stored path
+                navigate(redirectPath);
+              }
             }
           }
-        }
-      });
-
-      // Return proper cleanup function
-      return () => {
-        // For newer versions of Supabase client - the subscription object has an unsubscribe method
-        if (
-          authSubscription &&
-          authSubscription.data &&
-          authSubscription.data.subscription &&
-          typeof authSubscription.data.subscription.unsubscribe === 'function'
-        ) {
-          authSubscription.data.subscription.unsubscribe();
-        }
-      };
-    } catch {
-      return () => {}; // Empty cleanup function
+        });
+        subscription = authListener.subscription;
+      } catch {
+        // Silently handle auth listener setup errors
+      }
     }
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, [showLoginDialog, navigate]);
 
   /**
@@ -148,6 +155,7 @@ export function useGitHubAuth() {
       // Start the login flow with the correct redirect URL
       // Use dynamic redirect URL based on deployment context
       const redirectUrl = getAuthRedirectURL(true); // Preserve current path
+      const supabase = await getSupabase();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
@@ -179,6 +187,7 @@ export function useGitHubAuth() {
       localStorage.removeItem('test-auth-user');
       setIsLoggedIn(false);
     } else {
+      const supabase = await getSupabase();
       await supabase.auth.signOut();
     }
   };

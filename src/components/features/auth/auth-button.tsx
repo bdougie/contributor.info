@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { GithubIcon, LogOut, MessageSquare, Shield, Settings } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,9 @@ export function AuthButton() {
   const hasTrackedView = useRef(false);
 
   useEffect(() => {
+    let subscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
+
     // Check admin status for a user
     const checkAdminStatus = async (user: User | null) => {
       if (!user || !user.user_metadata?.user_name) {
@@ -33,6 +36,7 @@ export function AuthButton() {
       }
 
       try {
+        const supabase = await getSupabase();
         // Get GitHub user ID from metadata and check admin status
         const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
         if (!githubId) {
@@ -73,7 +77,7 @@ export function AuthButton() {
                 );
 
                 if (!retryError) {
-                  setIsAdmin(retryResult === true);
+                  if (isMounted) setIsAdmin(retryResult === true);
                   return;
                 }
               }
@@ -96,21 +100,31 @@ export function AuthButton() {
             console.warn('Failed to log auth error:', logError);
           }
 
-          setIsAdmin(false);
+          if (isMounted) setIsAdmin(false);
           return;
         }
 
-        setIsAdmin(isAdminResult === true);
+        if (isMounted) setIsAdmin(isAdminResult === true);
       } catch (err) {
         console.warn('Failed to check admin status:', err);
-        setIsAdmin(false);
+        if (isMounted) setIsAdmin(false);
       }
     };
 
-    // Get initial session
-    supabase.auth
-      .getSession()
-      .then(({ data: { session }, error: sessionError }) => {
+    // Initialize auth asynchronously
+    const initAuth = async () => {
+      try {
+        const supabase = await getSupabase();
+        if (!isMounted) return;
+
+        // Get initial session
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
+
         if (sessionError) {
           setError(sessionError.message);
         }
@@ -127,62 +141,76 @@ export function AuthButton() {
             page_path: window.location.pathname,
           });
         }
-      })
-      .catch(() => {
-        setError('Failed to get session');
-        setLoading(false);
-      });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user ?? null;
-      setUser(user);
-      checkAdminStatus(user);
+        // Listen for auth changes
+        const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+          if (!isMounted) return;
 
-      // Track authentication events
-      if (event === 'SIGNED_IN' && user) {
-        // Identify user in PostHog BEFORE tracking events
-        const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
-        if (githubId) {
-          try {
-            await identifyUser(githubId, {
-              github_username: user.user_metadata?.user_name,
-              email: user.email,
-              created_at: user.created_at,
+          const user = session?.user ?? null;
+          setUser(user);
+          checkAdminStatus(user);
+
+          // Track authentication events
+          if (event === 'SIGNED_IN' && user) {
+            // Identify user in PostHog BEFORE tracking events
+            const githubId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+            if (githubId) {
+              try {
+                await identifyUser(githubId, {
+                  github_username: user.user_metadata?.user_name,
+                  email: user.email,
+                  created_at: user.created_at,
+                  auth_provider: 'github',
+                });
+              } catch (identifyError) {
+                console.warn('Failed to identify user in PostHog:', identifyError);
+                // Continue with event tracking even if identification fails
+              }
+            }
+
+            // Track successful login after user identification
+            trackEvent('auth_completed', {
               auth_provider: 'github',
+              user_id: user.id,
+              is_new_user: !user.last_sign_in_at || user.created_at === user.last_sign_in_at,
             });
-          } catch (identifyError) {
-            console.warn('Failed to identify user in PostHog:', identifyError);
-            // Continue with event tracking even if identification fails
+
+            // PLG Tracking: Track OAuth redirect completion with timing
+            const redirectDuration = getAuthRedirectDuration();
+            let hadRedirectDestination = false;
+            try {
+              hadRedirectDestination = !!localStorage.getItem('redirectAfterLogin');
+            } catch {
+              // localStorage may be unavailable in some contexts
+            }
+            trackEvent('auth_redirect_completed', {
+              auth_provider: 'github',
+              had_redirect_destination: hadRedirectDestination,
+              time_to_complete_ms: redirectDuration,
+            });
+          } else if (event === 'SIGNED_OUT') {
+            // Track logout
+            trackEvent('user_logout', {
+              page_path: window.location.pathname,
+            });
           }
+        });
+        subscription = data.subscription;
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        if (isMounted) {
+          setError('Failed to get session');
+          setLoading(false);
         }
-
-        // Track successful login after user identification
-        trackEvent('auth_completed', {
-          auth_provider: 'github',
-          user_id: user.id,
-          is_new_user: !user.last_sign_in_at || user.created_at === user.last_sign_in_at,
-        });
-
-        // PLG Tracking: Track OAuth redirect completion with timing
-        const redirectDuration = getAuthRedirectDuration();
-        const hadRedirectDestination = !!localStorage.getItem('redirectAfterLogin');
-        trackEvent('auth_redirect_completed', {
-          auth_provider: 'github',
-          had_redirect_destination: hadRedirectDestination,
-          time_to_complete_ms: redirectDuration,
-        });
-      } else if (event === 'SIGNED_OUT') {
-        // Track logout
-        trackEvent('user_logout', {
-          page_path: window.location.pathname,
-        });
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    initAuth();
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const handleLogin = async () => {
@@ -202,6 +230,7 @@ export function AuthButton() {
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
 
+      const supabase = await getSupabase();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
@@ -233,6 +262,7 @@ export function AuthButton() {
   const handleLogout = async () => {
     try {
       setError(null);
+      const supabase = await getSupabase();
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
@@ -251,17 +281,20 @@ export function AuthButton() {
     );
   }
 
-  if (error) {
-    // Error is already displayed in UI state
-  }
-
   if (!user) {
     return (
-      <Button variant="outline" onClick={handleLogin}>
-        <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />
-        <span className="hidden sm:inline">Login with GitHub</span>
-        <span className="sm:hidden">Login</span>
-      </Button>
+      <div className="flex items-center gap-2">
+        {error && (
+          <span className="text-xs text-destructive hidden sm:inline" title={error}>
+            Login failed
+          </span>
+        )}
+        <Button variant="outline" onClick={handleLogin}>
+          <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />
+          <span className="hidden sm:inline">Login with GitHub</span>
+          <span className="sm:hidden">Login</span>
+        </Button>
+      </div>
     );
   }
 

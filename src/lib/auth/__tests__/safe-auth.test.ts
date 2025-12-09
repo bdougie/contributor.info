@@ -1,18 +1,23 @@
 /* eslint-disable no-restricted-syntax */
 // Integration tests for safe-auth timeout protection - requires async patterns
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { safeGetUser, safeGetSession, isAuthenticated, requireAuth } from '../safe-auth';
-import { supabase } from '@/lib/supabase';
 import type { User, AuthError } from '@supabase/supabase-js';
 
-// Mock the supabase module
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-      getSession: vi.fn(),
-    },
-  },
+// Use vi.hoisted() to ensure mock variables are available when vi.mock runs (hoisted)
+const { mockSupabaseAuth, mockSupabaseClient } = vi.hoisted(() => {
+  const mockSupabaseAuth = {
+    getUser: vi.fn(),
+    getSession: vi.fn(),
+  };
+  const mockSupabaseClient = {
+    auth: mockSupabaseAuth,
+  };
+  return { mockSupabaseAuth, mockSupabaseClient };
+});
+
+// Mock the supabase-lazy module (which is what safe-auth actually uses)
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn().mockResolvedValue(mockSupabaseClient),
 }));
 
 // Mock the logger to avoid console noise in tests
@@ -23,6 +28,9 @@ vi.mock('@/lib/logger', () => ({
     error: vi.fn(),
   },
 }));
+
+// Import functions after mocks are set up
+import { safeGetUser, safeGetSession, isAuthenticated, requireAuth } from '../safe-auth';
 
 describe('safe-auth utilities', () => {
   beforeEach(() => {
@@ -45,7 +53,7 @@ describe('safe-auth utilities', () => {
         created_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
@@ -70,7 +78,7 @@ describe('safe-auth utilities', () => {
       };
 
       // Mock getUser to delay longer than timeout
-      vi.mocked(supabase.auth.getUser).mockImplementation(
+      mockSupabaseAuth.getUser.mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(
@@ -81,7 +89,7 @@ describe('safe-auth utilities', () => {
       );
 
       // Mock getSession to succeed quickly
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: {
           session: {
             user: mockUser,
@@ -116,10 +124,10 @@ describe('safe-auth utilities', () => {
       };
 
       // Mock getUser to hang
-      vi.mocked(supabase.auth.getUser).mockImplementation(() => new Promise(() => {}));
+      mockSupabaseAuth.getUser.mockImplementation(() => new Promise(() => {}));
 
       // Mock getSession to succeed
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: {
           session: {
             user: mockUser,
@@ -162,13 +170,13 @@ describe('safe-auth utilities', () => {
       };
 
       // Mock getUser to return error
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
       });
 
       // Mock getSession to succeed
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: {
           session: {
             user: mockUser,
@@ -195,12 +203,12 @@ describe('safe-auth utilities', () => {
         status: 401,
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
       });
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: authError,
       });
@@ -232,7 +240,7 @@ describe('safe-auth utilities', () => {
         token_type: 'bearer' as const,
       };
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: mockSession },
         error: null,
       });
@@ -246,7 +254,7 @@ describe('safe-auth utilities', () => {
 
     it('should timeout after specified duration', async () => {
       // Mock getSession to never resolve
-      vi.mocked(supabase.auth.getSession).mockImplementation(() => new Promise(() => {}));
+      mockSupabaseAuth.getSession.mockImplementation(() => new Promise(() => {}));
 
       const resultPromise = safeGetSession(1000);
 
@@ -268,7 +276,7 @@ describe('safe-auth utilities', () => {
         status: 401,
       };
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: authError,
       });
@@ -281,7 +289,7 @@ describe('safe-auth utilities', () => {
     });
 
     it('should return null when no session exists', async () => {
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
       });
@@ -305,7 +313,7 @@ describe('safe-auth utilities', () => {
         created_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
@@ -316,12 +324,12 @@ describe('safe-auth utilities', () => {
     });
 
     it('should return false when user is not authenticated', async () => {
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: null,
       });
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
       });
@@ -338,12 +346,12 @@ describe('safe-auth utilities', () => {
         status: 401,
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
       });
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: authError,
       });
@@ -365,7 +373,7 @@ describe('safe-auth utilities', () => {
         created_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
@@ -376,12 +384,12 @@ describe('safe-auth utilities', () => {
     });
 
     it('should throw error when user is not authenticated', async () => {
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: null,
       });
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: null,
       });
@@ -396,12 +404,12 @@ describe('safe-auth utilities', () => {
         status: 401,
       };
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+      mockSupabaseAuth.getUser.mockResolvedValue({
         data: { user: null },
         error: authError,
       });
 
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: { session: null },
         error: authError,
       });
@@ -425,7 +433,7 @@ describe('safe-auth utilities', () => {
       };
 
       // Mock getUser to delay longer than custom timeout
-      vi.mocked(supabase.auth.getUser).mockImplementation(
+      mockSupabaseAuth.getUser.mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(() => resolve({ data: { user: mockUser }, error: null }), 1000)
@@ -433,7 +441,7 @@ describe('safe-auth utilities', () => {
       );
 
       // Mock getSession to succeed quickly
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: {
           session: {
             user: mockUser,
@@ -471,7 +479,7 @@ describe('safe-auth utilities', () => {
       };
 
       // Mock getUser to delay longer than default timeout
-      vi.mocked(supabase.auth.getUser).mockImplementation(
+      mockSupabaseAuth.getUser.mockImplementation(
         () =>
           new Promise((resolve) =>
             setTimeout(() => resolve({ data: { user: mockUser }, error: null }), 5000)
@@ -479,7 +487,7 @@ describe('safe-auth utilities', () => {
       );
 
       // Mock getSession to succeed quickly
-      vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      mockSupabaseAuth.getSession.mockResolvedValue({
         data: {
           session: {
             user: mockUser,

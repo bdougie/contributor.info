@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
@@ -39,8 +39,10 @@ export default function Home() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      supabase.auth.getUser().then(({ data }) => {
-        setUser(data.user);
+      getSupabase().then((supabase) => {
+        supabase.auth.getUser().then(({ data }) => {
+          setUser(data.user);
+        });
       });
     }
   }, [isLoggedIn]);

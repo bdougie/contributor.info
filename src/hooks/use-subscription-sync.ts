@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useCurrentUser } from './use-current-user';
 
 /**
@@ -19,6 +19,8 @@ export function useSubscriptionSync() {
       setError(null);
 
       try {
+        const supabase = await getSupabase();
+
         // 1. Check if user owns any workspaces with paid tiers
         const { data: workspaces, error: workspaceError } = await supabase
           .from('workspaces')

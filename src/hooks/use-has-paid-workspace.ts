@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 /**
  * Hook to check if the current user has access to any paid workspace
@@ -14,9 +14,13 @@ export function useHasPaidWorkspace(): {
 
   useEffect(() => {
     let mounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     async function checkPaidWorkspaceAccess() {
       try {
+        const supabase = await getSupabase();
+        if (!mounted) return;
+
         // Check if user is authenticated
         const {
           data: { user },
@@ -87,20 +91,34 @@ export function useHasPaidWorkspace(): {
       }
     }
 
-    checkPaidWorkspaceAccess();
+    async function initWithAuthListener() {
+      try {
+        const supabase = await getSupabase();
+        if (!mounted) return;
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        checkPaidWorkspaceAccess();
+        // Run initial check
+        await checkPaidWorkspaceAccess();
+
+        // Listen for auth changes
+        const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+          if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            checkPaidWorkspaceAccess();
+          }
+        });
+        subscription = authListener.subscription;
+      } catch (error) {
+        console.error('Error initializing paid workspace check:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    }
+
+    initWithAuthListener();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
