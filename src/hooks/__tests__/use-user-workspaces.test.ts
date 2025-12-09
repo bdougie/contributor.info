@@ -1,9 +1,16 @@
+/* eslint-disable no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+// Tests for useUserWorkspaces hook - requires async patterns for React hook testing
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useUserWorkspaces } from '../use-user-workspaces';
 import { supabase } from '@/lib/supabase';
 
-// Mock the supabase client
+// Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
+vi.mock('@/lib/auth/safe-auth', () => ({
+  safeGetUser: vi.fn(),
+}));
+
+// Mock the supabase client for database queries and onAuthStateChange
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
@@ -14,6 +21,19 @@ vi.mock('@/lib/supabase', () => ({
     from: vi.fn(),
   },
 }));
+
+// Mock logger to prevent console output during tests
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Import the mocked function to configure it in tests
+import { safeGetUser } from '@/lib/auth/safe-auth';
 
 describe('useUserWorkspaces', () => {
   let authChangeCallback: ((event: string, session: any) => void) | null = null;
@@ -33,20 +53,10 @@ describe('useUserWorkspaces', () => {
       };
     });
 
-    // Mock default auth state
-    (supabase.auth.getUser as any).mockResolvedValue({
-      data: {
-        user: { id: 'user-123', email: 'test@example.com' },
-      },
+    // Mock safeGetUser - this is what use-user-workspaces actually calls
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: { id: 'user-123', email: 'test@example.com' } as any,
       error: null,
-    });
-
-    (supabase.auth.getSession as any).mockResolvedValue({
-      data: {
-        session: {
-          user: { id: 'user-123', email: 'test@example.com' },
-        },
-      },
     });
 
     // Mock workspace queries with proper chain
@@ -58,6 +68,12 @@ describe('useUserWorkspaces', () => {
         in: vi.fn(() => createChain(data, error)),
         order: vi.fn(() => createChain(data, error)),
         limit: vi.fn(() => createChain(data, error)),
+        maybeSingle: vi.fn(() =>
+          Promise.resolve({
+            data: table === 'app_users' ? { id: 'app-user-123' } : null,
+            error: null,
+          })
+        ),
         returns: vi.fn(() => Promise.resolve({ data, error })),
         // Direct promise resolution for simple queries
         then: (resolve: any) => Promise.resolve({ data, error }).then(resolve),
@@ -81,9 +97,9 @@ describe('useUserWorkspaces', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(supabase.auth.getUser).toHaveBeenCalled();
+    expect(safeGetUser).toHaveBeenCalled();
 
-    const authCalls = (supabase.auth.getUser as any).mock.calls.length;
+    const authCalls = vi.mocked(safeGetUser).mock.calls.length;
 
     // Simulate TOKEN_REFRESHED event
     act(() => {
@@ -99,8 +115,8 @@ describe('useUserWorkspaces', () => {
       vi.advanceTimersByTime(600);
     });
 
-    // Auth.getUser should not have been called again (TOKEN_REFRESHED is ignored)
-    expect((supabase.auth.getUser as any).mock.calls.length).toBe(authCalls);
+    // safeGetUser should not have been called again (TOKEN_REFRESHED is ignored)
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(authCalls);
   });
 
   it('should handle SIGNED_IN event', async () => {
@@ -111,9 +127,9 @@ describe('useUserWorkspaces', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(supabase.auth.getUser).toHaveBeenCalled();
+    expect(safeGetUser).toHaveBeenCalled();
 
-    const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
+    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
 
     // Simulate SIGNED_IN event
     act(() => {
@@ -125,12 +141,13 @@ describe('useUserWorkspaces', () => {
     });
 
     // Advance timers for debounced fetch to execute (500ms delay)
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(600);
+      await vi.runAllTimersAsync();
     });
 
     // Should trigger a new fetch after debounce
-    expect((supabase.auth.getUser as any).mock.calls.length).toBeGreaterThan(initialAuthCalls);
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBeGreaterThan(initialAuthCalls);
   });
 
   it('should debounce rapid auth state changes', async () => {
@@ -141,9 +158,9 @@ describe('useUserWorkspaces', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(supabase.auth.getUser).toHaveBeenCalled();
+    expect(safeGetUser).toHaveBeenCalled();
 
-    const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
+    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
 
     // Simulate rapid SIGNED_IN events
     act(() => {
@@ -160,7 +177,7 @@ describe('useUserWorkspaces', () => {
     });
 
     // Should not have triggered any new fetches yet
-    expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls);
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls);
 
     // Advance past debounce delay and run all pending timers
     await act(async () => {
@@ -169,10 +186,10 @@ describe('useUserWorkspaces', () => {
     });
 
     // Should trigger only one new fetch despite multiple events
-    expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls + 1);
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls + 1);
   });
 
-  it('should ignore USER_UPDATED events', async () => {
+  it('should ignore USER_UPDATED events for auth refetch', async () => {
     renderHook(() => useUserWorkspaces());
 
     // Wait for initial load by advancing timers
@@ -180,9 +197,9 @@ describe('useUserWorkspaces', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(supabase.auth.getUser).toHaveBeenCalled();
+    expect(safeGetUser).toHaveBeenCalled();
 
-    const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
+    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
 
     // Simulate USER_UPDATED event
     act(() => {
@@ -193,13 +210,13 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Advance timers past debounce period to ensure no new fetch is triggered
+    // Advance timers past the short debounce period (500ms) but less than USER_UPDATED debounce (1000ms)
     act(() => {
       vi.advanceTimersByTime(600);
     });
 
-    // Auth.getUser should not have been called again (USER_UPDATED is ignored)
-    expect((supabase.auth.getUser as any).mock.calls.length).toBe(initialAuthCalls);
+    // safeGetUser should not have been called again yet (USER_UPDATED has 1 second debounce)
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls);
   });
 
   it('should handle SIGNED_OUT event', async () => {
@@ -210,9 +227,9 @@ describe('useUserWorkspaces', () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(supabase.auth.getUser).toHaveBeenCalled();
+    expect(safeGetUser).toHaveBeenCalled();
 
-    const initialAuthCalls = (supabase.auth.getUser as any).mock.calls.length;
+    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
 
     // Simulate SIGNED_OUT event
     act(() => {
@@ -222,12 +239,13 @@ describe('useUserWorkspaces', () => {
     });
 
     // Advance timers for debounce to execute
-    act(() => {
+    await act(async () => {
       vi.advanceTimersByTime(600);
+      await vi.runAllTimersAsync();
     });
 
     // Should trigger a new fetch
-    expect((supabase.auth.getUser as any).mock.calls.length).toBeGreaterThan(initialAuthCalls);
+    expect(vi.mocked(safeGetUser).mock.calls.length).toBeGreaterThan(initialAuthCalls);
   });
 
   it('should cleanup debounce timer on unmount', () => {

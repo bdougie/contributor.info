@@ -7,7 +7,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getAppUserId, getAuthUserWithAppId } from '../auth-helpers';
 import { supabase } from '../supabase';
 
-// Mock supabase
+// Mock safeGetUser from safe-auth module (which is what auth-helpers actually uses)
+vi.mock('../auth/safe-auth', () => ({
+  safeGetUser: vi.fn(),
+}));
+
+// Mock supabase for database queries
 vi.mock('../supabase', () => ({
   supabase: {
     auth: {
@@ -23,8 +28,12 @@ vi.mock('../logger', () => ({
     debug: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
+    log: vi.fn(),
   },
 }));
+
+// Import the mocked function to configure it in tests
+import { safeGetUser } from '../auth/safe-auth';
 
 describe('auth-helpers', () => {
   beforeEach(() => {
@@ -40,17 +49,15 @@ describe('auth-helpers', () => {
       const mockAuthUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
       const mockAppUserId = 'c44084f7-4f3a-450a-aee8-ea30f3480b07';
 
-      // Mock auth.getUser() to return authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: {
-          user: {
-            id: mockAuthUserId,
-            email: 'test@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-          },
+      // Mock safeGetUser() to return authenticated user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: {
+          id: mockAuthUserId,
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
         },
         error: null,
       });
@@ -71,14 +78,14 @@ describe('auth-helpers', () => {
       const result = await getAppUserId();
 
       expect(result).toBe(mockAppUserId);
-      expect(supabase.auth.getUser).toHaveBeenCalledOnce();
+      expect(safeGetUser).toHaveBeenCalledOnce();
       expect(supabase.from).toHaveBeenCalledWith('app_users');
     });
 
     it('should return null when user is not authenticated', async () => {
-      // Mock auth.getUser() to return no user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
+      // Mock safeGetUser() to return no user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: null,
         error: null,
       });
 
@@ -89,10 +96,10 @@ describe('auth-helpers', () => {
     });
 
     it('should return null when auth error occurs', async () => {
-      // Mock auth.getUser() to return error
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
-        error: { message: 'Auth error', name: 'AuthError', status: 401 },
+      // Mock safeGetUser() to return error
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: null,
+        error: new Error('Auth error'),
       });
 
       const result = await getAppUserId();
@@ -104,17 +111,15 @@ describe('auth-helpers', () => {
     it('should return null when app_users record not found', async () => {
       const mockAuthUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
 
-      // Mock auth.getUser() to return authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: {
-          user: {
-            id: mockAuthUserId,
-            email: 'test@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-          },
+      // Mock safeGetUser() to return authenticated user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: {
+          id: mockAuthUserId,
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
         },
         error: null,
       });
@@ -140,17 +145,15 @@ describe('auth-helpers', () => {
     it('should return null when app_users query fails', async () => {
       const mockAuthUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
 
-      // Mock auth.getUser() to return authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: {
-          user: {
-            id: mockAuthUserId,
-            email: 'test@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-          },
+      // Mock safeGetUser() to return authenticated user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: {
+          id: mockAuthUserId,
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
         },
         error: null,
       });
@@ -174,8 +177,8 @@ describe('auth-helpers', () => {
     });
 
     it('should handle exceptions gracefully', async () => {
-      // Mock auth.getUser() to throw exception
-      vi.mocked(supabase.auth.getUser).mockRejectedValue(new Error('Network error'));
+      // Mock safeGetUser() to throw exception
+      vi.mocked(safeGetUser).mockRejectedValue(new Error('Network error'));
 
       const result = await getAppUserId();
 
@@ -196,9 +199,9 @@ describe('auth-helpers', () => {
         created_at: new Date().toISOString(),
       };
 
-      // Mock auth.getUser() to return authenticated user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: mockUser },
+      // Mock safeGetUser() to return authenticated user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: mockUser,
         error: null,
       });
 
@@ -222,9 +225,9 @@ describe('auth-helpers', () => {
     });
 
     it('should return null for both when not authenticated', async () => {
-      // Mock auth.getUser() to return no user
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: { user: null },
+      // Mock safeGetUser() to return no user
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: null,
         error: null,
       });
 
@@ -235,8 +238,8 @@ describe('auth-helpers', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      // Mock auth.getUser() to throw exception
-      vi.mocked(supabase.auth.getUser).mockRejectedValue(new Error('Network error'));
+      // Mock safeGetUser() to throw exception
+      vi.mocked(safeGetUser).mockRejectedValue(new Error('Network error'));
 
       const result = await getAuthUserWithAppId();
 
@@ -256,17 +259,15 @@ describe('auth-helpers', () => {
       // These should be different UUIDs (the root cause of the bug)
       expect(authUserId).not.toBe(appUserId);
 
-      // Mock auth.getUser() to return auth.users.id
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: {
-          user: {
-            id: authUserId, // This is auth.users.id, NOT app_users.id
-            email: 'test@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-          },
+      // Mock safeGetUser() to return auth.users.id
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: {
+          id: authUserId, // This is auth.users.id, NOT app_users.id
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
         },
         error: null,
       });
@@ -301,16 +302,14 @@ describe('auth-helpers', () => {
       const authUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
       const appUserId = 'c44084f7-4f3a-450a-aee8-ea30f3480b07';
 
-      vi.mocked(supabase.auth.getUser).mockResolvedValue({
-        data: {
-          user: {
-            id: authUserId,
-            email: 'owner@example.com',
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            created_at: new Date().toISOString(),
-          },
+      vi.mocked(safeGetUser).mockResolvedValue({
+        user: {
+          id: authUserId,
+          email: 'owner@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
         },
         error: null,
       });

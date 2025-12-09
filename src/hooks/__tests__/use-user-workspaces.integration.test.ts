@@ -9,7 +9,12 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useUserWorkspaces } from '../use-user-workspaces';
 import { supabase } from '@/lib/supabase';
 
-// Mock supabase
+// Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
+vi.mock('@/lib/auth/safe-auth', () => ({
+  safeGetUser: vi.fn(),
+}));
+
+// Mock supabase for database queries
 vi.mock('@/lib/supabase', () => ({
   supabase: {
     auth: {
@@ -38,6 +43,9 @@ vi.mock('@/lib/utils/avatar', () => ({
   getRepoOwnerAvatarUrl: vi.fn((owner: string) => `https://github.com/${owner}.png`),
 }));
 
+// Import the mocked function to configure it in tests
+import { safeGetUser } from '@/lib/auth/safe-auth';
+
 describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,17 +63,15 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     // These MUST be different - this is the core of the bug
     expect(authUserId).not.toBe(appUserId);
 
-    // Mock authenticated user (returns auth.users.id)
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: {
-        user: {
-          id: authUserId, // This is auth.users.id, not app_users.id
-          email: 'owner@example.com',
-          app_metadata: {},
-          user_metadata: { avatar_url: 'https://example.com/avatar.png' },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
+    // Mock safeGetUser to return authenticated user (returns auth.users.id)
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: {
+        id: authUserId, // This is auth.users.id, not app_users.id
+        email: 'owner@example.com',
+        app_metadata: {},
+        user_metadata: { avatar_url: 'https://example.com/avatar.png' },
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
       },
       error: null,
     });
@@ -152,16 +158,14 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   it('should return empty workspaces when app_users record not found', async () => {
     const authUserId = '1eaf7821-2ead-4711-9727-1983205e7899';
 
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: {
-        user: {
-          id: authUserId,
-          email: 'newuser@example.com',
-          app_metadata: {},
-          user_metadata: {},
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        },
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: {
+        id: authUserId,
+        email: 'newuser@example.com',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
       },
       error: null,
     });
@@ -201,8 +205,8 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
   });
 
   it('should handle unauthenticated users without querying workspaces', async () => {
-    vi.mocked(supabase.auth.getUser).mockResolvedValue({
-      data: { user: null },
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: null,
       error: null,
     });
 

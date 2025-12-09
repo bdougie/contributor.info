@@ -1,22 +1,23 @@
 /* eslint-disable no-restricted-syntax */
 // Integration tests for safe-auth timeout protection - requires async patterns
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { safeGetUser, safeGetSession, isAuthenticated, requireAuth } from '../safe-auth';
 import type { User, AuthError } from '@supabase/supabase-js';
 
-// Mock supabase client
-const mockSupabaseAuth = {
-  getUser: vi.fn(),
-  getSession: vi.fn(),
-};
+// Use vi.hoisted() to ensure mock variables are available when vi.mock runs (hoisted)
+const { mockSupabaseAuth, mockSupabaseClient } = vi.hoisted(() => {
+  const mockSupabaseAuth = {
+    getUser: vi.fn(),
+    getSession: vi.fn(),
+  };
+  const mockSupabaseClient = {
+    auth: mockSupabaseAuth,
+  };
+  return { mockSupabaseAuth, mockSupabaseClient };
+});
 
-// Mock the supabase-lazy module to return the mocked client
+// Mock the supabase-lazy module (which is what safe-auth actually uses)
 vi.mock('@/lib/supabase-lazy', () => ({
-  getSupabase: vi.fn(() =>
-    Promise.resolve({
-      auth: mockSupabaseAuth,
-    })
-  ),
+  getSupabase: vi.fn().mockResolvedValue(mockSupabaseClient),
 }));
 
 // Mock the logger to avoid console noise in tests
@@ -27,6 +28,9 @@ vi.mock('@/lib/logger', () => ({
     error: vi.fn(),
   },
 }));
+
+// Import functions after mocks are set up
+import { safeGetUser, safeGetSession, isAuthenticated, requireAuth } from '../safe-auth';
 
 describe('safe-auth utilities', () => {
   beforeEach(() => {
