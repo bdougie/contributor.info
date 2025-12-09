@@ -1,8 +1,8 @@
 /**
  * Lazy Supabase Client
  *
- * Defers Supabase client initialization until first use to improve LCP.
- * The Supabase bundle is ~111 KiB and doesn't need to load on initial page render.
+ * Provides async access to the Supabase client for code that can defer initialization.
+ * This module shares the same client instance with supabase.ts to avoid duplicate clients.
  *
  * Usage:
  * - Use `getSupabase()` for async access (recommended for new code)
@@ -13,80 +13,40 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { env } from './env';
 
-// Cached instance
+// Cached instance - shared with supabase.ts
 let supabaseInstance: SupabaseClient | null = null;
-let loadPromise: Promise<SupabaseClient> | null = null;
-let initStartTime: number | null = null;
+
+/**
+ * Set the shared Supabase instance.
+ * Called by supabase.ts to share its synchronously-created client.
+ */
+export function setSupabaseInstance(client: SupabaseClient): void {
+  supabaseInstance = client;
+}
 
 /**
  * Async getter for Supabase client.
- * Lazily loads the @supabase/supabase-js bundle on first call.
- * Subsequent calls return the cached instance immediately.
+ * Returns the shared instance immediately if already initialized by supabase.ts.
+ * Otherwise loads lazily (for code paths that don't import supabase.ts).
  */
 export async function getSupabase(): Promise<SupabaseClient> {
+  // Return shared instance if already initialized
   if (supabaseInstance) return supabaseInstance;
 
-  if (!loadPromise) {
-    initStartTime = performance.now();
-    loadPromise = import('@supabase/supabase-js').then(({ createClient }) => {
-      const supabaseUrl = env.SUPABASE_URL;
-      const supabaseAnonKey = env.SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl) {
-        throw new Error(
-          'Missing environment variable: SUPABASE_URL or VITE_SUPABASE_URL. In production, ensure SUPABASE_URL is set in Netlify environment variables.'
-        );
-      }
-
-      if (!supabaseAnonKey) {
-        throw new Error(
-          'Missing environment variable: SUPABASE_ANON_KEY or VITE_SUPABASE_ANON_KEY. In production, ensure SUPABASE_ANON_KEY is set in Netlify environment variables.'
-        );
-      }
-
-      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
-          flowType: 'implicit',
-        },
-        db: {
-          schema: 'public',
-        },
-        realtime: {
-          params: {
-            eventsPerSecond: 10,
-          },
-        },
-      });
-
-      // Log initialization timing in development
-      if (import.meta.env.DEV && initStartTime) {
-        const elapsed = performance.now() - initStartTime;
-
-        console.log('[Supabase] Lazy initialization completed in %sms', elapsed.toFixed(1));
-      }
-
-      return supabaseInstance;
-    });
-  }
-
-  return loadPromise;
+  // Lazy load for code paths that only import supabase-lazy.ts
+  const { supabase } = await import('./supabase');
+  return supabase;
 }
 
 /**
  * Sync getter for Supabase client.
  * Returns the cached instance if already initialized.
- * Throws if called before ensureSupabase() completes.
+ * Throws if called before initialization.
  */
 export function getSupabaseSync(): SupabaseClient {
   if (!supabaseInstance) {
-    throw new Error(
-      '[Supabase] Client not initialized. Call ensureSupabase() first or use getSupabase() for async access.'
-    );
+    throw new Error('[Supabase] Client not initialized. Use getSupabase() for async access.');
   }
   return supabaseInstance;
 }
@@ -100,7 +60,6 @@ export function isSupabaseInitialized(): boolean {
 
 /**
  * Ensure Supabase is initialized before proceeding.
- * Call this once in your app entry point to enable sync access.
  */
 export async function ensureSupabase(): Promise<SupabaseClient> {
   return getSupabase();
@@ -108,12 +67,11 @@ export async function ensureSupabase(): Promise<SupabaseClient> {
 
 /**
  * Preload the Supabase client without blocking.
- * Call this when you know Supabase will be needed soon (e.g., on user interaction).
  */
 export function preloadSupabase(): void {
-  if (!supabaseInstance && !loadPromise) {
+  if (!supabaseInstance) {
     getSupabase().catch(() => {
-      // Silently handle preload errors - actual errors will surface on real usage
+      // Silently handle preload errors
     });
   }
 }

@@ -2,7 +2,7 @@
 // Related to issue #959: Add notification system for async operations
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase-lazy';
 import { NotificationService } from '../lib/notifications';
 import type { Notification, NotificationFilters } from '../lib/notifications';
 import type { User } from '@supabase/supabase-js';
@@ -97,18 +97,37 @@ export function useNotifications(filters: NotificationFilters = {}) {
 
   // Get current user
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser);
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
-    });
+    const initAuth = async () => {
+      try {
+        const supabase = await getSupabase();
+        if (!isMounted) return;
+
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+        if (isMounted) {
+          setUser(currentUser);
+        }
+
+        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
+          if (isMounted) {
+            setUser(session?.user ?? null);
+          }
+        });
+        subscription = authListener.subscription;
+      } catch (error) {
+        console.error('Error initializing auth for notifications:', error);
+      }
+    };
+
+    initAuth();
 
     return () => {
-      if (authListener?.subscription) {
-        authListener.subscription.unsubscribe();
-      }
+      isMounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 
