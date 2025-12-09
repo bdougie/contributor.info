@@ -167,12 +167,40 @@ The application has migrated from PageSpeed Insights API to PostHog for Web Vita
 - **Updated**: `compare-web-vitals.js` to use Lighthouse CI only
 - **Benefit**: Real user monitoring vs synthetic testing
 
+## Production Monitoring
+
+### Dashboard and Alerting
+
+For production LCP monitoring and alerting configuration:
+
+📊 **[PostHog LCP Monitoring Setup Guide](./posthog-lcp-monitoring-setup.md)**
+
+Includes:
+- Complete dashboard setup for Core Web Vitals
+- Alert configuration for LCP threshold violations (>2.5s)
+- Regression detection alerts (20% increase)
+- Good LCP rate monitoring (<75%)
+- Integration with Slack and Sentry
+
+✅ **[LCP Monitoring Checklist](./lcp-monitoring-checklist.md)**
+
+Quick reference for:
+- Daily/weekly monitoring tasks
+- PR impact verification
+- Troubleshooting steps
+- Key metrics reference
+
+### Related Documentation
+
+- [PR #1282 Performance Audit](../implementations/pr-1282-supabase-lazy-loading-audit.md) - Supabase lazy loading impact analysis
+- [Performance Best Practices](./performance-best-practices.md)
+
 ## Future Enhancements
 
 Potential improvements for the PostHog integration:
 
-1. **Custom Dashboards**: Create PostHog dashboards for Web Vitals
-2. **Alerting**: Set up alerts for performance regressions
-3. **Segmentation**: Track metrics by user segments
+1. ✅ **Custom Dashboards**: See [LCP Monitoring Setup](./posthog-lcp-monitoring-setup.md)
+2. ✅ **Alerting**: See [LCP Monitoring Setup](./posthog-lcp-monitoring-setup.md)
+3. **Segmentation**: Track metrics by user segments (authenticated vs. anonymous)
 4. **A/B Testing**: Use PostHog feature flags for performance experiments
 5. **Session Replay**: Selectively enable for debugging (with user consent)
