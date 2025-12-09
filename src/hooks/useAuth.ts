@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { trackEvent } from '@/lib/posthog-lazy';
 
 /**
@@ -17,6 +17,7 @@ export function useAuth() {
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
 
+      const supabase = await getSupabase();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
