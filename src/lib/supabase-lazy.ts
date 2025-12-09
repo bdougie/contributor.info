@@ -67,7 +67,7 @@ export async function getSupabase(): Promise<SupabaseClient> {
       if (import.meta.env.DEV && initStartTime) {
         const elapsed = performance.now() - initStartTime;
 
-        console.log(`[Supabase] Lazy initialization completed in ${elapsed.toFixed(1)}ms`);
+        console.log('[Supabase] Lazy initialization completed in %sms', elapsed.toFixed(1));
       }
 
       return supabaseInstance;

@@ -121,22 +121,38 @@ export default function Layout() {
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
 
     // Initialize Supabase lazily and set up auth listeners
     const initAuth = async () => {
-      const supabase = await getSupabase();
+      try {
+        const supabase = await getSupabase();
 
-      // Check login status
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+        // Check if component unmounted during async init
+        if (!isMounted) return;
 
-      // Listen for auth changes
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-        setIsLoggedIn(!!session);
-      });
-      subscription = data.subscription;
+        // Check login status
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (isMounted) {
+          setIsLoggedIn(!!session);
+        }
+
+        // Listen for auth changes
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (isMounted) {
+            setIsLoggedIn(!!session);
+          }
+        });
+        subscription = data.subscription;
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        if (isMounted) {
+          setIsLoggedIn(false);
+        }
+      }
     };
 
     initAuth();
@@ -145,6 +161,7 @@ export default function Layout() {
     prefetchCriticalRoutes();
 
     return () => {
+      isMounted = false;
       subscription?.unsubscribe();
     };
   }, []);
