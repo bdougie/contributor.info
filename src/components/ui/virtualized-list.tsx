@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRef, forwardRef, ReactNode } from 'react';
+import { useRef, type ReactNode, type Ref } from 'react';
 import { cn } from '@/lib/utils';
 
 interface VirtualizedListProps<T> {
@@ -146,56 +146,63 @@ export function VirtualizedGrid<T>({
   );
 }
 
+export interface WindowVirtualizedListProps<T> extends VirtualizedListProps<T> {
+  ref?: Ref<HTMLDivElement>;
+}
+
 /**
  * Window scroller for full-page virtualization
  * Use when the list takes up the entire viewport
  */
-export const WindowVirtualizedList = forwardRef<HTMLDivElement, VirtualizedListProps<unknown>>(
-  function WindowVirtualizedList(
-    { items, renderItem, itemHeight = 100, overscan = 5, className, estimateSize, gap = 0 },
-    ref
-  ) {
-    const virtualizer = useVirtualizer({
-      count: items.length,
-      getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
-      estimateSize:
-        estimateSize ||
-        (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
-      overscan,
-    });
+export function WindowVirtualizedList<T>({
+  items,
+  renderItem,
+  itemHeight = 100,
+  overscan = 5,
+  className,
+  estimateSize,
+  gap = 0,
+  ref,
+}: WindowVirtualizedListProps<T>) {
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
+    estimateSize:
+      estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
+    overscan,
+  });
 
-    return (
-      <div ref={ref}>
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualItem) => {
-            const item = items[virtualItem.index];
-            return (
-              <div
-                key={virtualItem.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualItem.size}px`,
-                  transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
-                }}
-                className={className}
-              >
-                {renderItem(item, virtualItem.index)}
-              </div>
-            );
-          })}
-        </div>
+  return (
+    <div ref={ref}>
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualItem) => {
+          const item = items[virtualItem.index];
+          return (
+            <div
+              key={virtualItem.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualItem.size}px`,
+                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+              }}
+              className={className}
+            >
+              {renderItem(item, virtualItem.index)}
+            </div>
+          );
+        })}
       </div>
-    );
-  }
-);
+    </div>
+  );
+}
 
 export default VirtualizedList;

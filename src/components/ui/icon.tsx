@@ -1,43 +1,42 @@
-import React from 'react';
+import type { SVGProps, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { IconName } from '@/types/icons';
 
-export interface IconProps extends React.SVGProps<SVGSVGElement> {
+export interface IconProps extends SVGProps<SVGSVGElement> {
   name: IconName;
   size?: number | string;
+  ref?: Ref<SVGSVGElement>;
 }
 
 /**
  * Icon component that uses SVG sprites instead of importing individual icons
  * This reduces bundle size from ~100KB (lucide-react) to ~20KB (sprite)
  */
-export const Icon = React.forwardRef<SVGSVGElement, IconProps>(
-  ({ name, className, size = 24, width, height, ...props }, ref) => {
-    const iconSize = width || height || size;
+function Icon({ name, className, size = 24, width, height, ref, ...props }: IconProps) {
+  const iconSize = width || height || size;
 
-    return (
-      <svg
-        ref={ref}
-        width={iconSize}
-        height={iconSize}
-        className={cn('inline-block', className)}
-        aria-hidden="true"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlnsXlink="http://www.w3.org/1999/xlink"
-        {...props}
-      >
-        <use href={`#icon-${name}`} xlinkHref={`#icon-${name}`} />
-      </svg>
-    );
-  }
-);
+  return (
+    <svg
+      ref={ref}
+      width={iconSize}
+      height={iconSize}
+      className={cn('inline-block', className)}
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlnsXlink="http://www.w3.org/1999/xlink"
+      {...props}
+    >
+      <use href={`#icon-${name}`} xlinkHref={`#icon-${name}`} />
+    </svg>
+  );
+}
 
-Icon.displayName = 'Icon';
+export { Icon };
 
 // Convenience exports for common icons matching lucide-react API
 export const ChevronDown = (props: Omit<IconProps, 'name'>) => (
