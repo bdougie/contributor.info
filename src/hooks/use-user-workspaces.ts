@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
-import { safeGetUser } from '@/lib/auth/safe-auth';
+import { useAppUserId, authKeys } from '@/hooks/use-cached-auth';
 
 // Types for Supabase query results
 type WorkspaceWithMember = {
@@ -39,6 +40,12 @@ type WorkspacePreviewStats = {
   member_count: number;
 };
 
+// Query keys for workspace queries
+export const workspaceKeys = {
+  all: ['workspaces'] as const,
+  userWorkspaces: (appUserId: string | null) => [...workspaceKeys.all, 'user', appUserId] as const,
+};
+
 export interface UseUserWorkspacesReturn {
   workspaces: WorkspacePreviewData[];
   loading: boolean;
@@ -47,399 +54,284 @@ export interface UseUserWorkspacesReturn {
 }
 
 /**
- * Hook to fetch workspaces for the current authenticated user
- * Returns user's workspaces with repository preview data
+ * Fetch workspaces for a given app user ID
  */
-export function useUserWorkspaces(): UseUserWorkspacesReturn {
-  const [workspaces, setWorkspaces] = useState<WorkspacePreviewData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const isFetchingRef = useRef(false);
-  const hasInitialLoadRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+async function fetchUserWorkspaces(
+  appUserId: string,
+  authUser: { id: string; user_metadata: Record<string, string> } | null
+): Promise<WorkspacePreviewData[]> {
+  logger.log('[Workspace Query] Fetching workspaces for app user...');
 
-  const fetchUserWorkspaces = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isFetchingRef.current) {
-      return;
-    }
+  const supabase = await getSupabase();
 
-    // Cancel any existing requests
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+  // Fetch workspaces where user is owner or member
+  // First try to get workspaces where user is the owner
+  const { data: ownedWorkspaces } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('owner_id', appUserId)
+    .eq('is_active', true);
 
-    // Create new AbortController for this request
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
+  // Then get workspace IDs where user is a member
+  const { data: memberData, error: memberError } = await supabase
+    .from('workspace_members')
+    .select('workspace_id, role')
+    .eq('user_id', appUserId);
 
-    isFetchingRef.current = true;
-    try {
-      setLoading(true);
-      setError(null);
+  if (memberError && !ownedWorkspaces) {
+    throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
+  }
 
-      // Check if user is authenticated using safe auth utility with timeout protection
-      logger.log('[Workspace] Checking auth status...');
+  // Combine owned and member workspace IDs
+  const workspaceIds = new Set<string>();
+  if (ownedWorkspaces) {
+    ownedWorkspaces.forEach((w) => workspaceIds.add(w.id));
+  }
+  if (memberData) {
+    memberData.forEach((m) => workspaceIds.add(m.workspace_id));
+  }
 
-      // Check if aborted before making auth call
-      if (signal.aborted) {
-        logger.warn('[Workspace] Request aborted before auth check');
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
+  if (workspaceIds.size === 0) {
+    logger.log('[Workspace Query] User has no workspaces');
+    return [];
+  }
+
+  logger.log('[Workspace Query] Found %d workspace(s) for user', workspaceIds.size);
+
+  const workspaceIdsArray = Array.from(workspaceIds);
+
+  // Now fetch the workspace details
+  const { data: workspaceData, error: workspaceError } = await supabase
+    .from('workspaces')
+    .select(
+      `
+      id,
+      name,
+      slug,
+      description,
+      owner_id,
+      created_at
+    `
+    )
+    .in('id', workspaceIdsArray)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .returns<WorkspaceWithMember[]>();
+
+  if (workspaceError) {
+    throw new Error(`Failed to fetch workspaces: ${workspaceError.message}`);
+  }
+
+  if (!workspaceData || workspaceData.length === 0) {
+    return [];
+  }
+
+  // Fetch additional data for all workspaces in batched queries (Phase 1 optimization)
+  // This replaces the N+1 query problem with 3 batched queries
+
+  // 1. Fetch workspace stats from materialized view (replaces 2N queries)
+  const { data: workspaceStats } = await supabase
+    .from('workspace_preview_stats')
+    .select('workspace_id, repository_count, member_count')
+    .in('workspace_id', workspaceIdsArray)
+    .returns<WorkspacePreviewStats[]>();
+
+  // Create lookup map for O(1) access
+  const statsMap = new Map(workspaceStats?.map((stat) => [stat.workspace_id, stat]) || []);
+
+  // 2. Fetch ALL repositories for ALL workspaces in one query
+  // Dynamic limit: 10 repos per workspace (we only show 3, but fetch 10 for sorting flexibility)
+  // Capped at 100 to prevent excessive memory usage
+  const repoLimit = Math.min(workspaceIdsArray.length * 10, 100);
+
+  const { data: allRepositories, error: reposError } = await supabase
+    .from('workspace_repositories')
+    .select(
+      `
+      workspace_id,
+      id,
+      is_pinned,
+      repositories!inner(
+        id,
+        full_name,
+        name,
+        owner,
+        description,
+        language,
+        github_pushed_at,
+        pull_request_count,
+        open_issues_count,
+        avatar_url
+      )
+    `
+    )
+    .in('workspace_id', workspaceIdsArray)
+    .order('is_pinned', { ascending: false })
+    .limit(repoLimit)
+    .returns<RepositoryWithWorkspace[]>();
+
+  if (reposError) {
+    logger.error('Failed to fetch workspace repositories: %s', reposError.message);
+    throw new Error(`Unable to load workspace repositories: ${reposError.message}`);
+  }
+
+  // 3. Group repositories by workspace_id
+  const reposByWorkspace = new Map<string, RepositoryWithWorkspace[]>();
+  allRepositories?.forEach((repo) => {
+    const existing = reposByWorkspace.get(repo.workspace_id) || [];
+    existing.push(repo);
+    reposByWorkspace.set(repo.workspace_id, existing);
+  });
+
+  // 4. Enrich workspaces (no async operations needed!)
+  const enrichedWorkspaces = workspaceData.map((workspace) => {
+    // Get stats from materialized view
+    const stats = statsMap.get(workspace.id);
+    const repositoryCount = stats?.repository_count || 0;
+    const memberCount = stats?.member_count || 0;
+
+    // Get repositories for this workspace
+    const workspaceRepos = reposByWorkspace.get(workspace.id) || [];
+
+    // Sort repositories by pinned status first, then by github_pushed_at
+    const sortedRepositories = workspaceRepos.sort((a, b) => {
+      // First sort by pinned status
+      if (a.is_pinned !== b.is_pinned) {
+        return a.is_pinned ? -1 : 1;
       }
+      // Then sort by pushed_at date
+      const dateA = new Date(a.repositories.github_pushed_at || 0).getTime();
+      const dateB = new Date(b.repositories.github_pushed_at || 0).getTime();
+      return dateB - dateA;
+    });
 
-      // Use centralized safe auth utility with 2-second timeout
-      // This handles timeout protection and automatic session fallback
-      const { user, error: authError } = await safeGetUser(2000);
-
-      if (authError) {
-        logger.error('[Workspace] Authentication check failed:', authError.message);
-        setWorkspaces([]);
-        setLoading(false);
-        setError(new Error('Authentication check timed out. Please refresh the page.'));
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
-      if (!user) {
-        logger.log('[Workspace] No user found, user is not authenticated');
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
-      logger.log('[Workspace] User authenticated, fetching workspaces...');
-
-      // Get Supabase client asynchronously
-      const supabase = await getSupabase();
-
-      // First, get the app_users.id for this authenticated user
-      // user.id is auth_user_id, but workspace tables use app_users.id
-      const { data: appUser, error: appUserError } = await supabase
-        .from('app_users')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-
-      if (appUserError || !appUser) {
-        logger.error('[Workspace] Failed to find app_users record:', appUserError?.message);
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
-      const appUserId = appUser.id;
-      logger.log('[Workspace] Found app_user id for auth user');
-
-      // Fetch workspaces where user is owner or member
-      // First try to get workspaces where user is the owner
-      const { data: ownedWorkspaces } = await supabase
-        .from('workspaces')
-        .select('id')
-        .eq('owner_id', appUserId)
-        .eq('is_active', true);
-
-      // Then get workspace IDs where user is a member
-      const { data: memberData, error: memberError } = await supabase
-        .from('workspace_members')
-        .select('workspace_id, role')
-        .eq('user_id', appUserId);
-
-      if (memberError && !ownedWorkspaces) {
-        throw new Error(`Failed to fetch workspace memberships: ${memberError.message}`);
-      }
-
-      // Combine owned and member workspace IDs
-      const workspaceIds = new Set<string>();
-      if (ownedWorkspaces) {
-        ownedWorkspaces.forEach((w) => workspaceIds.add(w.id));
-      }
-      if (memberData) {
-        memberData.forEach((m) => workspaceIds.add(m.workspace_id));
-      }
-
-      if (workspaceIds.size === 0) {
-        logger.log('[Workspace] User has no workspaces');
-        setWorkspaces([]);
-        setLoading(false);
-        hasInitialLoadRef.current = true;
-        return;
-      }
-
-      logger.log('[Workspace] Found %d workspace(s) for user', workspaceIds.size);
-
-      const workspaceIdsArray = Array.from(workspaceIds);
-
-      // Now fetch the workspace details
-      const { data: workspaceData, error: workspaceError } = await supabase
-        .from('workspaces')
-        .select(
-          `
-          id,
-          name,
-          slug,
-          description,
-          owner_id,
-          created_at
-        `
-        )
-        .in('id', workspaceIdsArray)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .returns<WorkspaceWithMember[]>();
-
-      if (workspaceError) {
-        throw new Error(`Failed to fetch workspaces: ${workspaceError.message}`);
-      }
-
-      if (!workspaceData || workspaceData.length === 0) {
-        setWorkspaces([]);
-        return;
-      }
-
-      // Fetch additional data for all workspaces in batched queries (Phase 1 optimization)
-      // This replaces the N+1 query problem with 3 batched queries
-
-      // 1. Fetch workspace stats from materialized view (replaces 2N queries)
-      const { data: workspaceStats } = await supabase
-        .from('workspace_preview_stats')
-        .select('workspace_id, repository_count, member_count')
-        .in('workspace_id', workspaceIdsArray)
-        .returns<WorkspacePreviewStats[]>();
-
-      // Create lookup map for O(1) access
-      const statsMap = new Map(workspaceStats?.map((stat) => [stat.workspace_id, stat]) || []);
-
-      // 2. Fetch ALL repositories for ALL workspaces in one query
-      // Dynamic limit: 10 repos per workspace (we only show 3, but fetch 10 for sorting flexibility)
-      // Capped at 100 to prevent excessive memory usage
-      const repoLimit = Math.min(workspaceIdsArray.length * 10, 100);
-
-      const { data: allRepositories, error: reposError } = await supabase
-        .from('workspace_repositories')
-        .select(
-          `
-          workspace_id,
-          id,
-          is_pinned,
-          repositories!inner(
-            id,
-            full_name,
-            name,
-            owner,
-            description,
-            language,
-            github_pushed_at,
-            pull_request_count,
-            open_issues_count,
-            avatar_url
-          )
-        `
-        )
-        .in('workspace_id', workspaceIdsArray)
-        .order('is_pinned', { ascending: false })
-        .limit(repoLimit)
-        .returns<RepositoryWithWorkspace[]>();
-
-      if (reposError) {
-        logger.error('Failed to fetch workspace repositories:', reposError.message);
-        throw new Error(`Unable to load workspace repositories: ${reposError.message}`);
-      }
-
-      // 3. Group repositories by workspace_id
-      const reposByWorkspace = new Map<string, RepositoryWithWorkspace[]>();
-      allRepositories?.forEach((repo) => {
-        const existing = reposByWorkspace.get(repo.workspace_id) || [];
-        existing.push(repo);
-        reposByWorkspace.set(repo.workspace_id, existing);
-      });
-
-      // 4. Enrich workspaces (no async operations needed!)
-      const enrichedWorkspaces = workspaceData.map((workspace) => {
-        // Get stats from materialized view
-        const stats = statsMap.get(workspace.id);
-        const repositoryCount = stats?.repository_count || 0;
-        const memberCount = stats?.member_count || 0;
-
-        // Get repositories for this workspace
-        const workspaceRepos = reposByWorkspace.get(workspace.id) || [];
-
-        // Sort repositories by pinned status first, then by github_pushed_at
-        const sortedRepositories = workspaceRepos.sort((a, b) => {
-          // First sort by pinned status
-          if (a.is_pinned !== b.is_pinned) {
-            return a.is_pinned ? -1 : 1;
-          }
-          // Then sort by pushed_at date
-          const dateA = new Date(a.repositories.github_pushed_at || 0).getTime();
-          const dateB = new Date(b.repositories.github_pushed_at || 0).getTime();
-          return dateB - dateA;
-        });
-
-        // Take top 3 repositories for preview
-        const repositories =
-          sortedRepositories.slice(0, 3).map((item) => {
-            // Calculate activity score: weight issues 2x higher than PRs
-            const issueScore = (item.repositories.open_issues_count || 0) * 2;
-            const prScore = item.repositories.pull_request_count || 0;
-            const activityScore = issueScore + prScore;
-
-            return {
-              id: item.repositories.id,
-              full_name: item.repositories.full_name,
-              name: item.repositories.name,
-              owner: item.repositories.owner,
-              description: item.repositories.description,
-              language: item.repositories.language,
-              activity_score: activityScore,
-              last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
-              avatar_url: getRepoOwnerAvatarUrl(
-                item.repositories.owner,
-                item.repositories.avatar_url || undefined
-              ),
-              html_url: `https://github.com/${item.repositories.full_name}`,
-            };
-          }) || [];
-
-        // Use current user's metadata if they're the owner
-        // Compare against appUserId since workspace.owner_id is app_users.id
-        const ownerMetadata = workspace.owner_id === appUserId ? user.user_metadata : null;
+    // Take top 3 repositories for preview
+    const repositories =
+      sortedRepositories.slice(0, 3).map((item) => {
+        // Calculate activity score: weight issues 2x higher than PRs
+        const issueScore = (item.repositories.open_issues_count || 0) * 2;
+        const prScore = item.repositories.pull_request_count || 0;
+        const activityScore = issueScore + prScore;
 
         return {
-          id: workspace.id,
-          name: workspace.name,
-          slug: workspace.slug,
-          description: workspace.description,
-          owner: {
-            id: workspace.owner_id,
-            avatar_url: ownerMetadata?.avatar_url,
-            display_name: ownerMetadata?.full_name || ownerMetadata?.name,
-          },
-          repository_count: repositoryCount,
-          member_count: memberCount,
-          repositories,
-          created_at: workspace.created_at,
-        } as WorkspacePreviewData;
-      });
+          id: item.repositories.id,
+          full_name: item.repositories.full_name,
+          name: item.repositories.name,
+          owner: item.repositories.owner,
+          description: item.repositories.description,
+          language: item.repositories.language,
+          activity_score: activityScore,
+          last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
+          avatar_url: getRepoOwnerAvatarUrl(
+            item.repositories.owner,
+            item.repositories.avatar_url || undefined
+          ),
+          html_url: `https://github.com/${item.repositories.full_name}`,
+        };
+      }) || [];
 
-      logger.log('[Workspace] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
-      setWorkspaces(enrichedWorkspaces);
-      hasInitialLoadRef.current = true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch workspaces';
-      logger.error('[Workspace] Error fetching workspaces:', errorMessage);
-      setError(new Error(errorMessage));
-      setWorkspaces([]);
-      hasInitialLoadRef.current = true;
-    } finally {
-      setLoading(false);
-      isFetchingRef.current = false;
-    }
-  }, []);
+    // Use current user's metadata if they're the owner
+    // Compare against appUserId since workspace.owner_id is app_users.id
+    const ownerMetadata = workspace.owner_id === appUserId ? authUser?.user_metadata : null;
 
-  // Debounced fetch function to prevent rapid refetching
-  const debouncedFetchRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedFetch = useCallback(() => {
-    // Clear any existing debounce timer
-    if (debouncedFetchRef.current) {
-      clearTimeout(debouncedFetchRef.current);
-    }
+    return {
+      id: workspace.id,
+      name: workspace.name,
+      slug: workspace.slug,
+      description: workspace.description,
+      owner: {
+        id: workspace.owner_id,
+        avatar_url: ownerMetadata?.avatar_url,
+        display_name: ownerMetadata?.full_name || ownerMetadata?.name,
+      },
+      repository_count: repositoryCount,
+      member_count: memberCount,
+      repositories,
+      created_at: workspace.created_at,
+    } as WorkspacePreviewData;
+  });
 
-    // Set new debounce timer
-    debouncedFetchRef.current = setTimeout(() => {
-      fetchUserWorkspaces();
-    }, 500); // 500ms debounce delay
-  }, [fetchUserWorkspaces]);
+  logger.log('[Workspace Query] Successfully loaded %d workspace(s)', enrichedWorkspaces.length);
+  return enrichedWorkspaces;
+}
 
+/**
+ * Hook to fetch workspaces for the current authenticated user
+ * Returns user's workspaces with repository preview data
+ *
+ * Uses React Query for automatic request deduplication and caching.
+ * Multiple components using this hook will share the same cached data.
+ */
+export function useUserWorkspaces(): UseUserWorkspacesReturn {
+  const queryClient = useQueryClient();
+  const { appUserId, isLoading: authLoading, user } = useAppUserId();
+
+  const {
+    data: workspaces = [],
+    isLoading: workspacesLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: workspaceKeys.userWorkspaces(appUserId),
+    queryFn: () => {
+      if (!appUserId) return [];
+      return fetchUserWorkspaces(appUserId, user);
+    },
+    enabled: !!appUserId, // Only fetch when we have an app user ID
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Use cached value on mount
+    retry: 1,
+  });
+
+  // Invalidate workspace cache when auth changes
   useEffect(() => {
-    let mounted = true;
-    let loadingTimeout: NodeJS.Timeout;
     let subscription: { unsubscribe: () => void } | null = null;
 
-    const initFetch = async () => {
-      if (!mounted) return;
-
-      // Add a shorter timeout to prevent infinite loading state
-      // Reduced from 10s to 5s after Phase 1 optimization
-      loadingTimeout = setTimeout(() => {
-        if (loading && mounted && !hasInitialLoadRef.current) {
-          logger.error('[Workspace] Loading timed out after 5 seconds');
-          setLoading(false);
-          setError(new Error('Workspace loading timed out. Please refresh the page.'));
-          hasInitialLoadRef.current = true;
-        }
-      }, 5000);
-
-      await fetchUserWorkspaces();
-      clearTimeout(loadingTimeout);
-
-      // Set up auth listener after initial fetch
+    const setupListener = async () => {
       try {
         const supabase = await getSupabase();
-        if (!mounted) return;
-
-        // Listen for auth state changes with better filtering
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
-          if (!mounted) return;
-
-          // Auth event received - only process SIGNED_IN and SIGNED_OUT events
-
-          // Only refetch on actual sign in/out events, ignore token refreshes and other events
+        const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+          // Only invalidate on actual auth state changes
           if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            // Use debounced fetch to prevent rapid successive calls
-            debouncedFetch();
-          } else if (event === 'TOKEN_REFRESHED') {
-            // Explicitly ignore token refresh events to prevent unnecessary refetches
-          } else if (event === 'USER_UPDATED') {
-            // USER_UPDATED can change user metadata (avatar_url, display_name) which is used
-            // for workspace owner info. Use a longer debounce to avoid excessive refetches
-            // if multiple profile fields are updated in quick succession
-            if (debouncedFetchRef.current) {
-              clearTimeout(debouncedFetchRef.current);
-            }
-            debouncedFetchRef.current = setTimeout(() => {
-              logger.log('[Workspace] User profile updated, refreshing workspace data...');
-              fetchUserWorkspaces();
-            }, 1000); // 1 second debounce for USER_UPDATED events
-          } else {
-            // Ignore other auth events
+            logger.log('[Workspace Query] Auth state changed, invalidating workspace cache');
+            queryClient.invalidateQueries({ queryKey: workspaceKeys.all });
           }
         });
         subscription = authListener.subscription;
       } catch (error) {
-        logger.error('[Workspace] Error setting up auth listener:', error);
+        logger.error('[Workspace Query] Error setting up auth listener:', error);
       }
     };
 
-    initFetch();
+    setupListener();
 
     return () => {
-      mounted = false;
       subscription?.unsubscribe();
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      // Clear debounce timer
-      if (debouncedFetchRef.current) {
-        clearTimeout(debouncedFetchRef.current);
-        debouncedFetchRef.current = null;
-      }
-      // Cancel any pending requests
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedFetch]); // Include debouncedFetch in dependencies, exclude others intentionally
+  }, [queryClient]);
+
+  // Invalidate workspaces when app user ID changes (from auth query)
+  useEffect(() => {
+    if (appUserId) {
+      // When app user ID becomes available, the query will auto-fetch
+      // due to the enabled condition
+    }
+  }, [appUserId]);
+
+  const loading = authLoading || workspacesLoading;
 
   return {
     workspaces,
     loading,
-    error,
-    refetch: fetchUserWorkspaces,
+    error: error as Error | null,
+    refetch: async () => {
+      // First invalidate auth to get fresh user data
+      await queryClient.invalidateQueries({ queryKey: authKeys.all });
+      // Then refetch workspaces
+      await refetch();
+    },
   };
 }
 
