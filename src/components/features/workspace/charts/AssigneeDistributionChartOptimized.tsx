@@ -27,7 +27,7 @@ export function AssigneeDistributionChartOptimized({
   issues,
   onAssigneeClick,
   className,
-  maxVisible = 10,
+  maxVisible = 5,
   showPercentage: initialShowPercentage = false,
   title = 'Issue Assignee Distribution',
 }: AssigneeDistributionChartOptimizedProps) {
