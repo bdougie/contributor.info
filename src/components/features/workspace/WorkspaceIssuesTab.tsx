@@ -308,7 +308,7 @@ export function WorkspaceIssuesTab({
             }
             issues={issues}
             onAssigneeClick={handleAssigneeClick}
-            maxVisible={8}
+            maxVisible={5}
           />
         </div>
       )}
