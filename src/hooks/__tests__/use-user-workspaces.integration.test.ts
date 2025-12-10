@@ -6,7 +6,26 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from 'react';
 import { useUserWorkspaces } from '../use-user-workspaces';
+
+// Create a wrapper with QueryClientProvider for testing hooks that use React Query
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+      },
+    },
+  });
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
 
 // Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
 vi.mock('@/lib/auth/safe-auth', () => ({
@@ -120,7 +139,9 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
     // Render hook
-    const { result } = renderHook(() => useUserWorkspaces());
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
 
     // Wait for async operations
     await waitFor(
@@ -192,7 +213,9 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
 
     vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
-    const { result } = renderHook(() => useUserWorkspaces());
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(
       () => {
@@ -215,7 +238,9 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     const mockFrom = vi.fn();
     vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
-    const { result } = renderHook(() => useUserWorkspaces());
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(
       () => {
