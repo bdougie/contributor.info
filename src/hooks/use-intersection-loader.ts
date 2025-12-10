@@ -24,7 +24,7 @@ interface UseIntersectionLoaderResult<T> {
   /**
    * Ref to attach to the element that should trigger loading
    */
-  ref: React.RefObject<HTMLDivElement>;
+  ref: React.RefObject<HTMLDivElement | null>;
 
   /**
    * The loaded data
@@ -96,7 +96,7 @@ export function useIntersectionLoader<T>(
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const ref = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const loadingRef = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -207,10 +207,11 @@ export function useIntersectionLoader<T>(
  * Useful for analytics or triggering animations
  */
 export function useIntersectionObserver(options: IntersectionObserverInit = {}): {
-  ref: React.RefObject<HTMLDivElement>;
+  ref: React.RefObject<HTMLDivElement | null>;
   isIntersecting: boolean;
   hasIntersected: boolean;
 } {
+  const { root, rootMargin, threshold } = options;
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [hasIntersected, setHasIntersected] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -218,19 +219,22 @@ export function useIntersectionObserver(options: IntersectionObserverInit = {}):
   useEffect(() => {
     if (!ref.current) return;
 
-    const observer = new IntersectionObserver(([entry]) => {
-      const intersecting = entry.isIntersecting;
-      setIsIntersecting(intersecting);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const intersecting = entry.isIntersecting;
+        setIsIntersecting(intersecting);
 
-      if (intersecting) {
-        setHasIntersected(true);
-      }
-    }, options);
+        if (intersecting) {
+          setHasIntersected(true);
+        }
+      },
+      { root, rootMargin, threshold }
+    );
 
     observer.observe(ref.current);
 
     return () => observer.disconnect();
-  }, [options.root, options.rootMargin, options.threshold]);
+  }, [root, rootMargin, threshold]);
 
   return { ref, isIntersecting, hasIntersected };
 }

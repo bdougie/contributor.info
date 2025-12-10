@@ -114,7 +114,7 @@ export function WorkspaceSwitcher({
     navigate('/workspaces/new');
   };
 
-  const getTierBadge = (tier?: string | null): JSX.Element | null => {
+  const getTierBadge = (tier?: string | null): React.JSX.Element | null => {
     if (!tier) return null;
 
     const tierColors: Record<WorkspaceTier, string> = {

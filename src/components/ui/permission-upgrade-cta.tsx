@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Crown, LogIn, Users, Shield, Settings, Database, BarChart3 } from '@/components/ui/icon';
-type IconComponent = (props: React.SVGProps<SVGSVGElement>) => JSX.Element;
+type IconComponent = (props: React.SVGProps<SVGSVGElement>) => React.JSX.Element;
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { UpgradeMessage } from '@/lib/copy/upgrade-messages';
@@ -177,16 +177,18 @@ export function PermissionUpgradeCTA({
       <CardHeader className={cn('pb-4', size === 'sm' && 'pb-2')}>
         <div className="flex items-center gap-3">
           <div
-            className={cn(
-              'flex items-center justify-center rounded-full bg-muted',
-              size === 'sm' ? 'w-8 h-8' : size === 'lg' ? 'w-12 h-12' : 'w-10 h-10'
-            )}
+            className={cn('flex items-center justify-center rounded-full bg-muted', {
+              'w-8 h-8': size === 'sm',
+              'w-12 h-12': size === 'lg',
+              'w-10 h-10': size === 'md',
+            })}
           >
             <IconComponent
-              className={cn(
-                'text-muted-foreground',
-                size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'
-              )}
+              className={cn('text-muted-foreground', {
+                'w-4 h-4': size === 'sm',
+                'w-6 h-6': size === 'lg',
+                'w-5 h-5': size === 'md',
+              })}
             />
           </div>
           <div className="flex-1">

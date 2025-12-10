@@ -130,7 +130,7 @@ export function useScreenReaderAnnounce() {
 }
 
 // Hook for managing focus trap (useful for modals and dropdowns)
-export function useFocusTrap<T extends HTMLElement>(isActive = true): RefObject<T> {
+export function useFocusTrap<T extends HTMLElement>(isActive = true): RefObject<T | null> {
   const containerRef = useRef<T>(null);
 
   useEffect(() => {

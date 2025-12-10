@@ -6,7 +6,7 @@ interface UseIntersectionObserverOptions extends IntersectionObserverInit {
 }
 
 interface UseIntersectionObserverReturn {
-  ref: RefObject<HTMLDivElement>;
+  ref: RefObject<HTMLDivElement | null>;
   isIntersecting: boolean;
   hasIntersected: boolean;
 }
