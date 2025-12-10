@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { TIME_PERIODS, DATA_LIMITS, ERROR_MESSAGES } from '@/lib/constants/analytics';
 
 interface ShareEvent {
@@ -80,6 +80,7 @@ export function AdminAnalyticsDashboard() {
 
   const fetchSystemMetrics = async () => {
     try {
+      const supabase = await getSupabase();
       const thirtyDaysAgo = new Date(Date.now() - TIME_PERIODS.THIRTY_DAYS_MS).toISOString();
 
       // Optimize with parallel queries
@@ -188,6 +189,7 @@ export function AdminAnalyticsDashboard() {
 
   const fetchShareMetrics = async () => {
     try {
+      const supabase = await getSupabase();
       // Fetch recent share events with proper input validation
       const { data: shareEvents, error: eventsError } = await supabase
         .from('share_events')
@@ -317,6 +319,7 @@ export function AdminAnalyticsDashboard() {
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {

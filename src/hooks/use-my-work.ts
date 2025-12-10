@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useCurrentUser } from './use-current-user';
 import type { MyWorkItem } from '@/components/features/workspace';
 import {
@@ -138,6 +138,7 @@ export function useMyWork(
 
       try {
         setLoading(true);
+        const supabase = await getSupabase();
         const githubLogin = user.user_metadata.user_name;
         const authUserId = user.id; // Get the auth.users.id for responded_by filtering
 

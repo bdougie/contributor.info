@@ -14,24 +14,26 @@ vi.mock('@/lib/github/api-service', () => ({
   createHeaders: vi.fn(),
 }));
 
-// Mock supabase locally in this test file
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
+// Create mock supabase client
+const mockSupabase = {
+  auth: {
+    getSession: vi.fn(),
   },
+};
+
+// Mock supabase-lazy locally in this test file
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 import * as GitHubApiService from '@/lib/github/api-service';
-import { supabase } from '@/lib/supabase';
 
 describe('useGitHubApi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Set up default mock for getSession
-    const getSessionMock = vi.mocked(supabase.auth.getSession);
+    const getSessionMock = vi.mocked(mockSupabase.auth.getSession);
     getSessionMock.mockResolvedValue({
       data: {
         session: {
@@ -39,7 +41,7 @@ describe('useGitHubApi', () => {
         },
       },
       error: null,
-    } as any);
+    } as ReturnType<typeof mockSupabase.auth.getSession> extends Promise<infer T> ? T : never);
   });
 
   afterEach(() => {
@@ -331,11 +333,11 @@ describe('useGitHubApi', () => {
 
   it('should handle missing session', async () => {
     // Mock getSession to return null session
-    const getSessionMock = vi.mocked(supabase.auth.getSession);
+    const getSessionMock = vi.mocked(mockSupabase.auth.getSession);
     getSessionMock.mockResolvedValue({
       data: { session: null },
       error: null,
-    } as any);
+    } as ReturnType<typeof mockSupabase.auth.getSession> extends Promise<infer T> ? T : never);
 
     const { result } = renderHook(() => useGitHubApi());
 

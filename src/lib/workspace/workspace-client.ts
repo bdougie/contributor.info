@@ -3,7 +3,7 @@
  * Helper functions for workspace database operations
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { workspaceMetricsCache } from '@/lib/cache/workspace-metrics-cache';
 import { getAppUserId } from '@/lib/auth-helpers';
 import type {
@@ -27,6 +27,8 @@ import type {
  * Create a new workspace
  */
 export async function createWorkspace(data: CreateWorkspaceRequest) {
+  const supabase = await getSupabase();
+
   // Get app_users.id for workspace tables
   const appUserId = await getAppUserId();
   if (!appUserId) {
@@ -81,6 +83,8 @@ export async function createWorkspace(data: CreateWorkspaceRequest) {
  * Get workspace by ID or slug
  */
 export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats | null> {
+  const supabase = await getSupabase();
+
   // First try to get the workspace
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
 
@@ -165,6 +169,8 @@ export async function getWorkspace(idOrSlug: string): Promise<WorkspaceWithStats
  * Update workspace
  */
 export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) {
+  const supabase = await getSupabase();
+
   const { data: workspace, error } = await supabase
     .from('workspaces')
     .update({
@@ -189,6 +195,8 @@ export async function updateWorkspace(id: string, data: UpdateWorkspaceRequest) 
  * Delete workspace (soft delete)
  */
 export async function deleteWorkspace(id: string) {
+  const supabase = await getSupabase();
+
   const { error } = await supabase.from('workspaces').update({ is_active: false }).eq('id', id);
 
   if (error) {
@@ -200,6 +208,7 @@ export async function deleteWorkspace(id: string) {
  * List workspaces with filters
  */
 export async function listWorkspaces(filters: WorkspaceFilters = {}) {
+  const supabase = await getSupabase();
   const appUserId = await getAppUserId();
 
   let query = supabase
@@ -252,6 +261,7 @@ export async function listWorkspaces(filters: WorkspaceFilters = {}) {
  * Add repository to workspace
  */
 export async function addRepositoryToWorkspace(workspaceId: string, data: AddRepositoryRequest) {
+  const supabase = await getSupabase();
   const appUserId = await getAppUserId();
   if (!appUserId) {
     throw new Error('User not authenticated');
@@ -285,6 +295,8 @@ export async function addRepositoryToWorkspace(workspaceId: string, data: AddRep
  * Remove repository from workspace
  */
 export async function removeRepositoryFromWorkspace(workspaceId: string, repositoryId: string) {
+  const supabase = await getSupabase();
+
   const { error } = await supabase
     .from('workspace_repositories')
     .delete()
@@ -303,6 +315,8 @@ export async function listWorkspaceRepositories(
   workspaceId: string,
   filters: WorkspaceRepositoryFilters = {}
 ) {
+  const supabase = await getSupabase();
+
   let query = supabase
     .from('workspace_repositories')
     .select(
@@ -363,6 +377,7 @@ export async function listWorkspaceRepositories(
  * Invite member to workspace
  */
 export async function inviteMemberToWorkspace(workspaceId: string, data: InviteMemberRequest) {
+  const supabase = await getSupabase();
   const appUserId = await getAppUserId();
   if (!appUserId) {
     throw new Error('User not authenticated');
@@ -394,6 +409,7 @@ export async function inviteMemberToWorkspace(workspaceId: string, data: InviteM
  * Accept workspace invitation
  */
 export async function acceptInvitation(invitationToken: string) {
+  const supabase = await getSupabase();
   const appUserId = await getAppUserId();
   if (!appUserId) {
     throw new Error('User not authenticated');
@@ -450,6 +466,8 @@ export async function acceptInvitation(invitationToken: string) {
  * List workspace members
  */
 export async function listWorkspaceMembers(workspaceId: string) {
+  const supabase = await getSupabase();
+
   const { data, error } = await supabase
     .from('workspace_members')
     .select(
@@ -473,6 +491,8 @@ export async function listWorkspaceMembers(workspaceId: string) {
  * Update member role
  */
 export async function updateMemberRole(workspaceId: string, userId: string, role: WorkspaceRole) {
+  const supabase = await getSupabase();
+
   if (role === 'owner') {
     throw new Error('Cannot assign owner role through this method');
   }
@@ -492,6 +512,8 @@ export async function updateMemberRole(workspaceId: string, userId: string, role
  * Remove member from workspace
  */
 export async function removeMemberFromWorkspace(workspaceId: string, userId: string) {
+  const supabase = await getSupabase();
+
   const { error } = await supabase
     .from('workspace_members')
     .delete()
@@ -511,6 +533,7 @@ export async function removeMemberFromWorkspace(workspaceId: string, userId: str
  * Get user's role in workspace
  */
 export async function getUserWorkspaceRole(workspaceId: string): Promise<WorkspaceRole | null> {
+  const supabase = await getSupabase();
   const appUserId = await getAppUserId();
   if (!appUserId) {
     return null;
@@ -544,6 +567,8 @@ export async function getUserWorkspaceRole(workspaceId: string): Promise<Workspa
  * Check if user can access workspace
  */
 export async function canAccessWorkspace(workspaceId: string): Promise<boolean> {
+  const supabase = await getSupabase();
+
   // eslint-disable-next-line no-restricted-syntax -- We need exactly one workspace
   const { data: workspace } = await supabase
     .from('workspaces')
@@ -572,6 +597,8 @@ export async function getWorkspaceMetrics(
   forceRefresh = false
 ): Promise<WorkspaceMetrics | null> {
   try {
+    const supabase = await getSupabase();
+
     // Check in-memory cache first (unless force refresh)
     if (!forceRefresh) {
       const cachedMetrics = workspaceMetricsCache.get(workspaceId, timeRange);
@@ -724,6 +751,8 @@ async function triggerMetricsAggregation(
  * Invalidate metrics cache when data changes
  */
 export async function invalidateWorkspaceMetrics(workspaceId: string): Promise<void> {
+  const supabase = await getSupabase();
+
   // Invalidate in-memory cache
   workspaceMetricsCache.invalidate(workspaceId);
 

@@ -3,7 +3,7 @@
  * Multi-factor scoring for contributor engagement quality
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { QualityScoreBreakdown } from '@/lib/llm/contributor-enrichment-types';
 
 /**
@@ -64,6 +64,8 @@ async function calculateDiscussionImpact(
   contributorId: string,
   workspaceId: string
 ): Promise<number> {
+  const supabase = await getSupabase();
+
   // Get workspace repositories
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -115,6 +117,8 @@ async function calculateCodeReviewDepth(
   contributorId: string,
   workspaceId: string
 ): Promise<number> {
+  const supabase = await getSupabase();
+
   // Get workspace repositories
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -175,6 +179,8 @@ async function calculateCodeReviewDepth(
  * Measures the quality of issues created
  */
 async function calculateIssueQuality(contributorId: string, workspaceId: string): Promise<number> {
+  const supabase = await getSupabase();
+
   // Get workspace repositories
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -217,6 +223,8 @@ async function calculateIssueQuality(contributorId: string, workspaceId: string)
  * Measures helping and mentoring behavior
  */
 async function calculateMentorScore(contributorId: string, workspaceId: string): Promise<number> {
+  const supabase = await getSupabase();
+
   // Get workspace repositories
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -317,6 +325,8 @@ export async function updateContributorQualityScores(
   workspaceId: string
 ): Promise<void> {
   try {
+    const supabase = await getSupabase();
+
     // Calculate quality scores
     const qualityScore = await calculateQualityScore(contributorId, workspaceId);
 

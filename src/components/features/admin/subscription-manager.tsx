@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +50,7 @@ export function SubscriptionManager() {
   const loadSubscriptionIssues = async () => {
     setLoading(true);
     try {
+      const supabase = await getSupabase();
       // Process the data to find issues
       const issuesList: SubscriptionIssue[] = [];
 
@@ -107,6 +108,7 @@ export function SubscriptionManager() {
     setFixing(issue.user_id);
 
     try {
+      const supabase = await getSupabase();
       const tierToUse = newTier || issue.workspace_tier;
 
       if (issue.issue_type === 'missing') {

@@ -5,7 +5,7 @@
  * Uses heuristics based on contribution types, keywords, and behavior
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type {
   PersonaType,
   ContributorPersona,
@@ -139,6 +139,7 @@ async function fetchActivityPatterns(
   contributorId: string,
   workspaceId: string
 ): Promise<ActivityPattern> {
+  const supabase = await getSupabase();
   // Get workspace repositories
   const { data: workspaceRepos, error: reposError } = await supabase
     .from('workspace_repositories')
@@ -514,6 +515,7 @@ export async function updateContributorPersona(
   workspaceId: string
 ): Promise<void> {
   try {
+    const supabase = await getSupabase();
     const persona = await detectContributorPersona(contributorId, workspaceId);
 
     // Update contributors table

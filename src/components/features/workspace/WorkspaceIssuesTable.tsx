@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { getSupabase } from '@/lib/supabase-lazy';
 import {
   useReactTable,
   getCoreRowModel,
@@ -44,7 +45,6 @@ import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type IssueState } from '@/lib/workspace-filters-store';
 import { IssueFilters } from './filters/TableFilters';
 import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
-import { supabase } from '@/lib/supabase';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
 import { getRecentIssuesForContributor } from '@/lib/workspace-hover-card-utils';
@@ -147,6 +147,7 @@ export function WorkspaceIssuesTable({
 
       try {
         // Single query to check which issues have similarity data
+        const supabase = await getSupabase();
         const { data, error } = await supabase
           .from('similarity_cache')
           .select('item_id')
@@ -160,7 +161,7 @@ export function WorkspaceIssuesTable({
 
         if (data && data.length > 0) {
           // Create a Set for O(1) lookup performance
-          const cachedIssueIds = new Set(data.map((item) => item.item_id));
+          const cachedIssueIds = new Set(data.map((item: { item_id: string }) => item.item_id));
 
           // Mark issues that have similar items available
           for (const issue of issues) {

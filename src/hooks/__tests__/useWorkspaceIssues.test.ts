@@ -4,14 +4,17 @@ import { useWorkspaceIssues, issuesAreEqual } from '../useWorkspaceIssues';
 import type { Repository } from '@/components/features/workspace';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 
-// Mock dependencies
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-    },
+// Create mock supabase client
+const mockSupabase = {
+  from: vi.fn(),
+  auth: {
+    getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
   },
+};
+
+// Mock dependencies
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 vi.mock('@/lib/env', () => ({
@@ -28,8 +31,6 @@ vi.mock('@/lib/rate-limiter', () => ({
   executeWithRateLimit: vi.fn().mockResolvedValue([]),
   graphqlRateLimiter: {},
 }));
-
-import { supabase } from '@/lib/supabase';
 
 describe('useWorkspaceIssues', () => {
   const mockRepositories: Repository[] = [
@@ -73,8 +74,8 @@ describe('useWorkspaceIssues', () => {
     defaultMockClient.eq.mockReturnValue(defaultMockClient);
     defaultMockClient.or.mockReturnValue(defaultMockClient);
     defaultMockClient.order.mockReturnValue(defaultMockClient);
-    vi.mocked(supabase.from).mockReturnValue(
-      defaultMockClient as unknown as ReturnType<typeof supabase.from>
+    vi.mocked(mockSupabase.from).mockReturnValue(
+      defaultMockClient as ReturnType<typeof mockSupabase.from>
     );
   });
 
@@ -148,8 +149,8 @@ describe('useWorkspaceIssues', () => {
     mockClient.eq.mockReturnValue(mockClient);
     mockClient.or.mockReturnValue(mockClient);
     mockClient.order.mockReturnValue(mockClient);
-    vi.mocked(supabase.from).mockReturnValue(
-      mockClient as unknown as ReturnType<typeof supabase.from>
+    vi.mocked(mockSupabase.from).mockReturnValue(
+      mockClient as ReturnType<typeof mockSupabase.from>
     );
 
     renderHook(() =>

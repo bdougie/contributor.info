@@ -9,7 +9,7 @@ import {
   Percent,
 } from '@/components/ui/icon';
 import { useParams } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -127,6 +127,7 @@ export function LotteryFactorContent({
       if (!owner || !repo) return;
 
       try {
+        const supabase = await getSupabase();
         const { data, error } = await supabase
           .from('contributor_roles')
           .select('user_id, role')

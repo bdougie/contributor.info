@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface ContributorRole {
@@ -44,6 +44,7 @@ export function useContributorRoles(
         setLoading(true);
         setError(null);
 
+        const supabase = await getSupabase();
         let query = supabase
           .from('contributor_roles')
           .select('*')
@@ -79,51 +80,53 @@ export function useContributorRoles(
 
     // Set up real-time subscription
     if (enableRealtime) {
-      channel = supabase
-        .channel(`roles:${owner}/${repo}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'contributor_roles',
-            filter: `repository_owner=eq.${owner}&repository_name=eq.${repo}`,
-          },
-          (payload) => {
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const newRole = payload.new as ContributorRole;
+      getSupabase().then((supabase) => {
+        channel = supabase
+          .channel(`roles:${owner}/${repo}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'contributor_roles',
+              filter: `repository_owner=eq.${owner}&repository_name=eq.${repo}`,
+            },
+            (payload) => {
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                const newRole = payload.new as ContributorRole;
 
-              // Check confidence threshold
-              if (minimumConfidence > 0 && newRole.confidence_score < minimumConfidence) {
-                // Remove if it doesn't meet threshold anymore
-                setRoles((prev) => prev.filter((r) => r.id !== newRole.id));
-                return;
+                // Check confidence threshold
+                if (minimumConfidence > 0 && newRole.confidence_score < minimumConfidence) {
+                  // Remove if it doesn't meet threshold anymore
+                  setRoles((prev) => prev.filter((r) => r.id !== newRole.id));
+                  return;
+                }
+
+                const enhancedRole: ContributorRoleWithStats = {
+                  ...newRole,
+                  is_bot: checkIfBot(newRole.user_id),
+                  activity_level: getActivityLevel(newRole.permission_events_count),
+                  days_since_last_active: getDaysSinceLastActive(newRole.last_verified),
+                };
+
+                setRoles((prev) => {
+                  const filtered = prev.filter((r) => r.id !== enhancedRole.id);
+                  return [...filtered, enhancedRole].sort(
+                    (a, b) => b.confidence_score - a.confidence_score
+                  );
+                });
+              } else if (payload.eventType === 'DELETE') {
+                setRoles((prev) => prev.filter((r) => r.id !== payload.old.id));
               }
-
-              const enhancedRole: ContributorRoleWithStats = {
-                ...newRole,
-                is_bot: checkIfBot(newRole.user_id),
-                activity_level: getActivityLevel(newRole.permission_events_count),
-                days_since_last_active: getDaysSinceLastActive(newRole.last_verified),
-              };
-
-              setRoles((prev) => {
-                const filtered = prev.filter((r) => r.id !== enhancedRole.id);
-                return [...filtered, enhancedRole].sort(
-                  (a, b) => b.confidence_score - a.confidence_score
-                );
-              });
-            } else if (payload.eventType === 'DELETE') {
-              setRoles((prev) => prev.filter((r) => r.id !== payload.old.id));
             }
-          }
-        )
-        .subscribe();
+          )
+          .subscribe();
+      });
     }
 
     return () => {
       if (channel) {
-        supabase.removeChannel(channel);
+        getSupabase().then((sb) => sb.removeChannel(channel!));
       }
     };
   }, [owner, repo, enableRealtime, minimumConfidence]);

@@ -7,7 +7,7 @@ import {
   ExternalLink,
   Bug,
 } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { SpamDetectionService } from '@/lib/spam';
 import { PRTemplateService } from '@/lib/spam/PRTemplateService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +71,7 @@ export function SpamTestTool() {
   const { toast } = useToast();
 
   const parsePRUrl = (url: string) => {
-    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
+    const match = url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
     if (!match) throw new Error('Invalid GitHub PR URL format');
     return {
       owner: match[1],
@@ -81,17 +81,19 @@ export function SpamTestTool() {
   };
 
   const checkRepositoryTracking = async (owner: string, repo: string) => {
+    const supabase = await getSupabase();
     const { data: trackedRepo, error } = await supabase
       .from('tracked_repositories')
       .select('*')
       .eq('organization_name', owner)
       .eq('repository_name', repo)
-      .single();
+      .maybeSingle();
 
     return { isTracked: !!trackedRepo && !error, trackedRepo };
   };
 
   const addRepositoryToTracking = async (owner: string, repo: string) => {
+    const supabase = await getSupabase();
     const { error } = await supabase.from('tracked_repositories').insert({
       organization_name: owner,
       repository_name: repo,
@@ -119,13 +121,16 @@ export function SpamTestTool() {
     try {
       setTemplateSyncLoading(true);
 
+      const supabase = await getSupabase();
       // Get or create repository in database
-      let { data: repository, error } = await supabase
+      const { data: repository, error } = await supabase
         .from('repositories')
         .select('id, pr_template_content, pr_template_fetched_at')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
+
+      let repoToUse = repository;
 
       if (error && error.code === 'PGRST116') {
         // Repository doesn't exist, create it
@@ -139,13 +144,15 @@ export function SpamTestTool() {
             created_at: new Date().toISOString(),
           })
           .select('id')
-          .single();
+          .maybeSingle();
 
-        if (insertError) {
-          throw new Error(`Failed to create repository: ${insertError.message}`);
+        if (insertError || !newRepo) {
+          throw new Error(
+            `Failed to create repository: ${insertError?.message || 'Unknown error'}`
+          );
         }
-        repository = {
-          ...newRepo,
+        repoToUse = {
+          id: newRepo.id,
           pr_template_content: null,
           pr_template_fetched_at: null,
         };
@@ -153,12 +160,12 @@ export function SpamTestTool() {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      if (!repository) {
+      if (!repoToUse) {
         throw new Error('Failed to get repository ID');
       }
 
       // Fetch and cache PR template
-      const template = await prTemplateService.ensurePRTemplate(repository.id, owner, repo);
+      const template = await prTemplateService.ensurePRTemplate(repoToUse.id, owner, repo);
 
       if (template) {
         setAdminGuidance((prev) => [
@@ -261,12 +268,13 @@ export function SpamTestTool() {
 
       // First check if PR exists in our database
       // Get repository ID first since nested filtering doesn't work reliably
+      const supabase = await getSupabase();
       const { data: repositoryData, error: repoError } = await supabase
         .from('repositories')
         .select('id')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       let existingPR = null;
       let dbError = repoError;
@@ -283,7 +291,7 @@ export function SpamTestTool() {
           )
           .eq('repository_id', repositoryData.id)
           .eq('number', prNumber)
-          .single();
+          .maybeSingle();
 
         existingPR = prData;
         dbError = prQueryError;
@@ -334,7 +342,7 @@ export function SpamTestTool() {
             .eq('repository.owner', owner)
             .eq('repository.name', repo)
             .eq('number', prNumber)
-            .single();
+            .maybeSingle();
 
           if (newError && newError.code !== 'PGRST116') {
             throw new Error(`Database query failed: ${newError.message}`);
@@ -461,7 +469,10 @@ export function SpamTestTool() {
           created_at: prData.author?.created_at || new Date().toISOString(),
         },
         repository: {
-          full_name: `${prData.repository?.owner}/${prData.repository?.name}` || 'unknown/unknown',
+          full_name:
+            prData.repository?.owner && prData.repository?.name
+              ? `${prData.repository.owner}/${prData.repository.name}`
+              : 'unknown/unknown',
         },
         created_at: prData.created_at,
         additions: prData.additions || 0,
@@ -539,6 +550,7 @@ export function SpamTestTool() {
 
     setMarkingSpam(true);
     try {
+      const supabase = await getSupabase();
       // Only create spam detection record if we have real database IDs (not GitHub API fallback)
       if (
         result.pr.id &&
@@ -658,22 +670,26 @@ export function SpamTestTool() {
             <Alert
               key={index}
               variant={guidance.type === 'error' ? 'destructive' : 'default'}
-              className={
-                guidance.type === 'warning'
-                  ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950'
-                  : guidance.type === 'info'
-                    ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950'
-                    : ''
-              }
+              className={(() => {
+                if (guidance.type === 'warning') {
+                  return 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950';
+                }
+                if (guidance.type === 'info') {
+                  return 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950';
+                }
+                return undefined;
+              })()}
             >
               <AlertTriangle
-                className={`h-4 w-4 ${
-                  guidance.type === 'error'
-                    ? 'text-red-600 dark:text-red-400'
-                    : guidance.type === 'warning'
-                      ? 'text-yellow-600 dark:text-yellow-400'
-                      : 'text-blue-600 dark:text-blue-400'
-                }`}
+                className={`h-4 w-4 ${(() => {
+                  if (guidance.type === 'error') {
+                    return 'text-red-600 dark:text-red-400';
+                  }
+                  if (guidance.type === 'warning') {
+                    return 'text-yellow-600 dark:text-yellow-400';
+                  }
+                  return 'text-blue-600 dark:text-blue-400';
+                })()}`}
               />
               <div className="flex-1">
                 <div className="font-semibold">{guidance.title}</div>
@@ -792,15 +808,12 @@ export function SpamTestTool() {
                     <span className="text-sm text-muted-foreground">Data Source</span>
                     <div className="font-semibold">
                       <Badge
-                        variant={
-                          result.dataSource === 'database'
-                            ? 'default'
-                            : result.dataSource === 'github_sync'
-                              ? 'secondary'
-                              : result.dataSource === 'github_api'
-                                ? 'outline'
-                                : 'destructive'
-                        }
+                        variant={(() => {
+                          if (result.dataSource === 'database') return 'default';
+                          if (result.dataSource === 'github_sync') return 'secondary';
+                          if (result.dataSource === 'github_api') return 'outline';
+                          return 'destructive';
+                        })()}
                       >
                         {result.dataSource.replace('_', ' ').toUpperCase()}
                       </Badge>

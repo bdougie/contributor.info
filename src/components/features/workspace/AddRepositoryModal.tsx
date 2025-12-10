@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import { WorkspaceService as DefaultWorkspaceService } from '@/services/workspace.service';
-import { supabase as defaultSupabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
@@ -26,17 +26,21 @@ import {
   type ExtendedGitHubRepository,
 } from '@/lib/utils/repository-helpers';
 import { getAppUserId } from '@/lib/auth-helpers';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Use mock supabase in Storybook if available
 interface WindowWithMocks extends Window {
-  __mockSupabase?: typeof defaultSupabase;
+  __mockSupabase?: SupabaseClient;
   __mockWorkspaceService?: typeof DefaultWorkspaceService;
 }
 
-const supabase =
-  typeof window !== 'undefined' && (window as WindowWithMocks).__mockSupabase
-    ? (window as WindowWithMocks).__mockSupabase!
-    : defaultSupabase;
+// Helper to get supabase client (mock in Storybook, lazy otherwise)
+async function getSupabaseClient(): Promise<SupabaseClient> {
+  if (typeof window !== 'undefined' && (window as WindowWithMocks).__mockSupabase) {
+    return (window as WindowWithMocks).__mockSupabase!;
+  }
+  return getSupabase();
+}
 
 // Use mock WorkspaceService in Storybook if available
 const WorkspaceService =
@@ -111,6 +115,8 @@ export function AddRepositoryModal({
       setError(null);
 
       try {
+        const supabase = await getSupabaseClient();
+
         // Get user and app_users.id
         const {
           data: { user },
@@ -276,6 +282,8 @@ export function AddRepositoryModal({
 
       setRemovingRepoId(repoId);
       try {
+        const supabase = await getSupabaseClient();
+
         // Remove from workspace (RLS policies should also enforce ownership)
         const { error: removeError } = await supabase
           .from('workspace_repositories')
@@ -327,6 +335,8 @@ export function AddRepositoryModal({
     setError(null);
 
     try {
+      const supabase = await getSupabaseClient();
+
       // First, we need to ensure these repositories are tracked in our system
       const repoPromises = stagedRepos.map(async (repo) => {
         try {

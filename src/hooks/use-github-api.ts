@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import * as GitHubApiService from '@/lib/github/api-service';
 import type { RateLimitInfo, GitHubApiConfig } from '@/lib/github/api-service';
 
@@ -16,6 +16,7 @@ export function useGitHubApi() {
    */
   const getAuthToken = useCallback(async (): Promise<string | null> => {
     try {
+      const supabase = await getSupabase();
       const sessionData = await supabase.auth.getSession();
 
       if (!sessionData?.data?.session) {

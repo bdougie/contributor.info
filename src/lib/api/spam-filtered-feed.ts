@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { Database } from '@/types/database';
 
 type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'] & {
@@ -33,6 +33,7 @@ export async function fetchFilteredPullRequests(
     // This reduces the need for refetching when filters change
     const fetchLimit = Math.max(limit * 3, 300);
 
+    const supabase = await getSupabase();
     const query = supabase
       .from('pull_requests')
       .select(
@@ -88,6 +89,7 @@ export async function fetchFilteredPullRequests(
 export async function getRepositorySpamStats(owner: string, repo: string) {
   try {
     // First get the repository ID
+    const supabase = await getSupabase();
     const { data: repoData, error: repoError } = await supabase
       .from('repositories')
       .select('id')
@@ -100,7 +102,8 @@ export async function getRepositorySpamStats(owner: string, repo: string) {
     }
 
     // Get spam statistics - include all PRs to see what percentage have been analyzed
-    const { data: allPRs, error: allError } = await supabase
+    const supabase2 = await getSupabase();
+    const { data: allPRs, error: allError } = await supabase2
       .from('pull_requests')
       .select('spam_score, is_spam')
       .eq('repository_id', repoData.id);

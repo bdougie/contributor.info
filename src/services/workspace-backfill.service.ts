@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { HybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 
 export interface BackfillJobStatus {
@@ -55,6 +55,7 @@ export class WorkspaceBackfillService {
     }
 
     try {
+      const supabase = await getSupabase();
       console.log('Starting workspace backfill for workspace: %s', workspaceId);
 
       // Get all repositories in the workspace
@@ -110,6 +111,7 @@ export class WorkspaceBackfillService {
     totalRepositories: number,
     subscriptionAddonId?: string
   ): Promise<string> {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('workspace_backfill_jobs')
       .insert({
@@ -144,6 +146,7 @@ export class WorkspaceBackfillService {
     retentionDays: number
   ): Promise<void> {
     try {
+      const supabase = await getSupabase();
       // Create progress record for this repository
       await supabase.from('workspace_backfill_progress').insert({
         backfill_job_id: jobId,
@@ -195,6 +198,7 @@ export class WorkspaceBackfillService {
     status: BackfillJobStatus['status'],
     updates: Record<string, unknown> = {}
   ): Promise<void> {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('workspace_backfill_jobs')
       .update({
@@ -218,6 +222,7 @@ export class WorkspaceBackfillService {
     repositoryId: string,
     updates: Record<string, unknown>
   ): Promise<void> {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('workspace_backfill_progress')
       .update({
@@ -279,6 +284,7 @@ export class WorkspaceBackfillService {
    * Uses atomic SQL increment to prevent race conditions
    */
   private static async incrementCompletedRepositories(jobId: string): Promise<void> {
+    const supabase = await getSupabase();
     // Atomically increment completed_repositories and fetch the updated state
     const { data: job, error: updateError } = await supabase.rpc(
       'increment_completed_repositories',
@@ -307,6 +313,7 @@ export class WorkspaceBackfillService {
    * Fallback manual increment (non-atomic, for backwards compatibility)
    */
   private static async manualIncrementCompleted(jobId: string): Promise<void> {
+    const supabase = await getSupabase();
     const { data: job, error: fetchError } = await supabase
       .from('workspace_backfill_jobs')
       .select('completed_repositories, failed_repositories, total_repositories')
@@ -338,6 +345,7 @@ export class WorkspaceBackfillService {
    * Uses atomic SQL increment to prevent race conditions
    */
   private static async incrementFailedRepositories(jobId: string): Promise<void> {
+    const supabase = await getSupabase();
     // Atomically increment failed_repositories and fetch the updated state
     const { data: job, error: updateError } = await supabase.rpc('increment_failed_repositories', {
       p_job_id: jobId,
@@ -364,6 +372,7 @@ export class WorkspaceBackfillService {
    * Fallback manual increment for failed count (non-atomic, for backwards compatibility)
    */
   private static async manualIncrementFailed(jobId: string): Promise<void> {
+    const supabase = await getSupabase();
     const { data: job, error: fetchError } = await supabase
       .from('workspace_backfill_jobs')
       .select('completed_repositories, failed_repositories, total_repositories')
@@ -400,6 +409,7 @@ export class WorkspaceBackfillService {
     dataType?: string
   ): Promise<void> {
     try {
+      const supabase = await getSupabase();
       console.error('Backfill error for repository %s:', repositoryId, error);
 
       // Get current progress
@@ -440,6 +450,7 @@ export class WorkspaceBackfillService {
    */
   static async retryFailedRepository(jobId: string, repositoryId: string): Promise<void> {
     try {
+      const supabase = await getSupabase();
       // Get job details
       const { data: job } = await supabase
         .from('workspace_backfill_jobs')
@@ -472,6 +483,7 @@ export class WorkspaceBackfillService {
    * Get backfill job status with progress details
    */
   static async getJobStatus(jobId: string): Promise<BackfillJobStatus | null> {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('workspace_backfill_jobs')
       .select('*')
@@ -502,6 +514,7 @@ export class WorkspaceBackfillService {
    * Get all repository progress details for a job
    */
   static async getRepositoryProgress(jobId: string): Promise<RepositoryBackfillProgress[]> {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('workspace_backfill_progress')
       .select('*')

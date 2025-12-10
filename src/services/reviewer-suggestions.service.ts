@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { APIResponse } from '@/lib/api/error-types';
 
 export interface ReviewerSuggestionDTO {
@@ -196,6 +196,8 @@ export async function fetchRecentPullRequests(
   repositoryId: string,
   limit = 25
 ): Promise<MinimalPR[]> {
+  const supabase = await getSupabase();
+
   const { data, error } = await supabase
     .from('pull_requests')
     .select(
@@ -214,6 +216,8 @@ export async function fetchPRsWithoutReviewers(
   repositoryId: string,
   limit = 10
 ): Promise<MinimalPR[]> {
+  const supabase = await getSupabase();
+
   // Fetch open PRs with their actual IDs
   const { data: prs, error: prError } = await supabase
     .from('pull_requests')

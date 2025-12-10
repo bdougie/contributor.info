@@ -8,7 +8,7 @@ import {
   InvitationErrorType,
 } from '@/components/features/workspace/invitation/InvitationError';
 import { WorkspaceService } from '@/services/workspace.service';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useToast } from '@/hooks/use-toast';
 import type { WorkspaceWithDetails } from '@/types/workspace';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
@@ -53,6 +53,7 @@ export const InvitationAcceptancePage: React.FC = () => {
       }
 
       // Check if user is authenticated
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -131,6 +132,7 @@ export const InvitationAcceptancePage: React.FC = () => {
       setProcessing(true);
 
       // Get current user with timeout
+      const supabase = await getSupabase();
       const userPromise = supabase.auth.getUser();
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Authentication timeout')), 5000)

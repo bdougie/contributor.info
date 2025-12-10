@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { githubAPIMonitoring } from '@/lib/github-api-monitoring';
 import { HybridQueueStatus } from '@/components/features/monitoring/hybrid-queue-status';
 import { GitHubActionsMonitor } from '@/components/features/monitoring/github-actions-monitor';
@@ -122,6 +122,7 @@ export function PerformanceMonitoringDashboard() {
 
   const loadCDNMetrics = useCallback(async () => {
     try {
+      const supabase = await getSupabase();
       // Get social cards storage metrics
       const { data: files, error } = await supabase.storage.from('social-cards').list('', {
         limit: 1000,
@@ -169,6 +170,7 @@ export function PerformanceMonitoringDashboard() {
       const healthEndpoints = await fetchHealthEndpoints();
       setHealthData(healthEndpoints);
 
+      const supabase = await getSupabase();
       // Load other metrics in parallel but don't block on them
       const metricsPromise = Promise.all([
         supabase.from('slow_queries').select('*'),
@@ -219,6 +221,7 @@ export function PerformanceMonitoringDashboard() {
 
   const createPerformanceSnapshot = useCallback(async () => {
     try {
+      const supabase = await getSupabase();
       await supabase.rpc('create_performance_snapshot');
       await loadMetrics();
     } catch (error) {

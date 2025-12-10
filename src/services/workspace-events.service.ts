@@ -3,9 +3,7 @@
  * Integrates GitHub events cache data to provide rich temporal metrics for workspaces
  */
 
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
 import {
@@ -63,12 +61,6 @@ export interface RepositoryEventSummary {
 }
 
 class WorkspaceEventsService {
-  private supabase: SupabaseClient<Database>;
-
-  constructor() {
-    this.supabase = supabase;
-  }
-
   /**
    * Get event-based metrics for all repositories in a workspace
    */
@@ -77,8 +69,10 @@ class WorkspaceEventsService {
     timeRange: string = '30d'
   ): Promise<EventMetrics | null> {
     try {
+      const supabase = await getSupabase();
+
       // Get repositories in the workspace with their actual star/fork counts
-      const { data: workspaceRepos, error: repoError } = await this.supabase
+      const { data: workspaceRepos, error: repoError } = await supabase
         .from('workspace_repositories')
         .select(
           `
@@ -163,9 +157,10 @@ class WorkspaceEventsService {
     timeRange: string = '30d'
   ): Promise<RepositoryEventSummary[]> {
     try {
+      const supabase = await getSupabase();
       const ranges = this.getDateRanges(timeRange, new Date());
 
-      const { data, error } = await this.supabase.rpc('get_workspace_repository_event_summaries', {
+      const { data, error } = await supabase.rpc('get_workspace_repository_event_summaries', {
         p_workspace_id: workspaceId,
         p_start_date: toUTCTimestamp(ranges.currentStart),
         p_end_date: toUTCTimestamp(ranges.currentEnd),
@@ -204,8 +199,10 @@ class WorkspaceEventsService {
     }>
   > {
     try {
+      const supabase = await getSupabase();
+
       // Get repositories in workspace
-      const { data: workspaceRepos } = await this.supabase
+      const { data: workspaceRepos } = await supabase
         .from('workspace_repositories')
         .select(
           `
@@ -225,7 +222,7 @@ class WorkspaceEventsService {
         .join(',');
 
       // Build query with optional filters
-      let query = this.supabase
+      let query = supabase
         .from('github_events_cache')
         .select('*')
         .or(orConditions)
@@ -335,6 +332,8 @@ class WorkspaceEventsService {
   ) {
     if (repoConditions.length === 0) return [];
 
+    const supabase = await getSupabase();
+
     const orConditions = repoConditions
       .map(
         (repo) =>
@@ -342,7 +341,7 @@ class WorkspaceEventsService {
       )
       .join(',');
 
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('github_events_cache')
       .select('*')
       .or(orConditions)
@@ -362,6 +361,8 @@ class WorkspaceEventsService {
   ) {
     if (repoConditions.length === 0) return [];
 
+    const supabase = await getSupabase();
+
     const orConditions = repoConditions
       .map(
         (repo) =>
@@ -369,7 +370,7 @@ class WorkspaceEventsService {
       )
       .join(',');
 
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('github_events_cache')
       .select('event_type, created_at, repository_owner, repository_name')
       .or(orConditions)

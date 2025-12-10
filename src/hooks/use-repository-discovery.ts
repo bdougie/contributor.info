@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 // import { toast } from 'sonner'; // Commented out - no longer used after refactor
 
 export interface DiscoveryState {
@@ -54,6 +54,7 @@ export function useRepositoryDiscovery({
         // Check if repository exists in database
         // Using maybeSingle() to handle non-existent repos without 406 errors
         console.log('[Repository Discovery] Checking repository: %s/%s', owner, repo);
+        const supabase = await getSupabase();
         const { data: repoData, error } = await supabase
           .from('repositories')
           .select('id, owner, name')

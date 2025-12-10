@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface GitHubIssue {
   id: number;
@@ -110,6 +110,8 @@ export async function syncWorkspaceIssues(
 
   try {
     console.log('Syncing issues for %s/%s', owner, repo);
+
+    const supabase = await getSupabase();
 
     // Fetch fresh issues from GitHub
     const githubIssues = await fetchIssuesFromGitHub(owner, repo, githubToken);

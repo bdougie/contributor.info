@@ -8,7 +8,7 @@ import {
   ExternalLink,
   RefreshCw,
 } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -66,6 +66,7 @@ export function UserManagement() {
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
       const { data, error: fetchError } = await supabase
         .from('app_users')
         .select('*')
@@ -89,6 +90,7 @@ export function UserManagement() {
     if (!adminGitHubId) return;
 
     try {
+      const supabase = await getSupabase();
       const newAdminStatus = !user.is_admin;
 
       const { error: updateError } = await supabase

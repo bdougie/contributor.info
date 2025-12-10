@@ -3,7 +3,7 @@
  * Manages user cohort creation, updates, and tracking
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { identifyUser, trackEvent } from '@/lib/posthog-lazy';
 
 export interface CohortDefinition {
@@ -278,6 +278,7 @@ export class CohortManager {
 
     try {
       // Query recent events from your tracking system
+      const supabase = await getSupabase();
       const { data: recentEvents } = await supabase
         .from('user_events')
         .select('event_name, count')
@@ -301,6 +302,7 @@ export class CohortManager {
    */
   private async loadUserProperties(userId: string): Promise<Record<string, unknown>> {
     try {
+      const supabase = await getSupabase();
       const { data: user } = await supabase
         .from('app_users')
         .select('*')

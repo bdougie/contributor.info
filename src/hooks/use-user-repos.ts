@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Octokit } from '@octokit/rest';
 import { env } from '@/lib/env';
 
@@ -172,6 +172,7 @@ export function useUserRepos(username?: string): UseUserReposState {
 
         let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
         if (repoFullNames.length > 0) {
+          const supabase = await getSupabase();
           const { data } = await supabase
             .from('repositories')
             .select('full_name, last_updated')
@@ -231,13 +232,23 @@ export function useUserRepos(username?: string): UseUserReposState {
         if (signal.aborted) return;
 
         let errorMessage = 'Failed to fetch repositories';
+
+        // Type guard for error with status property
+        interface ErrorWithStatus {
+          status?: number;
+        }
+
+        const hasStatus = (err: unknown): err is ErrorWithStatus => {
+          return typeof err === 'object' && err !== null && 'status' in err;
+        };
+
         if (
-          (error as any)?.status === 404 ||
+          (hasStatus(error) && error.status === 404) ||
           (error instanceof Error && error.message.includes('404'))
         ) {
           errorMessage = `User "${username}" not found`;
         } else if (
-          (error as any)?.status === 403 ||
+          (hasStatus(error) && error.status === 403) ||
           (error instanceof Error && error.message.includes('403'))
         ) {
           errorMessage = 'Rate limit exceeded. Please try again later.';

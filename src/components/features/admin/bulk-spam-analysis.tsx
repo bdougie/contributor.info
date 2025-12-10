@@ -8,7 +8,7 @@ import {
   AlertTriangle,
   BarChart3,
 } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,7 @@ export function BulkSpamAnalysis() {
 
   useEffect(() => {
     filterRepositories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repositories, searchTerm, filterStatus]);
 
   const fetchRepositoryStats = async () => {
@@ -87,6 +88,7 @@ export function BulkSpamAnalysis() {
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
       // Get repository stats with PR analysis data
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
@@ -727,19 +729,7 @@ export function BulkSpamAnalysis() {
                         <div className="text-sm text-red-600">{job.error_message}</div>
                       )}
                     </div>
-                    <Badge
-                      variant={
-                        job.status === 'completed'
-                          ? 'default'
-                          : job.status === 'running'
-                            ? 'secondary'
-                            : job.status === 'failed'
-                              ? 'destructive'
-                              : 'outline'
-                      }
-                    >
-                      {job.status}
-                    </Badge>
+                    <Badge variant={getJobStatusVariant(job.status)}>{job.status}</Badge>
                   </div>
                 ))}
             </div>
@@ -748,4 +738,11 @@ export function BulkSpamAnalysis() {
       )}
     </div>
   );
+}
+
+function getJobStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (status === 'completed') return 'default';
+  if (status === 'running') return 'secondary';
+  if (status === 'failed') return 'destructive';
+  return 'outline';
 }

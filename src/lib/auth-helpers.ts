@@ -3,7 +3,7 @@
  * Utilities for mapping between auth.users and app_users tables
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { logger } from '@/lib/logger';
 import { safeGetUser } from '@/lib/auth/safe-auth';
 
@@ -18,6 +18,7 @@ import { safeGetUser } from '@/lib/auth/safe-auth';
  */
 export async function getAppUserId(): Promise<string | null> {
   try {
+    const supabase = await getSupabase();
     // Get the authenticated user's auth.users.id with timeout protection
     const { user: authUser, error: authError } = await safeGetUser();
 

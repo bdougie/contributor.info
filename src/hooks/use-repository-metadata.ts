@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { RepositorySize } from '@/lib/validation/database-schemas';
 
 export interface RepositoryMetadata {
@@ -48,6 +48,7 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
 
     try {
       // First, get the repository ID
+      const supabase = await getSupabase();
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
         .select('id')

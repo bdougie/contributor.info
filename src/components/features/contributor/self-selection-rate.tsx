@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react';
 import {
   Users,
@@ -8,7 +9,7 @@ import {
   Database,
   LogIn,
 } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +65,8 @@ export function SelfSelectionRate({
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
+
       // Fetch current period stats
       const { data: currentData, error: currentError } = await supabase
         .rpc('calculate_self_selection_rate', {
@@ -71,7 +74,7 @@ export function SelfSelectionRate({
           p_repository_name: repo,
           p_days_back: daysBack,
         })
-        .single();
+        .maybeSingle();
 
       if (currentError) throw currentError;
 
@@ -90,7 +93,7 @@ export function SelfSelectionRate({
             p_repository_name: repo,
             p_days_back: daysBack * 2,
           })
-          .single();
+          .maybeSingle();
 
         setStats(currentData as SelfSelectionStats);
         setPreviousStats(previousData as SelfSelectionStats);
@@ -108,6 +111,7 @@ export function SelfSelectionRate({
 
   useEffect(() => {
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, daysBack]);
 
   // Refetch when sync completes
@@ -115,6 +119,7 @@ export function SelfSelectionRate({
     if (syncStatus.isComplete && !syncStatus.error) {
       fetchStats();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncStatus.isComplete, syncStatus.error]);
 
   // Show sync progress if data is being collected
@@ -405,13 +410,14 @@ export function useSelfSelectionRate(owner: string, repo: string, daysBack: numb
     const fetchStats = async () => {
       try {
         setLoading(true);
+        const supabase = await getSupabase();
         const { data, error: err } = await supabase
           .rpc('calculate_self_selection_rate', {
             p_repository_owner: owner,
             p_repository_name: repo,
             p_days_back: daysBack,
           })
-          .single();
+          .maybeSingle();
 
         if (err) throw err;
         setStats(data as SelfSelectionStats);

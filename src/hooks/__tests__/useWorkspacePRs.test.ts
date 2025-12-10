@@ -3,18 +3,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useWorkspacePRs } from '../useWorkspacePRs';
 import type { Repository } from '@/components/features/workspace';
 
+// Create mock supabase client
+const mockSupabase = {
+  from: vi.fn(),
+};
+
 // Mock dependencies
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 vi.mock('@/lib/sync-pr-reviewers', () => ({
   syncPullRequestReviewers: vi.fn(),
 }));
 
-import { supabase } from '@/lib/supabase';
 import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
 
 describe('useWorkspacePRs', () => {
@@ -55,7 +57,9 @@ describe('useWorkspacePRs', () => {
     // Ensure all chain methods return the mock client itself
     defaultMockClient.select.mockReturnValue(defaultMockClient);
     defaultMockClient.in.mockReturnValue(defaultMockClient);
-    vi.mocked(supabase.from).mockReturnValue(defaultMockClient as ReturnType<typeof supabase.from>);
+    vi.mocked(mockSupabase.from).mockReturnValue(
+      defaultMockClient as ReturnType<typeof mockSupabase.from>
+    );
   });
 
   afterEach(() => {
@@ -108,7 +112,9 @@ describe('useWorkspacePRs', () => {
     // Ensure all chain methods return the mock client itself
     mockClient.select.mockReturnValue(mockClient);
     mockClient.in.mockReturnValue(mockClient);
-    vi.mocked(supabase.from).mockReturnValue(mockClient as ReturnType<typeof supabase.from>);
+    vi.mocked(mockSupabase.from).mockReturnValue(
+      mockClient as ReturnType<typeof mockSupabase.from>
+    );
 
     renderHook(() =>
       useWorkspacePRs({
@@ -143,7 +149,9 @@ describe('useWorkspacePRs', () => {
     // Ensure all chain methods return the mock client itself
     staleMockClient.select.mockReturnValue(staleMockClient);
     staleMockClient.in.mockReturnValue(staleMockClient);
-    vi.mocked(supabase.from).mockReturnValue(staleMockClient as ReturnType<typeof supabase.from>);
+    vi.mocked(mockSupabase.from).mockReturnValue(
+      staleMockClient as ReturnType<typeof mockSupabase.from>
+    );
 
     renderHook(() =>
       useWorkspacePRs({

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface RepositoryEvent {
   id: string;
@@ -45,6 +45,7 @@ export function useRepositoryEvents(
         setLoading(true);
         setError(null);
 
+        const supabase = await getSupabase();
         const { data, error: fetchError } = await supabase
           .from('github_events_cache')
           .select('*')

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { PullRequest } from '@/lib/types';
 import {
   trackDatabaseOperation,
@@ -62,7 +62,10 @@ function humanizeNumber(num: number): string {
 }
 
 // Generate summary locally as fallback
-async function generateLocalSummary(repository: Repository, pullRequests: PullRequest[]): Promise<string> {
+async function generateLocalSummary(
+  repository: Repository,
+  pullRequests: PullRequest[]
+): Promise<string> {
   const recentMergedPRs = (pullRequests || []).filter((pr) => pr.merged_at !== null).slice(0, 5);
 
   const recentOpenPRs = (pullRequests || []).filter((pr) => pr.state === 'open').slice(0, 3);
@@ -116,6 +119,7 @@ export function useRepositorySummary(
     setError(null);
 
     try {
+      const supabase = await getSupabase();
       // Database-first pattern with Sentry tracking
       const repositoryData = await trackDatabaseOperation(
         'fetchRepositorySummary',
@@ -219,8 +223,9 @@ export function useRepositorySummary(
       if (errorMessage.includes('500') || errorMessage.includes('non-2xx')) {
         console.log('Edge Function failed, generating summary locally');
         try {
+          const supabaseFallback = await getSupabase();
           // Get repository data from the beginning of the function
-          const { data: repoData } = await supabase
+          const { data: repoData } = await supabaseFallback
             .from('repositories')
             .select('*')
             .eq('owner', owner)
@@ -250,10 +255,11 @@ export function useRepositorySummary(
     setError(null);
 
     try {
+      const supabaseRefetch = await getSupabase();
       const repositoryData = await trackDatabaseOperation(
         'refetchRepositorySummary',
         async () => {
-          const { data, error } = await supabase
+          const { data, error } = await supabaseRefetch
             .from('repositories')
             .select(
               'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash'
@@ -281,6 +287,7 @@ export function useRepositorySummary(
       const result = await trackCacheOperation(
         'forceRegenerateSummary',
         async () => {
+          const supabase = await getSupabase();
           const { data, error: functionError } = await supabase.functions.invoke(
             'repository-summary',
             {
@@ -331,6 +338,7 @@ export function useRepositorySummary(
 
   useEffect(() => {
     fetchSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo]); // Remove pullRequests from dependencies to avoid infinite loops
 
   return {

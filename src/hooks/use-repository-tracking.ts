@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 import { NotificationService } from '@/lib/notifications';
@@ -62,6 +62,7 @@ export function useRepositoryTracking({
       setState((prev) => ({ ...prev, status: 'checking', error: null }));
 
       // Check if repository exists
+      const supabase = await getSupabase();
       const { data: repoData, error } = await supabase
         .from('repositories')
         .select('id, owner, name')
@@ -158,7 +159,8 @@ export function useRepositoryTracking({
         pollCount++;
 
         try {
-          const { data: repoData } = await supabase
+          const supabaseClient = await getSupabase();
+          const { data: repoData } = await supabaseClient
             .from('repositories')
             .select('id, owner, name')
             .eq('owner', owner)

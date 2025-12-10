@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, ExternalLink } from '@/components/ui/icon';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 interface GitHubAppInstallButtonProps {
@@ -30,6 +30,7 @@ export function GitHubAppInstallButton({
     if (isLoggedIn) {
       checkUserPermissions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, isLoggedIn]);
 
   async function checkInstallationStatus() {
@@ -63,7 +64,7 @@ export function GitHubAppInstallButton({
           return;
         }
         // Other status codes (500, etc.) fall through to Supabase fallback
-      } catch (apiError) {
+      } catch {
         // Network error or other issues, fall back to direct Supabase check
         console.debug('GitHub app installation status API unavailable, using fallback');
       }
@@ -71,6 +72,7 @@ export function GitHubAppInstallButton({
       // Fallback: Check the database for GitHub App installation status
       // Check if the repository has an associated app installation
       try {
+        const supabase = await getSupabase();
         const { data: repoData, error: repoError } = await supabase
           .from('repositories')
           .select('id')
@@ -91,12 +93,11 @@ export function GitHubAppInstallButton({
           // Repository not in database
           setIsInstalled(false);
         }
-      } catch (dbError) {
+      } catch {
         // If all else fails, assume not installed
-        console.debug('Error checking app installation status:', dbError);
         setIsInstalled(false);
       }
-    } catch (error) {
+    } catch {
       // Silently fail and assume not installed
       setIsInstalled(false);
     } finally {
@@ -107,6 +108,7 @@ export function GitHubAppInstallButton({
   async function checkUserPermissions() {
     try {
       // Get the user's session to access their GitHub token
+      const supabase = await getSupabase();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -136,7 +138,7 @@ export function GitHubAppInstallButton({
         // Failed to fetch repo permissions - user may not have access
         setCanInstall(false);
       }
-    } catch (error) {
+    } catch {
       // Silently fail and assume user cannot install
       setCanInstall(false);
     }

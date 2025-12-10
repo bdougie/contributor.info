@@ -7,25 +7,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useUserWorkspaces } from '../use-user-workspaces';
-import { supabase } from '@/lib/supabase';
 
 // Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
 vi.mock('@/lib/auth/safe-auth', () => ({
   safeGetUser: vi.fn(),
 }));
 
-// Mock supabase for database queries
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-      getSession: vi.fn(),
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      })),
-    },
-    from: vi.fn(),
+// Create mock supabase client
+const mockSupabase = {
+  auth: {
+    getUser: vi.fn(),
+    getSession: vi.fn(),
+    onAuthStateChange: vi.fn(() => ({
+      data: { subscription: { unsubscribe: vi.fn() } },
+    })),
   },
+  from: vi.fn(),
+};
+
+// Mock supabase-lazy for database queries
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 // Mock logger
@@ -115,7 +117,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
       return chainable;
     });
 
-    vi.mocked(supabase.from).mockImplementation(mockFrom as never);
+    vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
     // Render hook
     const { result } = renderHook(() => useUserWorkspaces());
@@ -188,7 +190,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
       return chainable;
     });
 
-    vi.mocked(supabase.from).mockImplementation(mockFrom as never);
+    vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
     const { result } = renderHook(() => useUserWorkspaces());
 
@@ -211,7 +213,7 @@ describe('useUserWorkspaces - PR #1148 Regression Tests', () => {
     });
 
     const mockFrom = vi.fn();
-    vi.mocked(supabase.from).mockImplementation(mockFrom as never);
+    vi.mocked(mockSupabase.from).mockImplementation(mockFrom as never);
 
     const { result } = renderHook(() => useUserWorkspaces());
 

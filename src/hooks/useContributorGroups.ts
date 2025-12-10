@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 
 export interface ContributorGroup {
@@ -85,6 +85,8 @@ export function useContributorGroups(workspaceId: string | undefined) {
     try {
       setLoading(true);
       setError(null);
+
+      const supabase = await getSupabase();
 
       // Fetch groups
       const { data: groupsData, error: groupsError } = await supabase
@@ -173,6 +175,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
     async (name: string, description: string) => {
       if (!workspaceId) throw new Error('Workspace ID is required');
 
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -202,6 +205,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
 
   // Update a group
   const updateGroup = useCallback(async (groupId: string, name: string, description: string) => {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('contributor_groups')
       .update({
@@ -230,6 +234,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
         throw new Error('Cannot delete system groups');
       }
 
+      const supabase = await getSupabase();
       const { error } = await supabase
         .from('contributor_groups')
         .delete()
@@ -250,6 +255,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
     async (contributorUsername: string, groupId: string) => {
       if (!workspaceId) throw new Error('Workspace ID is required');
 
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -299,6 +305,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
         return;
       }
 
+      const supabase = await getSupabase();
       const { error } = await supabase
         .from('contributor_group_members')
         .delete()
@@ -319,6 +326,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
     async (contributorUsername: string, noteContent: string) => {
       if (!workspaceId) throw new Error('Workspace ID is required');
 
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -380,6 +388,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
         return;
       }
 
+      const supabase = await getSupabase();
       const { error } = await supabase.from('contributor_notes').delete().eq('id', note.id);
 
       if (error) throw error;
@@ -395,6 +404,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
     async (noteId: string, noteContent: string) => {
       if (!workspaceId) throw new Error('Workspace ID is required');
 
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -447,6 +457,7 @@ export function useContributorGroups(workspaceId: string | undefined) {
 
   // Delete a note by ID (for ContributorNotesDialog)
   const deleteNoteById = useCallback(async (noteId: string) => {
+    const supabase = await getSupabase();
     const { error } = await supabase.from('contributor_notes').delete().eq('id', noteId);
 
     if (error) throw error;

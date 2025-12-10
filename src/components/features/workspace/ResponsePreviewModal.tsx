@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Copy, Loader2, ExternalLink } from '@/components/ui/icon';
 import type { SimilarItem } from '@/services/similarity-search';
 import { generateResponseMessage } from '@/services/similarity-search';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 
 export interface CurrentItem {
@@ -126,6 +126,7 @@ export function ResponsePreviewModal({
     setMarkingAsResponded(true);
 
     try {
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();

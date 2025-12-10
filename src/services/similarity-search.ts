@@ -8,7 +8,7 @@
  * cross-entity similarity search.
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface SimilarItem {
   id: string;
@@ -39,6 +39,8 @@ export async function findSimilarItems(options: SimilaritySearchOptions): Promis
   const { workspaceId, queryItem, limit = 7 } = options;
 
   try {
+    const supabase = await getSupabase();
+
     // Step 1: Get workspace repository IDs
     const { data: workspaceRepos, error: workspaceError } = await supabase
       .from('workspace_repositories')

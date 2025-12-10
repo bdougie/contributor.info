@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { env } from '@/lib/env';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
 import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
@@ -226,6 +226,7 @@ async function syncLinkedPRsForRepository(
     // Only fetch open issues that need linked PR sync:
     // - linked_prs_synced_at is null (never synced), OR
     // - linked_prs_synced_at is older than threshold
+    const supabase = await getSupabase();
     const { data: issues, error: fetchError } = await supabase
       .from('issues')
       .select('id, number, linked_prs_synced_at')
@@ -281,7 +282,8 @@ async function syncLinkedPRsForRepository(
       linked_prs: update.linked_prs,
     }));
 
-    const { data: updatedCount, error: batchError } = await supabase.rpc(
+    const supabaseClient = await getSupabase();
+    const { data: updatedCount, error: batchError } = await supabaseClient.rpc(
       'batch_update_issues_linked_prs',
       { updates: updatePayload }
     );
@@ -394,6 +396,7 @@ export function useWorkspaceIssues({
     async (repoIds: string[]) => {
       if (repoIds.length === 0) return { needsSync: false, oldestSync: null };
 
+      const supabase = await getSupabase();
       const { data } = await supabase
         .from('issues')
         .select('last_synced_at, repository_id')
@@ -422,6 +425,7 @@ export function useWorkspaceIssues({
   const fetchFromDatabase = useCallback(async (repoIds: string[]) => {
     // Fetch most recent 500 issues for better performance
     // This is still enough for meaningful analysis while being much faster
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('issues')
       .select(
@@ -560,6 +564,7 @@ export function useWorkspaceIssues({
         flushImmediately();
 
         // Get GitHub token
+        const supabase = await getSupabase();
         const {
           data: { session },
         } = await supabase.auth.getSession();

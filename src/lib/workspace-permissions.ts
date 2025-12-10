@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface WorkspacePermission {
   canRemoveContributors: boolean;
@@ -13,6 +13,7 @@ export interface WorkspacePermission {
  */
 export async function getWorkspacePermissions(workspaceId: string): Promise<WorkspacePermission> {
   try {
+    const supabase = await getSupabase();
     // Check if user is authenticated
     const {
       data: { user },

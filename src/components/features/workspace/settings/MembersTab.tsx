@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useToast } from '@/hooks/use-toast';
 import { WorkspaceService } from '@/services/workspace.service';
 import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
@@ -68,6 +68,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
   // Get current user's app_users.id for proper comparison
   useEffect(() => {
     const getCurrentUser = async () => {
+      const supabase = await getSupabase();
       const { data: user } = await supabase.auth.getUser();
       if (user.user) {
         // Get the app_users.id for proper comparison with workspace_members.user_id
@@ -109,6 +110,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       setLoading(true);
       console.log('Fetching members for workspace:', workspaceId);
 
+      const supabase = await getSupabase();
       // Optimized query: Use Supabase relationship expansion to get user data in a single query
       // workspace_members.user_id has a foreign key to app_users.id (workspace_members_user_id_fkey)
       const { data, error } = await supabase
@@ -182,6 +184,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
   const fetchPendingInvitations = async () => {
     try {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('workspace_invitations')
         .select('*')
@@ -225,6 +228,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     setOperationInProgress(`resend-${invitationId}`);
 
     try {
+      const supabase = await getSupabase();
       // Update the invitation's expires_at to extend it by 7 days
       const { error } = await supabase
         .from('workspace_invitations')
@@ -286,6 +290,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     setOperationInProgress(`cancel-${invitationId}`);
 
     try {
+      const supabase = await getSupabase();
       const { error } = await supabase
         .from('workspace_invitations')
         .update({ status: 'expired' })
@@ -313,6 +318,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     setOperationInProgress(`role-${userId}`);
 
     try {
+      const supabase = await getSupabase();
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 
@@ -367,6 +373,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
     });
 
     try {
+      const supabase = await getSupabase();
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Not authenticated');
 

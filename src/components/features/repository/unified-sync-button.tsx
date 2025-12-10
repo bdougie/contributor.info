@@ -4,7 +4,7 @@ import { RefreshCw, Lock, Loader2 } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { inngest } from '@/lib/inngest/client';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 import { getSyncButtonText } from '@/lib/utils/ui-state';
@@ -135,6 +135,7 @@ export function UnifiedSyncButton({
     try {
       // Get repository ID if not provided
       let repoId = repositoryId;
+      const supabase = await getSupabase();
       if (!repoId) {
         setSyncProgress('Finding repository...');
         const { data: repoData, error: repoError } = await supabase
@@ -371,6 +372,8 @@ export function UnifiedSyncButton({
       pollCount++;
 
       try {
+        const supabase = await getSupabase();
+
         // Check if repository was recently updated
         const { data: repoData } = await supabase
           .from('repositories')

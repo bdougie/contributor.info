@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft } from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ export function SettingsPage() {
   useEffect(() => {
     const fetchUserAndPreferences = async () => {
       try {
+        const supabase = await getSupabase();
         const {
           data: { user },
           error: userError,
@@ -78,6 +79,7 @@ export function SettingsPage() {
 
     setSaving(true);
     try {
+      const supabase = await getSupabase();
       const { error } = await supabase.from('user_email_preferences').upsert({
         user_id: user.id,
         ...preferences,
@@ -223,8 +225,9 @@ export function SettingsPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => {
-                  supabase.auth.signOut();
+                onClick={async () => {
+                  const supabase = await getSupabase();
+                  await supabase.auth.signOut();
                   navigate('/');
                 }}
               >

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ShareEvent {
@@ -28,7 +28,7 @@ interface ShareEvent {
   action: string;
   share_type: string;
   domain: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -62,6 +62,7 @@ export function AnalyticsDashboard() {
 
     try {
       // Fetch recent share events
+      const supabase = await getSupabase();
       const { data: shareEvents, error: eventsError } = await supabase
         .from('share_events')
         .select('*')
