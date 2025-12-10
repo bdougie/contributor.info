@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useRepositorySummary } from '@/hooks/use-repository-summary';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
-import { Markdown } from '@/components/common/layout';
+import { Markdown } from '@/components/common/layout/markdown';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { logError } from '@/lib/error-logging';
 // Removed Sentry import - using simple logging instead

@@ -179,19 +179,10 @@ export default defineConfig(() => ({
             ) {
               return 'vendor-utils';
             }
-            // Markdown - now lazy loaded, keep in separate chunk
-            if (
-              id.includes('react-markdown') ||
-              id.includes('markdown') ||
-              id.includes('remark') ||
-              id.includes('rehype') ||
-              id.includes('mdast') ||
-              id.includes('unist') ||
-              id.includes('micromark') ||
-              id.includes('hast')
-            ) {
-              return 'vendor-markdown';
-            }
+            // NOTE: Markdown libraries (react-markdown, remark, rehype, etc.) are NOT manually chunked here.
+            // They are lazy loaded via React.lazy() in markdown.tsx, which creates natural code splitting.
+            // Manual chunking caused shared utilities to be bundled into vendor-markdown, creating
+            // dependencies from other chunks and forcing eager loading.
             // Analytics - lazy loaded
             if (id.includes('posthog-js')) {
               return 'vendor-analytics';
