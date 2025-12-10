@@ -40,8 +40,13 @@ async function fetchAuthUser(): Promise<AuthState> {
     supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
 
   if (isTestMode && localStorage.getItem('test-auth-user')) {
-    const testUser = JSON.parse(localStorage.getItem('test-auth-user') || '{}');
-    return { user: testUser as User, isAuthenticated: true };
+    try {
+      const testUser = JSON.parse(localStorage.getItem('test-auth-user') || '{}');
+      return { user: testUser as User, isAuthenticated: true };
+    } catch {
+      // Malformed JSON in localStorage, fall through to normal auth
+      logger.warn('[Auth Query] Invalid test-auth-user in localStorage, ignoring');
+    }
   }
 
   const { user, error } = await safeGetUser(2000);
