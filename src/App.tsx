@@ -433,9 +433,10 @@ function App() {
     // Initialize auto-tracking service for 404 interception
 
     const initializeDeferred = async () => {
-      // Priority 1: Preload most likely next routes immediately
+      // Priority 1: Load auth (small, likely needed) immediately
+      // Note: repo-view is NOT preloaded here - it's 288KB and includes chart dependencies
+      // Instead, it's preloaded on hover via route-prefetch.ts for better LCP
       const criticalImports = [
-        import('@/components/features/repository/repo-view'),
         import('@/components/features/auth/login-page'),
         // Supabase deferred to first interaction - see supabase-lazy.ts
         import('@/hooks/use-cached-repo-data'),
@@ -454,11 +455,13 @@ function App() {
         ]).catch(console.warn);
       };
 
-      // Load after browser idle time to avoid blocking LCP
+      // Load progressive features after browser idle time
+      // Note: repo-view is NOT preloaded here - it loads on-demand when navigating to a repo
+      // Hover-based prefetching is handled by route-prefetch.ts for better UX
       if ('requestIdleCallback' in window) {
         requestIdleCallback(loadProgressiveFeatures, { timeout: 1000 });
       } else {
-        // Fallback for browsers without requestIdleCallback (use original timing)
+        // Fallback for browsers without requestIdleCallback
         setTimeout(loadProgressiveFeatures, 500);
       }
     };
