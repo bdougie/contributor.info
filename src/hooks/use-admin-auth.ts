@@ -218,8 +218,8 @@ export async function logAdminAction(
   targetId?: string,
   details?: Record<string, unknown>
 ): Promise<void> {
-  const supabase = await getSupabase();
   try {
+    const supabase = await getSupabase();
     // First try to use the RPC function
     const { error: rpcError } = await supabase.rpc('log_admin_action', {
       p_admin_github_id: adminGitHubId,

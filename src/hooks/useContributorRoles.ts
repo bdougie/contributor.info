@@ -38,6 +38,7 @@ export function useContributorRoles(
 
   useEffect(() => {
     let channel: RealtimeChannel | null = null;
+    let isCancelled = false;
 
     const fetchRoles = async () => {
       try {
@@ -81,6 +82,7 @@ export function useContributorRoles(
     // Set up real-time subscription
     if (enableRealtime) {
       getSupabase().then((supabase) => {
+        if (isCancelled) return;
         channel = supabase
           .channel(`roles:${owner}/${repo}`)
           .on(
@@ -125,6 +127,7 @@ export function useContributorRoles(
     }
 
     return () => {
+      isCancelled = true;
       if (channel) {
         getSupabase().then((sb) => sb.removeChannel(channel!));
       }

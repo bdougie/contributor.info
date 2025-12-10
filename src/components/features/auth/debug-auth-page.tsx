@@ -155,6 +155,7 @@ export default function DebugAuthPage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
     addLog('Component mounted');
     addLog(`Current URL: ${window.location.href}`);
     addLog(`URL Hash: ${window.location.hash}`);
@@ -172,6 +173,7 @@ export default function DebugAuthPage() {
     let subscription: { unsubscribe: () => void } | null = null;
     const setupAuthListener = async () => {
       const supabase = await getSupabase();
+      if (!isMounted) return;
       const {
         data: { subscription: authSub },
       } = supabase.auth.onAuthStateChange((event, session) => {
@@ -188,6 +190,7 @@ export default function DebugAuthPage() {
     setupAuthListener();
 
     return () => {
+      isMounted = false;
       if (subscription) {
         subscription.unsubscribe();
       }
