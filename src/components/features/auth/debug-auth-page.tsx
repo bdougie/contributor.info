@@ -177,6 +177,7 @@ export default function DebugAuthPage() {
       const {
         data: { subscription: authSub },
       } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!isMounted) return;
         addLog(`Auth event: ${event}`);
         if (session) {
           addLog(`Session update for user: ${session.user.id}`);
@@ -191,9 +192,7 @@ export default function DebugAuthPage() {
 
     return () => {
       isMounted = false;
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      subscription?.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
