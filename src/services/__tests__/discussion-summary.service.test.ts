@@ -4,9 +4,16 @@ import {
   batchGenerateDiscussionSummaries,
 } from '../discussion-summary.service';
 import { llmService } from '@/lib/llm/llm-service';
-import { supabase } from '@/lib/supabase';
 
-vi.mock('@/lib/supabase');
+// Create mock supabase client
+const mockSupabase = {
+  from: vi.fn(),
+};
+
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
+}));
+
 vi.mock('@/lib/llm/llm-service');
 
 describe('Discussion Summary Service', () => {
@@ -24,7 +31,7 @@ describe('Discussion Summary Service', () => {
       };
 
       vi.mocked(llmService.generateDiscussionSummary).mockResolvedValue(mockSummary);
-      vi.mocked(supabase.from).mockReturnValue({
+      vi.mocked(mockSupabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: null }),
         }),
@@ -78,7 +85,7 @@ describe('Discussion Summary Service', () => {
       };
 
       vi.mocked(llmService.generateDiscussionSummary).mockResolvedValue(mockSummary);
-      vi.mocked(supabase.from).mockReturnValue({
+      vi.mocked(mockSupabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({ error: { message: 'DB error' } }),
         }),
@@ -126,16 +133,19 @@ describe('Discussion Summary Service', () => {
         timestamp: new Date(),
       };
 
+      // Track call count for alternating mock data
+      let callCount = 0;
+
       // Mock supabase select for each discussion
-      vi.mocked(supabase.from).mockImplementation((table) => {
+      vi.mocked(mockSupabase.from).mockImplementation((table) => {
         if (table === 'discussions') {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockImplementation(async () => {
-                  const callCount = vi.mocked(supabase.from).mock.calls.length;
+                  const currentCall = callCount++;
                   return {
-                    data: mockDiscussions[callCount % 2],
+                    data: mockDiscussions[currentCall % 2],
                     error: null,
                   };
                 }),
@@ -165,7 +175,7 @@ describe('Discussion Summary Service', () => {
     });
 
     it('should handle discussion not found', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
+      vi.mocked(mockSupabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
