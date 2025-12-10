@@ -10,13 +10,16 @@ import { TestRouter } from '../../../__tests__/test-utils';
 
 // Mock the navigation hook with a test implementation
 const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
+vi.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => children,
+  MemoryRouter: ({ children }: { children: React.ReactNode }) => children,
+  useNavigate: () => mockNavigate,
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null }),
+  useParams: () => ({}),
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}));
 
 // Mock the workspace context
 vi.mock('@/contexts/WorkspaceContext', () => ({
@@ -60,9 +63,8 @@ vi.mock('@/lib/feature-flags/context', () => ({
 }));
 
 // Mock child components to isolate testing
-// Note: paths are relative to this test file, and must resolve to the same
-// module IDs Home imports ("../../features/repository" from home.tsx).
-vi.mock('../../../features/repository', () => ({
+// Note: Must match exact import path used in home.tsx
+vi.mock('@/components/features/repository/example-repos', () => ({
   ExampleRepos: ({ onSelect }: { onSelect: (repo: string) => void }) => (
     <button onClick={() => onSelect('test/repo')} data-testid="example-repos">
       Example Repos
