@@ -16,6 +16,22 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+// Mock WorkspacePrioritySync
+vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
+  workspacePrioritySync: {
+    markAsWorkspaceRepo: vi.fn().mockResolvedValue(undefined),
+    markAsTrackedOnly: vi.fn().mockResolvedValue(undefined),
+    isInWorkspace: vi.fn().mockResolvedValue(false),
+    syncAllPriorities: vi.fn().mockResolvedValue({
+      workspaceRepos: 0,
+      trackedOnlyRepos: 0,
+      priorityChanges: 0,
+      errors: [],
+    }),
+  },
+  WorkspacePrioritySync: vi.fn(),
+}));
+
 describe('WorkspaceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
