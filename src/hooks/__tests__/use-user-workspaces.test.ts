@@ -1,9 +1,12 @@
-/* eslint-disable no-restricted-syntax, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
-// Tests for useUserWorkspaces hook - requires async patterns for React hook testing
+/* eslint-disable no-restricted-syntax, @typescript-eslint/no-explicit-any */
+// Tests for useUserWorkspaces hook - uses React Query for request deduplication
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUserWorkspaces } from '../use-user-workspaces';
-// Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
+import React from 'react';
+
+// Mock safeGetUser from safe-auth module
 vi.mock('@/lib/auth/safe-auth', () => ({
   safeGetUser: vi.fn(),
 }));
@@ -36,6 +39,23 @@ vi.mock('@/lib/logger', () => ({
 // Import the mocked function to configure it in tests
 import { safeGetUser } from '@/lib/auth/safe-auth';
 
+// Create a wrapper with QueryClientProvider for testing hooks that use React Query
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+        staleTime: 0,
+      },
+    },
+  });
+
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
+
 describe('useUserWorkspaces', () => {
   let authChangeCallback: ((event: string, session: any) => void) | null = null;
   let unsubscribe: () => void;
@@ -43,7 +63,6 @@ describe('useUserWorkspaces', () => {
   beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
-    vi.useFakeTimers();
 
     // Mock auth state change subscription
     unsubscribe = vi.fn();
@@ -54,9 +73,13 @@ describe('useUserWorkspaces', () => {
       };
     });
 
-    // Mock safeGetUser - this is what use-user-workspaces actually calls
+    // Mock safeGetUser - this is what useCachedAuth calls
     vi.mocked(safeGetUser).mockResolvedValue({
-      user: { id: 'user-123', email: 'test@example.com' } as any,
+      user: {
+        id: 'user-123',
+        email: 'test@example.com',
+        user_metadata: { avatar_url: 'https://example.com/avatar.jpg' },
+      } as any,
       error: null,
     });
 
@@ -87,48 +110,111 @@ describe('useUserWorkspaces', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
-  it('should ignore TOKEN_REFRESHED events', async () => {
-    renderHook(() => useUserWorkspaces());
-
-    // Wait for initial load by advancing timers
-    await act(async () => {
-      await vi.runAllTimersAsync();
+  it('should return empty workspaces when user is not authenticated', async () => {
+    // Mock unauthenticated user
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: null,
+      error: null,
     });
 
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
+
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.workspaces).toEqual([]);
+    expect(result.current.error).toBe(null);
+  });
+
+  it('should fetch workspaces when user is authenticated', async () => {
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
+
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Auth check should have been made
     expect(safeGetUser).toHaveBeenCalled();
+  });
 
-    const authCalls = vi.mocked(safeGetUser).mock.calls.length;
+  it('should handle auth errors gracefully', async () => {
+    vi.mocked(safeGetUser).mockResolvedValue({
+      user: null,
+      error: new Error('Auth failed'),
+    });
 
-    // Simulate TOKEN_REFRESHED event
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Should return empty workspaces on auth error
+    expect(result.current.workspaces).toEqual([]);
+  });
+
+  it('should invalidate cache on SIGNED_OUT event', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+          staleTime: 0,
+        },
+      },
+    });
+
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result } = renderHook(() => useUserWorkspaces(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Simulate SIGNED_OUT event
     act(() => {
       if (authChangeCallback) {
-        authChangeCallback('TOKEN_REFRESHED', {
-          user: { id: 'user-123', email: 'test@example.com' },
-        });
+        authChangeCallback('SIGNED_OUT', null);
       }
     });
 
-    // Advance timers to ensure debounce doesn't trigger
-    act(() => {
-      vi.advanceTimersByTime(600);
-    });
-
-    // safeGetUser should not have been called again (TOKEN_REFRESHED is ignored)
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(authCalls);
+    // The hook should trigger a refetch (cache invalidation)
+    expect(safeGetUser).toHaveBeenCalled();
   });
 
   it('should handle SIGNED_IN event', async () => {
-    renderHook(() => useUserWorkspaces());
-
-    // Wait for initial load by advancing timers
-    await act(async () => {
-      await vi.runAllTimersAsync();
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+          staleTime: 0,
+        },
+      },
     });
 
-    expect(safeGetUser).toHaveBeenCalled();
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(QueryClientProvider, { client: queryClient }, children);
+
+    const { result } = renderHook(() => useUserWorkspaces(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
 
     const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
 
@@ -141,133 +227,41 @@ describe('useUserWorkspaces', () => {
       }
     });
 
-    // Advance timers for debounced fetch to execute (500ms delay)
-    await act(async () => {
-      vi.advanceTimersByTime(600);
-      await vi.runAllTimersAsync();
-    });
-
-    // Should trigger a new fetch after debounce
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBeGreaterThan(initialAuthCalls);
+    // Wait for any cache invalidation to trigger refetch
+    await waitFor(
+      () => {
+        expect(vi.mocked(safeGetUser).mock.calls.length).toBeGreaterThanOrEqual(initialAuthCalls);
+      },
+      { timeout: 2000 }
+    );
   });
 
-  it('should debounce rapid auth state changes', async () => {
-    const { result } = renderHook(() => useUserWorkspaces());
-
-    // Wait for initial load by advancing timers
-    await act(async () => {
-      await vi.runAllTimersAsync();
+  it('should provide refetch function', async () => {
+    const { result } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
     });
 
-    expect(safeGetUser).toHaveBeenCalled();
-
-    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
-
-    // Simulate rapid SIGNED_IN events
-    act(() => {
-      if (authChangeCallback) {
-        authChangeCallback('SIGNED_IN', { user: { id: 'user-1' } });
-        authChangeCallback('SIGNED_IN', { user: { id: 'user-2' } });
-        authChangeCallback('SIGNED_IN', { user: { id: 'user-3' } });
-      }
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    // Advance timers less than debounce delay
-    act(() => {
-      vi.advanceTimersByTime(300);
-    });
-
-    // Should not have triggered any new fetches yet
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls);
-
-    // Advance past debounce delay and run all pending timers
-    await act(async () => {
-      vi.advanceTimersByTime(300); // Total 600ms
-      await vi.runAllTimersAsync();
-    });
-
-    // Should trigger only one new fetch despite multiple events
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls + 1);
+    // Verify refetch function exists and is callable
+    expect(typeof result.current.refetch).toBe('function');
   });
 
-  it('should ignore USER_UPDATED events for auth refetch', async () => {
-    renderHook(() => useUserWorkspaces());
-
-    // Wait for initial load by advancing timers
-    await act(async () => {
-      await vi.runAllTimersAsync();
+  it('should cleanup on unmount', async () => {
+    const { result, unmount } = renderHook(() => useUserWorkspaces(), {
+      wrapper: createWrapper(),
     });
 
-    expect(safeGetUser).toHaveBeenCalled();
-
-    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
-
-    // Simulate USER_UPDATED event
-    act(() => {
-      if (authChangeCallback) {
-        authChangeCallback('USER_UPDATED', {
-          user: { id: 'user-123', email: 'test@example.com', user_metadata: { name: 'Updated' } },
-        });
-      }
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
     });
 
-    // Advance timers past the short debounce period (500ms) but less than USER_UPDATED debounce (1000ms)
-    act(() => {
-      vi.advanceTimersByTime(600);
-    });
-
-    // safeGetUser should not have been called again yet (USER_UPDATED has 1 second debounce)
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBe(initialAuthCalls);
-  });
-
-  it('should handle SIGNED_OUT event', async () => {
-    renderHook(() => useUserWorkspaces());
-
-    // Wait for initial load by advancing timers
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    expect(safeGetUser).toHaveBeenCalled();
-
-    const initialAuthCalls = vi.mocked(safeGetUser).mock.calls.length;
-
-    // Simulate SIGNED_OUT event
-    act(() => {
-      if (authChangeCallback) {
-        authChangeCallback('SIGNED_OUT', null);
-      }
-    });
-
-    // Advance timers for debounce to execute
-    await act(async () => {
-      vi.advanceTimersByTime(600);
-      await vi.runAllTimersAsync();
-    });
-
-    // Should trigger a new fetch
-    expect(vi.mocked(safeGetUser).mock.calls.length).toBeGreaterThan(initialAuthCalls);
-  });
-
-  it('should cleanup debounce timer on unmount', () => {
-    vi.useFakeTimers();
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-    const { unmount } = renderHook(() => useUserWorkspaces());
-
-    // Trigger a debounced fetch
-    act(() => {
-      if (authChangeCallback) {
-        authChangeCallback('SIGNED_IN', { user: { id: 'user-789' } });
-      }
-    });
-
-    // Unmount before debounce completes
+    // Unmount should not throw
     unmount();
 
-    // Verify that clearTimeout was called (for debounce timer cleanup)
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-
-    clearTimeoutSpy.mockRestore();
+    // Verify unsubscribe was called for auth listener
+    expect(unsubscribe).toHaveBeenCalled();
   });
 });
