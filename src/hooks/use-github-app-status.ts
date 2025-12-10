@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface GitHubAppStatus {
   isInstalled: boolean;
@@ -37,6 +37,7 @@ export function useGitHubAppStatus(repositoryId: string | undefined) {
       setStatus((prev) => ({ ...prev, loading: true, error: null }));
 
       // Query app_enabled_repositories joined with github_app_installations
+      const supabase = await getSupabase();
       const { data: enabledRepo, error } = await supabase
         .from('app_enabled_repositories')
         .select(

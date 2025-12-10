@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { jobStatusReporter } from '@/lib/progressive-capture/job-status-reporter';
 import { hybridQueueManager } from '@/lib/progressive-capture/hybrid-queue-manager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +51,7 @@ export function CaptureHealthMonitor() {
   // Fetch recent jobs
   const fetchRecentJobs = async () => {
     try {
+      const supabase = await getSupabase();
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')
         .select('*, progressive_capture_progress(*)')

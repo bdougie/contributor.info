@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface MonthlyContributorRanking {
   id: string;
@@ -67,6 +67,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
           setIsCalculating(true);
 
           // Get current session for authentication
+          const supabase = await getSupabase();
           const {
             data: { session },
           } = await supabase.auth.getSession();
@@ -133,7 +134,8 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
         }
 
         // Fallback to direct database query if Edge Function fails
-        const { data: currentData, error: queryError } = await supabase
+        const supabaseFallback = await getSupabase();
+        const { data: currentData, error: queryError } = await supabaseFallback
           .from('monthly_rankings')
           .select(
             `
@@ -167,7 +169,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
           console.log('No data for current month, trying fallback to most recent month...');
 
           // First, find the most recent month that has data
-          const { data: monthCheck, error: monthCheckError } = await supabase
+          const { data: monthCheck, error: monthCheckError } = await supabaseFallback
             .from('monthly_rankings')
             .select(
               `
@@ -192,7 +194,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             const recentMonth = monthCheck[0].month;
 
             // Now get all data for that specific month
-            const { data: recentData, error: recentError } = await supabase
+            const { data: recentData, error: recentError } = await supabaseFallback
               .from('monthly_rankings')
               .select(
                 `

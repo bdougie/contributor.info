@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Octokit } from '@octokit/rest';
 import { env } from '@/lib/env';
 
@@ -161,6 +161,7 @@ export function useOrgRepos(org?: string): UseOrgReposState {
         // Guard against empty array which would cause Supabase query to fail
         let trackedRepos: { full_name: string; last_updated: string | null }[] = [];
         if (repoFullNames.length > 0) {
+          const supabase = await getSupabase();
           const { data } = await supabase
             .from('repositories')
             .select('full_name, last_updated')

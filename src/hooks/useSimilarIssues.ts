@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 /**
  * Similar issue result from RPC call
@@ -39,6 +39,7 @@ export function useSimilarIssues(issueId: string, limit: number = 5) {
       setError(null);
 
       try {
+        const supabase = await getSupabase();
         // Query for similar issues using vector similarity
         const { data, error: rpcError } = await supabase.rpc('find_similar_issues', {
           target_issue_id: issueId,

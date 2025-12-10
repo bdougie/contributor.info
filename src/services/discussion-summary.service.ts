@@ -4,7 +4,7 @@
  * Integrates with LLM service and Supabase for persistence
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { llmService } from '@/lib/llm/llm-service';
 import type { DiscussionData } from '@/lib/llm/discussion-summary-types';
 
@@ -23,6 +23,8 @@ export async function generateDiscussionSummary(
   discussionData: DiscussionData
 ): Promise<DiscussionSummaryResult> {
   try {
+    const supabase = await getSupabase();
+
     // Generate summary using LLM service
     const result = await llmService.generateDiscussionSummary(discussionData, {
       discussionId,
@@ -83,6 +85,8 @@ export async function batchGenerateDiscussionSummaries(
   for (let i = 0; i < discussionIds.length; i++) {
     const discussionId = discussionIds[i];
 
+    const supabase = await getSupabase();
+
     // Fetch discussion data
     const { data: discussion, error } = await supabase
       .from('discussions')
@@ -137,6 +141,8 @@ export async function generateSummariesForRepository(
   repositoryId: string,
   onProgress?: (completed: number, total: number) => void
 ): Promise<DiscussionSummaryResult[]> {
+  const supabase = await getSupabase();
+
   // Fetch all discussions without summaries
   const { data: discussions, error } = await supabase
     .from('discussions')
@@ -167,6 +173,8 @@ export async function updateDiscussionSummary(
   discussionId: string,
   updatedData: Partial<DiscussionData>
 ): Promise<DiscussionSummaryResult> {
+  const supabase = await getSupabase();
+
   // Fetch current discussion data
   const { data: discussion, error } = await supabase
     .from('discussions')

@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { ConfidenceAlgorithmExplainer } from './confidence-algorithm-explainer';
 
 interface ContributorConfidenceDetail {
@@ -73,6 +73,7 @@ export function ConfidenceScoreBreakdown({ repositoryId, onClose }: ConfidenceSc
         setLoading(true);
         setError(null);
 
+        const supabase = await getSupabase();
         const { data, error: err } = await supabase.rpc('get_repository_confidence_breakdown', {
           p_repository_owner: owner,
           p_repository_name: repo,

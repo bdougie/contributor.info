@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { getGitHubAPIAdapter } from '@/lib/github-api-adapter';
 
 export interface PRWithReviewers {
@@ -84,6 +84,7 @@ export async function syncPullRequestReviewers(
     }
 
     // Default: Use edge function (which will also be updated to use exponential backoff)
+    const supabase = await getSupabase();
     const { data, error } = await supabase.functions.invoke('sync-pr-reviewers', {
       body: {
         owner,

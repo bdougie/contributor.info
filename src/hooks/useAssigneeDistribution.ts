@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { isBot } from '@/lib/utils/bot-detection';
 
 export interface AssigneeDistributionData {
@@ -33,6 +33,7 @@ async function fetchDistributionClientSide(
   excludeBots: boolean,
   limit: number
 ): Promise<AssigneeDistributionData[]> {
+  const supabase = await getSupabase();
   // Fetch open issues for the repositories
   const { data: issues, error } = await supabase
     .from('issues')
@@ -125,6 +126,7 @@ export function useAssigneeDistribution({
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
       // Try database-first approach with RPC function
       const { data: result, error: rpcError } = await supabase.rpc(
         'calculate_assignee_distribution',

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, GitFork, TrendingUp, Activity, Users, BarChart3, Zap } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface TrendingEventsInsightsProps {
   repositories: Array<{
@@ -66,6 +66,7 @@ export function TrendingEventsInsights({
           .map((repo) => `(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
           .join(',');
 
+        const supabase = await getSupabase();
         const { data: eventData, error: eventError } = await supabase
           .from('github_events_cache')
           .select('repository_owner, repository_name, event_type, actor_login, created_at')

@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useDataTimestamp } from '@/hooks/use-data-timestamp';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useWorkspaceDiscussions } from '@/hooks/useWorkspaceDiscussions';
 import {
   MessageSquare,
@@ -136,6 +136,7 @@ export function WorkspaceDiscussionsTable({
       const similarMap = new Map<string, Discussion[]>();
 
       try {
+        const supabase = await getSupabase();
         // Check which discussions have embeddings (needed for similarity search)
         // Note: We check the discussions table directly since similarity_cache uses UUIDs
         // but discussions use VARCHAR GitHub node IDs
@@ -778,6 +779,7 @@ function SimilarDiscussionsList({
     const fetchSimilarDiscussions = async () => {
       setLoading(true);
       try {
+        const supabase = await getSupabase();
         // First get the embedding for the target discussion
         const { data: discussionData, error: discussionError } = await supabase
           .from('discussions')

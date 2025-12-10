@@ -8,7 +8,7 @@
  * - Trend analysis
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { updateContributorPersona } from './persona-detection';
 import { updateContributorQualityScores } from './quality-scoring';
 import { clusterContributionsByTopic } from './topic-clustering';
@@ -21,6 +21,7 @@ export async function enrichContributor(contributorId: string, workspaceId: stri
   console.log('[Enrichment] Processing contributor %s in workspace %s', contributorId, workspaceId);
 
   try {
+    const supabase = await getSupabase();
     // Run all enrichment processes in parallel where possible
     await Promise.all([
       // Persona detection (independent)
@@ -83,6 +84,7 @@ export async function enrichWorkspaceTopics(workspaceId: string): Promise<void> 
   console.log('[Enrichment] Clustering topics for workspace %s', workspaceId);
 
   try {
+    const supabase = await getSupabase();
     // Run topic clustering
     const topicClusters = await clusterContributionsByTopic(workspaceId, { k: 7 });
 
@@ -155,6 +157,7 @@ export async function enrichWorkspace(workspaceId: string): Promise<void> {
   console.log('[Enrichment] Starting enrichment for workspace %s', workspaceId);
 
   try {
+    const supabase = await getSupabase();
     // Get all contributors in this workspace
     const { data: contributors, error: contributorsError } = await supabase
       .from('contributors')
@@ -206,6 +209,7 @@ export async function enrichAllWorkspaces(): Promise<void> {
   console.log('[Enrichment] Starting enrichment for all workspaces');
 
   try {
+    const supabase = await getSupabase();
     // Get all workspaces (optionally filter by active status)
     const { data: workspaces, error: workspacesError } = await supabase
       .from('workspaces')

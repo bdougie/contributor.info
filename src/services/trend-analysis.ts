@@ -3,7 +3,7 @@
  * Analyzes contributor velocity and topic shifts over time
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type {
   VelocityMetrics,
   TopicShift,
@@ -31,6 +31,7 @@ async function getContributionCounts(
   startDate: Date,
   endDate: Date
 ): Promise<ContributionCounts> {
+  const supabase = await getSupabase();
   // Get workspace repositories
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -177,6 +178,7 @@ export async function detectTopicShifts(
   contributorId: string,
   workspaceId: string
 ): Promise<TopicShift[]> {
+  const supabase = await getSupabase();
   const shifts: TopicShift[] = [];
 
   // Fetch historical analytics snapshots
@@ -258,6 +260,7 @@ async function predictFutureFocus(
   workspaceId: string,
   currentTopics: string[]
 ): Promise<string[]> {
+  const supabase = await getSupabase();
   // Fetch recent activity titles to identify emerging themes
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from '@/components/ui/icon';
 import { WorkspaceCreateForm } from '@/components/features/workspace/WorkspaceCreateForm';
 import { WorkspaceService } from '@/services/workspace.service';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
@@ -23,6 +23,7 @@ export default function WorkspaceNewPage() {
   useEffect(() => {
     // Get the current user when the page loads
     const getUser = async () => {
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -64,6 +65,7 @@ export default function WorkspaceNewPage() {
         });
 
         // Track if this is the user's first workspace
+        const supabase = await getSupabase();
         const { count } = await supabase
           .from('workspaces')
           .select('*', { count: 'exact', head: true })

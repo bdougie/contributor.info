@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import {
   isValidLinkedInUrl,
   isValidDiscordUrl,
@@ -66,6 +66,8 @@ function extractLinkedInUrl(text: string): string | null {
 export async function fetchGitHubProfileSocialLinks(username: string): Promise<SocialLinks> {
   try {
     console.log(`=== Fetching GitHub profile for ${username} ===`);
+
+    const supabase = await getSupabase();
 
     // Get the user's GitHub token from Supabase session (same pattern as search)
     const {
@@ -239,6 +241,8 @@ export async function updateContributorSocialLinks(
   contributorId: string,
   socialLinks: SocialLinks
 ): Promise<void> {
+  const supabase = await getSupabase();
+
   const { error } = await supabase
     .from('contributors')
     .update({

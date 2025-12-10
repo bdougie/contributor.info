@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Check, Copy } from '@/components/ui/icon';
 import { MembersTab } from './MembersTab';
-import { supabase } from '@/lib/supabase';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
@@ -196,6 +196,7 @@ export function WorkspaceSettings({
 
     setIsLoading(true);
     try {
+      const supabase = await getSupabase();
       const { error } = await supabase
         .from('workspaces')
         .update({ is_active: false })

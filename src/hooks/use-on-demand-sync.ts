@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface OnDemandSyncOptions {
   owner: string;
@@ -43,6 +43,7 @@ export function useOnDemandSync({
 
     try {
       // Check authentication status
+      const supabase = await getSupabase();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -104,9 +105,10 @@ export function useOnDemandSync({
       ) {
         triggerSync();
       }
-    } catch (error) {
+    } catch {
       // Silently handle data check errors
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, enabled, autoTriggerOnEmpty]);
 
   // Trigger GitHub sync
@@ -124,9 +126,10 @@ export function useOnDemandSync({
       }));
 
       // Get user's GitHub token from session
+      const supabaseTrigger = await getSupabase();
       const {
         data: { session },
-      } = await supabase.auth.getSession();
+      } = await supabaseTrigger.auth.getSession();
       const userToken = session?.provider_token;
 
       // Trigger sync for repository
@@ -182,6 +185,7 @@ export function useOnDemandSync({
 
       throw error;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, enabled, syncStatus.isTriggering, syncStatus.isInProgress]);
 
   // Poll sync status
@@ -192,14 +196,15 @@ export function useOnDemandSync({
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const { data: syncData, error } = await supabase
+        const supabasePoll = await getSupabase();
+        const { data: syncData, error: _error } = await supabasePoll
           .from('github_sync_status')
           .select('*')
           .eq('repository_owner', owner)
           .eq('repository_name', repo)
           .maybeSingle();
 
-        if (error) {
+        if (_error) {
           return;
         }
 
@@ -228,7 +233,7 @@ export function useOnDemandSync({
             }
           }
         }
-      } catch (error) {
+      } catch {
         // Silently handle polling errors
       }
     }, 10000); // Poll every 10 seconds (reduced frequency)

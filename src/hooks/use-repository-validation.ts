@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface ValidationResult {
   status: 'exists_in_db' | 'exists_on_github' | 'not_found' | 'checking' | 'error';
@@ -150,6 +150,7 @@ export function useRepositoryValidation(
 async function trackRepository(owner: string, repo: string): Promise<void> {
   try {
     // Check if user is authenticated
+    const supabase = await getSupabase();
     const {
       data: { session },
     } = await supabase.auth.getSession();

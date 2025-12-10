@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { sendInngestEvent } from '@/lib/inngest/client-safe';
 
 interface ProcessResult {
@@ -74,6 +74,8 @@ export function BulkAddRepos() {
       const [owner, name] = repo.split('/');
       return `(owner.eq.${owner},name.eq.${name})`;
     });
+
+    const supabase = await getSupabase();
 
     // Check which repos already exist
     const { data: existingRepos, error: checkError } = await supabase
@@ -203,6 +205,7 @@ export function BulkAddRepos() {
         // For large PR requests (>150), we need to create a progressive backfill
         if (maxPRs > 150) {
           // Create progressive backfill entries
+          const supabase = await getSupabase();
           for (const repoName of reposToBackfill) {
             const repoId = result.repoIds?.[repoName];
             if (repoId) {

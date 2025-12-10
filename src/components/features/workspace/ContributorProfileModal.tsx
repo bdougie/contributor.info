@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useContributorSummary } from '@/hooks/use-contributor-summary';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import type { PullRequest, RecentIssue, RecentActivity } from '@/lib/types';
@@ -1075,6 +1075,7 @@ function SocialLinksCard({
         return;
       }
 
+      const supabase = await getSupabase();
       const { error } = await supabase
         .from('contributors')
         .update({

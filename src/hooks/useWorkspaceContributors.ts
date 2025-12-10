@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 import type { Contributor } from '@/components/features/workspace/ContributorsList';
 import { verifyWorkspacePermission } from '@/lib/workspace-permissions';
@@ -32,6 +32,7 @@ export function useWorkspaceContributors({
   // Fetch workspace contributors from database
   const fetchWorkspaceContributors = async (availableContributors: Contributor[]) => {
     try {
+      const supabase = await getSupabase();
       const { data: workspaceContributors, error } = await supabase
         .from('workspace_contributors')
         .select('contributor_id')
@@ -56,6 +57,7 @@ export function useWorkspaceContributors({
   // Add contributors to workspace
   const addContributorsToWorkspace = async (contributorIds: string[]) => {
     try {
+      const supabase = await getSupabase();
       // Get current user
       const {
         data: { user },
@@ -101,6 +103,7 @@ export function useWorkspaceContributors({
         return;
       }
 
+      const supabase = await getSupabase();
       // Perform the deletion
       const { data, error } = await supabase
         .from('workspace_contributors')
@@ -154,6 +157,7 @@ export function useWorkspaceContributors({
       setError(null);
 
       try {
+        const supabase = await getSupabase();
         // Filter repositories based on selection
         const filteredRepos =
           selectedRepositories.length > 0

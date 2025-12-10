@@ -10,7 +10,7 @@ import {
 import { WorkspaceCreateForm } from './WorkspaceCreateForm';
 import { WorkspaceCreationDisabled } from './WorkspaceCreationDisabled';
 import { WorkspaceService } from '@/services/workspace.service';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/hooks/use-analytics';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
@@ -51,6 +51,7 @@ export function WorkspaceCreateModal({
   useEffect(() => {
     // Get the current user when the modal opens
     const getUser = async () => {
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -66,6 +67,7 @@ export function WorkspaceCreateModal({
     if (!user) {
       // For logged-out users, trigger GitHub OAuth sign-in
       try {
+        const supabase = await getSupabase();
         const redirectTo = window.location.href;
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'github',

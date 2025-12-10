@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { sendInngestEvent } from '@/lib/inngest/client-safe';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -48,11 +48,13 @@ export function SyncTrackedRepos() {
 
   useEffect(() => {
     loadTrackedRepos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTrackedRepos = async () => {
     setIsLoading(true);
     try {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('tracked_repositories')
         .select(
@@ -322,15 +324,18 @@ export function SyncTrackedRepos() {
 
         {/* Repository List */}
         <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4">
-          {isLoading ? (
+          {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ) : trackedRepos.length === 0 ? (
+          )}
+          {!isLoading && trackedRepos.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No tracked repositories found
             </div>
-          ) : (
+          )}
+          {!isLoading &&
+            trackedRepos.length > 0 &&
             trackedRepos.map((repo) => {
               const fullName = `${repo.repositories.owner}/${repo.repositories.name}`;
               const status = getSyncStatus(repo.last_sync_at);
@@ -358,11 +363,16 @@ export function SyncTrackedRepos() {
                       </div>
                     </div>
                   </div>
-                  <Badge variant={status.color as any}>{status.label}</Badge>
+                  <Badge
+                    variant={
+                      status.color as 'default' | 'secondary' | 'destructive' | 'outline' | null
+                    }
+                  >
+                    {status.label}
+                  </Badge>
                 </div>
               );
-            })
-          )}
+            })}
         </div>
 
         {/* Sync Progress */}

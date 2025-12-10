@@ -3,23 +3,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useUserWorkspaces } from '../use-user-workspaces';
-import { supabase } from '@/lib/supabase';
-
 // Mock safeGetUser from safe-auth module (which is what use-user-workspaces actually uses)
 vi.mock('@/lib/auth/safe-auth', () => ({
   safeGetUser: vi.fn(),
 }));
 
-// Mock the supabase client for database queries and onAuthStateChange
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn(),
-      getSession: vi.fn(),
-      onAuthStateChange: vi.fn(),
-    },
-    from: vi.fn(),
+// Create mock supabase client
+const mockSupabase = {
+  auth: {
+    getUser: vi.fn(),
+    getSession: vi.fn(),
+    onAuthStateChange: vi.fn(),
   },
+  from: vi.fn(),
+};
+
+// Mock the supabase-lazy module with getSupabase
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(() => Promise.resolve(mockSupabase)),
 }));
 
 // Mock logger to prevent console output during tests
@@ -46,7 +47,7 @@ describe('useUserWorkspaces', () => {
 
     // Mock auth state change subscription
     unsubscribe = vi.fn();
-    (supabase.auth.onAuthStateChange as any).mockImplementation((callback: any) => {
+    (mockSupabase.auth.onAuthStateChange as any).mockImplementation((callback: any) => {
       authChangeCallback = callback;
       return {
         data: { subscription: { unsubscribe } },
@@ -82,7 +83,7 @@ describe('useUserWorkspaces', () => {
 
       return createChain();
     });
-    (supabase.from as any).mockImplementation(mockFrom);
+    (mockSupabase.from as any).mockImplementation(mockFrom);
   });
 
   afterEach(() => {

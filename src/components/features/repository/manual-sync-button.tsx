@@ -4,7 +4,7 @@ import { RefreshCw, Lock, Loader2 } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { inngest } from '@/lib/inngest/client';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 import { getSyncButtonText } from '@/lib/utils/ui-state';
@@ -93,6 +93,8 @@ export function ManualSyncButton({
     setSyncProgress('Initiating sync...');
 
     try {
+      const supabase = await getSupabase();
+
       // Get repository ID if not provided
       let repoId = repositoryId;
       if (!repoId) {
@@ -102,7 +104,7 @@ export function ManualSyncButton({
           .select('id')
           .eq('owner', owner)
           .eq('name', repo)
-          .single();
+          .maybeSingle();
 
         if (repoError || !repoData) {
           throw new Error('Repository not found in database');
@@ -166,12 +168,14 @@ export function ManualSyncButton({
       pollCount++;
 
       try {
+        const supabase = await getSupabase();
+
         // Check if repository was recently updated
         const { data: repoData } = await supabase
           .from('repositories')
           .select('last_updated_at')
           .eq('id', repoId)
-          .single();
+          .maybeSingle();
 
         if (repoData) {
           const updateTime = new Date(repoData.last_updated_at);
@@ -213,15 +217,22 @@ export function ManualSyncButton({
     }, POLLING_CONFIG.interval);
   };
 
+  const iconClassName = showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4';
+  const spinClassName = showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin';
+
+  const getIcon = () => {
+    if (isSyncing) {
+      return <Loader2 className={spinClassName} />;
+    }
+    if (isLoggedIn) {
+      return <RefreshCw className={iconClassName} />;
+    }
+    return <Lock className={iconClassName} />;
+  };
+
   const buttonContent = (
     <>
-      {isSyncing ? (
-        <Loader2 className={showLabel ? 'mr-2 h-4 w-4 animate-spin' : 'h-4 w-4 animate-spin'} />
-      ) : isLoggedIn ? (
-        <RefreshCw className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      ) : (
-        <Lock className={showLabel ? 'mr-2 h-4 w-4' : 'h-4 w-4'} />
-      )}
+      {getIcon()}
       {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
     </>
   );

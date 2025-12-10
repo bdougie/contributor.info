@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { GitHubRepository } from '@/lib/github';
 
 // Extended repository properties that may be available from GitHub API
@@ -45,6 +45,7 @@ export async function createRepositoryFallback(
   const tempGithubId = -Math.floor(Math.random() * 1000000000);
 
   try {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('repositories')
       .insert({
@@ -79,12 +80,13 @@ export async function createRepositoryFallback(
         github_pushed_at: repo?.pushed_at || null,
       })
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (error) {
       // Check if repository already exists
       if (error.code === '23505') {
         // Unique violation
+        const supabase = await getSupabase();
         const { data: existingRepo } = await supabase
           .from('repositories')
           .select('id')
@@ -120,6 +122,7 @@ export async function waitForRepository(
   name: string,
   maxAttempts = 30
 ): Promise<string> {
+  const supabase = await getSupabase();
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const { data } = await supabase
       .from('repositories')
@@ -145,6 +148,7 @@ export async function waitForRepository(
  * Check if a repository exists in the database
  */
 export async function checkRepositoryExists(owner: string, name: string) {
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('repositories')
     .select('id')

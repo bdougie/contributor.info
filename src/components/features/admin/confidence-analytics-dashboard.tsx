@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { ConfidenceScoreBreakdown } from './confidence-score-breakdown';
 import { Input } from '@/components/ui/input';
 import {
@@ -71,6 +71,7 @@ export function ConfidenceAnalyticsDashboard() {
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
       // Fetch overall confidence statistics
       const { data: confidenceData, error: confidenceError } = await supabase.rpc(
         'get_confidence_analytics_summary_simple'

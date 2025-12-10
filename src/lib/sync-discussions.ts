@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface DiscussionWithAuthor {
   github_id: number;
@@ -46,6 +46,8 @@ export async function syncDiscussions(
       maxItems,
       updateDatabase,
     });
+
+    const supabase = await getSupabase();
 
     // Call edge function to trigger Inngest job
     const { data, error } = await supabase.functions.invoke('sync-discussions', {

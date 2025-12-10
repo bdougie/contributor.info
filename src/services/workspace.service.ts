@@ -3,7 +3,7 @@
  * Business logic for workspace operations
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import {
   validateCreateWorkspace,
   validateUpdateWorkspace,
@@ -91,6 +91,8 @@ export class WorkspaceService {
     data: CreateWorkspaceRequest
   ): Promise<ServiceResponse<Workspace>> {
     try {
+      const supabase = await getSupabase();
+
       // Validate input
       const validation = validateCreateWorkspace(data);
       if (!validation.valid) {
@@ -226,6 +228,8 @@ export class WorkspaceService {
     data: UpdateWorkspaceRequest
   ): Promise<ServiceResponse<Workspace>> {
     try {
+      const supabase = await getSupabase();
+
       // Validate input
       const validation = validateUpdateWorkspace(data);
       if (!validation.valid) {
@@ -310,6 +314,8 @@ export class WorkspaceService {
     userId: string
   ): Promise<ServiceResponse<void>> {
     try {
+      const supabase = await getSupabase();
+
       // Check if user is the owner
       const { data: workspace } = await supabase
         .from('workspaces')
@@ -368,6 +374,8 @@ export class WorkspaceService {
     userId: string
   ): Promise<ServiceResponse<WorkspaceWithStats>> {
     try {
+      const supabase = await getSupabase();
+
       // Get workspace with member check
       const { data: workspace, error } = await supabase
         .from('workspaces')
@@ -442,6 +450,8 @@ export class WorkspaceService {
     filters: WorkspaceFilters & { page?: number; limit?: number }
   ): Promise<ServiceResponse<PaginatedResponse<WorkspaceWithStats>>> {
     try {
+      const supabase = await getSupabase();
+
       const page = filters.page || 1;
       const limit = filters.limit || 10;
       const offset = (page - 1) * limit;
@@ -531,6 +541,8 @@ export class WorkspaceService {
     requiredRoles: WorkspaceRole[]
   ): Promise<{ hasPermission: boolean; role?: WorkspaceRole }> {
     try {
+      const supabase = await getSupabase();
+
       console.log('[WorkspaceService] Checking permissions:', {
         workspaceId,
         userId,
@@ -596,6 +608,8 @@ export class WorkspaceService {
     });
 
     try {
+      const supabase = await getSupabase();
+
       // Check permissions - allow owner, admin, and maintainer roles
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
@@ -768,6 +782,8 @@ export class WorkspaceService {
     repositoryId: string
   ): Promise<ServiceResponse<void>> {
     try {
+      const supabase = await getSupabase();
+
       // Check permissions - allow owner, admin, and maintainer roles
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
@@ -889,6 +905,8 @@ export class WorkspaceService {
     }
   ): Promise<ServiceResponse<WorkspaceRepository>> {
     try {
+      const supabase = await getSupabase();
+
       // Check permissions - allow owner, admin, and maintainer roles
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
@@ -956,6 +974,8 @@ export class WorkspaceService {
     filters?: WorkspaceRepositoryFilters & { page?: number; limit?: number }
   ): Promise<ServiceResponse<PaginatedResponse<WorkspaceRepositoryWithDetails>>> {
     try {
+      const supabase = await getSupabase();
+
       // Check permissions
       const permission = await this.checkPermission(workspaceId, userId, [
         'owner',
@@ -1074,6 +1094,8 @@ export class WorkspaceService {
     role: WorkspaceRole
   ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
     try {
+      const supabase = await getSupabase();
+
       // Validate UUIDs
       if (!isValidUUID(workspaceId) || !isValidUUID(invitedBy)) {
         return {
@@ -1388,6 +1410,8 @@ export class WorkspaceService {
     newRole: WorkspaceRole
   ): Promise<ServiceResponse<WorkspaceMemberWithUser>> {
     try {
+      const supabase = await getSupabase();
+
       // Prevent changing to owner role through this method
       if (newRole === 'owner') {
         return {
@@ -1532,6 +1556,8 @@ export class WorkspaceService {
     targetUserId: string
   ): Promise<ServiceResponse<void>> {
     try {
+      const supabase = await getSupabase();
+
       // Get workspace and check last owner
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
@@ -1628,6 +1654,8 @@ export class WorkspaceService {
     }>
   > {
     try {
+      const supabase = await getSupabase();
+
       // Validate token format (UUID v4)
       if (!isValidUUID(token)) {
         return {
@@ -1749,6 +1777,8 @@ export class WorkspaceService {
    */
   static async acceptInvitation(token: string, userId: string): Promise<ServiceResponse<void>> {
     try {
+      const supabase = await getSupabase();
+
       // Validate token and user ID format
       if (!isValidUUID(token) || !isValidUUID(userId)) {
         return {
@@ -1816,6 +1846,8 @@ export class WorkspaceService {
    */
   static async declineInvitation(token: string): Promise<ServiceResponse<void>> {
     try {
+      const supabase = await getSupabase();
+
       // Validate token format
       if (!isValidUUID(token)) {
         return {

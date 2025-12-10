@@ -23,7 +23,7 @@ import { WorkspaceRole } from '@/types/workspace';
 import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
 import { WorkspaceService } from '@/services/workspace.service';
 import { UpgradeModal } from '@/components/billing/UpgradeModal';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { cn } from '@/lib/utils';
 
 interface InviteMemberModalProps {
@@ -87,6 +87,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
 
     try {
       // Get current user
+      const supabase = await getSupabase();
       const {
         data: { user },
       } = await supabase.auth.getUser();

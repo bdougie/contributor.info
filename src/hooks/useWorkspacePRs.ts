@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import type { Repository } from '@/components/features/workspace';
@@ -130,6 +130,7 @@ export function useWorkspacePRs({
     async (repoIds: string[]) => {
       if (repoIds.length === 0) return { needsSync: false, oldestSync: null };
 
+      const supabase = await getSupabase();
       // Check when each repo was last synced
       const { data } = await supabase
         .from('pull_requests')
@@ -162,6 +163,7 @@ export function useWorkspacePRs({
 
   // Fetch PRs from database
   const fetchFromDatabase = useCallback(async (repoIds: string[]) => {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('pull_requests')
       .select(

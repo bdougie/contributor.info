@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Crown, LogIn, Plus, Loader2, AlertCircle } from '@/components/ui/icon';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { WorkspaceService } from '@/services/workspace.service';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
@@ -51,6 +51,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
   useEffect(() => {
     const getUser = async () => {
       if (open && isLoggedIn) {
+        const supabase = await getSupabase();
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -67,6 +68,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
         setRepoId(undefined); // Reset on each lookup
 
         try {
+          const supabase = await getSupabase();
           // Try to find the repository with retries
           let attempts = 0;
           const maxAttempts = 3;
@@ -109,6 +111,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
 
   const handleLogin = useCallback(async () => {
     try {
+      const supabase = await getSupabase();
       const redirectTo = window.location.href;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',

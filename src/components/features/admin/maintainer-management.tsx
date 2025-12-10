@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Bot,
 } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -172,6 +172,7 @@ export function MaintainerManagement() {
       setLoading(true);
       setError(null);
 
+      const supabase = await getSupabase();
       const { data, error: fetchError } = await supabase
         .from('contributor_roles')
         .select('*')
@@ -205,6 +206,7 @@ export function MaintainerManagement() {
     if (!adminGitHubId) return;
 
     try {
+      const supabase = await getSupabase();
       // Call the database function
       const { error: updateError } = await supabase.rpc('override_contributor_role', {
         p_user_id: contributor.user_id,
@@ -243,6 +245,7 @@ export function MaintainerManagement() {
     if (!adminGitHubId) return;
 
     try {
+      const supabase = await getSupabase();
       const { error: updateError } = await supabase
         .from('contributor_roles')
         .update({

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useGitHubAuth } from './use-github-auth';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import {
   cohortManager,
   type CohortDefinition,
@@ -60,6 +60,7 @@ export function useCohorts(): UseCohortReturn {
 
       setIsLoading(true);
       try {
+        const supabase = await getSupabase();
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -153,6 +154,7 @@ export function useCohortTracking() {
   useEffect(() => {
     const fetchUserId = async () => {
       if (isLoggedIn) {
+        const supabase = await getSupabase();
         const {
           data: { user },
         } = await supabase.auth.getUser();

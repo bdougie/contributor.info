@@ -8,7 +8,7 @@
  * Uses existing 384-dimension embeddings and K-means algorithm
  */
 
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { llmService } from '@/lib/llm/llm-service';
 import type {
   TopicCluster,
@@ -162,6 +162,8 @@ export async function clusterContributorsByExpertise(
  * Fetch all embeddings for workspace items (issues, PRs, discussions)
  */
 async function fetchWorkspaceEmbeddings(workspaceId: string) {
+  const supabase = await getSupabase();
+
   // Get workspace repository IDs
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -264,6 +266,8 @@ async function fetchWorkspaceEmbeddings(workspaceId: string) {
  * Averages all their contribution embeddings into a single expertise vector
  */
 async function buildContributorEmbeddings(workspaceId: string) {
+  const supabase = await getSupabase();
+
   // Get all workspace contributors
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')
@@ -640,6 +644,8 @@ async function extractCommonTopics(
   workspaceId: string,
   contributorUsernames: string[]
 ): Promise<string[]> {
+  const supabase = await getSupabase();
+
   // Get all contributions from these contributors
   const { data: workspaceRepos } = await supabase
     .from('workspace_repositories')

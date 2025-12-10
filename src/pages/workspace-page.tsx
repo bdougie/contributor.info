@@ -1,6 +1,6 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
@@ -348,6 +348,7 @@ function WorkspacePage() {
     }
 
     try {
+      const supabase = await getSupabase();
       // Get current user
       const {
         data: { user },
@@ -1122,6 +1123,7 @@ function WorkspacePage() {
   const handleAddRepository = async () => {
     // Check if user is logged in first
     if (!currentUser) {
+      const supabase = await getSupabase();
       // Trigger GitHub OAuth flow
       const redirectTo = window.location.origin + window.location.pathname;
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -1146,6 +1148,7 @@ function WorkspacePage() {
     if (!workspace) return;
 
     try {
+      const supabase = await getSupabase();
       // Fetch repositories with their details
       const { data: repoData, error: repoError } = await supabase
         .from('workspace_repositories')

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface WorkspaceGitHubAppStatus {
   // Overall status
@@ -62,6 +62,7 @@ export function useWorkspaceGitHubAppStatus(repositoryIds: string[]) {
       setStatus((prev) => ({ ...prev, loading: true, error: null }));
 
       // Query app_enabled_repositories for all repos at once
+      const supabase = await getSupabase();
       const { data: enabledRepos, error } = await supabase
         .from('app_enabled_repositories')
         .select(

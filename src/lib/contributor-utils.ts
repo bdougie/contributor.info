@@ -1,6 +1,6 @@
 import { PullRequest, ContributorStats } from '@/lib/types';
 import { fetchUserOrganizations } from '@/lib/github';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 /**
  * Find pull requests associated with a specific user, considering different
@@ -83,6 +83,7 @@ export async function createContributorStatsWithOrgs(
       };
 
       // Try to get user's GitHub token from Supabase session
+      const supabase = await getSupabase();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -95,7 +96,7 @@ export async function createContributorStatsWithOrgs(
 
       const orgs = await fetchUserOrganizations(username, headers);
       stats.organizations = orgs;
-    } catch (error) {
+    } catch {
       // Keep empty organizations array on error
     }
   }

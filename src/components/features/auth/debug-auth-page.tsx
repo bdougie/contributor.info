@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -12,11 +12,16 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
+import type { Session, User } from '@supabase/supabase-js';
+
+interface SessionData {
+  session: Session | null;
+}
 
 export default function DebugAuthPage() {
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionData | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<User | null>(null);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const navigate = useNavigate();
   const { checkSession: hookCheckSession } = useGitHubAuth();
@@ -29,6 +34,7 @@ export default function DebugAuthPage() {
   const refreshSessionInfo = async () => {
     try {
       addLog('Checking session...');
+      const supabase = await getSupabase();
       const { data, error } = await supabase.auth.getSession();
       if (error) {
         setAuthError(error.message);
@@ -58,6 +64,7 @@ export default function DebugAuthPage() {
       // Store the current path for redirect after login (for testing)
       localStorage.setItem('redirectAfterLogin', '/debug-auth');
 
+      const supabase = await getSupabase();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
@@ -83,6 +90,7 @@ export default function DebugAuthPage() {
     try {
       setAuthError(null);
       addLog('Starting logout process...');
+      const supabase = await getSupabase();
       const { error: signOutError } = await supabase.auth.signOut();
 
       if (signOutError) {
@@ -105,6 +113,7 @@ export default function DebugAuthPage() {
   const handleForceRefresh = async () => {
     try {
       addLog('Forcing session refresh...');
+      const supabase = await getSupabase();
       const { data, error } = await supabase.auth.refreshSession();
       if (error) {
         addLog(`Refresh error: ${error.message}`);
@@ -159,19 +168,31 @@ export default function DebugAuthPage() {
 
     refreshSessionInfo();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      addLog(`Auth event: ${event}`);
-      if (session) {
-        addLog(`Session update for user: ${session.user.id}`);
-      } else {
-        addLog('Session update: No session');
-      }
-      refreshSessionInfo();
-    });
+    // Set up auth state listener
+    let subscription: { unsubscribe: () => void } | null = null;
+    const setupAuthListener = async () => {
+      const supabase = await getSupabase();
+      const {
+        data: { subscription: authSub },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        addLog(`Auth event: ${event}`);
+        if (session) {
+          addLog(`Session update for user: ${session.user.id}`);
+        } else {
+          addLog('Session update: No session');
+        }
+        refreshSessionInfo();
+      });
+      subscription = authSub;
+    };
+    setupAuthListener();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

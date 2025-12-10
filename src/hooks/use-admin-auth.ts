@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGitHubAuth } from './use-github-auth';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface AdminUser {
   id: string;
@@ -55,6 +55,7 @@ export function useAdminAuth(): AdminAuthState {
 
       try {
         // Get current user session
+        const supabase = await getSupabase();
         const {
           data: { session },
           error: sessionError,
@@ -215,8 +216,9 @@ export async function logAdminAction(
   actionType: string,
   targetType?: string,
   targetId?: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ): Promise<void> {
+  const supabase = await getSupabase();
   try {
     // First try to use the RPC function
     const { error: rpcError } = await supabase.rpc('log_admin_action', {
@@ -232,8 +234,9 @@ export async function logAdminAction(
     if (rpcError) {
       throw rpcError;
     }
-  } catch (error: any) {
-    console.warn('RPC log_admin_action failed, admin system may not be set up:', error?.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn('RPC log_admin_action failed, admin system may not be set up:', errorMessage);
 
     // Fallback: Try direct insert (will work if admin_action_logs table exists)
     try {

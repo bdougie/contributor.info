@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type {
   PersonaType,
   QualityScoreBreakdown,
@@ -100,6 +100,7 @@ export function useContributorActivity({
     setEnrichmentLoading(true);
 
     try {
+      const supabase = await getSupabase();
       // Fetch contributor ID and enrichment data
       const { data: contributorData, error: contributorError } = await supabase
         .from('contributors')
@@ -228,6 +229,7 @@ export function useContributorActivity({
       const fetchLimit = (currentPage + 1) * pageSize * 4; // Fetch 4x to ensure coverage
 
       try {
+        const supabase = await getSupabase();
         // Fetch contributor ID
         const { data: contributorData, error: contributorError } = await supabase
           .from('contributors')

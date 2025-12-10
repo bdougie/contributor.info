@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { SocialMetaTags } from './meta-tags-provider';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { useTimeFormatter } from '@/hooks/use-time-formatter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -74,6 +74,8 @@ export default function NotFound() {
    */
   const loadRepositoryData = useCallback(async () => {
     try {
+      const supabase = await getSupabase();
+
       // Get popular repositories (by stars)
       const { data: popular } = await supabase
         .from('repositories')

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface GitHubUserProfile {
   login: string;
@@ -25,6 +25,8 @@ interface GitHubUserProfile {
 export async function fetchGitHubUserProfile(username: string): Promise<GitHubUserProfile | null> {
   try {
     console.log(`Fetching GitHub profile for ${username}`);
+
+    const supabase = await getSupabase();
 
     // Get the user's GitHub token from Supabase session
     const {
@@ -86,6 +88,8 @@ export async function fetchGitHubUserProfileGraphQL(username: string): Promise<{
 } | null> {
   try {
     console.log(`Fetching GitHub profile via GraphQL for ${username}`);
+
+    const supabase = await getSupabase();
 
     // Get the user's GitHub token from Supabase session
     const {
@@ -213,6 +217,8 @@ export async function updateContributorProfile(
   }
 ): Promise<void> {
   try {
+    const supabase = await getSupabase();
+
     const { error } = await supabase
       .from('contributors')
       .update({

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RefreshCw, Database, CheckCircle, XCircle, Info } from '@/components/ui/icon';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ export function GitHubSyncDebug() {
     addLog('Checking GitHub token configuration...');
 
     try {
+      const supabase = await getSupabase();
       // Check if user has provider token
       const {
         data: { session },
@@ -80,13 +81,14 @@ export function GitHubSyncDebug() {
     addLog(`Checking database state for ${owner}/${repo}...`);
 
     try {
+      const supabase = await getSupabase();
       // Check repositories table
       const { data: repoData, error: repoError } = await supabase
         .from('repositories')
         .select('*')
         .eq('owner', owner)
         .eq('name', repo)
-        .single();
+        .maybeSingle();
 
       if (repoError && repoError.code !== 'PGRST116') {
         addLog(`Error checking repositories: ${repoError.message}`);
@@ -103,7 +105,7 @@ export function GitHubSyncDebug() {
         .select('*')
         .eq('organization_name', owner)
         .eq('repository_name', repo)
-        .single();
+        .maybeSingle();
 
       if (trackedError && trackedError.code !== 'PGRST116') {
         addLog(`Error checking tracked_repositories: ${trackedError.message}`);
@@ -120,7 +122,7 @@ export function GitHubSyncDebug() {
         .select('*')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
-        .single();
+        .maybeSingle();
 
       if (syncError && syncError.code !== 'PGRST116') {
         addLog(`Error checking sync status: ${syncError.message}`);
@@ -175,6 +177,7 @@ export function GitHubSyncDebug() {
       await checkDatabaseState();
 
       // Get session for user token
+      const supabase = await getSupabase();
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -226,6 +229,7 @@ export function GitHubSyncDebug() {
     addLog(`Attempting to track repository ${owner}/${repo}...`);
 
     try {
+      const supabase = await getSupabase();
       const { data, error } = await supabase
         .from('tracked_repositories')
         .insert({
@@ -234,7 +238,7 @@ export function GitHubSyncDebug() {
           tracking_enabled: true,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         addLog(`Error tracking repository: ${error.message}`);

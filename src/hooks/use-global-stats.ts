@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 interface GlobalStats {
   totalRepositories: number;
@@ -51,6 +51,7 @@ export function useGlobalStats(): GlobalStats {
           }
         }
         // Fetch total repositories count
+        const supabase = await getSupabase();
         const { count: repoCount, error: repoError } = await supabase
           .from('repositories')
           .select('*', { count: 'exact', head: true })

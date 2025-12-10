@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 
 export interface SubscriptionTier {
   id: 'free' | 'pro' | 'team' | 'enterprise';
@@ -115,6 +115,7 @@ export class SubscriptionService {
    * Get the current user's subscription from the database
    */
   static async getCurrentSubscription(userId: string) {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
@@ -178,6 +179,7 @@ export class SubscriptionService {
    * Note: Customer creation is now handled server-side in the checkout function
    */
   static async getOrCreateCustomer(userId: string, email: string) {
+    const supabase = await getSupabase();
     // Check if customer exists in our database
     const { data: subscription } = await supabase
       .from('subscriptions')
@@ -200,6 +202,7 @@ export class SubscriptionService {
    */
   static async cancelSubscription(subscriptionId: string) {
     try {
+      const supabase = await getSupabase();
       // Cancel subscription through Polar API
       // Note: The actual cancellation will be handled via webhook
       const response = await fetch(
@@ -291,6 +294,7 @@ export class SubscriptionService {
       return true;
     }
 
+    const supabase = await getSupabase();
     const { count } = await supabase
       .from('workspaces')
       .select('*', { count: 'exact', head: true })
@@ -309,6 +313,7 @@ export class SubscriptionService {
       return true;
     }
 
+    const supabase = await getSupabase();
     const { count } = await supabase
       .from('workspace_repositories')
       .select('*', { count: 'exact', head: true })
@@ -321,6 +326,7 @@ export class SubscriptionService {
    * Get usage statistics for a user
    */
   static async getUsageStats(userId: string) {
+    const supabase = await getSupabase();
     const [subscription, workspaceCount, featureUsage] = await Promise.all([
       this.getCurrentSubscription(userId),
       supabase
@@ -353,6 +359,7 @@ export class SubscriptionService {
     metricType: string,
     value: number
   ) {
+    const supabase = await getSupabase();
     await supabase.from('feature_usage').upsert(
       {
         user_id: userId,
@@ -372,6 +379,7 @@ export class SubscriptionService {
    */
   static async hasExtendedRetention(userId: string): Promise<boolean> {
     try {
+      const supabase = await getSupabase();
       // First get the subscription for this user
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
@@ -434,6 +442,7 @@ export class SubscriptionService {
     }>
   > {
     try {
+      const supabase = await getSupabase();
       const subscription = await this.getCurrentSubscription(userId);
       if (!subscription) {
         return [];

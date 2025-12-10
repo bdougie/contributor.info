@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { useTimeFormatter } from '@/hooks/use-time-formatter';
 
 interface BackgroundJob {
@@ -73,6 +73,7 @@ export function FailedJobsDashboard() {
     setError(null);
 
     try {
+      const supabase = await getSupabase();
       // Build query with filters
       let query = supabase
         .from('progressive_capture_jobs')
@@ -190,6 +191,7 @@ export function FailedJobsDashboard() {
 
   const fetchUniqueRepos = async () => {
     try {
+      const supabase = await getSupabase();
       const { data: jobs } = await supabase
         .from('progressive_capture_jobs')
         .select('repository_id')

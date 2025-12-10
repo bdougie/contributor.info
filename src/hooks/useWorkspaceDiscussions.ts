@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import { syncDiscussions } from '@/lib/sync-discussions';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 
@@ -52,6 +52,7 @@ export function useWorkspaceDiscussions({
     async (repoIds: string[]) => {
       if (repoIds.length === 0) return { needsSync: false, oldestSync: null };
 
+      const supabase = await getSupabase();
       const { data } = await supabase
         .from('discussions')
         .select('synced_at, repository_id')
@@ -78,6 +79,7 @@ export function useWorkspaceDiscussions({
 
   // Fetch discussions from database
   const fetchFromDatabase = useCallback(async (repoIds: string[]) => {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('discussions')
       .select(
