@@ -16,6 +16,29 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+// Mock WorkspacePrioritySync
+vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
+  workspacePrioritySync: {
+    markAsWorkspaceRepo: vi.fn().mockResolvedValue(undefined),
+    markAsTrackedOnly: vi.fn().mockResolvedValue(undefined),
+    isInWorkspace: vi.fn().mockResolvedValue(false),
+    syncAllPriorities: vi.fn().mockResolvedValue({
+      workspaceRepos: 0,
+      trackedOnlyRepos: 0,
+      priorityChanges: 0,
+      errors: [],
+    }),
+  },
+  WorkspacePrioritySync: vi.fn(),
+}));
+
+// Mock Inngest
+vi.mock('@/lib/inngest/client-safe', () => ({
+  inngest: {
+    send: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
+  },
+}));
+
 describe('WorkspaceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -399,6 +422,17 @@ describe('WorkspaceService', () => {
         }),
       };
 
+      // Mock repositories table for event payload
+      const repositoriesMock = {
+        select: vi.fn().mockReturnValue({          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { full_name: 'test/repo' },
+              error: null,
+            }),
+          }),
+        }),
+      };
+
       // Setup mocks
       let callCount = 0;
       vi.mocked(supabase.from).mockImplementation((table: string) => {
@@ -415,6 +449,9 @@ describe('WorkspaceService', () => {
         }
         if (table === 'workspaces') {
           return updateMock as MockQueryBuilder;
+        }
+        if (table === 'repositories') {
+          return repositoriesMock as MockQueryBuilder;
         }
         return {} as MockQueryBuilder;
       });
@@ -662,6 +699,18 @@ describe('WorkspaceService', () => {
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             error: null,
+          }),
+        }),
+      } as MockSupabaseResponse);
+
+      // Mock repositories table for metrics update
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { full_name: 'test/repo' },
+              error: null,
+            }),
           }),
         }),
       } as MockSupabaseResponse);
