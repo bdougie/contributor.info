@@ -3,6 +3,60 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { Inngest, InngestCommHandler, NonRetriableError } from 'https://esm.sh/inngest@3.16.1';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// S3 Storage for persistent state and faster cold starts
+// @see https://supabase.com/docs/guides/functions/ephemeral-storage
+import {
+  isS3Configured,
+  loadConfigSync,
+  appendAuditLog,
+  type StorageConfig,
+} from '../_shared/s3-storage.ts';
+
+// ============================================================================
+// S3 PERSISTENT STORAGE INITIALIZATION (97% faster cold starts)
+// Using sync APIs during initialization for optimal performance
+// ============================================================================
+
+interface InngestConfig extends StorageConfig {
+  defaultThrottleLimit?: number;
+  defaultConcurrencyLimit?: number;
+  enableAuditLogging?: boolean;
+}
+
+// Load configuration synchronously at startup (fast cold starts)
+const inngestConfig = loadConfigSync<InngestConfig>('inngest') || {
+  defaultThrottleLimit: 75,
+  defaultConcurrencyLimit: 5,
+  enableAuditLogging: true,
+};
+
+// Log S3 storage status at initialization
+if (isS3Configured()) {
+  console.log('[inngest-prod] S3 persistent storage enabled - using fast sync APIs');
+} else {
+  console.log('[inngest-prod] Using ephemeral /tmp storage (S3 not configured)');
+}
+
+/**
+ * Log an audit entry for important job events
+ * Non-blocking - failures are logged but don't affect job execution
+ */
+async function logJobAudit(
+  jobType: string,
+  jobId: string,
+  action: string,
+  details?: Record<string, unknown>
+): Promise<void> {
+  if (!inngestConfig.enableAuditLogging) return;
+
+  try {
+    await appendAuditLog(jobType, jobId, action, details);
+  } catch (error) {
+    // Non-blocking - just log the error
+    console.error('[inngest-prod] Audit log failed for %s/%s: %s', jobType, jobId, error);
+  }
+}
+
 // Type for items from the items_needing_embeddings view
 interface ItemNeedingEmbedding {
   id: string;
@@ -2187,6 +2241,15 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
   { event: 'capture/repository.sync.enhanced' },
   async ({ event, step }) => {
     const { repositoryId, days = 30, priority = 'medium', reason } = event.data;
+    const jobId = `sync-${repositoryId}-${Date.now()}`;
+
+    // Log job start (non-blocking)
+    logJobAudit('repository-sync-enhanced', jobId, 'started', {
+      repositoryId,
+      days,
+      priority,
+      reason,
+    });
 
     // Step 1: Check if repository is being backfilled
     const backfillState = await step.run('check-backfill-state', async () => {
@@ -2450,7 +2513,7 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
       }
     });
 
-    return {
+    const result = {
       repository: `${repository.owner}/${repository.name}`,
       effectiveDays,
       backfillActive: !!backfillState,
@@ -2459,6 +2522,11 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
       prsStored: storedPRs.length,
       timestamp: new Date().toISOString(),
     };
+
+    // Log job completion (non-blocking)
+    logJobAudit('repository-sync-enhanced', jobId, 'completed', result);
+
+    return result;
   }
 );
 
