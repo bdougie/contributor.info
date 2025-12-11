@@ -2,7 +2,7 @@ import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import { toUTCTimestamp } from '../utils/date-formatting';
 import type { PullRequest } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 
 // GitHub PR interface for this module
 interface GitHubPullRequest {
@@ -930,7 +930,7 @@ async function calculateStarForkConfidence(
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
-    (contributorData as Array<{ contributors: Array<{ username: string }> }>)
+    (contributorData as unknown as Array<{ contributors: Array<{ username: string }> }>)
       ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
       .filter(Boolean) || []
   );
@@ -1012,7 +1012,7 @@ async function calculateStarForkConfidenceWithBreakdown(
     .gte('created_at', toUTCTimestamp(utcMidnight));
 
   const contributors = new Set(
-    (contributorData as Array<{ contributors: Array<{ username: string }> }>)
+    (contributorData as unknown as Array<{ contributors: Array<{ username: string }> }>)
       ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
       .filter(Boolean) || []
   );
@@ -1134,7 +1134,7 @@ async function calculateEngagementConfidence(
   const contributors = new Set<string>();
 
   // Add PR contributors
-  (prContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+  (prContributors.data as unknown as Array<{ contributors: Array<{ username: string }> }>)
     ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
     .filter(Boolean)
     .forEach((username) => contributors.add(username));
@@ -1246,12 +1246,12 @@ async function calculateRetentionConfidence(
   ]);
 
   const currentSet = new Set(
-    (currentContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+    (currentContributors.data as unknown as Array<{ contributors: Array<{ username: string }> }>)
       ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
       .filter(Boolean) || []
   );
   const previousSet = new Set(
-    (previousContributors.data as Array<{ contributors: Array<{ username: string }> }>)
+    (previousContributors.data as unknown as Array<{ contributors: Array<{ username: string }> }>)
       ?.flatMap((c) => c.contributors?.map((contrib) => contrib.username))
       .filter(Boolean) || []
   );
@@ -1441,7 +1441,7 @@ async function getCachedConfidenceScore(
     return {
       score: data.confidence_score,
       calculatedAt: new Date(data.calculated_at),
-      calculationTimeMs: data.calculation_time_ms,
+      calculationTimeMs: data.calculation_time_ms ?? undefined,
     };
   } catch (error) {
     console.warn('[Confidence Cache] Error reading cache:', error);

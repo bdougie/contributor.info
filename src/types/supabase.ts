@@ -4408,6 +4408,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      repository_confidence_history: {
+        Row: {
+          id: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          breakdown: Json | null;
+          calculated_at: string;
+          period_start: string;
+          period_end: string;
+          data_version: number;
+          calculation_time_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          breakdown?: Json | null;
+          calculated_at?: string;
+          period_start: string;
+          period_end: string;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          repository_owner?: string;
+          repository_name?: string;
+          confidence_score?: number;
+          time_range_days?: number;
+          breakdown?: Json | null;
+          calculated_at?: string;
+          period_start?: string;
+          period_end?: string;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       repository_file_trees: {
         Row: {
           branch: string;

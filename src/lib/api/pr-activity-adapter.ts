@@ -1,5 +1,5 @@
 import type { PullRequestActivity } from '@/lib/types';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 import { getPRActivityType } from '@/lib/utils/performance-helpers';
 
 type DatabasePR = Database['public']['Tables']['pull_requests']['Row'] & {
@@ -18,12 +18,15 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
 
   return {
     id: pr.id,
-    type: getPRActivityType(pr) as 'opened' | 'closed' | 'merged',
+    type: getPRActivityType({ ...pr, merged: pr.merged ?? undefined }) as
+      | 'opened'
+      | 'closed'
+      | 'merged',
     user: {
       id: String(pr.author.github_id),
       name: pr.author.username,
-      avatar: pr.author.avatar_url,
-      isBot: pr.author.is_bot,
+      avatar: pr.author.avatar_url ?? '',
+      isBot: pr.author.is_bot ?? undefined,
     },
     pullRequest: {
       id: pr.github_id,
@@ -31,21 +34,21 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
       title: pr.title,
       body: pr.body || '',
       state: pr.state,
-      draft: pr.draft,
-      merged: pr.merged,
+      draft: pr.draft ?? undefined,
+      merged: pr.merged ?? undefined,
       mergeable: null, // Not available in our DB schema
-      url: pr.html_url,
-      additions: pr.additions,
-      deletions: pr.deletions,
-      changedFiles: pr.changed_files,
-      commits: pr.commits,
+      url: pr.html_url ?? '',
+      additions: pr.additions ?? undefined,
+      deletions: pr.deletions ?? undefined,
+      changedFiles: pr.changed_files ?? undefined,
+      commits: pr.commits ?? undefined,
       createdAt: pr.created_at,
       updatedAt: pr.updated_at,
       closedAt: pr.closed_at,
       mergedAt: pr.merged_at,
       // Add spam detection fields
-      spamScore: pr.spam_score,
-      isSpam: pr.is_spam,
+      spamScore: pr.spam_score ?? undefined,
+      isSpam: pr.is_spam ?? undefined,
       spamFlags: pr.spam_flags as
         | {
             suspicious_title?: boolean;
@@ -61,14 +64,14 @@ export function convertDatabasePRToActivity(pr: DatabasePR): PullRequestActivity
       name: pr.repository.name,
       fullName: pr.repository.full_name,
       owner: pr.repository.owner,
-      private: pr.repository.is_private,
+      private: pr.repository.is_private ?? undefined,
       url: `https://github.com/${pr.repository.full_name}`,
     },
     timestamp: pr.created_at,
     // Additional metadata for spam detection
     metadata: {
-      spamScore: pr.spam_score,
-      isSpam: pr.is_spam,
+      spamScore: pr.spam_score ?? undefined,
+      isSpam: pr.is_spam ?? undefined,
       spamDetectedAt: pr.spam_detected_at,
     },
   };
