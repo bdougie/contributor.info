@@ -1,21 +1,23 @@
-import * as React from 'react';
+import type { ComponentPropsWithoutRef, ElementRef, Ref } from 'react';
 import { Check } from '@/components/ui/icon';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 
 import { cn } from '@/lib/utils';
 
-const RadioGroup = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root>
->(({ className, ...props }, ref) => {
-  return <RadioGroupPrimitive.Root className={cn('grid gap-2', className)} {...props} ref={ref} />;
-});
-RadioGroup.displayName = RadioGroupPrimitive.Root.displayName;
+export interface RadioGroupProps extends ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Root> {
+  ref?: Ref<ElementRef<typeof RadioGroupPrimitive.Root>>;
+}
 
-const RadioGroupItem = React.forwardRef<
-  React.ElementRef<typeof RadioGroupPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item>
->(({ className, ...props }, ref) => {
+function RadioGroup({ className, ref, ...props }: RadioGroupProps) {
+  return <RadioGroupPrimitive.Root className={cn('grid gap-2', className)} {...props} ref={ref} />;
+}
+
+export interface RadioGroupItemProps
+  extends ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item> {
+  ref?: Ref<ElementRef<typeof RadioGroupPrimitive.Item>>;
+}
+
+function RadioGroupItem({ className, ref, ...props }: RadioGroupItemProps) {
   return (
     <RadioGroupPrimitive.Item
       ref={ref}
@@ -30,7 +32,6 @@ const RadioGroupItem = React.forwardRef<
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   );
-});
-RadioGroupItem.displayName = RadioGroupPrimitive.Item.displayName;
+}
 
 export { RadioGroup, RadioGroupItem };

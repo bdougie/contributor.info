@@ -112,15 +112,20 @@ export class ChartErrorBoundary extends Component<
 }
 
 /**
- * Hook to wrap any component with error boundary
+ * HOC to wrap any component with error boundary
+ * Note: With React 19 ref-as-prop, refs pass through automatically
  */
 export function withChartErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   boundaryProps?: Omit<ChartErrorBoundaryProps, 'children'>
 ) {
-  return React.forwardRef<unknown, P>((props, ref) => (
-    <ChartErrorBoundary {...boundaryProps}>
-      <Component {...(props as P)} ref={ref} />
-    </ChartErrorBoundary>
-  ));
+  function WrappedComponent(props: P) {
+    return (
+      <ChartErrorBoundary {...boundaryProps}>
+        <Component {...props} />
+      </ChartErrorBoundary>
+    );
+  }
+  WrappedComponent.displayName = `WithChartErrorBoundary(${Component.displayName || Component.name || 'Component'})`;
+  return WrappedComponent;
 }

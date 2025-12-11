@@ -1,4 +1,4 @@
-import * as React from 'react';
+import type { ComponentPropsWithoutRef, ElementRef, Ref } from 'react';
 import * as TogglePrimitive from '@radix-ui/react-toggle';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -26,17 +26,21 @@ const toggleVariants = cva(
   }
 );
 
-const Toggle = React.forwardRef<
-  React.ElementRef<typeof TogglePrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> & VariantProps<typeof toggleVariants>
->(({ className, variant, size, ...props }, ref) => (
-  <TogglePrimitive.Root
-    ref={ref}
-    className={cn(toggleVariants({ variant, size, className }))}
-    {...props}
-  />
-));
+export interface ToggleProps
+  extends ComponentPropsWithoutRef<typeof TogglePrimitive.Root>,
+    VariantProps<typeof toggleVariants> {
+  ref?: Ref<ElementRef<typeof TogglePrimitive.Root>>;
+}
 
-Toggle.displayName = TogglePrimitive.Root.displayName;
+function Toggle({ className, variant, size, ref, ...props }: ToggleProps) {
+  return (
+    <TogglePrimitive.Root
+      ref={ref}
+      className={cn(toggleVariants({ variant, size, className }))}
+      {...props}
+    />
+  );
+}
 
+// eslint-disable-next-line react-refresh/only-export-components -- toggleVariants is intentionally co-located
 export { Toggle, toggleVariants };

@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, forwardRef } from 'react';
+import { useState, useRef, useEffect, type ImgHTMLAttributes, type Ref } from 'react';
 import { cn } from '@/lib/utils';
 import { getImageLoadingStrategy, getOptimizedImageUrls } from '@/lib/utils/image-optimization';
 
-interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
+export interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
+  ref?: Ref<HTMLImageElement>;
   src: string;
   alt: string;
   width?: number;
@@ -27,151 +28,142 @@ interface OptimizedImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElem
  * - Priority loading for above-the-fold images
  * - Error handling with fallback images
  */
-export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
-  (
-    {
-      src,
-      alt,
-      width,
-      height,
-      sizes,
-      priority = false,
-      lazy = true,
-      className,
-      onLoad,
-      onError,
-      fallbackSrc,
-      ...props
-    },
-    ref
-  ) => {
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [shouldLoad, setShouldLoad] = useState(!lazy || priority);
-    const [error, setError] = useState(false);
-    const imgRef = useRef<HTMLImageElement>(null);
+export function OptimizedImage({
+  src,
+  alt,
+  width,
+  height,
+  sizes,
+  priority = false,
+  lazy = true,
+  className,
+  onLoad,
+  onError,
+  fallbackSrc,
+  ref,
+  ...props
+}: OptimizedImageProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(!lazy || priority);
+  const [error, setError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-    const imageUrls = getOptimizedImageUrls(src, width, height);
+  const imageUrls = getOptimizedImageUrls(src, width, height);
 
-    // Intersection Observer for lazy loading
-    useEffect(() => {
-      if (!lazy || priority || shouldLoad) return;
+  // Intersection Observer for lazy loading
+  useEffect(() => {
+    if (!lazy || priority || shouldLoad) return;
 
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setShouldLoad(true);
-              observer.disconnect();
-            }
-          });
-        },
-        {
-          rootMargin: '50px', // Start loading 50px before entering viewport
-        }
-      );
-
-      const currentRef = imgRef.current;
-      if (currentRef) {
-        observer.observe(currentRef);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldLoad(true);
+            observer.disconnect();
+          }
+        });
+      },
+      {
+        rootMargin: '50px', // Start loading 50px before entering viewport
       }
+    );
 
-      return () => {
-        if (currentRef) {
-          observer.unobserve(currentRef);
-        }
-      };
-    }, [lazy, priority, shouldLoad]);
-
-    const handleLoad = () => {
-      setIsLoaded(true);
-      onLoad?.();
-    };
-
-    const handleError = () => {
-      setError(true);
-      onError?.();
-    };
-
-    // Generate skeleton placeholder based on dimensions
-    const skeletonStyle = {
-      width: width ? `${width}px` : '100%',
-      height: height ? `${height}px` : '100%',
-      aspectRatio: width && height ? `${width}/${height}` : undefined,
-    };
-
-    if (!shouldLoad) {
-      return (
-        <div
-          ref={imgRef}
-          className={cn('bg-muted animate-pulse rounded', className)}
-          style={skeletonStyle}
-          aria-label={`Loading ${alt}`}
-        />
-      );
+    const currentRef = imgRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
-    if (error && fallbackSrc) {
-      return (
-        <img
-          ref={ref}
-          src={fallbackSrc}
-          alt={alt}
-          width={width}
-          height={height}
-          loading={getImageLoadingStrategy(priority, lazy)}
-          className={cn('transition-opacity duration-200', className)}
-          onLoad={handleLoad}
-          {...props}
-        />
-      );
-    }
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [lazy, priority, shouldLoad]);
 
-    // For GitHub avatars or when WebP support is uncertain, use picture element
-    if (!imageUrls.isGitHubAvatar && imageUrls.webp !== imageUrls.fallback) {
-      return (
-        <picture className={cn('block', className)}>
-          <source srcSet={imageUrls.webp} type="image/webp" sizes={sizes} />
-          <source srcSet={imageUrls.fallback} type="image/jpeg" sizes={sizes} />
-          <img
-            ref={ref}
-            src={imageUrls.fallback}
-            alt={alt}
-            width={width}
-            height={height}
-            loading={getImageLoadingStrategy(priority, lazy)}
-            className={cn(
-              'transition-opacity duration-200',
-              isLoaded ? 'opacity-100' : 'opacity-0'
-            )}
-            onLoad={handleLoad}
-            onError={handleError}
-            {...props}
-          />
-        </picture>
-      );
-    }
+  const handleLoad = () => {
+    setIsLoaded(true);
+    onLoad?.();
+  };
 
-    // Simple img element for GitHub avatars and other cases
+  const handleError = () => {
+    setError(true);
+    onError?.();
+  };
+
+  // Generate skeleton placeholder based on dimensions
+  const skeletonStyle = {
+    width: width ? `${width}px` : '100%',
+    height: height ? `${height}px` : '100%',
+    aspectRatio: width && height ? `${width}/${height}` : undefined,
+  };
+
+  if (!shouldLoad) {
+    return (
+      <div
+        ref={imgRef}
+        className={cn('bg-muted animate-pulse rounded', className)}
+        style={skeletonStyle}
+        aria-label={`Loading ${alt}`}
+      />
+    );
+  }
+
+  if (error && fallbackSrc) {
     return (
       <img
         ref={ref}
-        src={imageUrls.fallback}
+        src={fallbackSrc}
         alt={alt}
         width={width}
         height={height}
         loading={getImageLoadingStrategy(priority, lazy)}
-        sizes={sizes}
-        className={cn(
-          'transition-opacity duration-200',
-          isLoaded ? 'opacity-100' : 'opacity-0',
-          className
-        )}
+        className={cn('transition-opacity duration-200', className)}
         onLoad={handleLoad}
-        onError={handleError}
         {...props}
       />
     );
   }
-);
 
-OptimizedImage.displayName = 'OptimizedImage';
+  // For GitHub avatars or when WebP support is uncertain, use picture element
+  if (!imageUrls.isGitHubAvatar && imageUrls.webp !== imageUrls.fallback) {
+    return (
+      <picture className={cn('block', className)}>
+        <source srcSet={imageUrls.webp} type="image/webp" sizes={sizes} />
+        <source srcSet={imageUrls.fallback} type="image/jpeg" sizes={sizes} />
+        <img
+          ref={ref}
+          src={imageUrls.fallback}
+          alt={alt}
+          width={width}
+          height={height}
+          loading={getImageLoadingStrategy(priority, lazy)}
+          className={cn('transition-opacity duration-200', isLoaded ? 'opacity-100' : 'opacity-0')}
+          onLoad={handleLoad}
+          onError={handleError}
+          {...props}
+        />
+      </picture>
+    );
+  }
+
+  // Simple img element for GitHub avatars and other cases
+  return (
+    <img
+      ref={ref}
+      src={imageUrls.fallback}
+      alt={alt}
+      width={width}
+      height={height}
+      loading={getImageLoadingStrategy(priority, lazy)}
+      sizes={sizes}
+      className={cn(
+        'transition-opacity duration-200',
+        isLoaded ? 'opacity-100' : 'opacity-0',
+        className
+      )}
+      onLoad={handleLoad}
+      onError={handleError}
+      {...props}
+    />
+  );
+}
