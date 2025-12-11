@@ -3,6 +3,17 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { Inngest, InngestCommHandler, NonRetriableError } from 'https://esm.sh/inngest@3.16.1';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// Sentry error tracking - initialize early for maximum coverage
+import {
+  captureException as sentryCaptureException,
+  flush as sentryFlush,
+  initSentry,
+  setTag,
+} from '../_shared/sentry.ts';
+
+// Initialize Sentry at module load
+initSentry();
+
 // S3 Storage for persistent state and faster cold starts
 // @see https://supabase.com/docs/guides/functions/ephemeral-storage
 import {
@@ -3504,28 +3515,44 @@ serve(async (req) => {
       status: response.status,
       headers,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error & { message?: string; name?: string; stack?: string };
     console.error('❌ Error processing request:', error);
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      name: err.name,
+      message: err.message,
+      stack: err.stack?.split('\n').slice(0, 3).join('\n'),
     });
 
     // Check for common authorization errors
-    const isAuthError = error.message?.toLowerCase().includes('authorization') ||
-      error.message?.toLowerCase().includes('signature') ||
-      error.message?.toLowerCase().includes('signing key');
+    const isAuthError = err.message?.toLowerCase().includes('authorization') ||
+      err.message?.toLowerCase().includes('signature') ||
+      err.message?.toLowerCase().includes('signing key');
 
+    // Capture error in Sentry (skip auth errors as they're usually config issues)
+    if (!isAuthError) {
+      setTag('edge_function', 'inngest-prod');
+      sentryCaptureException(error, {
+        request_url: req.url,
+        request_method: req.method,
+        error_type: 'request_handler',
+      });
+      // Flush to ensure error is sent before response
+      await sentryFlush(2000);
+    }
+
+    // Sanitize error response to prevent information leakage (CodeQL security fix)
+    // Detailed error info is already captured in Sentry and console logs
     return new Response(
       JSON.stringify({
-        error: isAuthError ? 'Authorization Error' : 'Failed to process request',
-        message: error.message,
+        error: isAuthError ? 'Authorization Error' : 'Internal Server Error',
+        message: isAuthError
+          ? 'Request authorization failed'
+          : 'An unexpected error occurred',
         hint: isAuthError
           ? 'Check that INNGEST_SIGNING_KEY is correctly set in Supabase secrets'
           : 'Check function logs for details',
         timestamp: new Date().toISOString(),
-        stack: Deno.env.get('VITE_ENV') === 'local' ? error.stack : undefined,
       }),
       {
         status: isAuthError ? 401 : 500,
