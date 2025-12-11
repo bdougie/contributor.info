@@ -43,7 +43,7 @@ serve(async (req: Request) => {
         'Repository not found',
         404,
         'Repository not found in database',
-        'REPOSITORY_NOT_FOUND'
+        'REPOSITORY_NOT_FOUND',
       );
     }
 
@@ -53,7 +53,7 @@ serve(async (req: Request) => {
         'Discussions not enabled',
         400,
         'Repository does not have discussions enabled',
-        'DISCUSSIONS_NOT_ENABLED'
+        'DISCUSSIONS_NOT_ENABLED',
       );
     }
 
@@ -64,7 +64,7 @@ serve(async (req: Request) => {
         'Configuration error',
         500,
         'Inngest event key not configured',
-        'INNGEST_NOT_CONFIGURED'
+        'INNGEST_NOT_CONFIGURED',
       );
     }
 
@@ -92,7 +92,7 @@ serve(async (req: Request) => {
         'Background job failed to start',
         inngestResponse.status,
         `Failed to trigger background processing: ${inngestError}`,
-        'INNGEST_TRIGGER_FAILED'
+        'INNGEST_TRIGGER_FAILED',
       );
     }
 
@@ -108,7 +108,7 @@ serve(async (req: Request) => {
         maxItems: max_items,
         workspace_id,
       },
-      `Discussion sync job started for ${owner}/${repo}`
+      `Discussion sync job started for ${owner}/${repo}`,
     );
   } catch (error) {
     console.error('Sync error:', error);
@@ -116,7 +116,7 @@ serve(async (req: Request) => {
       'Sync discussions failed',
       500,
       error instanceof Error ? error.message : 'Unknown error occurred',
-      'SYNC_FAILED'
+      'SYNC_FAILED',
     );
   }
 });

@@ -98,18 +98,23 @@ Deno.serve(async (req: Request) => {
         headers.set('X-RateLimit-Limit', String(MAX_SYNCS_PER_WINDOW));
         headers.set('X-RateLimit-Remaining', '0');
         headers.set('X-RateLimit-Reset', String(Math.floor(rateLimitInfo.resetTime / 1000)));
-        headers.set('Retry-After', String(Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)));
+        headers.set(
+          'Retry-After',
+          String(Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)),
+        );
 
         return new Response(
           JSON.stringify({
             error: 'Rate limit exceeded',
-            message: `Too many sync requests. Please wait ${Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)} seconds before trying again.`,
+            message: `Too many sync requests. Please wait ${
+              Math.ceil((rateLimitInfo.resetTime - Date.now()) / 1000)
+            } seconds before trying again.`,
             resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
           }),
           {
             status: 429,
             headers,
-          }
+          },
         );
       }
     }
@@ -131,7 +136,7 @@ Deno.serve(async (req: Request) => {
             ...CORS_HEADERS,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
     }
 
@@ -171,7 +176,7 @@ Deno.serve(async (req: Request) => {
           console.error(
             '[workspace-sync] Failed to mark repository %s for sync: %s',
             repoId,
-            error instanceof Error ? error.message : 'Unknown'
+            error instanceof Error ? error.message : 'Unknown',
           );
           return {
             repositoryId: repoId,
@@ -179,7 +184,7 @@ Deno.serve(async (req: Request) => {
             error: error instanceof Error ? error.message : 'Unknown error',
           };
         }
-      })
+      }),
     );
 
     // Process results
@@ -202,7 +207,7 @@ Deno.serve(async (req: Request) => {
       } catch (error) {
         console.error(
           '[workspace-sync] Failed to log sync event: %s',
-          error instanceof Error ? error.message : 'Unknown'
+          error instanceof Error ? error.message : 'Unknown',
         );
       }
 
@@ -231,23 +236,23 @@ Deno.serve(async (req: Request) => {
           if (inngestResponse.ok) {
             console.log(
               '[workspace-sync] Triggered workspace metrics aggregation for workspace %s',
-              workspaceId
+              workspaceId,
             );
           } else {
             console.error(
               '[workspace-sync] Failed to trigger workspace metrics aggregation: %s',
-              await inngestResponse.text()
+              await inngestResponse.text(),
             );
           }
         } else {
           console.warn(
-            '[workspace-sync] INNGEST_PRODUCTION_EVENT_KEY not configured - skipping metrics aggregation'
+            '[workspace-sync] INNGEST_PRODUCTION_EVENT_KEY not configured - skipping metrics aggregation',
           );
         }
       } catch (error) {
         console.error(
           '[workspace-sync] Error triggering workspace metrics aggregation: %s',
-          error instanceof Error ? error.message : 'Unknown'
+          error instanceof Error ? error.message : 'Unknown',
         );
         // Don't fail the sync operation if metrics aggregation fails
       }
@@ -269,10 +274,13 @@ Deno.serve(async (req: Request) => {
           ...CORS_HEADERS,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   } catch (error) {
-    console.error('[workspace-sync] Error: %s', error instanceof Error ? error.message : 'Unknown error');
+    console.error(
+      '[workspace-sync] Error: %s',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
@@ -284,7 +292,7 @@ Deno.serve(async (req: Request) => {
           ...CORS_HEADERS,
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 });

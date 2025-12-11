@@ -11,14 +11,14 @@ import {
   assertExists,
 } from 'https://deno.land/std@0.177.0/testing/asserts.ts';
 import {
-  saveCheckpoint,
-  loadCheckpoint,
+  appendAuditLog,
   deleteCheckpoint,
   hasCheckpoint,
-  listCheckpoints,
-  appendAuditLog,
-  readAuditLog,
   type JobCheckpoint,
+  listCheckpoints,
+  loadCheckpoint,
+  readAuditLog,
+  saveCheckpoint,
 } from '../_shared/s3-storage.ts';
 
 const TEST_PREFIX = `integration-${Date.now()}`;
@@ -163,9 +163,9 @@ Deno.test('Integration: Multiple concurrent jobs with independent checkpoints', 
           jobType,
           job.id,
           { repoId: job.repoId, processed: 0, total: job.totalItems },
-          0
+          0,
         );
-      })
+      }),
     );
 
     // Verify all jobs started
@@ -178,21 +178,21 @@ Deno.test('Integration: Multiple concurrent jobs with independent checkpoints', 
       'job-a',
       { repoId: 'repo-001', processed: 50, total: 100 },
       50,
-      'item-50'
+      'item-50',
     );
     await saveCheckpoint<ConcurrentJobProgress>(
       jobType,
       'job-b',
       { repoId: 'repo-002', processed: 100, total: 250 },
       40,
-      'item-100'
+      'item-100',
     );
     await saveCheckpoint<ConcurrentJobProgress>(
       jobType,
       'job-c',
       { repoId: 'repo-003', processed: 50, total: 50 },
       100,
-      'item-50'
+      'item-50',
     );
 
     // Job C completes - delete its checkpoint

@@ -36,7 +36,7 @@ function getRateLimitKey(req: Request): string {
 
 async function checkRateLimit(
   supabase: ReturnType<typeof createClient>,
-  identifier: string
+  identifier: string,
 ): Promise<RateLimitResult> {
   const key = `rate_limit:codeowners:${identifier}`;
   const now = Date.now();
@@ -91,7 +91,7 @@ async function checkRateLimit(
         window_start: new Date(currentWindowStart).toISOString(),
         last_request: new Date(now).toISOString(),
       },
-      { onConflict: 'key' }
+      { onConflict: 'key' },
     );
 
     return {
@@ -121,7 +121,7 @@ function applyRateLimitHeaders(headers: Headers, rateLimitResult: RateLimitResul
 
 async function fetchCodeOwnersFromDatabase(
   repositoryId: string,
-  supabase: ReturnType<typeof createClient>
+  supabase: ReturnType<typeof createClient>,
 ): Promise<CodeOwnersResponse> {
   try {
     const { data, error } = await supabase
@@ -143,7 +143,10 @@ async function fetchCodeOwnersFromDatabase(
 
     return { content: data.content, exists: true, path: data.file_path };
   } catch (error) {
-    console.error('Error fetching CODEOWNERS from database: %s', error instanceof Error ? error.message : 'Unknown');
+    console.error(
+      'Error fetching CODEOWNERS from database: %s',
+      error instanceof Error ? error.message : 'Unknown',
+    );
     return { exists: false, error: 'Failed to fetch CODEOWNERS from database' };
   }
 }
@@ -172,7 +175,7 @@ function createNotFoundResponse(owner: string, repo: string, trackingUrl?: strin
         ...CORS_HEADERS,
         'Content-Type': 'application/json',
       },
-    }
+    },
   );
 }
 
@@ -216,7 +219,9 @@ Deno.serve(async (req: Request) => {
 
     // Expected path: /repos/:owner/:repo/codeowners
     if (pathParts.length < 4 || pathParts[0] !== 'repos' || pathParts[3] !== 'codeowners') {
-      return createErrorResponse('Invalid API path format. Expected: /repos/:owner/:repo/codeowners');
+      return createErrorResponse(
+        'Invalid API path format. Expected: /repos/:owner/:repo/codeowners',
+      );
     }
 
     const owner = pathParts[1];
@@ -231,7 +236,7 @@ Deno.serve(async (req: Request) => {
 
     if (!isValidRepoName(owner) || !isValidRepoName(repo)) {
       return createErrorResponse(
-        'Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens'
+        'Invalid repository format. Names can only contain letters, numbers, dots, underscores, and hyphens',
       );
     }
 
@@ -251,7 +256,7 @@ Deno.serve(async (req: Request) => {
     if (repoError) {
       return createErrorResponse(
         `Database error while fetching repository: ${repoError.message}`,
-        500
+        500,
       );
     }
 
@@ -282,7 +287,7 @@ Deno.serve(async (req: Request) => {
         try {
           const resp = await fetch(
             `https://api.github.com/repos/${owner}/${repo}/contents/${path}`,
-            { headers }
+            { headers },
           );
 
           if (resp.ok) {
@@ -318,7 +323,11 @@ Deno.serve(async (req: Request) => {
           }
         } catch (e) {
           // Continue to next path
-          console.error('Error fetching CODEOWNERS from path %s: %s', path, e instanceof Error ? e.message : 'Unknown');
+          console.error(
+            'Error fetching CODEOWNERS from path %s: %s',
+            path,
+            e instanceof Error ? e.message : 'Unknown',
+          );
         }
       }
 
@@ -343,7 +352,7 @@ Deno.serve(async (req: Request) => {
           {
             status: 200,
             headers: responseHeaders,
-          }
+          },
         );
       }
     }
@@ -364,13 +373,16 @@ Deno.serve(async (req: Request) => {
       {
         status: 200,
         headers: responseHeaders,
-      }
+      },
     );
   } catch (error) {
-    console.error('Error in codeowners function: %s', error instanceof Error ? error.message : 'Unknown error');
+    console.error(
+      'Error in codeowners function: %s',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     return createErrorResponse(
       `Internal server error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      500
+      500,
     );
   }
 });

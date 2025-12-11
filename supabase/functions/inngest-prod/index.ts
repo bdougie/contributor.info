@@ -6,9 +6,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // S3 Storage for persistent state and faster cold starts
 // @see https://supabase.com/docs/guides/functions/ephemeral-storage
 import {
+  appendAuditLog,
   isS3Configured,
   loadConfigSync,
-  appendAuditLog,
   type StorageConfig,
 } from '../_shared/s3-storage.ts';
 
@@ -45,7 +45,7 @@ async function logJobAudit(
   jobType: string,
   jobId: string,
   action: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
 ): Promise<void> {
   if (!inngestConfig.enableAuditLogging) return;
 
@@ -204,7 +204,7 @@ async function githubGraphQL(
   /**
    * Sleep helper for retry delays
    */
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
@@ -224,7 +224,7 @@ async function githubGraphQL(
   // Handle rate limit errors with exponential backoff
   if (data.errors) {
     const rateLimitError = data.errors.find(
-      (err: any) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit'
+      (err: any) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit',
     );
 
     if (rateLimitError && retryCount < MAX_RETRIES) {
@@ -233,7 +233,7 @@ async function githubGraphQL(
         'GraphQL rate limit hit. Retrying in %d seconds (attempt %d/%d)',
         backoffDelay / 1000,
         retryCount + 1,
-        MAX_RETRIES
+        MAX_RETRIES,
       );
       await sleep(backoffDelay);
       return githubGraphQL(query, variables, token, retryCount + 1);
@@ -765,7 +765,7 @@ const captureRepositoryCommentsAll = inngest.createFunction(
       cutoffDate.setDate(cutoffDate.getDate() - days);
 
       const data = await githubRequest(
-        `/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${maxPRs}`
+        `/repos/${owner}/${repo}/pulls?state=all&sort=updated&direction=desc&per_page=${maxPRs}`,
       );
 
       // Filter to only PRs updated within the time range
@@ -774,7 +774,9 @@ const captureRepositoryCommentsAll = inngest.createFunction(
         return updatedAt >= cutoffDate;
       });
 
-      console.log(`[capture-repository-comments-all] Found ${filteredPRs.length} PRs updated in last ${days} days for ${owner}/${repo}`);
+      console.log(
+        `[capture-repository-comments-all] Found ${filteredPRs.length} PRs updated in last ${days} days for ${owner}/${repo}`,
+      );
       return filteredPRs;
     });
 
@@ -807,17 +809,20 @@ const captureRepositoryCommentsAll = inngest.createFunction(
             successCount++;
           } else {
             console.error(
-              `[capture-repository-comments-all] Failed to queue PR #${pr.number}: ${await response.text()}`
+              `[capture-repository-comments-all] Failed to queue PR #${pr.number}: ${await response
+                .text()}`,
             );
           }
         } catch (error) {
           console.error(
-            `[capture-repository-comments-all] Error queuing PR #${pr.number}: ${error}`
+            `[capture-repository-comments-all] Error queuing PR #${pr.number}: ${error}`,
           );
         }
       }
 
-      console.log(`[capture-repository-comments-all] Successfully queued ${successCount}/${prs.length} PR comment jobs`);
+      console.log(
+        `[capture-repository-comments-all] Successfully queued ${successCount}/${prs.length} PR comment jobs`,
+      );
       return successCount;
     });
 
@@ -955,14 +960,18 @@ const captureRepositoryIssues = inngest.createFunction(
         [key: string]: unknown;
       }
       const filteredIssues = (data as GitHubIssue[]).filter((issue) => !('pull_request' in issue));
-      console.log(`[capture-repository-issues] Fetched ${filteredIssues.length} issues for ${owner}/${repo}`);
+      console.log(
+        `[capture-repository-issues] Fetched ${filteredIssues.length} issues for ${owner}/${repo}`,
+      );
       return filteredIssues;
     });
 
     await step.run('store-issues', async () => {
       const supabase = getSupabaseClient();
 
-      console.log(`[capture-repository-issues] Starting to store ${issues.length} issues for repository ${repositoryId}`);
+      console.log(
+        `[capture-repository-issues] Starting to store ${issues.length} issues for repository ${repositoryId}`,
+      );
 
       let storedCount = 0;
       let skippedCount = 0;
@@ -1002,14 +1011,19 @@ const captureRepositoryIssues = inngest.createFunction(
           });
 
         if (error) {
-          console.error(`[capture-repository-issues] Failed to store issue #${issue.number}:`, error);
+          console.error(
+            `[capture-repository-issues] Failed to store issue #${issue.number}:`,
+            error,
+          );
           errorCount++;
         } else {
           storedCount++;
         }
       }
 
-      console.log(`[capture-repository-issues] Complete: ${storedCount} stored, ${skippedCount} skipped, ${errorCount} errors`);
+      console.log(
+        `[capture-repository-issues] Complete: ${storedCount} stored, ${skippedCount} skipped, ${errorCount} errors`,
+      );
     });
 
     return { repository: `${owner}/${repo}`, issues_count: issues.length };
@@ -1210,15 +1224,20 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
 
       // No filtering - we want the 100 most recent PRs regardless of date
       // The CREATED_AT DESC ordering already gives us the newest PRs
-      console.log(`[DEBUG] Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name}`);
+      console.log(
+        `[DEBUG] Fetched ${prs.length} newest PRs from ${repository.owner}/${repository.name}`,
+      );
 
       // Log first 3 PRs to verify we got the newest ones
       if (prs.length > 0) {
-        console.log('[DEBUG] First 3 PRs (newest):', prs.slice(0, 3).map((pr: any) => ({
-          number: pr.number,
-          title: pr.title,
-          createdAt: pr.createdAt
-        })));
+        console.log(
+          '[DEBUG] First 3 PRs (newest):',
+          prs.slice(0, 3).map((pr: any) => ({
+            number: pr.number,
+            title: pr.title,
+            createdAt: pr.createdAt,
+          })),
+        );
       }
 
       return prs;
@@ -1227,7 +1246,9 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
     // Step 3: Store PRs in database
     await step.run('store-prs', async () => {
       const supabase = getSupabaseClient();
-      console.log(`[DEBUG] Starting to store ${prs.length} PRs for ${repository.owner}/${repository.name}`);
+      console.log(
+        `[DEBUG] Starting to store ${prs.length} PRs for ${repository.owner}/${repository.name}`,
+      );
 
       let successCount = 0;
       let errorCount = 0;
@@ -1277,7 +1298,9 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
           successCount++;
           // Log first 3 successful PRs in detail
           if (successCount <= 3) {
-            console.log(`[DEBUG] Successfully upserted PR #${pr.number}: ${pr.title} (created: ${pr.createdAt})`);
+            console.log(
+              `[DEBUG] Successfully upserted PR #${pr.number}: ${pr.title} (created: ${pr.createdAt})`,
+            );
           }
         }
       }
@@ -1555,7 +1578,7 @@ const classifySingleRepository = inngest.createFunction(
     if (!repositoryId || !owner || !repo) {
       console.error('Missing required fields in event data:', event.data);
       throw new NonRetriableError(
-        `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`
+        `Missing required fields: repositoryId=${repositoryId}, owner=${owner}, repo=${repo}`,
       );
     }
 
@@ -1582,7 +1605,7 @@ const classifySingleRepository = inngest.createFunction(
       // Calculate activity level
       const lastPushDate = new Date(repoData.pushed_at);
       const daysSinceLastPush = Math.floor(
-        (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24)
+        (Date.now() - lastPushDate.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       const activity_level = daysSinceLastPush < 7
@@ -1618,7 +1641,7 @@ const classifySingleRepository = inngest.createFunction(
       size,
       timestamp: new Date().toISOString(),
     };
-  }
+  },
 );
 
 // 11. compute-embeddings - Runs every 15 minutes
@@ -2000,7 +2023,9 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       }
 
       // Extract repositories with proper typing
-      const repos = data?.map((wr: { repositories: WorkspaceRepository }) => wr.repositories).filter(Boolean) || [];
+      const repos = data?.map((wr: { repositories: WorkspaceRepository }) =>
+        wr.repositories
+      ).filter(Boolean) || [];
       console.log('[workspace-metrics] Found %s repositories for workspace', repos.length);
 
       return repos;
@@ -2030,7 +2055,9 @@ const aggregateWorkspaceMetrics = inngest.createFunction(
       const metrics = {
         total: data?.length || 0,
         open: data?.filter((pr: PullRequestData) => pr.state === 'open').length || 0,
-        closed: data?.filter((pr: PullRequestData) => pr.state === 'closed' && !pr.merged_at).length || 0,
+        closed: data?.filter((pr: PullRequestData) =>
+          pr.state === 'closed' && !pr.merged_at
+        ).length || 0,
         merged: data?.filter((pr: PullRequestData) => pr.merged_at).length || 0,
       };
 
@@ -2287,12 +2314,11 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
         const hoursSinceSync = (Date.now() - lastSyncTime) / (1000 * 60 * 60);
 
         if (hoursSinceSync < 12) {
-          const timeAgo =
-            hoursSinceSync < 1
-              ? `${Math.round(hoursSinceSync * 60)} minutes`
-              : `${Math.round(hoursSinceSync)} hours`;
+          const timeAgo = hoursSinceSync < 1
+            ? `${Math.round(hoursSinceSync * 60)} minutes`
+            : `${Math.round(hoursSinceSync)} hours`;
           throw new NonRetriableError(
-            `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`
+            `Repository ${data.owner}/${data.name} was synced ${timeAgo} ago. Skipping to prevent excessive API usage.`,
           );
         }
       }
@@ -2306,7 +2332,7 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
         console.log(
           'Repository %s/%s is already being backfilled',
           repository.owner,
-          repository.name
+          repository.name,
         );
         return false;
       }
@@ -2331,7 +2357,7 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
           'Repository %s/%s is only %s%% complete, initiating backfill',
           repository.owner,
           repository.name,
-          Math.round(completeness * 100)
+          Math.round(completeness * 100),
         );
 
         // Create backfill state
@@ -2421,15 +2447,23 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
 
       // No filtering - we want the 100 most recent PRs regardless of date
       // The CREATED_AT DESC ordering already gives us the newest PRs
-      console.log('[DEBUG-ENHANCED] Fetched %s newest PRs from %s/%s', prs.length, repository.owner, repository.name);
+      console.log(
+        '[DEBUG-ENHANCED] Fetched %s newest PRs from %s/%s',
+        prs.length,
+        repository.owner,
+        repository.name,
+      );
 
       // Log first 3 PRs to verify we got the newest ones
       if (prs.length > 0) {
-        console.log('[DEBUG-ENHANCED] First 3 PRs (newest):', prs.slice(0, 3).map((pr: any) => ({
-          number: pr.number,
-          title: pr.title,
-          createdAt: pr.createdAt
-        })));
+        console.log(
+          '[DEBUG-ENHANCED] First 3 PRs (newest):',
+          prs.slice(0, 3).map((pr: any) => ({
+            number: pr.number,
+            title: pr.title,
+            createdAt: pr.createdAt,
+          })),
+        );
       }
 
       return prs;
@@ -2452,9 +2486,9 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
             supabase,
             pr.author.login,
             pr.author.avatarUrl,
-            pr.author.databaseId
+            pr.author.databaseId,
           );
-        })
+        }),
       );
 
       // Prepare PRs for storage
@@ -2527,7 +2561,7 @@ const captureRepositorySyncEnhanced = inngest.createFunction(
     logJobAudit('repository-sync-enhanced', jobId, 'completed', result);
 
     return result;
-  }
+  },
 );
 
 // ============================================================================
@@ -2579,7 +2613,8 @@ async function generateDiscussionSummary(discussion: GitHubDiscussion): Promise<
 
   try {
     const bodyPreview = discussion.body?.substring(0, 500) || '';
-    const prompt = `Summarize this GitHub discussion in 1-2 concise sentences (max 150 chars). Focus on the MAIN QUESTION or TOPIC and KEY POINTS. Use plain text only.
+    const prompt =
+      `Summarize this GitHub discussion in 1-2 concise sentences (max 150 chars). Focus on the MAIN QUESTION or TOPIC and KEY POINTS. Use plain text only.
 
 Title: ${discussion.title}
 Body: ${bodyPreview}
@@ -2611,7 +2646,7 @@ Summary:`;
     console.error(
       'Failed to generate summary for discussion %s: %s',
       discussion.number,
-      error.message
+      error.message,
     );
     return null;
   }
@@ -2652,7 +2687,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
       // Skip if repository doesn't have discussions enabled
       if (!data.has_discussions) {
         throw new NonRetriableError(
-          `Repository ${data.owner}/${data.name} does not have discussions enabled`
+          `Repository ${data.owner}/${data.name} does not have discussions enabled`,
         );
       }
 
@@ -2676,7 +2711,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
       /**
        * Sleep helper for adding delays between API calls
        */
-      const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
       /**
        * Fetch a single page of discussions with retry logic
@@ -2766,7 +2801,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
         // Handle rate limit errors with exponential backoff
         if (result.errors) {
           const rateLimitError = result.errors.find(
-            (err) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit'
+            (err) => err.type === 'RATE_LIMIT' || err.code === 'graphql_rate_limit',
           );
 
           if (rateLimitError && retryCount < MAX_RETRIES) {
@@ -2775,7 +2810,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
               'Rate limit hit. Retrying in %d seconds (attempt %d/%d)',
               backoffDelay / 1000,
               retryCount + 1,
-              MAX_RETRIES
+              MAX_RETRIES,
             );
             await sleep(backoffDelay);
             return fetchPageWithRetry(retryCount + 1);
@@ -2816,14 +2851,14 @@ const captureRepositoryDiscussions = inngest.createFunction(
           console.log(
             'Fetched %d discussions (%d total so far)',
             pageDiscussions.length,
-            discussions.length
+            discussions.length,
           );
         }
 
         console.log(
           'Completed fetching discussions: %d total, %d API calls used',
           discussions.length,
-          apiCallsUsed
+          apiCallsUsed,
         );
 
         return discussions;
@@ -2832,7 +2867,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
           'Error fetching discussions for %s/%s: %s',
           repository.owner,
           repository.name,
-          error.message
+          error.message,
         );
         throw error;
       }
@@ -2947,7 +2982,7 @@ const captureRepositoryDiscussions = inngest.createFunction(
       discussionsStored: processedCount,
       apiCallsUsed,
     };
-  }
+  },
 );
 
 // ============================================================================
@@ -3018,7 +3053,7 @@ const syncDiscussionsCron = inngest.createFunction(
               'Failed to queue discussion sync for %s/%s: %s',
               repo.owner,
               repo.name,
-              await response.text()
+              await response.text(),
             );
           }
         } catch (error) {
@@ -3026,7 +3061,7 @@ const syncDiscussionsCron = inngest.createFunction(
             'Error queuing discussion sync for %s/%s: %s',
             repo.owner,
             repo.name,
-            error
+            error,
           );
         }
       }
@@ -3041,7 +3076,7 @@ const syncDiscussionsCron = inngest.createFunction(
       repositoriesSynced: eventsSent,
       repositories: repositories.map((r: any) => `${r.owner}/${r.name}`),
     };
-  }
+  },
 );
 
 // ============================================================================
@@ -3089,7 +3124,7 @@ const handleWorkspaceRepositoryChange = inngest.createFunction(
         workspaceId,
         action,
         repositoryName,
-        repositoryId
+        repositoryId,
       );
 
       return { logged: true };
@@ -3119,7 +3154,7 @@ const handleWorkspaceRepositoryChange = inngest.createFunction(
       cacheInvalidated: true,
       aggregationTriggered: true,
     };
-  }
+  },
 );
 
 // ============================================================================
@@ -3217,7 +3252,7 @@ const cleanupWorkspaceMetricsData = inngest.createFunction(
       queueEntriesDeleted: queueCleanup.deleted,
       historyEntriesDeleted: historyCleanup.deleted,
     };
-  }
+  },
 );
 
 // ============================================================================
@@ -3306,9 +3341,7 @@ const syncWorkspacePriorities = inngest.createFunction(
       const supabase = getSupabaseClient();
 
       // Get repos NOT in any workspace
-      const queryFilter = workspaceRepoIds.length > 0
-        ? workspaceRepoIds.join(',')
-        : 'null';
+      const queryFilter = workspaceRepoIds.length > 0 ? workspaceRepoIds.join(',') : 'null';
 
       const { data: trackedOnlyRepos, error: trackedError } = await supabase
         .from('tracked_repositories')
@@ -3334,7 +3367,7 @@ const syncWorkspacePriorities = inngest.createFunction(
         })
         .in(
           'repository_id',
-          trackedOnlyRepos.map((r: any) => r.repository_id)
+          trackedOnlyRepos.map((r: any) => r.repository_id),
         )
         .neq('priority', 'medium') // Only count actual changes
         .select('repository_id');
@@ -3359,7 +3392,7 @@ const syncWorkspacePriorities = inngest.createFunction(
     console.log('Workspace priority sync completed:', result);
 
     return result;
-  }
+  },
 );
 
 // Define our functions registry

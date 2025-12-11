@@ -132,14 +132,14 @@ serve(async (req) => {
     if (membershipError || !membership) {
       console.error(
         'Workspace membership check failed: %s',
-        membershipError?.message || 'User not a member'
+        membershipError?.message || 'User not a member',
       );
       return new Response(
         JSON.stringify({ error: 'Access denied: not a member of this workspace' }),
         {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -150,7 +150,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -234,7 +234,7 @@ serve(async (req) => {
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        },
       );
     }
 
@@ -255,7 +255,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   } catch (error) {
     console.error('Unexpected error: %s', error);
@@ -267,7 +267,7 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      },
     );
   }
 });

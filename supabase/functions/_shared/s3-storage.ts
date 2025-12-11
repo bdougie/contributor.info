@@ -273,7 +273,7 @@ export async function saveCheckpoint<T = Record<string, unknown>>(
   jobId: string,
   data: T,
   progress: number,
-  lastProcessedId?: string
+  lastProcessedId?: string,
 ): Promise<boolean> {
   const now = new Date().toISOString();
   const key = getCheckpointPath(jobType, jobId);
@@ -299,7 +299,7 @@ export async function saveCheckpoint<T = Record<string, unknown>>(
       'Checkpoint saved for %s/%s: %d%% complete',
       jobType,
       jobId,
-      checkpoint.progress
+      checkpoint.progress,
     );
   }
 
@@ -311,7 +311,7 @@ export async function saveCheckpoint<T = Record<string, unknown>>(
  */
 export async function loadCheckpoint<T = Record<string, unknown>>(
   jobType: string,
-  jobId: string
+  jobId: string,
 ): Promise<JobCheckpoint<T> | null> {
   const key = getCheckpointPath(jobType, jobId);
   const checkpoint = await readJson<JobCheckpoint<T>>(key);
@@ -322,7 +322,7 @@ export async function loadCheckpoint<T = Record<string, unknown>>(
       jobType,
       jobId,
       checkpoint.progress,
-      checkpoint.lastProcessedId || 'none'
+      checkpoint.lastProcessedId || 'none',
     );
   }
 
@@ -403,7 +403,7 @@ export async function loadConfig<T extends StorageConfig>(configName: string): P
  */
 export async function saveConfig<T extends StorageConfig>(
   configName: string,
-  config: T
+  config: T,
 ): Promise<boolean> {
   const key = `config/${configName}.json`;
   return await writeJson(key, config);
@@ -428,7 +428,7 @@ export async function appendAuditLog(
   jobType: string,
   jobId: string,
   action: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
 ): Promise<boolean> {
   const key = `audit/${jobType}/${jobId}.jsonl`;
   const entry: AuditLogEntry = {
@@ -463,7 +463,7 @@ export async function appendAuditLog(
  */
 export async function readAuditLog(
   jobType: string,
-  jobId: string
+  jobId: string,
 ): Promise<AuditLogEntry[]> {
   const key = `audit/${jobType}/${jobId}.jsonl`;
   const content = await readTextFile(key);

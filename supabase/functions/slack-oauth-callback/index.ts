@@ -162,7 +162,8 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=network_error`,
+          Location:
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=network_error`,
         },
       });
     }
@@ -172,7 +173,8 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=oauth_failed`,
+          Location:
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=oauth_failed`,
         },
       });
     }
@@ -185,7 +187,8 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=invalid_response`,
+          Location:
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=invalid_response`,
         },
       });
     }
@@ -302,7 +305,8 @@ serve(async (req) => {
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=unexpected_error`,
+          Location:
+            `${FRONTEND_URL}/workspace/${workspaceId}/settings?slack_install=error&error=unexpected_error`,
         },
       });
     }
