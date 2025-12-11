@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # Enable standard Netlify processing
 [build.processing]
@@ -37,6 +38,7 @@
 [context.production.environment]
   # Production-specific env vars can go here
   VITE_CONTEXT = "production"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [context.deploy-preview.environment]
   # Deploy preview specific env vars
@@ -46,6 +48,7 @@
   VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
   VITE_DEPLOY_URL = "$DEPLOY_URL"
   VITE_URL = "$URL"
+  NODE_OPTIONS = "--max-old-space-size=4096"
   # NOTE: VITE_DUB_CO_KEY must be set in Netlify UI for oss.fyi link shortening
   # Without it, share buttons will return original URLs instead of short links
 
@@ -57,6 +60,7 @@
   VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
   VITE_DEPLOY_URL = "$DEPLOY_URL"
   VITE_URL = "$URL"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [functions]
   directory = "netlify/functions"
