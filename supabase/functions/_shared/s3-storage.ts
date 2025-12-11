@@ -18,6 +18,16 @@ const S3_BASE_PATH = `/s3/${S3_BUCKET_NAME}`;
 const EPHEMERAL_BASE_PATH = '/tmp';
 
 /**
+ * Validate that a path segment doesn't contain path traversal characters
+ * Prevents directory traversal attacks when building storage paths
+ */
+function assertSafeSegment(segment: string, label: string): void {
+  if (segment.includes('..') || segment.includes('/') || segment.includes('\\')) {
+    throw new Error(`${label} must not contain path separators or '..'`);
+  }
+}
+
+/**
  * Check if S3 storage is configured
  * Required env vars: S3FS_ENDPOINT_URL, S3FS_ACCESS_KEY_ID, S3FS_SECRET_ACCESS_KEY
  */
@@ -262,6 +272,8 @@ export interface JobCheckpoint<T = Record<string, unknown>> {
  * Get the checkpoint path for a job
  */
 function getCheckpointPath(jobType: string, jobId: string): string {
+  assertSafeSegment(jobType, 'jobType');
+  assertSafeSegment(jobId, 'jobId');
   return `checkpoints/${jobType}/${jobId}.json`;
 }
 
@@ -355,6 +367,7 @@ export async function hasCheckpoint(jobType: string, jobId: string): Promise<boo
  * List all checkpoints for a job type
  */
 export async function listCheckpoints(jobType: string): Promise<string[]> {
+  assertSafeSegment(jobType, 'jobType');
   const dirPath = getStoragePath(`checkpoints/${jobType}`);
   const jobIds: string[] = [];
 
@@ -430,6 +443,9 @@ export async function appendAuditLog(
   action: string,
   details?: Record<string, unknown>,
 ): Promise<boolean> {
+  assertSafeSegment(jobType, 'jobType');
+  assertSafeSegment(jobId, 'jobId');
+
   const key = `audit/${jobType}/${jobId}.jsonl`;
   const entry: AuditLogEntry = {
     timestamp: new Date().toISOString(),
@@ -447,11 +463,13 @@ export async function appendAuditLog(
     // Append to file (JSONL format - one JSON object per line)
     const line = JSON.stringify(entry) + '\n';
     const file = await Deno.open(path, { write: true, create: true, append: true });
-    const encoder = new TextEncoder();
-    await file.write(encoder.encode(line));
-    file.close();
-
-    return true;
+    try {
+      const encoder = new TextEncoder();
+      await file.write(encoder.encode(line));
+      return true;
+    } finally {
+      file.close();
+    }
   } catch (error) {
     console.error('Error appending audit log for %s/%s:', jobType, jobId, error);
     return false;
@@ -465,6 +483,9 @@ export async function readAuditLog(
   jobType: string,
   jobId: string,
 ): Promise<AuditLogEntry[]> {
+  assertSafeSegment(jobType, 'jobType');
+  assertSafeSegment(jobId, 'jobId');
+
   const key = `audit/${jobType}/${jobId}.jsonl`;
   const content = await readTextFile(key);
 

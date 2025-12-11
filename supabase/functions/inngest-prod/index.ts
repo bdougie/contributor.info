@@ -24,10 +24,12 @@ interface InngestConfig extends StorageConfig {
 }
 
 // Load configuration synchronously at startup (fast cold starts)
-const inngestConfig = loadConfigSync<InngestConfig>('inngest') || {
+// Use object spread to properly merge defaults with loaded config
+const inngestConfig: InngestConfig = {
   defaultThrottleLimit: 75,
   defaultConcurrencyLimit: 5,
   enableAuditLogging: true,
+  ...(loadConfigSync<InngestConfig>('inngest') ?? {}),
 };
 
 // Log S3 storage status at initialization
