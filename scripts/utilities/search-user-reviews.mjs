@@ -17,8 +17,8 @@ console.log(`🔍 Searching for PR reviews by ${username} in August 2024...`);
 
 async function searchPullRequestReviews(username, startDate, endDate) {
   const headers = {
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'contributor-info-search'
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'contributor-info-search',
   };
 
   // Get GitHub token from environment
@@ -34,18 +34,20 @@ async function searchPullRequestReviews(username, startDate, endDate) {
     // We'll use the GitHub search API to find issues/PRs with comments from the user
     const searchQuery = `commenter:${username} type:pr created:${targetMonth}`;
     const searchUrl = `${GITHUB_API_BASE}/search/issues?q=${encodeURIComponent(searchQuery)}&per_page=100&sort=updated&order=desc`;
-    
+
     console.log(`📡 Searching GitHub API: ${searchUrl}`);
-    
+
     const searchResponse = await fetch(searchUrl, { headers });
-    
+
     if (!searchResponse.ok) {
       const error = await searchResponse.json();
       throw new Error(`GitHub Search API error: ${error.message || searchResponse.statusText}`);
     }
 
     const searchData = await searchResponse.json();
-    console.log(`📊 Found ${searchData.total_count} PRs with comments/activity from ${username} in ${targetMonth}`);
+    console.log(
+      `📊 Found ${searchData.total_count} PRs with comments/activity from ${username} in ${targetMonth}`
+    );
 
     if (searchData.total_count === 0) {
       console.log(`❌ No PRs found with activity from ${username} in ${targetMonth}`);
@@ -54,7 +56,7 @@ async function searchPullRequestReviews(username, startDate, endDate) {
 
     // Now let's check each PR to see if the user actually left reviews
     const reviewsFound = [];
-    
+
     for (const pr of searchData.items) {
       // Extract owner and repo from the PR URL
       const urlParts = pr.html_url.split('/');
@@ -70,25 +72,28 @@ async function searchPullRequestReviews(username, startDate, endDate) {
         const reviewsResponse = await fetch(reviewsUrl, { headers });
 
         if (!reviewsResponse.ok) {
-          console.log(`  ⚠️  Could not fetch reviews for ${owner}/${repo}#${prNumber}: ${reviewsResponse.statusText}`);
+          console.log(
+            `  ⚠️  Could not fetch reviews for ${owner}/${repo}#${prNumber}: ${reviewsResponse.statusText}`
+          );
           continue;
         }
 
         const reviews = await reviewsResponse.json();
-        
+
         // Filter reviews by the target user and date range
-        const userReviews = reviews.filter(review => {
+        const userReviews = reviews.filter((review) => {
           if (review.user.login !== username) return false;
-          
+
           const reviewDate = new Date(review.submitted_at);
-          const reviewInRange = reviewDate >= new Date(startDate) && reviewDate <= new Date(endDate);
-          
+          const reviewInRange =
+            reviewDate >= new Date(startDate) && reviewDate <= new Date(endDate);
+
           return reviewInRange;
         });
 
         if (userReviews.length > 0) {
           console.log(`  ✅ Found ${userReviews.length} review(s) by ${username}`);
-          
+
           for (const review of userReviews) {
             reviewsFound.push({
               repository: `${owner}/${repo}`,
@@ -98,9 +103,9 @@ async function searchPullRequestReviews(username, startDate, endDate) {
               reviewId: review.id,
               reviewState: review.state,
               submittedAt: review.submitted_at,
-              reviewUrl: `${pr.html_url}#pullrequestreview-${review.id}`
+              reviewUrl: `${pr.html_url}#pullrequestreview-${review.id}`,
             });
-            
+
             console.log(`    📝 Review: ${review.state} on ${review.submitted_at}`);
           }
         } else {
@@ -108,15 +113,13 @@ async function searchPullRequestReviews(username, startDate, endDate) {
         }
 
         // Add a small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
-
+        await new Promise((resolve) => setTimeout(resolve, 100));
       } catch (error) {
         console.log(`  ⚠️  Error checking PR ${owner}/${repo}#${prNumber}:`, error.message);
       }
     }
 
     return reviewsFound;
-
   } catch (error) {
     console.error('❌ Error searching for reviews:', error.message);
     throw error;
@@ -125,10 +128,10 @@ async function searchPullRequestReviews(username, startDate, endDate) {
 
 async function searchUserReviewsAlternative(username, startDate, endDate) {
   console.log(`🔄 Trying alternative search approach...`);
-  
+
   const headers = {
-    'Accept': 'application/vnd.github.v3+json',
-    'User-Agent': 'contributor-info-search'
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'contributor-info-search',
   };
 
   const token = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
@@ -142,14 +145,14 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
       `involves:${username} type:pr created:${targetMonth}`,
       `mentions:${username} type:pr created:${targetMonth}`,
       `assignee:${username} type:pr created:${targetMonth}`,
-      `author:${username} type:pr created:${targetMonth}`
+      `author:${username} type:pr created:${targetMonth}`,
     ];
 
     const allReviews = [];
 
     for (const query of searchQueries) {
       console.log(`📡 Searching with query: ${query}`);
-      
+
       const searchUrl = `${GITHUB_API_BASE}/search/issues?q=${encodeURIComponent(query)}&per_page=100`;
       const response = await fetch(searchUrl, { headers });
 
@@ -162,7 +165,8 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
       console.log(`📊 Found ${data.total_count} results for query`);
 
       // Check each PR for reviews
-      for (const pr of data.items.slice(0, 20)) { // Limit to first 20 to avoid rate limits
+      for (const pr of data.items.slice(0, 20)) {
+        // Limit to first 20 to avoid rate limits
         const urlParts = pr.html_url.split('/');
         const owner = urlParts[3];
         const repo = urlParts[4];
@@ -174,7 +178,7 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
 
           if (reviewsResponse.ok) {
             const reviews = await reviewsResponse.json();
-            const userReviews = reviews.filter(review => {
+            const userReviews = reviews.filter((review) => {
               if (review.user.login !== username) return false;
               const reviewDate = new Date(review.submitted_at);
               return reviewDate >= new Date(startDate) && reviewDate <= new Date(endDate);
@@ -182,7 +186,7 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
 
             for (const review of userReviews) {
               // Avoid duplicates
-              const isDuplicate = allReviews.some(r => r.reviewId === review.id);
+              const isDuplicate = allReviews.some((r) => r.reviewId === review.id);
               if (!isDuplicate) {
                 allReviews.push({
                   repository: `${owner}/${repo}`,
@@ -192,24 +196,23 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
                   reviewId: review.id,
                   reviewState: review.state,
                   submittedAt: review.submitted_at,
-                  reviewUrl: `${pr.html_url}#pullrequestreview-${review.id}`
+                  reviewUrl: `${pr.html_url}#pullrequestreview-${review.id}`,
                 });
               }
             }
           }
 
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         } catch (error) {
           console.log(`Error checking ${owner}/${repo}#${prNumber}:`, error.message);
         }
       }
 
       // Delay between different search queries
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     return allReviews;
-
   } catch (error) {
     console.error('❌ Alternative search failed:', error.message);
     return [];
@@ -219,11 +222,11 @@ async function searchUserReviewsAlternative(username, startDate, endDate) {
 async function main() {
   console.log(`🚀 Starting search for ${username}'s PR reviews in August 2024`);
   console.log(`📅 Date range: ${startDate} to ${endDate}`);
-  
+
   try {
     // Try the primary search method
     let reviews = await searchPullRequestReviews(username, startDate, endDate);
-    
+
     // If we didn't find many results, try alternative approaches
     if (reviews.length === 0) {
       console.log(`🔄 No reviews found with primary method. Trying alternative search...`);
@@ -232,8 +235,8 @@ async function main() {
     }
 
     // Remove duplicates based on reviewId
-    const uniqueReviews = reviews.filter((review, index, self) => 
-      index === self.findIndex(r => r.reviewId === review.reviewId)
+    const uniqueReviews = reviews.filter(
+      (review, index, self) => index === self.findIndex((r) => r.reviewId === review.reviewId)
     );
 
     console.log('\n' + '='.repeat(60));
@@ -241,14 +244,14 @@ async function main() {
     console.log('='.repeat(60));
     console.log(`📅 Period: August 2024`);
     console.log(`🎯 Total PR Reviews Found: ${uniqueReviews.length}`);
-    
+
     if (uniqueReviews.length > 0) {
       console.log('\n📝 Review Details:');
       console.log('-'.repeat(60));
-      
+
       // Group by repository
       const reviewsByRepo = {};
-      uniqueReviews.forEach(review => {
+      uniqueReviews.forEach((review) => {
         if (!reviewsByRepo[review.repository]) {
           reviewsByRepo[review.repository] = [];
         }
@@ -256,11 +259,13 @@ async function main() {
       });
 
       Object.entries(reviewsByRepo).forEach(([repo, repoReviews]) => {
-        console.log(`\n📁 ${repo} (${repoReviews.length} review${repoReviews.length !== 1 ? 's' : ''})`);
-        
+        console.log(
+          `\n📁 ${repo} (${repoReviews.length} review${repoReviews.length !== 1 ? 's' : ''})`
+        );
+
         repoReviews
           .sort((a, b) => new Date(a.submittedAt) - new Date(b.submittedAt))
-          .forEach(review => {
+          .forEach((review) => {
             const date = new Date(review.submittedAt).toLocaleDateString();
             console.log(`  • PR #${review.prNumber}: ${review.reviewState} on ${date}`);
             console.log(`    ${review.prTitle}`);
@@ -271,10 +276,10 @@ async function main() {
       // Summary by review type
       console.log('\n📈 Review Summary:');
       const reviewStates = {};
-      uniqueReviews.forEach(review => {
+      uniqueReviews.forEach((review) => {
         reviewStates[review.reviewState] = (reviewStates[review.reviewState] || 0) + 1;
       });
-      
+
       Object.entries(reviewStates).forEach(([state, count]) => {
         console.log(`  ${state}: ${count}`);
       });
@@ -284,7 +289,6 @@ async function main() {
     console.log(`✅ Search completed successfully!`);
     console.log(`📊 ${username} made ${uniqueReviews.length} pull request reviews in August 2024`);
     console.log('='.repeat(60));
-
   } catch (error) {
     console.error('\n❌ Search failed:', error.message);
     process.exit(1);

@@ -8,7 +8,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'supabase/**/*.sql'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   check-rls-policies:

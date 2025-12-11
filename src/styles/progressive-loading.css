@@ -59,7 +59,9 @@
 .scatter-point-enter-active {
   opacity: 1;
   transform: scale(1);
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  transition:
+    opacity 0.3s ease-out,
+    transform 0.3s ease-out;
 }
 
 /* Loading shimmer effect for skeleton */
@@ -96,25 +98,25 @@
 }
 
 /* Smooth transition between chart states */
-.progressive-chart-container[data-stage="skeleton"] .progressive-chart-skeleton {
+.progressive-chart-container[data-stage='skeleton'] .progressive-chart-skeleton {
   opacity: 1;
   z-index: 3;
 }
 
-.progressive-chart-container[data-stage="low-fi"] .progressive-chart-lowfi {
+.progressive-chart-container[data-stage='low-fi'] .progressive-chart-lowfi {
   opacity: 1;
   z-index: 2;
 }
 
-.progressive-chart-container[data-stage="high-fi"] .progressive-chart-highfi {
+.progressive-chart-container[data-stage='high-fi'] .progressive-chart-highfi {
   opacity: 1;
   z-index: 1;
 }
 
 /* Hide non-active stages */
-.progressive-chart-container[data-stage="low-fi"] .progressive-chart-skeleton,
-.progressive-chart-container[data-stage="high-fi"] .progressive-chart-skeleton,
-.progressive-chart-container[data-stage="high-fi"] .progressive-chart-lowfi {
+.progressive-chart-container[data-stage='low-fi'] .progressive-chart-skeleton,
+.progressive-chart-container[data-stage='high-fi'] .progressive-chart-skeleton,
+.progressive-chart-container[data-stage='high-fi'] .progressive-chart-lowfi {
   opacity: 0;
   pointer-events: none;
 }

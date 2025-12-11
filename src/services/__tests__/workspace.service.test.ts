@@ -424,7 +424,8 @@ describe('WorkspaceService', () => {
 
       // Mock repositories table for event payload
       const repositoriesMock = {
-        select: vi.fn().mockReturnValue({          eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { full_name: 'test/repo' },
               error: null,

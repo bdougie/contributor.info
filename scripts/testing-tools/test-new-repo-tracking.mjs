@@ -17,10 +17,10 @@ async function testNewRepoTracking() {
   // Test repository that likely doesn't exist in our database
   const testOwner = 'pytorch';
   const testRepo = 'pytorch';
-  
+
   console.log(`\nTesting repository tracking for: ${testOwner}/${testRepo}`);
   console.log('================================================\n');
-  
+
   // Check if repository exists
   const { data: repoData, error: repoError } = await supabase
     .from('repositories')
@@ -28,7 +28,7 @@ async function testNewRepoTracking() {
     .eq('owner', testOwner)
     .eq('name', testRepo)
     .single();
-    
+
   if (repoError && repoError.code === 'PGRST116') {
     console.log('✅ Repository not found in database (as expected for test)');
     console.log('   This would trigger the new repository notification\n');
@@ -37,7 +37,7 @@ async function testNewRepoTracking() {
     console.log(`   ID: ${repoData.id}`);
     console.log(`   Repository: ${repoData.owner}/${repoData.name}\n`);
   }
-  
+
   // Check tracked_repositories table
   const { data: trackedData, error: trackedError } = await supabase
     .from('tracked_repositories')
@@ -45,7 +45,7 @@ async function testNewRepoTracking() {
     .eq('organization_name', testOwner)
     .eq('repository_name', testRepo)
     .single();
-    
+
   if (trackedError && trackedError.code === 'PGRST116') {
     console.log('✅ Repository not in tracked_repositories table');
     console.log('   Would be added when user searches for it\n');
@@ -56,7 +56,7 @@ async function testNewRepoTracking() {
     console.log(`   Size: ${trackedData.size || 'Not calculated yet'}`);
     console.log(`   Created: ${new Date(trackedData.created_at).toLocaleString()}\n`);
   }
-  
+
   console.log('🎯 Expected behavior when user searches for this repo:');
   console.log('   1. Show notification: "Setting up pytorch/pytorch..."');
   console.log('   2. Add to tracked_repositories table');

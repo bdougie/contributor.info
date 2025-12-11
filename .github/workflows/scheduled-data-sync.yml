@@ -61,16 +61,16 @@ jobs:
         run: |
           cat > sync-pr-activity.mjs << 'EOF'
           import { createClient } from '@supabase/supabase-js';
-          
+
           const supabase = createClient(
             process.env.VITE_SUPABASE_URL,
             process.env.VITE_SUPABASE_ANON_KEY
           );
-          
+
           const MAX_CONCURRENT = 3; // Reduced to prevent overwhelming the API
           const BATCH_DELAY = 5000; // 5 seconds between batches
           const MAX_RETRIES = 2;
-          
+
           async function syncPRActivity() {
             const repoFilter = process.env.REPOSITORY_FILTER;
             console.log('🔄 Starting PR activity sync...');
@@ -211,7 +211,7 @@ jobs:
               }
             }
           }
-          
+
           syncPRActivity().catch(err => {
             console.error('Fatal error:', err);
             process.exit(1);

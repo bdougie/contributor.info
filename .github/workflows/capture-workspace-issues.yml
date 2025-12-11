@@ -22,7 +22,7 @@ on:
         required: false
         type: boolean
         default: false
-  
+
   schedule:
     # Run every 6 hours to capture recent issues for all workspaces
     - cron: '0 */6 * * *'
@@ -35,20 +35,20 @@ jobs:
     name: Capture Workspace Issues
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Trigger Supabase Edge Function
         id: sync
         env:
@@ -75,9 +75,9 @@ jobs:
           EOF
             )
           fi
-          
+
           echo "Request body: $REQUEST_BODY"
-          
+
           # Call the Supabase Edge Function with timeout
           RESPONSE=$(curl -X POST \
             "${SUPABASE_URL}/functions/v1/workspace-issues-sync" \
@@ -86,22 +86,22 @@ jobs:
             -d "$REQUEST_BODY" \
             -m 180 \
             -w "\n%{http_code}")
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
           BODY=$(echo "$RESPONSE" | head -n -1)
-          
+
           echo "Response: $BODY"
           echo "HTTP Code: $HTTP_CODE"
-          
+
           if [ "$HTTP_CODE" != "200" ]; then
             echo "❌ Issues sync failed with HTTP code: $HTTP_CODE"
             exit 1
           fi
-          
+
           # Parse and display results
           echo "$BODY" | jq -r '.message' || echo "Issues sync completed"
           echo "$BODY" | jq -r '.results[] | "\(.repository): \(.issuesSynced) issues synced"' || true
-          
+
       - name: Log sync results
         if: success()
         run: |
@@ -114,13 +114,13 @@ jobs:
             echo "  Limit: ${{ github.event.inputs.limit || 10 }}"
             echo "  Dry run: ${{ github.event.inputs.dry_run || false }}"
           fi
-          
+
       - name: Handle failure
         if: failure()
         run: |
           echo "❌ Workspace issues sync failed"
           echo "Check the logs above for error details"
-          
+
       - name: Notify on repeated failures
         if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v7
@@ -134,12 +134,12 @@ jobs:
               labels: 'bug,automation',
               creator: 'github-actions[bot]'
             });
-            
+
             const recentIssue = existingIssues.data.find(issue => 
               issue.title.includes('Workspace Issues Sync Failed') &&
               new Date(issue.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
             );
-            
+
             if (recentIssue) {
               // Add comment to existing issue instead of creating new one
               await github.rest.issues.createComment({

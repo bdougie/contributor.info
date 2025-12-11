@@ -11,7 +11,8 @@
 }
 
 /* Main content area - stable container */
-main, .main-content {
+main,
+.main-content {
   min-height: calc(100vh - 4rem); /* Account for header */
 }
 
@@ -169,7 +170,7 @@ table {
 
 /* Avatar containers - fixed dimensions */
 .avatar-container,
-[class*="avatar"] {
+[class*='avatar'] {
   aspect-ratio: 1;
   overflow: hidden;
   background-color: hsl(var(--muted));
@@ -183,7 +184,7 @@ img:not([height]) {
 }
 
 /* GitHub avatars - common sizes */
-img[src*="avatars.githubusercontent.com"] {
+img[src*='avatars.githubusercontent.com'] {
   aspect-ratio: 1;
   object-fit: cover;
 }
@@ -194,7 +195,9 @@ img[src*="avatars.githubusercontent.com"] {
 
 /* Smooth transitions for height changes */
 .smooth-height {
-  transition: height 0.3s ease-out, min-height 0.3s ease-out;
+  transition:
+    height 0.3s ease-out,
+    min-height 0.3s ease-out;
 }
 
 /* Skeleton pulse animation without layout shift */
@@ -217,7 +220,7 @@ img[src*="avatars.githubusercontent.com"] {
 }
 
 /* Skeleton containers - maintain space */
-[class*="skeleton"] {
+[class*='skeleton'] {
   min-height: 1rem;
 }
 
@@ -249,7 +252,7 @@ img[src*="avatars.githubusercontent.com"] {
 
 /* Badge containers - consistent sizing */
 .badge,
-[class*="badge"] {
+[class*='badge'] {
   display: inline-flex;
   align-items: center;
   min-height: 1.5rem;
@@ -271,11 +274,11 @@ img[src*="avatars.githubusercontent.com"] {
   .tab-content-container {
     min-height: 300px;
   }
-  
+
   .chart-container {
     min-height: 200px;
   }
-  
+
   .org-repos-table {
     min-height: 300px;
   }

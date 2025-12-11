@@ -33,8 +33,8 @@ async function testUpdateActivity() {
     eventName: 'update/pr.activity',
     data: {
       repositoryId: repo.id,
-      days: 30 // Check PRs from last 30 days
-    }
+      days: 30, // Check PRs from last 30 days
+    },
   };
 
   console.log('🚀 Sending update activity event...\n');
@@ -49,7 +49,7 @@ async function testUpdateActivity() {
     });
 
     const result = await response.json();
-    
+
     if (response.ok) {
       console.log('✅ Update activity event sent successfully!');
       console.log('   Event ID:', result.eventId);

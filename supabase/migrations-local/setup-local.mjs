@@ -12,7 +12,7 @@ function parseArgs() {
     consolidated: args.includes('--consolidated') || process.env.USE_CONSOLIDATED_SQL === '1',
     dryRun: args.includes('--dry-run'),
     help: args.includes('--help') || args.includes('-h'),
-    extraArgs: args.filter(arg => !['--consolidated', '--dry-run', '--help', '-h'].includes(arg))
+    extraArgs: args.filter((arg) => !['--consolidated', '--dry-run', '--help', '-h'].includes(arg)),
   };
 }
 
@@ -38,18 +38,22 @@ function showHelp() {
 function previewConsolidatedMode() {
   console.log('\n📋 DRY-RUN PREVIEW: Consolidated Migration Mode');
   console.log('================================================\n');
-  
+
   const migrationsDir = path.resolve('supabase/migrations');
   const tempDir = path.resolve('supabase/migrations.temp');
-  const consolidatedSource = path.resolve('supabase/migrations-local/001_production_based_consolidated.sql');
-  
+  const consolidatedSource = path.resolve(
+    'supabase/migrations-local/001_production_based_consolidated.sql'
+  );
+
   // Check what migrations exist
   if (existsSync(migrationsDir)) {
-    const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
-    console.log(`[DRY-RUN] Would temporarily move ${files.length} existing migrations to: ${tempDir}`);
+    const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'));
+    console.log(
+      `[DRY-RUN] Would temporarily move ${files.length} existing migrations to: ${tempDir}`
+    );
     if (files.length > 0) {
       console.log(`[DRY-RUN] Migration files to move:`);
-      files.slice(0, 5).forEach(file => console.log(`  - ${file}`));
+      files.slice(0, 5).forEach((file) => console.log(`  - ${file}`));
       if (files.length > 5) {
         console.log(`  ... and ${files.length - 5} more files`);
       }
@@ -57,7 +61,7 @@ function previewConsolidatedMode() {
   } else {
     console.log('[DRY-RUN] Would create new migrations directory');
   }
-  
+
   // Check consolidated migration
   if (existsSync(consolidatedSource)) {
     console.log(`[DRY-RUN] Would copy consolidated migration from: migrations-local/`);
@@ -66,7 +70,7 @@ function previewConsolidatedMode() {
     console.log('[DRY-RUN] ⚠️  WARNING: Consolidated migration not found!');
     console.log(`[DRY-RUN] Expected: ${consolidatedSource}`);
   }
-  
+
   // Check seed file
   const seedPath = path.resolve('supabase/seed.sql');
   if (existsSync(seedPath)) {
@@ -75,34 +79,34 @@ function previewConsolidatedMode() {
   } else {
     console.log('[DRY-RUN] No seed.sql found - skipping seed management');
   }
-  
+
   console.log('\n[DRY-RUN] Database operations that would be performed:');
   console.log('[DRY-RUN] 1. Run "supabase db reset" to apply consolidated migration');
   console.log('[DRY-RUN] 2. Create complete schema with 8 core tables and 27 indexes');
   console.log('[DRY-RUN] 3. Enable vector extensions and RLS policies');
-  
+
   console.log('\n[DRY-RUN] Cleanup operations:');
   console.log('[DRY-RUN] 1. Restore original seed.sql from backup');
   console.log('[DRY-RUN] 2. Remove consolidated migration file');
   console.log('[DRY-RUN] 3. Restore all original migration files');
   console.log('[DRY-RUN] 4. Remove temporary directories');
-  
+
   console.log('\n✨ End of dry-run preview. Use without --dry-run to execute.\n');
 }
 
 function previewStandardMode(dbUrl, extraArgs) {
   console.log('\n📋 DRY-RUN PREVIEW: Standard Migration Mode');
   console.log('==========================================\n');
-  
+
   console.log(`[DRY-RUN] Would connect to database: ${redactDbUrl(dbUrl)}`);
-  
+
   const migrationsDir = path.resolve('supabase/migrations');
   if (existsSync(migrationsDir)) {
-    const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
+    const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'));
     console.log(`[DRY-RUN] Would apply ${files.length} migration files using "supabase db push"`);
     if (files.length > 0) {
       console.log('[DRY-RUN] Migrations to apply:');
-      files.slice(0, 10).forEach(file => console.log(`  - ${file}`));
+      files.slice(0, 10).forEach((file) => console.log(`  - ${file}`));
       if (files.length > 10) {
         console.log(`  ... and ${files.length - 10} more files`);
       }
@@ -110,11 +114,11 @@ function previewStandardMode(dbUrl, extraArgs) {
   } else {
     console.log('[DRY-RUN] No migrations directory found - would create empty one');
   }
-  
+
   if (extraArgs.length > 0) {
     console.log(`[DRY-RUN] Additional arguments that would be passed: ${extraArgs.join(' ')}`);
   }
-  
+
   console.log('\n✨ End of dry-run preview. Use without --dry-run to execute.\n');
 }
 
@@ -140,13 +144,13 @@ function readLockFile() {
   if (!existsSync(lockPath)) {
     return null;
   }
-  
+
   try {
     const lockData = JSON.parse(readFileSync(lockPath, 'utf8'));
     return {
       pid: lockData.pid,
       startTime: new Date(lockData.startTime),
-      mode: lockData.mode || 'unknown'
+      mode: lockData.mode || 'unknown',
     };
   } catch (error) {
     console.warn('⚠️  Warning: Corrupted lock file found, treating as stale');
@@ -157,20 +161,20 @@ function readLockFile() {
 function createLockFile(mode = 'standard') {
   const lockPath = getLockFilePath();
   const lockDir = path.dirname(lockPath);
-  
+
   // Ensure the directory exists
   if (!existsSync(lockDir)) {
     mkdirSync(lockDir, { recursive: true });
   }
-  
+
   const lockData = {
     pid: process.pid,
     startTime: new Date().toISOString(),
     mode: mode,
     platform: process.platform,
-    nodeVersion: process.version
+    nodeVersion: process.version,
   };
-  
+
   try {
     writeFileSync(lockPath, JSON.stringify(lockData, null, 2));
     return true;
@@ -196,30 +200,30 @@ function removeLockFile() {
 
 function checkExistingLock() {
   const existingLock = readLockFile();
-  
+
   if (!existingLock) {
     return { canProceed: true };
   }
-  
+
   // Check if the process is still running
   if (!isProcessRunning(existingLock.pid)) {
     console.log('🧹 Found stale lock file (process no longer running), cleaning up...');
     removeLockFile();
     return { canProceed: true };
   }
-  
+
   // Process is still running - this is a conflict
   const timeRunning = new Date() - existingLock.startTime;
   const minutesRunning = Math.floor(timeRunning / (1000 * 60));
-  
+
   return {
     canProceed: false,
     conflictInfo: {
       pid: existingLock.pid,
       mode: existingLock.mode,
       startTime: existingLock.startTime,
-      minutesRunning: minutesRunning
-    }
+      minutesRunning: minutesRunning,
+    },
   };
 }
 
@@ -230,9 +234,9 @@ function acquireLock(mode = 'standard', isDryRun = false) {
     console.log(`[DRY-RUN] Would lock with PID: ${process.pid}, mode: ${mode}`);
     return { success: true, isDryRun: true };
   }
-  
+
   const lockCheck = checkExistingLock();
-  
+
   if (!lockCheck.canProceed) {
     const conflict = lockCheck.conflictInfo;
     console.error('❌ Another migration process is already running!');
@@ -246,15 +250,17 @@ function acquireLock(mode = 'standard', isDryRun = false) {
     console.error('   2. Kill the other process if it is stuck:');
     console.error(`      - Windows: taskkill /PID ${conflict.pid} /F`);
     console.error(`      - Unix/Mac: kill ${conflict.pid}`);
-    console.error('   3. Use the recovery script: node supabase/migrations-local/recover.mjs --cleanup-locks');
-    
+    console.error(
+      '   3. Use the recovery script: node supabase/migrations-local/recover.mjs --cleanup-locks'
+    );
+
     return { success: false, reason: 'conflict', conflictInfo: conflict };
   }
-  
+
   if (!createLockFile(mode)) {
     return { success: false, reason: 'create_failed' };
   }
-  
+
   console.log(`🔒 Acquired process lock (PID: ${process.pid}, mode: ${mode})`);
   return { success: true };
 }
@@ -264,7 +270,7 @@ function releaseLock(isDryRun = false) {
     console.log('[DRY-RUN] Would release lock file');
     return;
   }
-  
+
   if (removeLockFile()) {
     console.log('🔓 Released process lock');
   }
@@ -276,7 +282,16 @@ function releaseLock(isDryRun = false) {
 // - Falls back to standard migration push
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, mkdirSync, copyFileSync, renameSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  mkdirSync,
+  copyFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 function run(cmd, args, opts = {}) {
@@ -289,28 +304,28 @@ function runShell(cmd, args, opts = {}) {
 
 function resolveSupabaseCmd() {
   const isWin = process.platform === 'win32';
-  
+
   // Try direct command first
   const directCmd = isWin ? 'supabase.cmd' : 'supabase';
   const probe = run(directCmd, ['--version']);
   if (probe.status === 0) {
     return { via: 'direct', cmd: directCmd };
   }
-  
+
   // Try local project binary
   const localBin = path.resolve('node_modules', '.bin', isWin ? 'supabase.cmd' : 'supabase');
   if (existsSync(localBin)) {
     const localProbe = run(localBin, ['--version']);
     if (localProbe.status === 0) return { via: 'local-bin', cmd: localBin };
   }
-  
+
   // Try npx via shell (more reliable on Windows with newer Node versions)
   console.log('🔍 Trying npx via shell...');
   const npxShellProbe = runShell('npx', ['supabase', '--version']);
   if (npxShellProbe.status === 0) {
     return { via: 'npx-shell', cmd: 'npx' };
   }
-  
+
   // Try npx directly
   const npxProbe = run('npx', ['--version']);
   if (npxProbe.status === 0) {
@@ -319,7 +334,7 @@ function resolveSupabaseCmd() {
       return { via: 'npx', cmd: 'npx' };
     }
   }
-  
+
   // Try npx.cmd on Windows
   if (isWin) {
     const npxCmdProbe = run('npx.cmd', ['--version']);
@@ -330,14 +345,14 @@ function resolveSupabaseCmd() {
       }
     }
   }
-  
+
   // No safe execution path found
   return { via: 'unavailable', cmd: null };
 }
 
 function supabaseStatus(supabaseCmd) {
   let result;
-  
+
   if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
     result = run(supabaseCmd.cmd, ['status']);
   } else if (supabaseCmd.via === 'npx') {
@@ -347,9 +362,14 @@ function supabaseStatus(supabaseCmd) {
   } else if (supabaseCmd.via === 'npx-shell') {
     result = runShell(supabaseCmd.cmd, ['supabase', 'status']);
   } else {
-    return { status: 1, stdout: '', stderr: 'Supabase CLI not available.', error: new Error('Supabase CLI unavailable') };
+    return {
+      status: 1,
+      stdout: '',
+      stderr: 'Supabase CLI not available.',
+      error: new Error('Supabase CLI unavailable'),
+    };
   }
-  
+
   // Combine stdout and stderr for full output
   result.combinedOutput = (result.stdout || '') + (result.stderr || '');
   return result;
@@ -388,11 +408,17 @@ function redactDbUrl(url) {
 
 function pushMigrations(supabaseCmd, dbUrl, extraArgs = []) {
   if (supabaseCmd.via === 'direct' || supabaseCmd.via === 'local-bin') {
-    const res = spawnSync(supabaseCmd.cmd, ['db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
+    const res = spawnSync(supabaseCmd.cmd, ['db', 'push', '--db-url', dbUrl, ...extraArgs], {
+      stdio: 'inherit',
+    });
     return res.status ?? 1;
   }
   if (supabaseCmd.via === 'npx' || supabaseCmd.via === 'npx-cmd') {
-    const res = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'push', '--db-url', dbUrl, ...extraArgs], { stdio: 'inherit' });
+    const res = spawnSync(
+      supabaseCmd.cmd,
+      ['supabase', 'db', 'push', '--db-url', dbUrl, ...extraArgs],
+      { stdio: 'inherit' }
+    );
     return res.status ?? 1;
   }
   if (supabaseCmd.via === 'npx-shell') {
@@ -415,7 +441,7 @@ function temporarilyMoveExistingMigrations() {
     return false;
   }
 
-  const files = readdirSync(migrationsDir).filter(f => f.endsWith('.sql'));
+  const files = readdirSync(migrationsDir).filter((f) => f.endsWith('.sql'));
   if (files.length === 0) {
     console.log('📂 No migration files to move');
     return false;
@@ -435,13 +461,17 @@ function temporarilyMoveExistingMigrations() {
     writeFileSync(path.join(migrationsDir, '.gitkeep'), '');
 
     // Copy the corrected consolidated migration from migrations-local
-    const consolidatedSourcePath = path.resolve('supabase/migrations-local/001_production_based_consolidated.sql');
+    const consolidatedSourcePath = path.resolve(
+      'supabase/migrations-local/001_production_based_consolidated.sql'
+    );
     if (existsSync(consolidatedSourcePath)) {
       copyFileSync(consolidatedSourcePath, consolidatedPath);
       console.log('✅ Copied corrected consolidated migration from migrations-local');
     } else {
       console.error('❌ Corrected consolidated migration not found: %s', consolidatedSourcePath);
-      console.error('   Please ensure 001_production_based_consolidated.sql exists in migrations-local/');
+      console.error(
+        '   Please ensure 001_production_based_consolidated.sql exists in migrations-local/'
+      );
       return false;
     }
 
@@ -479,18 +509,18 @@ function restoreExistingMigrations() {
 function temporarilyMoveSeed() {
   const seedPath = path.resolve('supabase/seed.sql');
   const tempSeedPath = path.resolve('supabase/seed.sql.temp');
-  
+
   if (!existsSync(seedPath)) {
     console.log('📦 No seed.sql file found, skipping seed management');
     return false;
   }
-  
+
   console.log('📦 Temporarily moving seed.sql to prevent seeding errors...');
-  
+
   try {
     // Move original seed file to temp
     copyFileSync(seedPath, tempSeedPath);
-    
+
     // Create a minimal no-op seed file for the consolidated migration
     const noOpSeed = `-- Temporary no-op seed for consolidated migration
 -- This prevents seeding errors with tables that don't exist in the consolidated schema
@@ -510,19 +540,19 @@ SELECT 'Consolidated migration seed - no data inserted' as seed_status;
 function restoreSeed() {
   const seedPath = path.resolve('supabase/seed.sql');
   const tempSeedPath = path.resolve('supabase/seed.sql.temp');
-  
+
   if (!existsSync(tempSeedPath) || !seedWasMoved) {
     return;
   }
-  
+
   console.log('📦 Restoring original seed.sql...');
-  
+
   try {
     // Remove the no-op seed file
     if (existsSync(seedPath)) {
       rmSync(seedPath, { force: true });
     }
-    
+
     // Restore original seed file
     renameSync(tempSeedPath, seedPath);
     console.log('✅ Original seed.sql restored successfully');
@@ -532,7 +562,9 @@ function restoreSeed() {
 }
 
 function applyConsolidatedMigration(supabaseCmd) {
-  const consolidatedTarget = path.resolve('supabase/migrations/20240101000000_production_based_consolidated.sql');
+  const consolidatedTarget = path.resolve(
+    'supabase/migrations/20240101000000_production_based_consolidated.sql'
+  );
 
   if (!existsSync(consolidatedTarget)) {
     console.error('❌ Consolidated migration not found: %s', consolidatedTarget);
@@ -551,7 +583,10 @@ function applyConsolidatedMigration(supabaseCmd) {
     } else if (supabaseCmd.via === 'npx' || supabaseCmd.via === 'npx-cmd') {
       resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], { stdio: 'inherit' });
     } else if (supabaseCmd.via === 'npx-shell') {
-      resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], { stdio: 'inherit', shell: true });
+      resetResult = spawnSync(supabaseCmd.cmd, ['supabase', 'db', 'reset'], {
+        stdio: 'inherit',
+        shell: true,
+      });
     }
 
     const exitCode = resetResult?.status ?? 1;
@@ -572,44 +607,47 @@ function applyConsolidatedMigration(supabaseCmd) {
 async function main() {
   // Parse command line arguments
   const config = parseArgs();
-  
+
   // Show help if requested
   if (config.help) {
     showHelp();
     process.exit(0);
   }
-  
+
   console.log('🚀 Setting up local Supabase database (cross-platform)...');
-  
+
   // Show dry-run indicator
   if (config.dryRun) {
     console.log('🔍 DRY-RUN MODE: No changes will be made\n');
   } else {
     console.log('⚡ EXECUTION MODE: Changes will be applied to your database\n');
   }
-  
+
   // Acquire process lock to prevent concurrent runs
   const lockMode = config.consolidated ? 'consolidated' : 'standard';
   const lockResult = acquireLock(lockMode, config.dryRun);
-  
+
   if (!lockResult.success && !config.dryRun) {
     process.exit(1);
   }
 
   const supabaseCmd = resolveSupabaseCmd();
-  
+
   // In dry-run mode, we can preview even if Supabase CLI is not available
   if (config.dryRun && supabaseCmd.via === 'unavailable') {
     console.log('⚠️  Supabase CLI not available, but continuing with dry-run preview...');
-    
+
     if (config.consolidated) {
       previewConsolidatedMode();
     } else {
-      previewStandardMode('postgresql://postgres:postgres@127.0.0.1:54322/postgres', config.extraArgs);
+      previewStandardMode(
+        'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+        config.extraArgs
+      );
     }
     process.exit(0);
   }
-  
+
   if (supabaseCmd.via === 'unavailable') {
     console.error('❌ Supabase CLI not found. Install it or use npx:');
     console.error('   - npm i -g supabase');
@@ -637,17 +675,17 @@ async function main() {
   // 3) Check for consolidated migration flag
   if (config.consolidated) {
     console.log('🎯 Consolidated migration mode enabled');
-    
+
     // Handle dry-run mode for consolidated migrations
     if (config.dryRun) {
       previewConsolidatedMode();
       process.exit(0);
     }
-    
+
     // Move existing migrations out of the way
     const moved = temporarilyMoveExistingMigrations();
     migrationsMoved = moved;
-    
+
     // Move seed file to prevent seeding errors
     const seedMoved = temporarilyMoveSeed();
     seedWasMoved = seedMoved;
@@ -666,13 +704,13 @@ async function main() {
       }
       releaseLock(config.dryRun);
     }
-    
+
     process.exit(exitCode);
   }
 
   // 4) Standard migration mode
   console.log('📦 Running standard migrations with "supabase db push"...');
-  
+
   const dbUrl = extractDbUrl(statusRes.combinedOutput || statusRes.stdout);
   console.log('📌 Using DB URL: %s', redactDbUrl(dbUrl));
 
@@ -689,7 +727,7 @@ async function main() {
   } else {
     console.error('❌ Migration failed with exit code:', code);
   }
-  
+
   releaseLock(config.dryRun);
   process.exit(code);
 }

@@ -39,8 +39,8 @@ async function debugCapture() {
       repositoryId: repo.id,
       prNumber: '20525',
       prId: pr.id,
-      priority: 'high'
-    }
+      priority: 'high',
+    },
   };
 
   console.log('\n📨 Sending event:', JSON.stringify(event, null, 2));
@@ -49,12 +49,12 @@ async function debugCapture() {
     const response = await fetch('http://localhost:8888/api/queue-event', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(event)
+      body: JSON.stringify(event),
     });
 
     const result = await response.json();
     console.log('\n✅ Response:', result);
-    
+
     if (result.success) {
       console.log('\n⏳ Wait a few seconds then check:');
       console.log('1. Inngest dashboard for function execution');

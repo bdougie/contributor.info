@@ -13,7 +13,7 @@ export async function ensureContributor(supabase, githubUser) {
       .maybeSingle();
 
     const now = new Date().toISOString();
-    
+
     const contributorData = {
       github_id: githubUser.id,
       username: githubUser.login,
@@ -44,7 +44,7 @@ export async function ensureContributor(supabase, githubUser) {
       .upsert(contributorData, { onConflict: 'github_id' })
       .select('id')
       .maybeSingle();
-      
+
     if (error) {
       console.error('ensureContributor upsert error:', error.message);
       return null;

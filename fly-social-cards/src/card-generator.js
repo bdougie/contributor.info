@@ -1,7 +1,7 @@
 /**
  * Optimized SVG generation for social cards
  * Target: < 100ms generation time for social media crawlers
- * 
+ *
  * Updated to match contributor.info app's dark theme aesthetic
  * Color palette matches CSS variables from src/index.css
  */
@@ -33,25 +33,28 @@ const THEME_COLORS = {
   // Background: hsl(0 0% 3.9%) -> #0A0A0A (ultra-dark)
   background: '#0A0A0A',
   backgroundSecondary: '#141414', // Slightly lighter for gradients
-  
+
   // Text: hsl(0 0% 98%) -> #FAFAFA (near-white)
   text: '#FAFAFA',
-  
+
   // Muted text: hsl(0 0% 63.9%) -> #A3A3A3
   textMuted: '#A3A3A3',
-  
+
   // Primary: hsl(14 100% 50%) -> #FF5402 (signature orange)
   primary: '#FF5402',
-  
+
   // Card accents
   cardOverlay: '#1A1A1A', // For subtle card backgrounds
-  
+
   // Error state
-  error: '#EF4444'
+  error: '#EF4444',
 };
 
 // Generate gradient backgrounds using app's color palette
-const generateGradient = (id, colors = [THEME_COLORS.background, THEME_COLORS.backgroundSecondary]) => {
+const generateGradient = (
+  id,
+  colors = [THEME_COLORS.background, THEME_COLORS.backgroundSecondary]
+) => {
   return `
     <defs>
       <linearGradient id="${id}" x1="0%" y1="0%" x2="100%" y2="100%">

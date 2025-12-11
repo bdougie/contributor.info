@@ -5,12 +5,8 @@ async function testReviewerSuggestions() {
   const apiUrl = 'http://localhost:8888/api/repos/open-sauced/app/suggest-reviewers';
 
   const testData = {
-    files: [
-      'src/components/Header.tsx',
-      'src/lib/auth.ts',
-      'src/pages/index.tsx'
-    ],
-    prAuthor: 'testuser'
+    files: ['src/components/Header.tsx', 'src/lib/auth.ts', 'src/pages/index.tsx'],
+    prAuthor: 'testuser',
   };
 
   try {
@@ -44,9 +40,10 @@ async function testReviewerSuggestions() {
         console.log(`   Signals: ${suggestion.signals.join(', ')}`);
       });
     } else {
-      console.log('\n⚠️  No suggestions returned - this may be because there are no reviews in the database for this repository');
+      console.log(
+        '\n⚠️  No suggestions returned - this may be because there are no reviews in the database for this repository'
+      );
     }
-
   } catch (error) {
     console.error('Test failed:', error);
   }

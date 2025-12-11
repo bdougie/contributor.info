@@ -29,7 +29,6 @@ export async function ensureContributorForWebhook(
   try {
     const supabaseAdmin = createSupabaseAdmin();
     const now = new Date().toISOString();
-    
 
     // Check if contributor already exists to preserve first_seen_at
     const { data: existing, error: selectError } = await supabaseAdmin

@@ -13,19 +13,19 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function triggerDataRefresh() {
   const repos = [
     'continuedev/continue',
-    'better-auth/better-auth', 
+    'better-auth/better-auth',
     'etcd-io/etcd',
     'argoproj/argo-cd',
-    'pgvector/pgvector'
+    'pgvector/pgvector',
   ];
-  
+
   console.log('🔄 Triggering data refresh for stale repositories...');
-  
+
   for (const repoPath of repos) {
     const [owner, name] = repoPath.split('/');
-    
+
     console.log(`\n🚀 Processing ${owner}/${name}...`);
-    
+
     try {
       // Check if repository exists in database
       const { data: repo, error } = await supabase
@@ -34,37 +34,40 @@ async function triggerDataRefresh() {
         .eq('owner', owner)
         .eq('name', name)
         .single();
-      
+
       if (error || !repo) {
         console.log(`⚠️ Repository ${owner}/${name} not found in database`);
         continue;
       }
-      
+
       // Update last_data_update to mark it for refresh
       const { error: updateError } = await supabase
         .from('tracked_repositories')
-        .update({ 
+        .update({
           last_updated: new Date().toISOString(),
-          priority: 'high'
+          priority: 'high',
         })
         .eq('repository_id', repo.id);
-      
+
       if (updateError) {
         console.error(`❌ Failed to update ${owner}/${name}:`, updateError.message);
       } else {
-        console.log(`✅ Marked ${owner}/${name} for high-priority refresh (size: ${repo.size || 'unknown'})`);
+        console.log(
+          `✅ Marked ${owner}/${name} for high-priority refresh (size: ${repo.size || 'unknown'})`
+        );
       }
-      
     } catch (error) {
       console.error(`❌ Error processing ${owner}/${name}:`, error.message);
     }
-    
+
     // Small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  
+
   console.log('\n🎉 All repositories marked for refresh!');
-  console.log('📊 The progressive capture system will automatically process these in the background.');
+  console.log(
+    '📊 The progressive capture system will automatically process these in the background.'
+  );
 }
 
 triggerDataRefresh().catch(console.error);

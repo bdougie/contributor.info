@@ -118,7 +118,7 @@ async function testSyncLogging() {
 
   // 5. Wait a moment then check sync logs
   console.log('⏳ Waiting 5 seconds for processing...\n');
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 5000));
 
   // 6. Check sync logs
   const { data: syncLogs, error: syncError } = await supabase
@@ -136,11 +136,13 @@ async function testSyncLogging() {
 
   console.log('📋 Recent sync logs:');
   if (syncLogs?.length) {
-    syncLogs.forEach(log => {
+    syncLogs.forEach((log) => {
       console.log(`\n   • Type: ${log.sync_type}`);
       console.log(`     Status: ${log.status}`);
       console.log(`     Started: ${new Date(log.started_at).toLocaleString()}`);
-      console.log(`     Records: ${log.records_processed || 0} processed, ${log.records_inserted || 0} inserted`);
+      console.log(
+        `     Records: ${log.records_processed || 0} processed, ${log.records_inserted || 0} inserted`
+      );
       console.log(`     API Calls: ${log.github_api_calls_used || 0}`);
       if (log.error_message) {
         console.log(`     ❌ Error: ${log.error_message}`);
@@ -150,12 +152,12 @@ async function testSyncLogging() {
       }
     });
   } else {
-    console.log('   ⚠️ No sync logs found - this might indicate the functions aren\'t running');
+    console.log("   ⚠️ No sync logs found - this might indicate the functions aren't running");
   }
 
   // 7. Check updated counts
   console.log('\n📊 Checking updated counts...\n');
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 
   const { count: newCommentCount } = await supabase
     .from('comments')

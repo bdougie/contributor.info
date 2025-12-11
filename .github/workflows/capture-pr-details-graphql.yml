@@ -28,20 +28,20 @@ jobs:
     name: Capture PR Details
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Capture PR details
         id: capture
         env:
@@ -59,7 +59,7 @@ jobs:
             --repository-name="$REPOSITORY_NAME" \
             --pr-numbers="$PR_NUMBERS" \
             ${JOB_ID:+--job-id="$JOB_ID"}
-            
+
       - name: Update job status on success
         if: success() && inputs.job_id
         env:
@@ -73,7 +73,7 @@ jobs:
             process.env.VITE_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_KEY
           );
-          
+
           (async () => {
             await supabase
               .from('progressive_capture_jobs')
@@ -88,7 +88,7 @@ jobs:
               .eq('id', process.env.JOB_ID);
           })();
           "
-          
+
       - name: Report failure to GitHub Issues
         if: failure()
         env:
@@ -96,7 +96,7 @@ jobs:
         run: |
           # Get error from previous step
           ERROR_MESSAGE="${{ steps.capture.outcome == 'failure' && 'PR details capture failed' || 'Unknown error' }}"
-          
+
           node scripts/github-actions/report-failure.js \
             --job-type="capture_pr_details" \
             --repository-name="${{ inputs.repository_name }}" \

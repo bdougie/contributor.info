@@ -11,10 +11,13 @@ if (!SUPABASE_URL) {
   console.error('Error: VITE_SUPABASE_URL environment variable is required');
   process.exit(1);
 }
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_TOKEN;
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_TOKEN;
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('Error: SUPABASE_SERVICE_ROLE_KEY or SUPABASE_TOKEN environment variable is required');
+  console.error(
+    'Error: SUPABASE_SERVICE_ROLE_KEY or SUPABASE_TOKEN environment variable is required'
+  );
   process.exit(1);
 }
 
@@ -22,14 +25,14 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 async function testReviewSync() {
   const owner = process.argv[2] || 'continuedev';
   const repo = process.argv[3] || 'continue';
-  
+
   console.log(`\n🔍 Testing review/comment sync for ${owner}/${repo}\n`);
 
   try {
@@ -90,7 +93,7 @@ async function testReviewSync() {
 
       const reviewCount = reviews?.length || 0;
       const commentCount = comments?.length || 0;
-      const status = (reviewCount === 0 && commentCount === 0) ? '❌ Missing data' : '✅ Has data';
+      const status = reviewCount === 0 && commentCount === 0 ? '❌ Missing data' : '✅ Has data';
 
       console.log(`PR #${pr.number}: "${pr.title.slice(0, 50)}..."`);
       console.log(`  Reviews: ${reviewCount}, Comments: ${commentCount} ${status}`);
@@ -100,17 +103,19 @@ async function testReviewSync() {
     // Check overall stats
     const { data: stats, error: statsError } = await supabase
       .from('repositories')
-      .select(`
+      .select(
+        `
         id,
         pull_requests!inner(id),
         reviews:pull_requests!inner(reviews!inner(id)),
         comments:pull_requests!inner(comments!inner(id))
-      `)
+      `
+      )
       .eq('id', repoData.id)
       .single();
 
     console.log('\n📊 Repository Statistics:');
-    
+
     if (statsError) {
       console.log('⚠️  Error fetching repository statistics:', statsError.message);
     } else {
@@ -118,7 +123,6 @@ async function testReviewSync() {
       console.log('Total Reviews:', stats?.reviews?.length || 0);
       console.log('Total Comments:', stats?.comments?.length || 0);
     }
-
   } catch (error) {
     console.error('Error:', error);
   }

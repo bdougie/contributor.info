@@ -50,7 +50,9 @@ export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
 
       throw error;
     }
@@ -99,7 +101,9 @@ export async function trackedFetch(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
     }
 
     return response;
@@ -130,7 +134,9 @@ export async function trackedFetch(
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
 
     throw error;
   }
@@ -173,7 +179,9 @@ export async function trackSupabaseQuery<T>(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
     }
 
     return result;
@@ -225,7 +233,9 @@ export function setupGlobalErrorTracking(): void {
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
   });
 
   // Track global errors
@@ -263,7 +273,9 @@ export function setupGlobalErrorTracking(): void {
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
   });
 }
 

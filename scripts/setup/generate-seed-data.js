@@ -224,7 +224,7 @@ async function fetchPullRequests(owner, name, repositoryId, days = SEED_DATA_DAY
 
     // Ensure contributors exist and get their UUIDs
     const authorContributorId = await ensureContributor(supabase, detailedPR.user);
-    
+
     pullRequests.push({
       github_id: detailedPR.id,
       repository_id: repositoryId,

@@ -35,7 +35,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 async function cleanSeedData() {
   console.log('🧹 Cleaning Seed Data');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   const confirmation = process.argv[2];
   if (confirmation !== '--confirm') {
     console.log('⚠️  This will remove all seed data from your local database!');
@@ -45,68 +45,68 @@ async function cleanSeedData() {
     console.log('');
     return;
   }
-  
+
   try {
     // Get seed generation jobs to identify seed repositories
     const { data: seedJobs, error: jobError } = await supabase
       .from('progressive_capture_jobs')
       .select('repository_id, metadata')
       .eq('job_type', 'seed_data_capture');
-    
+
     if (jobError) {
       console.error('❌ Failed to fetch seed jobs:', jobError.message);
       return;
     }
-    
+
     if (!seedJobs || seedJobs.length === 0) {
       console.log('No seed data jobs found. Nothing to clean.');
       return;
     }
-    
+
     // Extract unique repository IDs
-    const repositoryIds = [...new Set(seedJobs.map(job => job.repository_id).filter(Boolean))];
-    
+    const repositoryIds = [...new Set(seedJobs.map((job) => job.repository_id).filter(Boolean))];
+
     console.log(`Found ${repositoryIds.length} seeded repositories to clean`);
     console.log('');
-    
+
     let deletedCounts = {
       comments: 0,
       reviews: 0,
       pull_requests: 0,
       repositories: 0,
-      jobs: 0
+      jobs: 0,
     };
-    
+
     // Delete in order to respect foreign key constraints
-    
+
     // 1. Delete comments
     const { count: commentCount, error: commentError } = await supabase
       .from('comments')
       .delete()
       .in('repository_id', repositoryIds)
       .select('*', { count: 'exact', head: true });
-    
+
     if (commentError) {
       console.error(`⚠️  Failed to delete comments: ${commentError.message}`);
     } else {
       deletedCounts.comments = commentCount || 0;
       console.log(`  ✅ Deleted ${deletedCounts.comments} comments`);
     }
-    
+
     // 2. Delete reviews (need to get PR IDs first)
     const { data: prs } = await supabase
       .from('pull_requests')
       .select('github_id')
       .in('repository_id', repositoryIds);
-    
+
     if (prs && prs.length > 0) {
-      const prIds = prs.map(pr => pr.github_id);
+      const prIds = prs.map((pr) => pr.github_id);
       const { count: reviewCount, error: reviewError } = await supabase
         .from('reviews')
         .delete()
         .in('pull_request_id', prIds)
         .select('*', { count: 'exact', head: true });
-      
+
       if (reviewError) {
         console.error(`⚠️  Failed to delete reviews: ${reviewError.message}`);
       } else {
@@ -114,49 +114,49 @@ async function cleanSeedData() {
         console.log(`  ✅ Deleted ${deletedCounts.reviews} reviews`);
       }
     }
-    
+
     // 3. Delete pull requests
     const { count: prCount, error: prError } = await supabase
       .from('pull_requests')
       .delete()
       .in('repository_id', repositoryIds)
       .select('*', { count: 'exact', head: true });
-    
+
     if (prError) {
       console.error(`⚠️  Failed to delete pull requests: ${prError.message}`);
     } else {
       deletedCounts.pull_requests = prCount || 0;
       console.log(`  ✅ Deleted ${deletedCounts.pull_requests} pull requests`);
     }
-    
+
     // 4. Delete repositories
     const { count: repoCount, error: repoError } = await supabase
       .from('repositories')
       .delete()
       .in('id', repositoryIds)
       .select('*', { count: 'exact', head: true });
-    
+
     if (repoError) {
       console.error(`⚠️  Failed to delete repositories: ${repoError.message}`);
     } else {
       deletedCounts.repositories = repoCount || 0;
       console.log(`  ✅ Deleted ${deletedCounts.repositories} repositories`);
     }
-    
+
     // 5. Delete seed jobs
     const { count: jobCount, error: deleteJobError } = await supabase
       .from('progressive_capture_jobs')
       .delete()
       .eq('job_type', 'seed_data_capture')
       .select('*', { count: 'exact', head: true });
-    
+
     if (deleteJobError) {
       console.error(`⚠️  Failed to delete jobs: ${deleteJobError.message}`);
     } else {
       deletedCounts.jobs = jobCount || 0;
       console.log(`  ✅ Deleted ${deletedCounts.jobs} seed jobs`);
     }
-    
+
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🎯 Summary:');
     console.log(`  • Comments: ${deletedCounts.comments}`);
@@ -167,7 +167,6 @@ async function cleanSeedData() {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('\n✨ Seed data cleaned successfully!');
     console.log('Run `npm run db:seed` to generate fresh seed data.');
-    
   } catch (error) {
     console.error('\n❌ Error cleaning seed data:', error);
     process.exit(1);

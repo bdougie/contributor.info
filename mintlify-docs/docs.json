@@ -60,9 +60,7 @@
       },
       {
         "group": "Resources",
-        "pages": [
-          "changelog"
-        ]
+        "pages": ["changelog"]
       }
     ],
     "global": {

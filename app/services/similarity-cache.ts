@@ -64,7 +64,7 @@ export class SimilarityCacheService {
       const data = encoder.encode(content);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
       return hashHex.substring(0, 16);
     } else {
       // Fallback for Node.js environments (e.g., during SSR)
@@ -85,38 +85,38 @@ export class SimilarityCacheService {
     try {
       const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
 
-    // Check memory cache first
-    const memoryEntry = this.memoryCache.get(key);
-    if (memoryEntry && this.isValid(memoryEntry)) {
-      this.stats.hits++;
-      this.updateAccessStats(memoryEntry);
-      this.updateHitRate();
-      return memoryEntry.embedding;
-    }
-
-    // Check database cache
-    try {
-      const { data, error } = await supabase
-        .from('similarity_cache')
-        .select('*')
-        .eq('repository_id', repositoryId)
-        .eq('item_type', itemType)
-        .eq('item_id', itemId)
-        .eq('content_hash', contentHash)
-        .single();
-
-      if (!error && data && this.isValid(data)) {
+      // Check memory cache first
+      const memoryEntry = this.memoryCache.get(key);
+      if (memoryEntry && this.isValid(memoryEntry)) {
         this.stats.hits++;
-        // Promote to memory cache
-        this.addToMemoryCache(key, data);
-        // Update access stats in DB
-        await this.updateDatabaseAccessStats(data.id);
+        this.updateAccessStats(memoryEntry);
         this.updateHitRate();
-        return data.embedding;
+        return memoryEntry.embedding;
       }
-    } catch (error) {
-      console.error('Cache lookup error:', error);
-    }
+
+      // Check database cache
+      try {
+        const { data, error } = await supabase
+          .from('similarity_cache')
+          .select('*')
+          .eq('repository_id', repositoryId)
+          .eq('item_type', itemType)
+          .eq('item_id', itemId)
+          .eq('content_hash', contentHash)
+          .single();
+
+        if (!error && data && this.isValid(data)) {
+          this.stats.hits++;
+          // Promote to memory cache
+          this.addToMemoryCache(key, data);
+          // Update access stats in DB
+          await this.updateDatabaseAccessStats(data.id);
+          this.updateHitRate();
+          return data.embedding;
+        }
+      } catch (error) {
+        console.error('Cache lookup error:', error);
+      }
 
       this.stats.misses++;
       this.updateHitRate();
@@ -144,41 +144,41 @@ export class SimilarityCacheService {
       const key = this.generateCacheKey(repositoryId, itemType, itemId, contentHash);
       const entry: CachedEmbedding = {
         id: this.generateUUID(),
-      item_type: itemType,
-      item_id: itemId,
-      repository_id: repositoryId,
-      embedding,
-      content_hash: contentHash,
-      created_at: new Date(),
-      accessed_at: new Date(),
-      access_count: 1,
-      ttl_hours: ttlHours || this.defaultTTLHours,
-    };
+        item_type: itemType,
+        item_id: itemId,
+        repository_id: repositoryId,
+        embedding,
+        content_hash: contentHash,
+        created_at: new Date(),
+        accessed_at: new Date(),
+        access_count: 1,
+        ttl_hours: ttlHours || this.defaultTTLHours,
+      };
 
-    // Add to memory cache
-    this.addToMemoryCache(key, entry);
+      // Add to memory cache
+      this.addToMemoryCache(key, entry);
 
-    // Store in database
-    try {
-      await supabase.from('similarity_cache').upsert(
-        {
-          item_type: itemType,
-          item_id: itemId,
-          repository_id: repositoryId,
-          embedding,
-          content_hash: contentHash,
-          ttl_hours: ttlHours || this.defaultTTLHours,
-          accessed_at: new Date().toISOString(),
-          access_count: 1,
-        },
-        {
-          onConflict: 'repository_id,item_type,item_id',
-        }
-      );
-    } catch (error) {
-      console.error('Cache storage error:', error);
-      throw error;
-    }
+      // Store in database
+      try {
+        await supabase.from('similarity_cache').upsert(
+          {
+            item_type: itemType,
+            item_id: itemId,
+            repository_id: repositoryId,
+            embedding,
+            content_hash: contentHash,
+            ttl_hours: ttlHours || this.defaultTTLHours,
+            accessed_at: new Date().toISOString(),
+            access_count: 1,
+          },
+          {
+            onConflict: 'repository_id,item_type,item_id',
+          }
+        );
+      } catch (error) {
+        console.error('Cache storage error:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error in cache set operation:', error);
       throw error;
@@ -193,9 +193,9 @@ export class SimilarityCacheService {
       return crypto.randomUUID();
     } else {
       // Fallback UUID generation
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
       });
     }
@@ -310,10 +310,7 @@ export class SimilarityCacheService {
   private async scheduleRemoval(entryId: string): Promise<void> {
     try {
       // Remove from database asynchronously
-      await supabase
-        .from('similarity_cache')
-        .delete()
-        .eq('id', entryId);
+      await supabase.from('similarity_cache').delete().eq('id', entryId);
     } catch (error) {
       console.error('Failed to remove expired cache entry:', error);
     }

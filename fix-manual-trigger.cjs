@@ -47,7 +47,7 @@ const fixes = [
       gaps.repositoriesWithStaleData > 0 ? '  • Run bootstrap to queue recent PRs for stale repositories' : '  • ✅ Repository data is fresh',
       gaps.prsWithoutFileChanges > 0 ? '  • Run bootstrap to queue file change updates' : '  • ✅ File change data is complete',
       gaps.emptyReviewsTable ? '  • Consider queuing review data (lower priority)' : '  • ✅ Review data available'
-    );`
+    );`,
   },
   {
     // Line 68-79: bootstrap() method
@@ -63,7 +63,7 @@ const fixes = [
       '  3. Check rate limits with: ProgressiveCaptureTrigger.rateLimits()',
       queueStats.total.pending,
       queueStats.total.pending + queueStats.total.processing + queueStats.total.completed
-    );`
+    );`,
   },
   {
     // Line 93-124: status() method
@@ -109,7 +109,7 @@ const fixes = [
       stats.github_actions.failed,
       canMakeAPICalls ? '✅ Yes' : '❌ No (rate limited)',
       getQueueHealthStatus(stats.total.pending, stats.total.completed, stats.total.failed || 0)
-    );`
+    );`,
   },
   {
     // Line 164-174: rateLimits() method
@@ -126,7 +126,7 @@ const fixes = [
       canMake10 ? 'Yes' : 'No',
       canMake100 ? 'Yes' : 'No',
       getBatchCapabilityMessage(canMake100, canMake10, !canMake1)
-    );`
+    );`,
   },
   {
     // Line 212-217: analyzeCommits() method
@@ -139,7 +139,7 @@ const fixes = [
       owner,
       repo,
       queuedCount
-    );`
+    );`,
   },
   {
     // Line 348-355: quickFix() method
@@ -157,7 +157,7 @@ const fixes = [
       historicalJob.processor,
       aiSummaryQueued ? 'Queued' : 'Skipped (recent)',
       totalJobs
-    );`
+    );`,
   },
   {
     // Line 406-420: routingAnalysis() method
@@ -175,8 +175,8 @@ const fixes = [
       routing.suggestions.length > 0
         ? \`💡 Suggestions:\\n\${routing.suggestions.map((s) => \`  • \${s}\`).join('\\n')}\`
         : '✅ No routing issues detected'
-    );`
-  }
+    );`,
+  },
 ];
 
 // Apply each fix

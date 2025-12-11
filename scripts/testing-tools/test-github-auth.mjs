@@ -11,13 +11,19 @@ console.log('🔐 GitHub Token Configuration Check:\n');
 const clientToken = process.env.VITE_GITHUB_TOKEN;
 const serverToken = process.env.GITHUB_TOKEN;
 
-console.log('Client token (VITE_GITHUB_TOKEN):', clientToken ? `✅ Set (${clientToken.substring(0, 10)}...)` : '❌ Not set');
-console.log('Server token (GITHUB_TOKEN):', serverToken ? `✅ Set (${serverToken.substring(0, 10)}...)` : '❌ Not set');
+console.log(
+  'Client token (VITE_GITHUB_TOKEN):',
+  clientToken ? `✅ Set (${clientToken.substring(0, 10)}...)` : '❌ Not set'
+);
+console.log(
+  'Server token (GITHUB_TOKEN):',
+  serverToken ? `✅ Set (${serverToken.substring(0, 10)}...)` : '❌ Not set'
+);
 
 // Test GitHub API with the token
 async function testGitHubAPI() {
   const token = serverToken || clientToken;
-  
+
   if (!token) {
     console.log('\n❌ No GitHub token available for testing');
     return;
@@ -28,9 +34,9 @@ async function testGitHubAPI() {
   try {
     const response = await fetch('https://api.github.com/user', {
       headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
     });
 
     if (response.ok) {
@@ -48,9 +54,9 @@ async function testGitHubAPI() {
     console.log('\n🔍 Testing PR data fetch...\n');
     const prResponse = await fetch('https://api.github.com/repos/continuedev/continue/pulls/6935', {
       headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
+        Authorization: `token ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
     });
 
     if (prResponse.ok) {
@@ -62,7 +68,6 @@ async function testGitHubAPI() {
     } else {
       console.log('❌ PR fetch failed:', prResponse.status, prResponse.statusText);
     }
-
   } catch (error) {
     console.error('❌ Error testing GitHub API:', error);
   }
@@ -72,8 +77,14 @@ async function testGitHubAPI() {
 console.log('\n🔧 Inngest Configuration:\n');
 console.log('Event Key:', process.env.INNGEST_EVENT_KEY ? '✅ Set' : '❌ Not set');
 console.log('Signing Key:', process.env.INNGEST_SIGNING_KEY ? '✅ Set' : '❌ Not set');
-console.log('Production Event Key:', process.env.INNGEST_PRODUCTION_EVENT_KEY ? '✅ Set' : '❌ Not set');
-console.log('Production Signing Key:', process.env.INNGEST_PRODUCTION_SIGNING_KEY ? '✅ Set' : '❌ Not set');
+console.log(
+  'Production Event Key:',
+  process.env.INNGEST_PRODUCTION_EVENT_KEY ? '✅ Set' : '❌ Not set'
+);
+console.log(
+  'Production Signing Key:',
+  process.env.INNGEST_PRODUCTION_SIGNING_KEY ? '✅ Set' : '❌ Not set'
+);
 
 // Run the test
 testGitHubAPI();

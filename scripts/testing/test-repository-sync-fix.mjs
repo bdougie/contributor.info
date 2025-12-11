@@ -1,17 +1,17 @@
 /**
  * Test script for repository sync event data fix
- * 
+ *
  * Purpose: Validates that the repository sync events include all required parameters
  * after fixing the "Repository not found: undefined" error.
- * 
+ *
  * This test ensures:
  * 1. The `days` parameter is properly included in the event data
  * 2. The `reason` parameter is included for better debugging
  * 3. The event can be successfully sent to Inngest
- * 
+ *
  * Usage:
  *   node scripts/testing/test-repository-sync-fix.mjs
- * 
+ *
  * Expected outcome:
  * - Event should be sent successfully with all required parameters
  * - No "Repository not found: undefined" errors should occur
@@ -58,8 +58,8 @@ async function testRepositorySyncFix() {
       days: 1, // This parameter was missing before the fix
       maxItems: 50,
       priority: 'medium',
-      reason: 'test-fix' // This parameter was also missing
-    }
+      reason: 'test-fix', // This parameter was also missing
+    },
   };
 
   console.log('\n2️⃣ Event data to be sent:');
@@ -68,13 +68,13 @@ async function testRepositorySyncFix() {
   // Validate all required fields are present
   console.log('\n3️⃣ Validating required fields:');
   const requiredFields = ['repositoryId', 'repositoryName', 'days', 'priority', 'reason'];
-  const missingFields = requiredFields.filter(field => !testEvent.data[field]);
-  
+  const missingFields = requiredFields.filter((field) => !testEvent.data[field]);
+
   if (missingFields.length > 0) {
     console.error('❌ Missing required fields:', missingFields.join(', '));
     return;
   }
-  
+
   console.log('✅ All required fields are present');
 
   // Test the actual API endpoint (if available)
@@ -88,8 +88,8 @@ async function testRepositorySyncFix() {
         },
         body: JSON.stringify({
           eventName: testEvent.name,
-          data: testEvent.data
-        })
+          data: testEvent.data,
+        }),
       });
 
       if (response.ok) {
@@ -109,7 +109,9 @@ async function testRepositorySyncFix() {
   }
 
   console.log('\n✨ Test completed!');
-  console.log('If the event was sent successfully, the repository sync should process without "undefined" errors.');
+  console.log(
+    'If the event was sent successfully, the repository sync should process without "undefined" errors.'
+  );
 }
 
 // Run the test

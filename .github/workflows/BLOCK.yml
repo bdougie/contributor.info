@@ -14,7 +14,7 @@ jobs:
           script: |
             const labels = context.payload.pull_request.labels;
             const hasBlockLabel = labels.some(label => label.name === 'BLOCKMERGE');
-            
+
             if (hasBlockLabel) {
               core.setFailed('PR has BLOCKMERGE label - merge is blocked');
               console.log('❌ This PR is blocked from merging due to BLOCKMERGE label');

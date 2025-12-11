@@ -16,12 +16,12 @@ const mockStep = {
   },
   sendEvent: async (name, event) => {
     console.log(`Would send event ${name}:`, event);
-  }
+  },
 };
 
 async function testValidation() {
   console.log('Testing validation with undefined repositoryId...\n');
-  
+
   // Test 1: undefined repositoryId
   try {
     const event1 = {
@@ -29,10 +29,10 @@ async function testValidation() {
         // repositoryId is missing
         days: 7,
         priority: 'high',
-        reason: 'test'
-      }
+        reason: 'test',
+      },
     };
-    
+
     console.log('Test 1: Missing repositoryId');
     // This should throw an error
     await captureRepositorySyncGraphQL.fn({ event: event1, step: mockStep });
@@ -41,9 +41,9 @@ async function testValidation() {
     console.log('✅ Test 1 passed: Error thrown as expected');
     console.log('   Error message:', error.message);
   }
-  
+
   console.log('\n---\n');
-  
+
   // Test 2: null repositoryId
   try {
     const event2 = {
@@ -51,10 +51,10 @@ async function testValidation() {
         repositoryId: null,
         days: 7,
         priority: 'high',
-        reason: 'test'
-      }
+        reason: 'test',
+      },
     };
-    
+
     console.log('Test 2: Null repositoryId');
     await captureRepositorySyncGraphQL.fn({ event: event2, step: mockStep });
     console.log('❌ Test 2 failed: Should have thrown an error');
@@ -62,9 +62,9 @@ async function testValidation() {
     console.log('✅ Test 2 passed: Error thrown as expected');
     console.log('   Error message:', error.message);
   }
-  
+
   console.log('\n---\n');
-  
+
   // Test 3: empty string repositoryId
   try {
     const event3 = {
@@ -72,10 +72,10 @@ async function testValidation() {
         repositoryId: '',
         days: 7,
         priority: 'high',
-        reason: 'test'
-      }
+        reason: 'test',
+      },
     };
-    
+
     console.log('Test 3: Empty string repositoryId');
     await captureRepositorySyncGraphQL.fn({ event: event3, step: mockStep });
     console.log('❌ Test 3 failed: Should have thrown an error');
@@ -83,9 +83,9 @@ async function testValidation() {
     console.log('✅ Test 3 passed: Error thrown as expected');
     console.log('   Error message:', error.message);
   }
-  
+
   console.log('\n---\n');
-  
+
   // Test 4: Valid repositoryId (should fail at database step)
   try {
     const event4 = {
@@ -93,10 +93,10 @@ async function testValidation() {
         repositoryId: 'valid-repo-id-123',
         days: 7,
         priority: 'high',
-        reason: 'test'
-      }
+        reason: 'test',
+      },
     };
-    
+
     console.log('Test 4: Valid repositoryId');
     await captureRepositorySyncGraphQL.fn({ event: event4, step: mockStep });
     console.log('❌ Test 4: Got past validation but failed at database');

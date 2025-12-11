@@ -1,7 +1,7 @@
 display_information:
   name: Contributor Info
   description: Automated issue assignee reports for your GitHub repositories
-  background_color: "#1e293b"
+  background_color: '#1e293b'
   long_description: Contributor Info sends daily or weekly reports about issue assignees in your GitHub repositories, helping teams track workload distribution and identify bottlenecks.
 
 features:

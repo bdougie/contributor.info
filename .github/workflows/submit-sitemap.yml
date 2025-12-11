@@ -3,7 +3,7 @@ name: Submit Sitemap to Search Engines
 on:
   # Run after successful deployment
   workflow_run:
-    workflows: ["Release Automation"]
+    workflows: ['Release Automation']
     types:
       - completed
   # Also allow manual trigger
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     # Only run if the triggering workflow succeeded or if manually triggered
     if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event.workflow_run.conclusion == 'success' }}
-    
+
     steps:
       - name: Wait for deployment (if triggered by release)
         if: github.event_name == 'workflow_run'
@@ -30,7 +30,7 @@ jobs:
         id: verify
         run: |
           echo "Verifying sitemap is accessible before submission..."
-          
+
           # Check if sitemap is accessible
           if curl -f -s -o /dev/null -w "%{http_code}" https://contributor.info/sitemap.xml | grep -q "200"; then
             echo "✅ Sitemap is accessible"
@@ -46,24 +46,24 @@ jobs:
         continue-on-error: true
         run: |
           echo "📤 Submitting sitemap to Google..."
-          
+
           # Google sitemap ping endpoint
           GOOGLE_PING="https://www.google.com/ping?sitemap=https://contributor.info/sitemap.xml"
-          
+
           # Submit sitemap
           response=$(curl -s -o /dev/null -w "%{http_code}" "$GOOGLE_PING")
-          
+
           if [ "$response" = "200" ]; then
             echo "✅ Successfully submitted sitemap to Google"
           else
             echo "⚠️ Google submission returned status code: $response"
             echo "This is normal if Google is rate-limiting. The sitemap will be discovered via robots.txt"
           fi
-          
+
           # Also submit news sitemap
           GOOGLE_NEWS_PING="https://www.google.com/ping?sitemap=https://contributor.info/sitemap-news.xml"
           news_response=$(curl -s -o /dev/null -w "%{http_code}" "$GOOGLE_NEWS_PING")
-          
+
           if [ "$news_response" = "200" ]; then
             echo "✅ Successfully submitted news sitemap to Google"
           else
@@ -75,24 +75,24 @@ jobs:
         continue-on-error: true
         run: |
           echo "📤 Submitting sitemap to Bing..."
-          
+
           # Bing sitemap ping endpoint
           BING_PING="https://www.bing.com/ping?sitemap=https://contributor.info/sitemap.xml"
-          
+
           # Submit sitemap
           response=$(curl -s -o /dev/null -w "%{http_code}" "$BING_PING")
-          
+
           if [ "$response" = "200" ]; then
             echo "✅ Successfully submitted sitemap to Bing"
           else
             echo "⚠️ Bing submission returned status code: $response"
             echo "This is normal if Bing is rate-limiting. The sitemap will be discovered via robots.txt"
           fi
-          
+
           # Also submit news sitemap
           BING_NEWS_PING="https://www.bing.com/ping?sitemap=https://contributor.info/sitemap-news.xml"
           news_response=$(curl -s -o /dev/null -w "%{http_code}" "$BING_NEWS_PING")
-          
+
           if [ "$news_response" = "200" ]; then
             echo "✅ Successfully submitted news sitemap to Bing"
           else
@@ -104,10 +104,10 @@ jobs:
         continue-on-error: true
         run: |
           echo "📤 Submitting to IndexNow API..."
-          
+
           # IndexNow is a protocol supported by multiple search engines
           # We need an API key for this - should be added as a secret
-          
+
           # If we have the API key, submit
           if [ -n "${{ secrets.INDEXNOW_API_KEY }}" ]; then
             echo "🔑 IndexNow API key found, proceeding with submission..."
@@ -166,7 +166,7 @@ jobs:
         run: |
           echo "## 🔍 Sitemap Submission Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ steps.verify.outputs.sitemap_available }}" = "true" ]; then
             echo "### ✅ Sitemap Verified" >> $GITHUB_STEP_SUMMARY
             echo "- Main sitemap: https://contributor.info/sitemap.xml" >> $GITHUB_STEP_SUMMARY
@@ -174,13 +174,13 @@ jobs:
           else
             echo "### ❌ Sitemap Not Accessible" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📤 Submission Status" >> $GITHUB_STEP_SUMMARY
           echo "- Google: Ping sent (check Search Console for status)" >> $GITHUB_STEP_SUMMARY
           echo "- Bing: Ping sent (check Webmaster Tools for status)" >> $GITHUB_STEP_SUMMARY
           echo "- IndexNow: Check configuration for multi-engine submission" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Verification Links" >> $GITHUB_STEP_SUMMARY
           echo "- [Google Search Console](https://search.google.com/search-console)" >> $GITHUB_STEP_SUMMARY

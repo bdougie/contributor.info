@@ -13,7 +13,7 @@ async function testInngestEvent() {
       prId: '3f1a7d29-d862-463c-a136-17fa7d5a98c2',
       prGithubId: '20528',
       priority: 'high',
-    }
+    },
   };
 
   console.log('🚀 Sending test event to Inngest...\n');

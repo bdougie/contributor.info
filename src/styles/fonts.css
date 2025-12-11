@@ -6,8 +6,19 @@
 /* Apply system font stack with Inter as future enhancement */
 /* Using SF Pro on macOS, Segoe UI on Windows for consistent look */
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-feature-settings: 'liga' 1, 'calt' 1; /* Enable ligatures and contextual alternates */
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'SF Pro Display',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1; /* Enable ligatures and contextual alternates */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

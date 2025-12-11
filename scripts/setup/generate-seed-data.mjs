@@ -58,11 +58,11 @@ Environment variables:
 }
 
 // Parse days from command line (e.g., --days=7)
-const daysArg = args.find(arg => arg.startsWith('--days='));
+const daysArg = args.find((arg) => arg.startsWith('--days='));
 const cliDays = daysArg ? parseInt(daysArg.split('=')[1], 10) : null;
 
 // Parse repositories from command line (e.g., --repos=owner/repo1,owner/repo2)
-const reposArg = args.find(arg => arg.startsWith('--repos='));
+const reposArg = args.find((arg) => arg.startsWith('--repos='));
 const cliRepos = reposArg ? reposArg.split('=')[1] : null;
 
 // Configuration (CLI > ENV > Default)
@@ -70,7 +70,11 @@ const GITHUB_TOKEN = process.env.VITE_GITHUB_TOKEN || process.env.GITHUB_TOKEN;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://localhost:54321';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const SEED_DATA_DAYS = cliDays || parseInt(process.env.SEED_DATA_DAYS || '14', 10);
-const SEED_REPOSITORIES = (cliRepos || process.env.SEED_REPOSITORIES || 'continuedev/continue,vitejs/vite,facebook/react,vercel/next.js,supabase/supabase').split(',');
+const SEED_REPOSITORIES = (
+  cliRepos ||
+  process.env.SEED_REPOSITORIES ||
+  'continuedev/continue,vitejs/vite,facebook/react,vercel/next.js,supabase/supabase'
+).split(',');
 const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY || 'dev-key';
 const INNGEST_URL = process.env.INNGEST_URL || 'http://localhost:8288';
 
@@ -87,16 +91,16 @@ function maskToken(token) {
 function validateRepositoryFormat(repos) {
   const invalidRepos = [];
   const validPattern = /^[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_.]+$/;
-  
-  repos.forEach(repo => {
+
+  repos.forEach((repo) => {
     if (!validPattern.test(repo.trim())) {
       invalidRepos.push(repo);
     }
   });
-  
+
   if (invalidRepos.length > 0) {
     console.error('❌ Invalid repository format detected:');
-    invalidRepos.forEach(repo => console.error(`   • ${repo}`));
+    invalidRepos.forEach((repo) => console.error(`   • ${repo}`));
     console.error('Expected format: owner/repo');
     return false;
   }
@@ -159,35 +163,35 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  */
 async function githubAPI(endpoint, options = {}, retries = 3) {
   const url = `https://api.github.com${endpoint}`;
-  
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Authorization': `token ${GITHUB_TOKEN}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'contributor-info-seed-generator',
-          ...options.headers
-        }
+          ...options.headers,
+        },
       });
-      
+
       // Handle rate limiting
       if (response.status === 403) {
         const remaining = response.headers.get('x-ratelimit-remaining');
         const reset = response.headers.get('x-ratelimit-reset');
-        
+
         if (remaining === '0') {
           const resetTime = new Date(parseInt(reset) * 1000);
           console.log(`⏳ Rate limited. Resets at ${resetTime.toLocaleTimeString()}`);
           const waitTime = resetTime - Date.now() + 1000;
           if (waitTime > 0) {
             console.log(`   Waiting ${Math.round(waitTime / 1000)}s...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
             return githubAPI(endpoint, options, retries - attempt); // Retry without counting
           }
         }
-        
+
         // Check for other 403 errors (bad token, insufficient scopes)
         const errorData = await response.json();
         if (errorData.message?.includes('Bad credentials')) {
@@ -201,34 +205,39 @@ async function githubAPI(endpoint, options = {}, retries = 3) {
           process.exit(1);
         }
       }
-      
+
       // Handle server errors with retry
       if (response.status >= 500 && attempt < retries) {
         const backoffTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-        console.log(`⚠️  GitHub API error (${response.status}). Retrying in ${backoffTime}ms... (attempt ${attempt}/${retries})`);
-        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        console.log(
+          `⚠️  GitHub API error (${response.status}). Retrying in ${backoffTime}ms... (attempt ${attempt}/${retries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
         continue;
       }
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
+        throw new Error(
+          `GitHub API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
-      
+
       return response.json();
-      
     } catch (error) {
       // Network errors or other issues
       if (attempt < retries) {
         const backoffTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-        console.log(`⚠️  Request failed: ${error.message}. Retrying in ${backoffTime}ms... (attempt ${attempt}/${retries})`);
-        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        console.log(
+          `⚠️  Request failed: ${error.message}. Retrying in ${backoffTime}ms... (attempt ${attempt}/${retries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffTime));
       } else {
         throw error;
       }
     }
   }
-  
+
   throw new Error(`Failed after ${retries} attempts`);
 }
 
@@ -237,17 +246,17 @@ async function githubAPI(endpoint, options = {}, retries = 3) {
  */
 async function trackRepository(owner, name) {
   console.log(`\n📂 ${isDryRun ? '[DRY RUN] ' : ''}Setting up ${owner}/${name}...`);
-  
+
   // Fetch repository data
   const repo = await githubAPI(`/repos/${owner}/${name}`);
-  
+
   // Insert or update repository
   const { data: existingRepo, error: fetchError } = await supabase
     .from('repositories')
     .select('id')
     .eq('github_id', repo.id)
     .single();
-  
+
   const repoData = {
     github_id: repo.id,
     full_name: repo.full_name,
@@ -263,9 +272,9 @@ async function trackRepository(owner, name) {
     github_updated_at: repo.updated_at,
     default_branch: repo.default_branch,
     is_tracked: true,
-    last_updated_at: new Date().toISOString()
+    last_updated_at: new Date().toISOString(),
   };
-  
+
   if (isDryRun) {
     console.log(`✅ [DRY RUN] Would track repository: ${repo.full_name}`);
     console.log(`   • Stars: ${repo.stargazers_count}`);
@@ -273,18 +282,18 @@ async function trackRepository(owner, name) {
     console.log(`   • Last updated: ${new Date(repo.updated_at).toLocaleDateString()}`);
     return `dry-run-${repo.id}`; // Return fake ID for dry run
   }
-  
+
   const { data: repoRecord, error: upsertError } = await supabase
     .from('repositories')
     .upsert(repoData, { onConflict: 'github_id' })
     .select('id')
     .single();
-  
+
   if (upsertError) {
     console.error(`❌ Failed to track repository: ${upsertError.message}`);
     return null;
   }
-  
+
   console.log(`✅ Repository tracked: ${repo.full_name} (ID: ${repoRecord.id})`);
   return repoRecord.id;
 }
@@ -293,8 +302,10 @@ async function trackRepository(owner, name) {
  * Queue data capture via Inngest
  */
 async function queueDataCapture(repositoryId, repositoryName, days = SEED_DATA_DAYS) {
-  console.log(`🔄 ${isDryRun ? '[DRY RUN] ' : ''}Queueing data capture for ${repositoryName} (last ${days} days)...`);
-  
+  console.log(
+    `🔄 ${isDryRun ? '[DRY RUN] ' : ''}Queueing data capture for ${repositoryName} (last ${days} days)...`
+  );
+
   // Insert job into progressive_capture_jobs table
   const jobData = {
     job_type: 'seed_data_capture',
@@ -306,11 +317,11 @@ async function queueDataCapture(repositoryId, repositoryName, days = SEED_DATA_D
       days_to_capture: days,
       seed_generation: true,
       triggered_by: 'seed-script',
-      dry_run: isDryRun
+      dry_run: isDryRun,
     },
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
   };
-  
+
   if (isDryRun) {
     console.log(`✅ [DRY RUN] Would queue job for ${repositoryName}`);
     console.log(`   • Job type: seed_data_capture`);
@@ -318,18 +329,18 @@ async function queueDataCapture(repositoryId, repositoryName, days = SEED_DATA_D
     console.log(`   • Priority: 5`);
     return `dry-run-job-${Date.now()}`;
   }
-  
+
   const { data: job, error: jobError } = await supabase
     .from('progressive_capture_jobs')
     .insert(jobData)
     .select()
     .single();
-  
+
   if (jobError) {
     console.error(`❌ Failed to queue job: ${jobError.message}`);
     return null;
   }
-  
+
   // Trigger Inngest event for immediate processing
   try {
     const eventData = {
@@ -339,18 +350,18 @@ async function queueDataCapture(repositoryId, repositoryName, days = SEED_DATA_D
         repositoryId,
         repositoryName,
         daysToCapture: days,
-        seedGeneration: true
-      }
+        seedGeneration: true,
+      },
     };
-    
+
     const response = await fetch(`${INNGEST_URL}/e/${INNGEST_EVENT_KEY}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(eventData)
+      body: JSON.stringify(eventData),
     });
-    
+
     if (response.ok) {
       console.log(`✅ Inngest event triggered for ${repositoryName}`);
     } else {
@@ -359,7 +370,7 @@ async function queueDataCapture(repositoryId, repositoryName, days = SEED_DATA_D
   } catch (error) {
     console.log(`⚠️  Inngest not running - job queued for later processing`);
   }
-  
+
   return job.id;
 }
 
@@ -372,23 +383,23 @@ async function checkJobStatus(jobIds) {
     .select('id, status, repository_id, metadata')
     .in('id', jobIds)
     .order('created_at', { ascending: false });
-  
+
   if (error) {
     console.error('Failed to check job status:', error);
     return;
   }
-  
+
   const statusCounts = {
     pending: 0,
     processing: 0,
     completed: 0,
-    failed: 0
+    failed: 0,
   };
-  
-  jobs.forEach(job => {
+
+  jobs.forEach((job) => {
     statusCounts[job.status]++;
   });
-  
+
   return statusCounts;
 }
 
@@ -406,17 +417,17 @@ async function generateSeedData() {
     console.log(`🔍 DRY RUN MODE - No data will be written`);
   }
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-  
+
   const jobIds = [];
-  
+
   try {
     // Track and queue each repository
     for (const repoPath of SEED_REPOSITORIES) {
       const [owner, name] = repoPath.trim().split('/');
-      
+
       // Track repository
       const repositoryId = await trackRepository(owner, name);
-      
+
       if (repositoryId) {
         // Queue data capture job
         const jobId = await queueDataCapture(repositoryId, `${owner}/${name}`, SEED_DATA_DAYS);
@@ -424,15 +435,15 @@ async function generateSeedData() {
           jobIds.push(jobId);
         }
       }
-      
+
       // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
-    
+
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`✅ Queued ${jobIds.length} data capture jobs`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     // Check initial job status
     const status = await checkJobStatus(jobIds);
     console.log('📊 Job Status:');
@@ -440,7 +451,7 @@ async function generateSeedData() {
     console.log(`  • Processing: ${status.processing}`);
     console.log(`  • Completed: ${status.completed}`);
     console.log(`  • Failed: ${status.failed}`);
-    
+
     console.log('\n🎯 Next Steps:');
     console.log('1. Start Inngest to process the jobs:');
     console.log('   npm run dev:inngest');
@@ -456,7 +467,6 @@ async function generateSeedData() {
     console.log('');
     console.log('💡 Tip: Data will be processed in the background.');
     console.log('   The app will show data as it becomes available.');
-    
   } catch (error) {
     console.error('\n❌ Error generating seed data:', error);
     console.error('Please check your GitHub token and network connection');

@@ -78,12 +78,10 @@ export async function findSimilarIssues(
 
     // 4. Use semantic similarity if enabled and available
     if (useSemantic && embeddingService.isAvailable() && batchProcess) {
-      const batchResults = await processBatchSimilarity(
-        pullRequest,
-        allIssues,
-        repository.id,
-        { onProgress, minScore }
-      );
+      const batchResults = await processBatchSimilarity(pullRequest, allIssues, repository.id, {
+        onProgress,
+        minScore,
+      });
 
       for (const result of batchResults) {
         if (result.score >= minScore) {

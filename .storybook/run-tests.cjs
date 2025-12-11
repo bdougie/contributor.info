@@ -12,7 +12,7 @@ const testStorybookPath = path.join(__dirname, '..', 'node_modules', '.bin', 'te
 
 async function runTests(includeTags = null) {
   let serverProcess;
-  
+
   try {
     console.log('Killing any existing servers on port 6006...');
     try {
@@ -20,33 +20,45 @@ async function runTests(includeTags = null) {
     } catch (e) {
       // Ignore errors if no process found
     }
-    
+
     console.log('Starting HTTP server...');
-    serverProcess = spawn('npx', ['http-server', 'storybook-static', '--port', PORT.toString(), '--silent'], {
-      detached: true,
-      stdio: 'ignore'
-    });
-    
+    serverProcess = spawn(
+      'npx',
+      ['http-server', 'storybook-static', '--port', PORT.toString(), '--silent'],
+      {
+        detached: true,
+        stdio: 'ignore',
+      }
+    );
+
     console.log('Waiting for server to start...');
     execSync(`npx wait-on ${URL}`, { stdio: 'inherit' });
-    
+
     console.log(`Running ${includeTags ? 'accessibility' : 'interaction'} tests...`);
     const args = [];
     if (includeTags) {
       args.push('--includeTags', includeTags);
     }
-    
+
     // Run test-storybook with explicit config
     const configPath = path.join(__dirname, '..', 'test-runner-jest.config.js');
-    const testStorybookScript = path.join(__dirname, '..', 'node_modules', '@storybook', 'test-runner', 'dist', 'test-storybook.js');
+    const testStorybookScript = path.join(
+      __dirname,
+      '..',
+      'node_modules',
+      '@storybook',
+      'test-runner',
+      'dist',
+      'test-storybook.js'
+    );
     const command = `node "${testStorybookScript}" --config "${configPath}" ${args.join(' ')}`;
     console.log('Running command:', command);
-    execSync(command, { 
+    execSync(command, {
       stdio: 'inherit',
       env: { ...process.env },
-      shell: true
+      shell: true,
     });
-    
+
     console.log('Tests completed successfully!');
     process.exit(0);
   } catch (error) {
