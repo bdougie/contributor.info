@@ -59,10 +59,11 @@ export function initSentry(): boolean {
       sendDefaultPii: false,
       // Attach stack traces to messages
       attachStacktrace: true,
-      // Filter out non-error events in production
+      // Filter events in production - allow exceptions and explicit messages
       beforeSend(event) {
-        // Skip events without exception info in production
-        if (environment === 'production' && !event.exception) {
+        // In production, only send events with exceptions or explicit messages
+        // This filters out noise while allowing captureException() and captureMessage()
+        if (environment === 'production' && !event.exception && !event.message) {
           return null;
         }
         return event;
@@ -191,41 +192,47 @@ export function withSentry(
   initSentry();
 
   return async (req: Request): Promise<Response> => {
-    // Set function context
-    setTag('edge_function', functionName);
-    addBreadcrumb({
-      message: `Request to ${functionName}`,
-      category: 'http',
-      level: 'info',
-      data: {
-        url: req.url,
-        method: req.method,
-      },
-    });
-
-    try {
-      const response = await handler(req);
-      return response;
-    } catch (error) {
-      // Capture the error with context
-      captureException(error, {
-        function_name: functionName,
-        request_url: req.url,
-        request_method: req.method,
+    // Use withScope to isolate context per request (prevents race conditions)
+    return await Sentry.withScope(async (scope) => {
+      // Set function context within isolated scope
+      scope.setTag('edge_function', functionName);
+      scope.addBreadcrumb({
+        message: `Request to ${functionName}`,
+        category: 'http',
+        level: 'info',
+        data: {
+          url: req.url,
+          method: req.method,
+        },
       });
 
-      // Ensure error is flushed before response
-      await flush();
+      try {
+        const response = await handler(req);
+        return response;
+      } catch (error) {
+        // Capture the error with context (scope is already isolated)
+        Sentry.captureException(error, {
+          extra: {
+            function_name: functionName,
+            request_url: req.url,
+            request_method: req.method,
+          },
+        });
 
-      // Re-throw to let the caller handle the response
-      throw error;
-    }
+        // Ensure error is flushed before response
+        await flush();
+
+        // Re-throw to let the caller handle the response
+        throw error;
+      }
+    });
   };
 }
 
 /**
  * Wrapper specifically for Inngest function steps
  * Captures errors with Inngest-specific context
+ * Uses isolated scope to prevent race conditions in concurrent requests
  */
 export function captureInngestError(
   error: Error | unknown,
@@ -240,20 +247,28 @@ export function captureInngestError(
     initSentry();
   }
 
-  setTag('inngest_function', context.functionId);
-  if (context.eventName) {
-    setTag('inngest_event', context.eventName);
-  }
-  if (context.stepName) {
-    setTag('inngest_step', context.stepName);
-  }
+  // Use withScope to isolate tags per capture (prevents race conditions)
+  let eventId: string | undefined;
+  Sentry.withScope((scope) => {
+    scope.setTag('inngest_function', context.functionId);
+    if (context.eventName) {
+      scope.setTag('inngest_event', context.eventName);
+    }
+    if (context.stepName) {
+      scope.setTag('inngest_step', context.stepName);
+    }
 
-  return captureException(error, {
-    inngest_function_id: context.functionId,
-    inngest_event_name: context.eventName,
-    inngest_step_name: context.stepName,
-    event_data: context.eventData,
+    eventId = Sentry.captureException(error, {
+      extra: {
+        inngest_function_id: context.functionId,
+        inngest_event_name: context.eventName,
+        inngest_step_name: context.stepName,
+        event_data: context.eventData,
+      },
+    });
   });
+
+  return eventId;
 }
 
 // Auto-initialize when module is imported (if DSN is available)
