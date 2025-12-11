@@ -3541,15 +3541,18 @@ serve(async (req) => {
       await sentryFlush(2000);
     }
 
+    // Sanitize error response to prevent information leakage (CodeQL security fix)
+    // Detailed error info is already captured in Sentry and console logs
     return new Response(
       JSON.stringify({
-        error: isAuthError ? 'Authorization Error' : 'Failed to process request',
-        message: err.message,
+        error: isAuthError ? 'Authorization Error' : 'Internal Server Error',
+        message: isAuthError
+          ? 'Request authorization failed'
+          : 'An unexpected error occurred',
         hint: isAuthError
           ? 'Check that INNGEST_SIGNING_KEY is correctly set in Supabase secrets'
           : 'Check function logs for details',
         timestamp: new Date().toISOString(),
-        stack: Deno.env.get('VITE_ENV') === 'local' ? err.stack : undefined,
       }),
       {
         status: isAuthError ? 401 : 500,
