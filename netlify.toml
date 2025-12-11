@@ -66,6 +66,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Edge Functions for social media meta tags
+# Detects crawler user-agents and injects dynamic og:image URLs
+[[edge_functions]]
+  function = "social-meta"
+  path = "/*"
+
 # Inngest functions need longer timeouts for processing
 # Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
 
