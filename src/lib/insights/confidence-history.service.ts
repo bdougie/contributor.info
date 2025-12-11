@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 import { toUTCTimestamp } from '../utils/date-formatting';
 
 /**
@@ -216,7 +216,7 @@ export async function getConfidenceHistory(
     repositoryName: row.repository_name,
     confidenceScore: row.confidence_score,
     timeRangeDays: row.time_range_days,
-    breakdown: row.breakdown as ConfidenceHistoryPoint['breakdown'],
+    breakdown: row.breakdown as unknown as ConfidenceHistoryPoint['breakdown'],
     calculatedAt: new Date(row.calculated_at),
     periodStart: new Date(row.period_start),
     periodEnd: new Date(row.period_end),
@@ -310,7 +310,7 @@ export async function getConfidenceForPeriods(
       results.push({
         period,
         score: data.confidence_score,
-        breakdown: data.breakdown as ConfidenceHistoryPoint['breakdown'],
+        breakdown: data.breakdown as unknown as ConfidenceHistoryPoint['breakdown'],
         calculatedAt: new Date(data.calculated_at),
       });
     }
@@ -353,7 +353,7 @@ export async function getLatestConfidenceFromHistory(
     repositoryName: data.repository_name,
     confidenceScore: data.confidence_score,
     timeRangeDays: data.time_range_days,
-    breakdown: data.breakdown as ConfidenceHistoryPoint['breakdown'],
+    breakdown: data.breakdown as unknown as ConfidenceHistoryPoint['breakdown'],
     calculatedAt: new Date(data.calculated_at),
     periodStart: new Date(data.period_start),
     periodEnd: new Date(data.period_end),

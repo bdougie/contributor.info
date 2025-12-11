@@ -1,5 +1,5 @@
 import { getSupabase } from '@/lib/supabase-lazy';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 
 type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'] & {
   author: Database['public']['Tables']['contributors']['Row'];

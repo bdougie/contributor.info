@@ -2,8 +2,10 @@ import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { OptimizedAvatarSimple, OptimizedAvatarSimpleProps } from './optimized-avatar-simple';
 
-export interface OptimizedAvatarProps
-  extends Omit<OptimizedAvatarSimpleProps, 'renderAvatar' | 'renderImage' | 'renderFallback'> {}
+export type OptimizedAvatarProps = Omit<
+  OptimizedAvatarSimpleProps,
+  'renderAvatar' | 'renderImage' | 'renderFallback'
+>;
 
 /**
  * Production wrapper for OptimizedAvatar that connects the simple component to real UI dependencies
@@ -19,13 +21,13 @@ export function OptimizedAvatar(props: OptimizedAvatarProps) {
   // Connect to real Avatar components
   const renderAvatar = React.useCallback(
     (avatarProps: {
-      ref: React.RefObject<HTMLDivElement>;
+      ref: React.RefObject<HTMLDivElement | null>;
       className: string;
       style: React.CSSProperties;
       children: React.ReactNode;
     }) => (
       <Avatar
-        ref={avatarProps.ref as any}
+        ref={avatarProps.ref as React.Ref<HTMLSpanElement>}
         className={avatarProps.className}
         style={avatarProps.style}
       >

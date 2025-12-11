@@ -144,7 +144,6 @@ export class SnapDOMCaptureService {
           backgroundColor: themeBackgroundColor,
           format: 'png',
           embedFonts: true,
-          compress: false,
         });
 
         console.log(
@@ -174,7 +173,6 @@ export class SnapDOMCaptureService {
           backgroundColor: themeBackgroundColor,
           format: 'png',
           embedFonts: true,
-          compress: false,
         });
 
         canvas = await result.toCanvas();

@@ -12,7 +12,7 @@ import type {
 } from '@/types/workspace';
 import { createSupabaseAdmin } from '@/lib/supabase-admin';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 
 // Type definitions for aggregation

@@ -21,7 +21,7 @@ export interface OptimizedAvatarSimpleProps {
   onError?: () => void;
   // Dependency injection for testing
   renderAvatar?: (props: {
-    ref: React.RefObject<HTMLDivElement>;
+    ref: React.RefObject<HTMLDivElement | null>;
     className: string;
     style: React.CSSProperties;
     children: React.ReactNode;

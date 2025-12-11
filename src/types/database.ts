@@ -74,6 +74,164 @@ export interface Database {
           is_active: boolean;
         };
       };
+      repository_confidence_history: {
+        Row: {
+          id: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          breakdown: Record<string, number> | null;
+          calculated_at: string;
+          period_start: string;
+          period_end: string;
+          data_version: number;
+          calculation_time_ms: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          breakdown?: Record<string, number> | null;
+          calculated_at?: string;
+          period_start: string;
+          period_end: string;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          repository_owner?: string;
+          repository_name?: string;
+          confidence_score?: number;
+          time_range_days?: number;
+          breakdown?: Record<string, number> | null;
+          calculated_at?: string;
+          period_start?: string;
+          period_end?: string;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+        };
+      };
+      repository_confidence_cache: {
+        Row: {
+          id: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          calculated_at: string;
+          expires_at: string;
+          last_sync_at: string | null;
+          data_version: number;
+          calculation_time_ms: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          repository_owner: string;
+          repository_name: string;
+          confidence_score: number;
+          time_range_days: number;
+          calculated_at?: string;
+          expires_at: string;
+          last_sync_at?: string | null;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          repository_owner?: string;
+          repository_name?: string;
+          confidence_score?: number;
+          time_range_days?: number;
+          calculated_at?: string;
+          expires_at?: string;
+          last_sync_at?: string | null;
+          data_version?: number;
+          calculation_time_ms?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      workspace_repositories: {
+        Row: {
+          id: string;
+          workspace_id: string;
+          repository_id: string;
+          added_by: string;
+          added_at: string;
+          notes: string | null;
+          tags: string[] | null;
+          is_pinned: boolean;
+        };
+        Insert: {
+          id?: string;
+          workspace_id: string;
+          repository_id: string;
+          added_by: string;
+          added_at?: string;
+          notes?: string | null;
+          tags?: string[] | null;
+          is_pinned?: boolean;
+        };
+        Update: {
+          id?: string;
+          workspace_id?: string;
+          repository_id?: string;
+          added_by?: string;
+          added_at?: string;
+          notes?: string | null;
+          tags?: string[] | null;
+          is_pinned?: boolean;
+        };
+      };
+      github_sync_status: {
+        Row: {
+          id: string;
+          repository_owner: string;
+          repository_name: string;
+          last_sync_at: string | null;
+          last_event_at: string | null;
+          events_processed: number;
+          sync_status: 'pending' | 'in_progress' | 'completed' | 'failed' | null;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          repository_owner: string;
+          repository_name: string;
+          last_sync_at?: string | null;
+          last_event_at?: string | null;
+          events_processed?: number;
+          sync_status?: 'pending' | 'in_progress' | 'completed' | 'failed' | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          repository_owner?: string;
+          repository_name?: string;
+          last_sync_at?: string | null;
+          last_event_at?: string | null;
+          events_processed?: number;
+          sync_status?: 'pending' | 'in_progress' | 'completed' | 'failed' | null;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

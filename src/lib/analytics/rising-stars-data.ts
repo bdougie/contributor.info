@@ -1,4 +1,4 @@
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 
 // Constants for rising star calculations
 const RISING_STAR_VELOCITY_THRESHOLD = 10; // events per week

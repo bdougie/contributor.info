@@ -7,7 +7,7 @@ import {
   type SpamFilterOptions,
   DEFAULT_SPAM_FILTER,
 } from '@/lib/api/spam-filtered-feed';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/supabase';
 
 type PullRequestWithAuthor = Database['public']['Tables']['pull_requests']['Row'] & {
   author: Database['public']['Tables']['contributors']['Row'];
