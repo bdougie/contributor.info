@@ -499,7 +499,8 @@ export async function readAuditLog(
     try {
       entries.push(JSON.parse(line));
     } catch {
-      // Skip malformed lines
+      // Log warning but continue - one bad line shouldn't break the entire log
+      console.warn('Skipping malformed audit log line for %s/%s', jobType, jobId);
     }
   }
 
