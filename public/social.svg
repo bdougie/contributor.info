@@ -1,0 +1,62 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+    
+    <defs>
+      <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+  
+    
+    <!-- Background -->
+    <rect width="1200" height="630" fill="url(#bgGradient)"/>
+    
+    <!-- Pattern overlay -->
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+      </pattern>
+    </defs>
+    <rect width="1200" height="630" fill="url(#grid)"/>
+    
+    <!-- Logo and branding -->
+    <g transform="translate(600, 140)">
+      <circle cx="0" cy="0" r="60" fill="#10b981" opacity="0.9"/>
+      <text x="0" y="15" text-anchor="middle" font-size="48" font-family="system-ui, -apple-system, sans-serif" fill="#ffffff">🌱</text>
+    </g>
+    
+    <!-- Title -->
+    <text x="600" y="280" text-anchor="middle" font-size="64" font-weight="700" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
+    
+    <!-- Subtitle -->
+    <text x="600" y="340" text-anchor="middle" font-size="24" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Visualizing Open Source Contributions</text>
+    
+    <!-- Stats section -->
+    
+      <g transform="translate(600, 440)">
+        <!-- Repositories -->
+        <g transform="translate(-300, 0)">
+          <rect x="-80" y="-40" width="160" height="100" rx="8" fill="#ffffff" opacity="0.05"/>
+          <text y="0" text-anchor="middle" font-size="42" font-weight="600" fill="#10b981" font-family="system-ui, -apple-system, sans-serif">77</text>
+          <text y="35" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Repositories</text>
+        </g>
+        
+        <!-- Contributors -->
+        <g transform="translate(0, 0)">
+          <rect x="-80" y="-40" width="160" height="100" rx="8" fill="#ffffff" opacity="0.05"/>
+          <text y="0" text-anchor="middle" font-size="42" font-weight="600" fill="#3b82f6" font-family="system-ui, -apple-system, sans-serif">24.2K</text>
+          <text y="35" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Contributors</text>
+        </g>
+        
+        <!-- Pull Requests -->
+        <g transform="translate(300, 0)">
+          <rect x="-80" y="-40" width="160" height="100" rx="8" fill="#ffffff" opacity="0.05"/>
+          <text y="0" text-anchor="middle" font-size="42" font-weight="600" fill="#f59e0b" font-family="system-ui, -apple-system, sans-serif">163.5K</text>
+          <text y="35" text-anchor="middle" font-size="16" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif">Pull Requests</text>
+        </g>
+      </g>
+    
+    
+    <!-- Footer -->
+    <text x="600" y="580" text-anchor="middle" font-size="14" fill="#64748b" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
+  </svg>

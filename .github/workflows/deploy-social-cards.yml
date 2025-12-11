@@ -14,13 +14,13 @@ jobs:
     name: Deploy to Fly.io
     runs-on: ubuntu-latest
     if: github.repository == 'bdougie/contributor.info'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Fly CLI
-        uses: superfly/flyctl-actions/setup-flyctl@1db26817c55e0a0473e836514fa4e1c06ee8e6d1  # v1.4
+        uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly.io
         run: |
@@ -44,15 +44,20 @@ jobs:
 
       - name: Test social card generation
         run: |
-          # Test home card
-          curl -f -o /tmp/home-card.svg https://contributor-info-social-cards.fly.dev/social-cards/home
-          file /tmp/home-card.svg | grep -q "SVG" || exit 1
-          echo "✅ Home card generation works"
-          
+          # Test home card (PNG is default for social media compatibility)
+          curl -f -o /tmp/home-card.png https://contributor-info-social-cards.fly.dev/social-cards/home
+          file /tmp/home-card.png | grep -q "PNG" || exit 1
+          echo "✅ Home card PNG generation works"
+
           # Test repo card
-          curl -f -o /tmp/repo-card.svg "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react"
-          file /tmp/repo-card.svg | grep -q "SVG" || exit 1
-          echo "✅ Repository card generation works"
+          curl -f -o /tmp/repo-card.png "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react"
+          file /tmp/repo-card.png | grep -q "PNG" || exit 1
+          echo "✅ Repository card PNG generation works"
+
+          # Test SVG format option still works
+          curl -f -o /tmp/home-card.svg "https://contributor-info-social-cards.fly.dev/social-cards/home?format=svg"
+          file /tmp/home-card.svg | grep -q "SVG" || exit 1
+          echo "✅ SVG format option works"
 
       - name: Comment on PR (if PR)
         if: github.event_name == 'pull_request'
