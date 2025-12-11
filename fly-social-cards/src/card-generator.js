@@ -34,20 +34,20 @@ const THEME = {
   textMuted: '#A3A3A3',
   primary: '#FF5402',
   green: '#22C55E', // Seedling color
+  brown: '#8B4513', // Pot color
 };
 
-// Seedling icon as SVG - designed to look like 🌱 emoji
-const seedlingIcon = (x, y, size = 32) => `
-  <g transform="translate(${x}, ${y})">
-    <!-- Two leaves sprouting from stem - matches 🌱 emoji -->
-    <g transform="translate(${size * 0.15}, ${size * 0.1}) scale(${size / 32})">
-      <!-- Left leaf -->
-      <path d="M16 8c-4 0-8 3-8 8 0 0 4-1 8-5" fill="${THEME.green}" />
-      <!-- Right leaf -->
-      <path d="M16 8c4 0 8 3 8 8 0 0-4-1-8-5" fill="${THEME.green}" />
-      <!-- Stem -->
-      <path d="M16 11V26" stroke="${THEME.green}" stroke-width="3" stroke-linecap="round"/>
-    </g>
+// Favicon logo as simplified SVG (seedling in pot)
+const faviconLogo = (x, y, size = 28) => `
+  <g transform="translate(${x}, ${y}) scale(${size / 28})">
+    <!-- Pot -->
+    <path d="M8 18h12v6c0 2-2 4-6 4s-6-2-6-4v-6z" fill="${THEME.brown}"/>
+    <path d="M6 16h16v3H6z" fill="${THEME.brown}"/>
+    <!-- Leaves -->
+    <ellipse cx="10" cy="10" rx="5" ry="7" fill="${THEME.green}" transform="rotate(-30 10 10)"/>
+    <ellipse cx="18" cy="10" rx="5" ry="7" fill="${THEME.green}" transform="rotate(30 18 10)"/>
+    <!-- Stem -->
+    <rect x="13" y="10" width="2" height="8" fill="${THEME.green}"/>
   </g>
 `;
 
@@ -92,9 +92,9 @@ const generateHomeCard = (data) => {
     <rect width="1200" height="630" fill="${THEME.background}"/>
 
     <!-- Header with logo -->
-    <g transform="translate(48, 48)">
-      ${seedlingIcon(0, 0, 32)}
-      <text x="44" y="22" font-size="20" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
+    <g transform="translate(48, 40)">
+      ${faviconLogo(0, 0, 28)}
+      <text x="36" y="20" font-size="22" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
     </g>
 
     <!-- Main title -->
@@ -142,9 +142,9 @@ const generateRepoCard = (data) => {
     <rect width="1200" height="630" fill="${THEME.background}"/>
 
     <!-- Header with logo -->
-    <g transform="translate(48, 48)">
-      ${seedlingIcon(0, 0, 32)}
-      <text x="44" y="22" font-size="20" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
+    <g transform="translate(48, 40)">
+      ${faviconLogo(0, 0, 28)}
+      <text x="36" y="20" font-size="22" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
     </g>
 
     <!-- Repository name -->
@@ -192,9 +192,9 @@ const generateUserCard = (data) => {
     <rect width="1200" height="630" fill="${THEME.background}"/>
 
     <!-- Header with logo -->
-    <g transform="translate(48, 48)">
-      ${seedlingIcon(0, 0, 32)}
-      <text x="44" y="22" font-size="20" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
+    <g transform="translate(48, 40)">
+      ${faviconLogo(0, 0, 28)}
+      <text x="36" y="20" font-size="22" font-weight="600" fill="${THEME.text}" font-family="system-ui, -apple-system, sans-serif">contributor.info</text>
     </g>
 
     <!-- Username -->
