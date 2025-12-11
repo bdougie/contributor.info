@@ -196,7 +196,11 @@
     "tar": ">=7.5.2",
     "ws": ">=8.17.1",
     "sirv": ">=3.0.2",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "^4.1.1",
+    "react-helmet-async": {
+      "react": "^19.2.1",
+      "react-dom": "^19.2.1"
+    }
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",
