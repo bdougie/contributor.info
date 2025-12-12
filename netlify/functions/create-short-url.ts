@@ -163,7 +163,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
         });
 
         const existingLinkResponse = await fetch(
-          `${DUB_API_BASE}/links?domain=${domain}&key=${encodeURIComponent(body.key)}`,
+          `${DUB_API_BASE}/links?domain=${encodeURIComponent(domain)}&key=${encodeURIComponent(body.key)}`,
           {
             headers: {
               Authorization: `Bearer ${DUB_API_KEY}`,
@@ -179,7 +179,19 @@ export const handler: Handler = async (event: HandlerEvent) => {
             console.log('Returning existing short URL:', existingLink.shortLink);
             return {
               statusCode: 200,
-              body: JSON.stringify(existingLink),
+              body: JSON.stringify({
+                id: existingLink.id,
+                domain: existingLink.domain,
+                key: existingLink.key,
+                url: existingLink.url,
+                shortLink: existingLink.shortLink,
+                qrCode: existingLink.qrCode ?? '',
+                createdAt: existingLink.createdAt,
+                updatedAt: existingLink.updatedAt,
+                clicks: existingLink.clicks ?? 0,
+                title: existingLink.title ?? null,
+                description: existingLink.description ?? null,
+              }),
               headers: { 'Content-Type': 'application/json' },
             };
           }
