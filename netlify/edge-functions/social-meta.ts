@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/edge-functions';
+import { withSentry, addBreadcrumb, captureMessage } from './_shared/sentry.ts';
 
 const CRAWLER_USER_AGENTS = [
   'twitterbot',
@@ -112,7 +113,7 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;');
 }
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   const userAgent = request.headers.get('user-agent');
 
   // Non-crawlers get normal SPA
@@ -120,12 +121,28 @@ export default async function handler(request: Request, context: Context) {
     return context.next();
   }
 
+  // Track crawler detection
+  addBreadcrumb({
+    message: 'Crawler detected',
+    category: 'social-meta',
+    level: 'info',
+    data: {
+      userAgent: userAgent?.substring(0, 100),
+    },
+  });
+
   // Get the original response
   const response = await context.next();
   const contentType = response.headers.get('content-type');
 
   // Only modify HTML responses
   if (!contentType || !contentType.includes('text/html')) {
+    addBreadcrumb({
+      message: 'Non-HTML response, skipping meta injection',
+      category: 'social-meta',
+      level: 'info',
+      data: { contentType },
+    });
     return response;
   }
 
@@ -134,6 +151,18 @@ export default async function handler(request: Request, context: Context) {
   // Parse URL
   const url = new URL(request.url);
   const meta = getMetaTagsForPath(url.pathname);
+
+  // Track which meta tags are being generated
+  addBreadcrumb({
+    message: 'Generating meta tags',
+    category: 'social-meta',
+    level: 'info',
+    data: {
+      pathname: url.pathname,
+      title: meta.title,
+      image: meta.image,
+    },
+  });
 
   // Escape values for safe HTML injection
   const safeTitle = escapeHtml(meta.title);
@@ -191,16 +220,26 @@ export default async function handler(request: Request, context: Context) {
       `<meta name="description" content="${safeDescription}"`
     );
 
+  // Verify HTML was modified (basic check)
+  if (modifiedHtml === html) {
+    captureMessage('Meta tags not replaced - HTML structure may have changed', 'warning', {
+      pathname: url.pathname,
+      htmlLength: html.length,
+    });
+  }
+
   return new Response(modifiedHtml, {
     status: response.status,
     headers: {
       ...Object.fromEntries(response.headers),
       'content-type': 'text/html; charset=utf-8',
       'x-social-meta-injected': 'true',
-      'x-crawler-detected': userAgent?.substring(0, 50) || 'unknown',
+      'x-crawler-detected': 'true',
     },
   });
 }
+
+export default withSentry('social-meta', handler);
 
 export const config = {
   path: '/*',
