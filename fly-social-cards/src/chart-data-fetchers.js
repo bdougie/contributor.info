@@ -91,7 +91,8 @@ export async function fetchLotteryFactorData(supabase, owner, repo, timeRange = 
       )
       .eq('repository_id', repoData.id)
       .gte('created_at', cutoffDate.toISOString())
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(1000);
 
     if (prError || !prData) {
       return getFallbackLotteryFactorData();
@@ -196,7 +197,8 @@ export async function fetchHealthFactorsData(supabase, owner, repo, timeRange = 
       .from('pull_requests')
       .select('id, state, created_at, merged_at, closed_at, additions, deletions')
       .eq('repository_id', repoData.id)
-      .gte('created_at', cutoffDate.toISOString());
+      .gte('created_at', cutoffDate.toISOString())
+      .limit(1000);
 
     if (prError || !prData) {
       return getFallbackHealthFactorsData();
@@ -331,7 +333,8 @@ export async function fetchDistributionData(
       `
       )
       .eq('repository_id', repoData.id)
-      .gte('created_at', cutoffDate.toISOString());
+      .gte('created_at', cutoffDate.toISOString())
+      .limit(1000);
 
     if (prError || !prData) {
       return getFallbackDistributionData(distributionType);
