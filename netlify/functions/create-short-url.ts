@@ -154,6 +154,59 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+
+      // Handle 409 Conflict (duplicate key) - fetch and return existing link
+      if (response.status === 409 && body.key) {
+        console.log('Link already exists, fetching existing link:', {
+          domain,
+          key: body.key,
+        });
+
+        const existingLinkResponse = await fetch(
+          `${DUB_API_BASE}/links?domain=${domain}&key=${encodeURIComponent(body.key)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${DUB_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (existingLinkResponse.ok) {
+          const existingLinks = await existingLinkResponse.json();
+          if (existingLinks && existingLinks.length > 0) {
+            const existingLink: DubResponse = existingLinks[0];
+            console.log('Returning existing short URL:', existingLink.shortLink);
+            return {
+              statusCode: 200,
+              body: JSON.stringify(existingLink),
+              headers: { 'Content-Type': 'application/json' },
+            };
+          }
+        }
+
+        // If we couldn't fetch the existing link, construct the short URL manually
+        const shortLink = `https://${domain}/${body.key}`;
+        console.log('Constructed short URL from existing key:', shortLink);
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            id: 'existing-link',
+            domain,
+            key: body.key,
+            url: body.url,
+            shortLink,
+            qrCode: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            clicks: 0,
+            title: body.title || null,
+            description: body.description || null,
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        };
+      }
+
       console.error('Dub API error:', {
         status: response.status,
         error: errorText,
