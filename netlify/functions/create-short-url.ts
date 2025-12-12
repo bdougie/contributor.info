@@ -87,10 +87,10 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     // Skip URL shortening for deploy previews - Dub.co flags these URLs as "malicious"
     // because the deploy-preview-XXX pattern looks suspicious to their security filters
-    const isDeployPreview = process.env.CONTEXT === 'deploy-preview';
+    const isDeployPreview = urlObj.host.includes('deploy-preview') || urlObj.host.includes('--');
     if (isDeployPreview) {
       console.log(
-        'Deploy preview detected, skipping URL shortening (Dub flags these as malicious)'
+        'Deploy preview URL detected, skipping URL shortening (Dub flags these as malicious)'
       );
       return {
         statusCode: 200,
@@ -111,9 +111,19 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    // Determine domain based on environment
-    const isDev = process.env.CONTEXT !== 'production';
-    const domain = isDev ? 'dub.sh' : 'oss.fyi';
+    // Determine domain based on the URL being shortened (more reliable than CONTEXT env var)
+    // - contributor.info (exact) -> oss.fyi (production)
+    // - *.netlify.app (branch deploys) -> dub.sh
+    // - localhost -> dub.sh
+    const isProduction = urlObj.host === 'contributor.info';
+    const domain = isProduction ? 'oss.fyi' : 'dub.sh';
+
+    console.log('Domain selection:', {
+      urlHost: urlObj.host,
+      isProduction,
+      domain,
+      context: process.env.CONTEXT,
+    });
 
     console.log('Creating short URL via Dub API:', {
       url: body.url,
