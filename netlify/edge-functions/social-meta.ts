@@ -234,7 +234,7 @@ async function handler(request: Request, context: Context) {
       ...Object.fromEntries(response.headers),
       'content-type': 'text/html; charset=utf-8',
       'x-social-meta-injected': 'true',
-      'x-crawler-detected': userAgent?.substring(0, 50) || 'unknown',
+      'x-crawler-detected': 'true',
     },
   });
 }
