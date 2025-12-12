@@ -85,9 +85,45 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    // Determine domain based on environment
-    const isDev = process.env.CONTEXT !== 'production';
-    const domain = isDev ? 'dub.sh' : 'oss.fyi';
+    // Skip URL shortening for deploy previews - Dub.co flags these URLs as "malicious"
+    // because the deploy-preview-XXX pattern looks suspicious to their security filters
+    const isDeployPreview = urlObj.host.includes('deploy-preview') || urlObj.host.includes('--');
+    if (isDeployPreview) {
+      console.log(
+        'Deploy preview URL detected, skipping URL shortening (Dub flags these as malicious)'
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          id: 'deploy-preview-skip',
+          domain: urlObj.host,
+          key: urlObj.pathname,
+          url: body.url,
+          shortLink: body.url, // Return original URL
+          qrCode: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          clicks: 0,
+          title: body.title || null,
+          description: body.description || null,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      };
+    }
+
+    // Determine domain based on the URL being shortened (more reliable than CONTEXT env var)
+    // - contributor.info (exact) -> oss.fyi (production)
+    // - *.netlify.app (branch deploys) -> dub.sh
+    // - localhost -> dub.sh
+    const isProduction = urlObj.host === 'contributor.info';
+    const domain = isProduction ? 'oss.fyi' : 'dub.sh';
+
+    console.log('Domain selection:', {
+      urlHost: urlObj.host,
+      isProduction,
+      domain,
+      context: process.env.CONTEXT,
+    });
 
     console.log('Creating short URL via Dub API:', {
       url: body.url,
