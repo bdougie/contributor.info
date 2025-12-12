@@ -3,6 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { generateSocialCard } from './card-generator.js';
 import { getConverter } from './svg-to-png.js';
+import { renderer } from './playwright-renderer.js';
+import { generateCacheKey, getCachedImage, cacheImage, getCacheStats } from './cache.js';
+import {
+  fetchSelfSelectionData,
+  fetchLotteryFactorData,
+  fetchHealthFactorsData,
+  fetchDistributionData,
+} from './chart-data-fetchers.js';
+import { buildChartHtml } from './chart-html-builder.js';
 
 // Load environment variables
 dotenv.config();
@@ -67,11 +76,16 @@ app.get('/health', (req, res) => {
 
 // Metrics endpoint
 app.get('/metrics', (req, res) => {
+  const cacheStats = getCacheStats();
+  const playwrightStatus = renderer.getStatus();
+
   res.status(200).json({
     requests_total: global.requestCount || 0,
     avg_response_time_ms: global.avgResponseTime || 0,
     cache_hits: global.cacheHits || 0,
     cache_misses: global.cacheMisses || 0,
+    cache: cacheStats,
+    playwright: playwrightStatus,
   });
 });
 
@@ -82,6 +96,131 @@ function validateInput(input, pattern = /^[a-zA-Z0-9_.-]+$/) {
   if (input.length > 100) return false; // Max length check
   return pattern.test(input);
 }
+
+// Valid chart types
+const VALID_CHART_TYPES = ['self-selection', 'lottery-factor', 'health-factors', 'distribution'];
+
+// Chart rendering endpoint (with rate limiting)
+app.get('/charts/:chartType', rateLimit, async (req, res) => {
+  const startTime = Date.now();
+  global.requestCount = (global.requestCount || 0) + 1;
+
+  try {
+    const { chartType } = req.params;
+    const { owner, repo, timeRange = '30', type: distributionType = 'donut' } = req.query;
+
+    // Validate chart type
+    if (!VALID_CHART_TYPES.includes(chartType)) {
+      return res.status(400).json({
+        error: 'Invalid chart type',
+        validTypes: VALID_CHART_TYPES,
+      });
+    }
+
+    // Validate required parameters
+    if (!owner || !repo) {
+      return res.status(400).json({ error: 'Missing required parameters: owner, repo' });
+    }
+
+    // Validate inputs
+    if (!validateInput(owner) || !validateInput(repo)) {
+      return res.status(400).json({ error: 'Invalid input parameters' });
+    }
+
+    // Generate cache key
+    const cacheKey = generateCacheKey(chartType, {
+      owner,
+      repo,
+      timeRange,
+      type: distributionType,
+    });
+
+    // Check cache first
+    const cachedImage = await getCachedImage(cacheKey, supabase);
+    if (cachedImage) {
+      const responseTime = Date.now() - startTime;
+      global.avgResponseTime = (global.avgResponseTime || 0) * 0.9 + responseTime * 0.1;
+
+      res.set({
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
+        'Access-Control-Allow-Origin': '*',
+        'X-Response-Time': `${responseTime}ms`,
+        'X-Cache': 'HIT',
+      });
+
+      return res.status(200).send(cachedImage);
+    }
+
+    // Fetch data based on chart type
+    let chartData;
+    const timeRangeNum = parseInt(timeRange, 10) || 30;
+
+    switch (chartType) {
+      case 'self-selection':
+        chartData = await fetchSelfSelectionData(supabase, owner, repo, timeRangeNum);
+        break;
+      case 'lottery-factor':
+        chartData = await fetchLotteryFactorData(supabase, owner, repo, timeRangeNum);
+        break;
+      case 'health-factors':
+        chartData = await fetchHealthFactorsData(supabase, owner, repo, timeRangeNum);
+        break;
+      case 'distribution':
+        chartData = await fetchDistributionData(
+          supabase,
+          owner,
+          repo,
+          distributionType,
+          timeRangeNum
+        );
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid chart type' });
+    }
+
+    // Build HTML
+    const html = buildChartHtml(chartType, chartData, owner, repo);
+
+    // Render with Playwright
+    const imageBuffer = await renderer.renderChart(html, {
+      width: 1200,
+      height: 630,
+      format: 'png',
+    });
+
+    // Cache the result (async)
+    cacheImage(cacheKey, imageBuffer, supabase);
+
+    // Track performance
+    const responseTime = Date.now() - startTime;
+    global.avgResponseTime = (global.avgResponseTime || 0) * 0.9 + responseTime * 0.1;
+
+    // Send response
+    res.set({
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
+      'Access-Control-Allow-Origin': '*',
+      'X-Response-Time': `${responseTime}ms`,
+      'X-Cache': 'MISS',
+    });
+
+    res.status(200).send(imageBuffer);
+  } catch (error) {
+    console.error('Chart generation error: %s', error.message);
+
+    res.set({
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    res.status(500).json({
+      error: 'Failed to generate chart',
+      message: error.message,
+    });
+  }
+});
 
 // Main social card generation endpoint (with rate limiting)
 app.get('/social-cards/:type?', rateLimit, async (req, res) => {
@@ -340,14 +479,46 @@ app.get('/api/social-cards', rateLimit, async (req, res) => {
 
 // Start server (only if not in test mode)
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
+  // Initialize Playwright on startup
+  renderer
+    .initialize()
+    .then(() => {
+      console.log('Playwright renderer ready');
+    })
+    .catch((err) => {
+      console.error('Failed to initialize Playwright: %s', err.message);
+      console.warn('Chart generation will fail until Playwright is available');
+    });
+
+  const server = app.listen(PORT, () => {
     console.log('Social cards service running on port %s', PORT);
     console.log('Health check: http://localhost:%s/health', PORT);
     console.log('Metrics: http://localhost:%s/metrics', PORT);
+    console.log('Charts: http://localhost:%s/charts/:chartType', PORT);
     if (!supabase) {
       console.warn('Warning: Running without database connection. Using fallback data only.');
     }
   });
+
+  // Graceful shutdown
+  const shutdown = async (signal) => {
+    console.log('Received %s, shutting down gracefully...', signal);
+
+    server.close(async () => {
+      console.log('HTTP server closed');
+      await renderer.shutdown();
+      process.exit(0);
+    });
+
+    // Force exit after 30 seconds
+    setTimeout(() => {
+      console.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 // Export for testing
