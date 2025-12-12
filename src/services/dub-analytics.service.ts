@@ -261,18 +261,3 @@ export async function getRepositoryAnalyticsSummary(repository: string): Promise
     return null;
   }
 }
-
-/**
- * Schedule automatic analytics sync (call this on app initialization)
- */
-export function scheduleAnalyticsSync(intervalMinutes: number = 60): number {
-  logger.log('Scheduling analytics sync', { intervalMinutes });
-
-  return window.setInterval(
-    async () => {
-      logger.log('Running scheduled analytics sync');
-      await syncAllAnalytics();
-    },
-    intervalMinutes * 60 * 1000
-  );
-}
