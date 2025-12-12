@@ -15,6 +15,10 @@
  * @returns {Promise<object>} - Self-selection stats
  */
 export async function fetchSelfSelectionData(supabase, owner, repo, daysBack = 30) {
+  if (!supabase) {
+    return getFallbackSelfSelectionData();
+  }
+
   const { data, error } = await supabase
     .rpc('calculate_self_selection_rate', {
       p_repository_owner: owner,
@@ -55,6 +59,10 @@ function getFallbackSelfSelectionData() {
  * @returns {Promise<object>} - Lottery factor data
  */
 export async function fetchLotteryFactorData(supabase, owner, repo, timeRange = 30) {
+  if (!supabase) {
+    return getFallbackLotteryFactorData();
+  }
+
   try {
     // Get repository ID first
     const { data: repoData, error: repoError } = await supabase
@@ -176,6 +184,10 @@ function getFallbackLotteryFactorData() {
  * @returns {Promise<object>} - Health factors data
  */
 export async function fetchHealthFactorsData(supabase, owner, repo, timeRange = 30) {
+  if (!supabase) {
+    return getFallbackHealthFactorsData();
+  }
+
   try {
     // Get repository ID
     const { data: repoData, error: repoError } = await supabase
@@ -300,6 +312,10 @@ export async function fetchDistributionData(
   distributionType = 'donut',
   timeRange = 30
 ) {
+  if (!supabase) {
+    return getFallbackDistributionData(distributionType);
+  }
+
   try {
     // Get repository ID
     const { data: repoData, error: repoError } = await supabase

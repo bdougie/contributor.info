@@ -78,10 +78,10 @@ class LRUCache {
 // In-memory cache instance
 const memoryCache = new LRUCache(MAX_MEMORY_ENTRIES);
 
-// Cleanup expired entries periodically
+// Cleanup expired entries periodically (unref allows process to exit cleanly)
 setInterval(() => {
   memoryCache.cleanup();
-}, 60000); // Every minute
+}, 60000).unref();
 
 /**
  * Generate cache key from chart parameters
@@ -206,15 +206,16 @@ async function invalidateCache(key, supabase) {
  * Get cache statistics
  */
 function getCacheStats() {
+  const hits = global.cacheHits || 0;
+  const misses = global.cacheMisses || 0;
+  const total = hits + misses;
+
   return {
     memorySize: memoryCache.size(),
     maxMemorySize: MAX_MEMORY_ENTRIES,
-    hits: global.cacheHits || 0,
-    misses: global.cacheMisses || 0,
-    hitRate:
-      global.cacheHits && global.cacheMisses
-        ? ((global.cacheHits / (global.cacheHits + global.cacheMisses)) * 100).toFixed(2) + '%'
-        : 'N/A',
+    hits,
+    misses,
+    hitRate: total > 0 ? ((hits / total) * 100).toFixed(2) + '%' : 'N/A',
   };
 }
 
