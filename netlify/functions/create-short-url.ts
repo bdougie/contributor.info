@@ -85,6 +85,32 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
+    // Skip URL shortening for deploy previews - Dub.co flags these URLs as "malicious"
+    // because the deploy-preview-XXX pattern looks suspicious to their security filters
+    const isDeployPreview = process.env.CONTEXT === 'deploy-preview';
+    if (isDeployPreview) {
+      console.log(
+        'Deploy preview detected, skipping URL shortening (Dub flags these as malicious)'
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          id: 'deploy-preview-skip',
+          domain: urlObj.host,
+          key: urlObj.pathname,
+          url: body.url,
+          shortLink: body.url, // Return original URL
+          qrCode: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          clicks: 0,
+          title: body.title || null,
+          description: body.description || null,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      };
+    }
+
     // Determine domain based on environment
     const isDev = process.env.CONTEXT !== 'production';
     const domain = isDev ? 'dub.sh' : 'oss.fyi';
