@@ -51,6 +51,12 @@ class PlaywrightRenderer {
    * Acquire a page from the pool (waits if at capacity)
    */
   async acquirePage() {
+    // Ensure browser is initialized and connected
+    if (!this.initialized || !this.browser || !this.browser.isConnected()) {
+      this.initialized = false;
+      await this.initialize();
+    }
+
     if (this.activePages >= this.maxConcurrentPages) {
       // Wait for a page to be released
       await new Promise((resolve) => {
