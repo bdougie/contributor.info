@@ -5,7 +5,7 @@ kill_signal = "SIGINT"
 kill_timeout = "5s"
 
 [build]
-  builder = "heroku/builder:22"
+  dockerfile = "Dockerfile"
 
 [env]
   NODE_ENV = "production"
