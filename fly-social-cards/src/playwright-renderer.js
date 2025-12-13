@@ -51,26 +51,53 @@ class PlaywrightRenderer {
    * Acquire a page from the pool (waits if at capacity)
    */
   async acquirePage() {
-    // Ensure browser is initialized and connected
-    if (!this.initialized || !this.browser || !this.browser.isConnected()) {
-      this.initialized = false;
-      await this.initialize();
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Ensure browser is initialized and connected
+      if (!this.initialized || !this.browser || !this.browser.isConnected()) {
+        this.initialized = false;
+        await this.initialize();
+      }
+
+      if (this.activePages >= this.maxConcurrentPages) {
+        // Wait for a page to be released
+        await new Promise((resolve) => {
+          this.pageQueue.push(resolve);
+        });
+      }
+
+      try {
+        this.activePages++;
+        const page = await this.browser.newPage();
+
+        // Set viewport for social media cards
+        await page.setViewportSize({ width: 1200, height: 630 });
+
+        return page;
+      } catch (error) {
+        this.activePages--;
+        console.error(
+          'Failed to create page (attempt %d/%d): %s',
+          attempt,
+          maxRetries,
+          error.message
+        );
+
+        // Force browser restart on connection errors
+        if (error.message.includes('closed') || error.message.includes('disconnected')) {
+          this.initialized = false;
+          this.browser = null;
+        }
+
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Brief delay before retry
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     }
-
-    if (this.activePages >= this.maxConcurrentPages) {
-      // Wait for a page to be released
-      await new Promise((resolve) => {
-        this.pageQueue.push(resolve);
-      });
-    }
-
-    this.activePages++;
-    const page = await this.browser.newPage();
-
-    // Set viewport for social media cards
-    await page.setViewportSize({ width: 1200, height: 630 });
-
-    return page;
   }
 
   /**
