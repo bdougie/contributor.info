@@ -58,3 +58,9 @@ kill_timeout = "5s"
 # Deploy configuration
 [deploy]
   strategy = "rolling"
+
+# VM configuration for Playwright
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory_mb = 2048
