@@ -1,5 +1,5 @@
 # Use Playwright base image for headless browser support
-FROM mcr.microsoft.com/playwright:v1.48.0-focal
+FROM mcr.microsoft.com/playwright:v1.57.0-focal
 
 # Set working directory
 WORKDIR /app
