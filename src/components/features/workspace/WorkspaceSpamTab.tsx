@@ -26,7 +26,6 @@ import type { WorkspaceMemberWithUser } from '@/types/workspace';
 interface WorkspaceSpamTabProps {
   repositories: Repository[];
   selectedRepositories: string[];
-  workspaceId: string;
   currentUser: User | null;
   currentMember: WorkspaceMemberWithUser | null;
 }
@@ -34,7 +33,6 @@ interface WorkspaceSpamTabProps {
 export function WorkspaceSpamTab({
   repositories,
   selectedRepositories,
-  workspaceId,
   currentUser,
   currentMember,
 }: WorkspaceSpamTabProps) {
@@ -45,7 +43,6 @@ export function WorkspaceSpamTab({
   const { pullRequests, stats, loading, error, refresh, updateSpamStatus } = useWorkspaceSpam({
     repositories,
     selectedRepositories,
-    workspaceId,
     minSpamScore,
     includeUnanalyzed,
   });

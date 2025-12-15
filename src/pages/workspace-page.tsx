@@ -1699,7 +1699,6 @@ function WorkspacePage() {
               <WorkspaceSpamTab
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
-                workspaceId={workspace.id}
                 currentUser={currentUser}
                 currentMember={currentMember}
               />
