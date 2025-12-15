@@ -530,12 +530,27 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                   <div className="hidden shareable-capture-only">
                     <div className="grid grid-cols-4 gap-4">
                       {trends.slice(0, 4).map((trend, index) => (
-                        <div key={index} className="rounded-lg border bg-card p-6 text-center">
-                          {/* Inline SVG icons for capture */}
-                          <div className="flex justify-center mb-3">
+                        <div
+                          key={index}
+                          className="rounded-lg border bg-card p-5 flex flex-col justify-between"
+                        >
+                          {/* Top: Big number with small unit */}
+                          <div className="text-center mb-3">
+                            <p className="text-3xl font-bold">
+                              {trend.current}
+                              {trend.unit && trend.unit !== 'people' && (
+                                <span className="text-xs font-normal text-muted-foreground ml-1">
+                                  {trend.unit === 'hours' ? 'hrs' : trend.unit}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {/* Bottom row: Icon + percentage change */}
+                          <div className="flex items-center gap-2">
+                            {/* Inline SVG icons for capture */}
                             {trend.metric === 'Daily PR Volume' && (
                               <svg
-                                className="h-6 w-6 text-muted-foreground"
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -548,7 +563,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             )}
                             {trend.metric === 'Active Contributors' && (
                               <svg
-                                className="h-6 w-6 text-muted-foreground"
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -562,7 +577,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             )}
                             {trend.metric === 'Avg Review Time' && (
                               <svg
-                                className="h-6 w-6 text-muted-foreground"
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -574,7 +589,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             )}
                             {trend.metric === 'PR Completion Rate' && (
                               <svg
-                                className="h-6 w-6 text-muted-foreground"
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
@@ -584,34 +599,32 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                                 <polyline points="22 4 12 14.01 9 11.01" />
                               </svg>
                             )}
+                            <span
+                              className={cn(
+                                'text-sm font-medium',
+                                (() => {
+                                  if (trend.change === 0) return 'text-muted-foreground';
+                                  const isLowerBetter = trend.metric === 'Avg Review Time';
+                                  const isPositive = trend.change > 0;
+                                  if (isLowerBetter) {
+                                    return isPositive ? 'text-red-500' : 'text-green-500';
+                                  }
+                                  return isPositive ? 'text-green-500' : 'text-red-500';
+                                })()
+                              )}
+                            >
+                              {trend.change > 0 ? '+' : ''}
+                              {trend.change}%
+                            </span>
                           </div>
-                          <p className="text-3xl font-bold mb-1">
-                            {trend.current}
-                            {trend.unit && (
-                              <span className="text-base font-normal text-muted-foreground ml-1">
-                                {trend.unit}
-                              </span>
-                            )}
-                          </p>
-                          <p
-                            className={cn(
-                              'text-sm font-medium',
-                              (() => {
-                                if (trend.change === 0) return 'text-muted-foreground';
-                                const isLowerBetter = trend.metric === 'Avg Review Time';
-                                const isPositive = trend.change > 0;
-                                if (isLowerBetter) {
-                                  return isPositive ? 'text-red-500' : 'text-green-500';
-                                }
-                                return isPositive ? 'text-green-500' : 'text-red-500';
-                              })()
-                            )}
-                          >
-                            {trend.change > 0 ? '+' : ''}
-                            {trend.change}%
-                          </p>
                         </div>
                       ))}
+                    </div>
+                    {/* Badge at bottom left */}
+                    <div className="mt-3">
+                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                        vs previous 30d
+                      </span>
                     </div>
                   </div>
                 </>
