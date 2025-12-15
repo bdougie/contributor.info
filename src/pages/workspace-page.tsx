@@ -1435,7 +1435,7 @@ function WorkspacePage() {
       // Extract the actual database ID by removing the prefix
       // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", or "follow-up-pr-{id}", etc.
       const actualId = item.id.replace(
-        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-)/,
+        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-|my-comment-|my-discussion-comment-)/,
         ''
       );
 
@@ -1449,7 +1449,7 @@ function WorkspacePage() {
         .eq('id', actualId);
 
       if (error) {
-        console.error('Error marking item as responded: %s', error.message);
+        logger.error('Error marking item as responded: %s', error.message);
         toast.error(`Failed to mark as responded: ${error.message}`);
         // Restore the item since the database update failed
         restoreItem(item.id);
@@ -1472,7 +1472,7 @@ function WorkspacePage() {
       // This prevents the whole list from flickering/disappearing during refresh
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error marking item as responded: %s', errorMessage);
+      logger.error('Error marking item as responded: %s', errorMessage);
       toast.error(`Failed to mark as responded: ${errorMessage}`);
       // Restore the item since the operation failed
       restoreItem(item.id);
