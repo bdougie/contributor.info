@@ -22,6 +22,9 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
     );
   }
 
+  const maxVelocity = Math.max(velocity.current, velocity.previous);
+  const progressValue = maxVelocity > 0 ? (velocity.current / maxVelocity) * 100 : 0;
+
   return (
     <Card className="p-3 min-w-0">
       <div className="flex items-center gap-2 mb-2">
@@ -33,14 +36,7 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
           <span className="text-sm text-muted-foreground truncate">Current week</span>
           <span className="text-sm font-bold truncate">{velocity.current.toFixed(1)} PRs</span>
         </div>
-        <Progress
-          value={
-            Math.max(velocity.current, velocity.previous) > 0
-              ? (velocity.current / Math.max(velocity.current, velocity.previous)) * 100
-              : 0
-          }
-          className="h-2"
-        />
+        <Progress value={progressValue} className="h-2" />
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground truncate">Previous week</span>
           <span className="text-sm font-medium truncate">{velocity.previous.toFixed(1)} PRs</span>
