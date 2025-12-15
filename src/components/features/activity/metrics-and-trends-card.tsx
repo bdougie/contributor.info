@@ -15,7 +15,7 @@ import {
   type ActivityMetrics,
 } from '@/lib/insights/pr-activity-metrics';
 import { DataStateIndicator } from '@/components/ui/data-state-indicator';
-// Removed Sentry import - using simple logging instead
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -371,65 +371,83 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           )}
 
         {/* Metrics Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
-          {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <PrCountCard openPRs={0} totalPRs={0} loading={true} />
-              <AvgTimeCard averageMergeTime={0} loading={true} />
-              <div className="sm:col-span-2 md:col-span-2">
-                <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
+        <ShareableCard
+          title="Activity Metrics"
+          contextInfo={{
+            repository: `${owner}/${repo}`,
+            metric: 'activity metrics',
+          }}
+          chartType="activity-metrics"
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
+            {loading || !metrics ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <PrCountCard openPRs={0} totalPRs={0} loading={true} />
+                <AvgTimeCard averageMergeTime={0} loading={true} />
+                <div className="sm:col-span-2 md:col-span-2">
+                  <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <PrCountCard
-                openPRs={metrics.openPRs}
-                totalPRs={metrics.totalPRs}
-                loading={loading}
-              />
-              <AvgTimeCard
-                averageMergeTime={metrics.averageMergeTime}
-                averageMergeTimeTrend={metrics.averageMergeTimeTrend}
-                loading={loading}
-              />
-              <div className="sm:col-span-2 md:col-span-2">
-                <VelocityCard velocity={metrics.velocity} loading={loading} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <PrCountCard
+                  openPRs={metrics.openPRs}
+                  totalPRs={metrics.totalPRs}
+                  loading={loading}
+                />
+                <AvgTimeCard
+                  averageMergeTime={metrics.averageMergeTime}
+                  averageMergeTimeTrend={metrics.averageMergeTimeTrend}
+                  loading={loading}
+                />
+                <div className="sm:col-span-2 md:col-span-2">
+                  <VelocityCard velocity={metrics.velocity} loading={loading} />
+                </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        </ShareableCard>
 
         {/* Trends Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Trends</h3>
-          {(() => {
-            if (loading) {
+        <ShareableCard
+          title="Trends"
+          contextInfo={{
+            repository: `${owner}/${repo}`,
+            metric: 'trends',
+          }}
+          chartType="trends"
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Trends</h3>
+            {(() => {
+              if (loading) {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <TrendCard key={i} loading={true} />
+                    ))}
+                  </div>
+                );
+              }
+              if (trends.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
+                  </div>
+                );
+              }
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <TrendCard key={i} loading={true} />
+                  {trends.slice(0, 4).map((trend, index) => (
+                    <TrendCard key={index} trend={trend} loading={loading} />
                   ))}
                 </div>
               );
-            }
-            if (trends.length === 0) {
-              return (
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
-                </div>
-              );
-            }
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {trends.slice(0, 4).map((trend, index) => (
-                  <TrendCard key={index} trend={trend} loading={loading} />
-                ))}
-              </div>
-            );
-          })()}
-        </section>
+            })()}
+          </section>
+        </ShareableCard>
       </CardContent>
     </Card>
   );
