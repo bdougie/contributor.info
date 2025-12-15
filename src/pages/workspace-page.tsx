@@ -45,6 +45,7 @@ import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 import { useMyWork } from '@/hooks/use-my-work';
+import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 
@@ -1290,9 +1291,8 @@ function WorkspacePage() {
       // Perform debounced search if not cached
       const searchResult = await debouncedSearch(cacheKey, async () => {
         // Dynamically import similarity search to avoid loading ML models on page init
-        const { findSimilarItems, generateResponseMessage } = await import(
-          '@/services/similarity-search'
-        );
+        const { findSimilarItems, generateResponseMessage } =
+          await import('@/services/similarity-search');
 
         // Find similar items in the workspace
         const items = await findSimilarItems({
@@ -1363,9 +1363,8 @@ function WorkspacePage() {
       // Perform debounced search if not cached
       const searchResult = await debouncedSearch(cacheKey, async () => {
         // Dynamically import similarity search to avoid loading ML models on page init
-        const { findSimilarItems, generateResponseMessage } = await import(
-          '@/services/similarity-search'
-        );
+        const { findSimilarItems, generateResponseMessage } =
+          await import('@/services/similarity-search');
 
         // Find similar items in the workspace
         const items = await findSimilarItems({
@@ -1397,6 +1396,79 @@ function WorkspacePage() {
       );
     } finally {
       setLoadingSimilarItems(false);
+    }
+  };
+
+  const handleDirectMarkAsResponded = async (item: MyWorkItem) => {
+    if (!workspace?.id) {
+      return;
+    }
+
+    try {
+      const supabase = await getSupabase();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error('You must be logged in to mark items as responded.');
+        return;
+      }
+
+      // Determine the table name based on item type
+      let tableName: 'issues' | 'discussions' | 'pull_requests';
+      if (item.type === 'issue') {
+        tableName = 'issues';
+      } else if (item.type === 'discussion') {
+        tableName = 'discussions';
+      } else {
+        tableName = 'pull_requests';
+      }
+
+      // Extract the actual database ID by removing the prefix
+      // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", or "follow-up-pr-{id}", etc.
+      const actualId = item.id.replace(
+        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-)/,
+        ''
+      );
+
+      // Optimistically trigger refresh BEFORE the database update
+      // This immediately removes the item from the UI for better UX
+      refreshMyWork();
+
+      // Update the item with responded_by and responded_at
+      const { error } = await supabase
+        .from(tableName)
+        .update({
+          responded_by: user.id,
+          responded_at: new Date().toISOString(),
+        })
+        .eq('id', actualId);
+
+      if (error) {
+        console.error('Error marking item as responded: %s', error.message);
+        toast.error(`Failed to mark as responded: ${error.message}. Please refresh.`);
+        // Trigger another refresh to show the item again since update failed
+        refreshMyWork();
+        return;
+      }
+
+      let itemTypeLabel: string;
+      if (item.type === 'issue') {
+        itemTypeLabel = 'Issue';
+      } else if (item.type === 'discussion') {
+        itemTypeLabel = 'Discussion';
+      } else {
+        itemTypeLabel = 'PR';
+      }
+
+      toast.success(`${itemTypeLabel} #${item.number} marked as responded.`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error marking item as responded: %s', errorMessage);
+      toast.error(`Failed to mark as responded: ${errorMessage}. Please refresh.`);
+      // Trigger refresh to restore proper state
+      refreshMyWork();
     }
   };
 
@@ -1590,9 +1662,8 @@ function WorkspacePage() {
                     if (cachedItems) {
                       // Use cached results
                       setSimilarItems(cachedItems);
-                      const { generateResponseMessage } = await import(
-                        '@/services/similarity-search'
-                      );
+                      const { generateResponseMessage } =
+                        await import('@/services/similarity-search');
                       const message = generateResponseMessage(cachedItems);
                       setResponseMessage(message);
                       setLoadingSimilarItems(false);
@@ -1602,9 +1673,8 @@ function WorkspacePage() {
                     // Perform debounced search if not cached
                     const searchResult = await debouncedSearch(cacheKey, async () => {
                       // Dynamically import similarity search to avoid loading ML models on page init
-                      const { findSimilarItems, generateResponseMessage } = await import(
-                        '@/services/similarity-search'
-                      );
+                      const { findSimilarItems, generateResponseMessage } =
+                        await import('@/services/similarity-search');
 
                       // Find similar items in the workspace
                       const items = await findSimilarItems({
@@ -1638,6 +1708,7 @@ function WorkspacePage() {
                     setLoadingSimilarItems(false);
                   }
                 }}
+                onMyWorkItemMarkAsResponded={handleDirectMarkAsResponded}
                 onSyncComments={syncComments}
                 isSyncingComments={isSyncingComments}
                 commentSyncStatus={commentSyncStatus ?? undefined}
