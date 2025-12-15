@@ -698,7 +698,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
   return (
     <div className="space-y-4 w-full overflow-hidden">
-      <div className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'}`}>
+      <div
+        className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'} shareable-desktop-only`}
+      >
         {showYoloButton && owner && repo && (
           <Link
             to={`/repo/${owner}/${repo}/health`}
