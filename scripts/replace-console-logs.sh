@@ -17,7 +17,6 @@ echo "🔍 Finding files with console.log statements..."
 # - .stories.tsx files  
 # - docs/
 # - dist/
-# - .storybook/
 files=$(rg -l "console\.log" src/ --type ts --type tsx 2>/dev/null || echo "")
 
 if [ -z "$files" ]; then

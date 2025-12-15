@@ -91,8 +91,6 @@ export default defineConfig(() => ({
       'uplot',
     ],
     exclude: [
-      '@storybook/test',
-      '@storybook/react',
       'vitest',
       '@testing-library/react',
       '@testing-library/jest-dom',

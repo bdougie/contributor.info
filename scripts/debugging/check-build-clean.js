@@ -10,7 +10,6 @@ import { glob } from 'glob';
 async function checkBuildClean() {
   const distFiles = await glob('dist/assets/*.js');
   const testDependencies = [
-    '@storybook',
     'vitest',
     '@testing-library',
     '.stories.',

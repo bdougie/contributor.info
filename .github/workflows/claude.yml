@@ -62,7 +62,7 @@ jobs:
           # assignee_trigger: "claude-bot"
           
           # Allow Claude to run specific commands
-          allowed_tools: "Bash(npm install),Bash(npm ci),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run hooks:install),Bash(npm run hooks:uninstall),Bash(npm run test-storybook)"
+          allowed_tools: "Bash(npm install),Bash(npm ci),Bash(npm run build),Bash(npm run lint),Bash(npm run typecheck),Bash(npm test),Bash(npm run hooks:install),Bash(npm run hooks:uninstall)"
           
           # Add custom instructions for Claude to customize its behavior for your project
           custom_instructions: |
