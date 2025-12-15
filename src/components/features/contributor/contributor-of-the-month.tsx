@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { AddToWorkspaceModal } from '../workspace/AddToWorkspaceModal';
-import { useHasPaidWorkspace } from '@/hooks/use-has-paid-workspace';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
@@ -41,7 +40,6 @@ export function ContributorOfTheMonth({
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
   const [showAddToWorkspaceModal, setShowAddToWorkspaceModal] = useState(false);
   const [showAllContributors, setShowAllContributors] = useState(false);
-  const { hasPaidWorkspace } = useHasPaidWorkspace();
   const { isLoggedIn } = useAuth();
   const { workspaces } = useUserWorkspaces();
   const navigate = useNavigate();
@@ -161,7 +159,7 @@ export function ContributorOfTheMonth({
                     </h3>
                   </div>
                   <div className="max-w-sm mx-auto relative">
-                    {showBlurredFirst && !hasPaidWorkspace && (
+                    {showBlurredFirst && !isLoggedIn && (
                       <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
                         <Lock className="h-6 w-6 text-muted-foreground" />
                         <Button
@@ -169,7 +167,7 @@ export function ContributorOfTheMonth({
                           onClick={() => setShowWorkspaceModal(true)}
                           className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                         >
-                          {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                          Login to view
                         </Button>
                       </div>
                     )}
@@ -177,7 +175,7 @@ export function ContributorOfTheMonth({
                       contributor={ranking.winner}
                       isWinner={true}
                       showRank={false}
-                      className={showBlurredFirst && !hasPaidWorkspace ? 'blur-sm' : ''}
+                      className={showBlurredFirst && !isLoggedIn ? 'blur-sm' : ''}
                       repositoryOwner={repositoryOwner}
                       repositoryName={repositoryName}
                       month={ranking.month}
@@ -253,7 +251,7 @@ export function ContributorOfTheMonth({
                 {/* Show all contributors in monthly leaderboard */}
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
                   {topContributors.map((contributor, index) => {
-                    const isFirstPlace = index === 0 && showBlurredFirst && !hasPaidWorkspace;
+                    const isFirstPlace = index === 0 && showBlurredFirst && !isLoggedIn;
 
                     return (
                       <div key={contributor.login} className="relative">
@@ -265,7 +263,7 @@ export function ContributorOfTheMonth({
                               onClick={() => setShowWorkspaceModal(true)}
                               className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
                             >
-                              {isLoggedIn ? 'Upgrade to view' : 'Login to view'}
+                              Login to view
                             </Button>
                           </div>
                         )}
