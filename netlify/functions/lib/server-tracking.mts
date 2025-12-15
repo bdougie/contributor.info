@@ -243,7 +243,7 @@ export async function trackInngestFailure(
 function categorizeError(message: string): string {
   const lowerMessage = message.toLowerCase();
 
-  if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
+  if (lowerMessage.includes('network') || lowerMessage.includes('fetch failed')) {
     return 'NETWORK_ERROR';
   }
   if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
@@ -269,7 +269,13 @@ function categorizeError(message: string): string {
   ) {
     return 'PERMISSION_ERROR';
   }
-  if (lowerMessage.includes('inngest') || lowerMessage.includes('event')) {
+  // Be more specific about Inngest errors - only match "inngest" explicitly
+  // Avoid matching generic "event" which is too broad
+  if (
+    lowerMessage.includes('inngest') ||
+    lowerMessage.includes('event queue') ||
+    lowerMessage.includes('event send')
+  ) {
     return 'INNGEST_ERROR';
   }
 

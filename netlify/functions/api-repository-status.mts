@@ -1,5 +1,9 @@
 import type { Context } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
+import type { RepositoryStatusResponse } from '../../src/types/repository-api';
+
+// Constants
+const RECENTLY_CREATED_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Repository Status API Endpoint
@@ -12,35 +16,12 @@ import { createClient } from '@supabase/supabase-js';
  * Used for polling during the tracking flow to detect when data becomes available.
  */
 
-interface RepositoryStatusResponse {
-  success: boolean;
-  hasData: boolean;
-  status: 'not_found' | 'pending' | 'syncing' | 'ready' | 'error';
-  repository?: {
-    id: string;
-    owner: string;
-    name: string;
-    createdAt: string;
-    lastUpdatedAt: string | null;
-  };
-  dataAvailability?: {
-    hasCommits: boolean;
-    hasPullRequests: boolean;
-    hasContributors: boolean;
-    commitCount: number;
-    prCount: number;
-    contributorCount: number;
-  };
-  message?: string;
-  error?: string;
-}
-
-// CORS headers
+// CORS headers - Note: wildcard origin cannot be used with credentials
+// This endpoint returns public repository status data, no credentials needed
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true',
 };
 
 export default async (req: Request, _context: Context) => {
@@ -117,7 +98,7 @@ export default async (req: Request, _context: Context) => {
           success: false,
           hasData: false,
           status: 'error',
-          error: 'Service configuration error',
+          error: 'Service temporarily unavailable',
         } satisfies RepositoryStatusResponse),
         {
           status: 503,
@@ -143,7 +124,7 @@ export default async (req: Request, _context: Context) => {
           success: false,
           hasData: false,
           status: 'error',
-          error: 'Database error',
+          error: 'Unable to check repository status',
         } satisfies RepositoryStatusResponse),
         {
           status: 500,
@@ -205,11 +186,11 @@ export default async (req: Request, _context: Context) => {
       status = 'ready';
       message = 'Repository data is available';
     } else {
-      // Check if repository was recently created (within last 5 minutes)
+      // Check if repository was recently created (within threshold)
       const createdAt = new Date(repoData.created_at);
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const recentThreshold = new Date(Date.now() - RECENTLY_CREATED_THRESHOLD_MS);
 
-      if (createdAt > fiveMinutesAgo) {
+      if (createdAt > recentThreshold) {
         status = 'syncing';
         message = 'Repository is being synced. Data will be available shortly.';
       } else {

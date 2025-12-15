@@ -15,37 +15,13 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { captureException } from '@/lib/sentry-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
+import type { TrackRepositoryResponse, RepositoryStatusResponse } from '@/types/repository-api';
 
-// Type for track repository API response
-interface TrackRepositoryResponse {
-  success: boolean;
-  eventId?: string;
-  message?: string;
-}
-
-// Type for repository status API response
-interface RepositoryStatusResponse {
-  success: boolean;
-  hasData: boolean;
-  status: 'not_found' | 'pending' | 'syncing' | 'ready' | 'error';
-  repository?: {
-    id: string;
-    owner: string;
-    name: string;
-    createdAt: string;
-    lastUpdatedAt: string | null;
-  };
-  dataAvailability?: {
-    hasCommits: boolean;
-    hasPullRequests: boolean;
-    hasContributors: boolean;
-    commitCount: number;
-    prCount: number;
-    contributorCount: number;
-  };
-  message?: string;
-  error?: string;
-}
+// Constants
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_COUNT = 60; // Poll for up to 2 minutes
+const STATUS_CHECK_DEBOUNCE_MS = 1000;
+const STATUS_CHECK_TIMEOUT_MS = 10000;
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -72,6 +48,8 @@ export function RepositoryTrackingCard({
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastStatusCheckRef = useRef<number>(0);
 
   // PLG Tracking: Track user stage and timing for abandonment detection
   const trackingStageRef = useRef<TrackingStage>('viewing');
@@ -96,15 +74,38 @@ export function RepositoryTrackingCard({
     []
   );
 
-  // Check repository status from the API
+  // Check repository status from the API with debounce and timeout
   const checkPipelineStatus = useCallback(async () => {
     if (!owner || !repo) return;
+
+    // Debounce: prevent rapid successive calls
+    const now = Date.now();
+    if (now - lastStatusCheckRef.current < STATUS_CHECK_DEBOUNCE_MS) {
+      return;
+    }
+    lastStatusCheckRef.current = now;
+
+    // Clear any pending debounced check
+    if (statusCheckDebounceRef.current) {
+      clearTimeout(statusCheckDebounceRef.current);
+      statusCheckDebounceRef.current = null;
+    }
 
     setIsCheckingStatus(true);
     setPipelineStatus(null);
 
+    // Create abort controller for timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), STATUS_CHECK_TIMEOUT_MS);
+
     try {
-      const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
+      const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`, {
+        signal: abortController.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!isMountedRef.current) return;
+
       const data: RepositoryStatusResponse = await response.json();
 
       setPipelineStatus(data);
@@ -141,12 +142,23 @@ export function RepositoryTrackingCard({
         });
       }
     } catch (err) {
-      console.error('Failed to check status:', err);
-      toast.error('Failed to check status', {
-        description: 'Please try again in a moment.',
-      });
+      clearTimeout(timeoutId);
+      if (!isMountedRef.current) return;
+
+      if (err instanceof Error && err.name === 'AbortError') {
+        toast.error('Status check timed out', {
+          description: 'The server took too long to respond. Please try again.',
+        });
+      } else {
+        console.error('Failed to check status:', err);
+        toast.error('Failed to check status', {
+          description: 'Please try again in a moment.',
+        });
+      }
     } finally {
-      setIsCheckingStatus(false);
+      if (isMountedRef.current) {
+        setIsCheckingStatus(false);
+      }
     }
   }, [owner, repo, safeTrackEvent]);
 
@@ -377,13 +389,16 @@ export function RepositoryTrackingCard({
         clearTimeout(viewEventTimeoutRef.current);
         viewEventTimeoutRef.current = null;
       }
+      if (statusCheckDebounceRef.current) {
+        clearTimeout(statusCheckDebounceRef.current);
+        statusCheckDebounceRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - cleanup should only run on unmount, uses refs to avoid stale closures
 
   const startPollingForData = () => {
     let pollCount = 0;
-    const maxPolls = 60; // Poll for up to 2 minutes
 
     // Clear any existing interval before starting a new one
     if (pollIntervalRef.current) {
@@ -393,24 +408,30 @@ export function RepositoryTrackingCard({
     pollIntervalRef.current = setInterval(async () => {
       pollCount++;
 
+      // Use refs to get current owner/repo values to avoid stale closure
+      const currentOwner = ownerRef.current;
+      const currentRepo = repoRef.current;
+
       try {
         // Check if repository now has data
-        const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
+        const response = await fetch(
+          `/api/repository-status?owner=${currentOwner}&repo=${currentRepo}`
+        );
         const data = await response.json();
 
         // Determine poll status
         let pollStatus: 'success' | 'timeout' | 'pending' = 'pending';
         if (data.hasData) {
           pollStatus = 'success';
-        } else if (pollCount >= maxPolls) {
+        } else if (pollCount >= MAX_POLL_COUNT) {
           pollStatus = 'timeout';
         }
 
         // PostHog: Track polling lifecycle
         safeTrackEvent('repository_status_poll', {
-          repository: `${owner}/${repo}`,
-          owner,
-          repo,
+          repository: `${currentOwner}/${currentRepo}`,
+          owner: currentOwner,
+          repo: currentRepo,
           poll_count: pollCount,
           has_data: data.hasData,
           final_status: pollStatus,
@@ -432,9 +453,9 @@ export function RepositoryTrackingCard({
 
           // Track when data becomes available
           safeTrackEvent('repository_data_ready', {
-            repository: `${owner}/${repo}`,
-            owner,
-            repo,
+            repository: `${currentOwner}/${currentRepo}`,
+            owner: currentOwner,
+            repo: currentRepo,
             pollAttempts: pollCount,
           });
 
@@ -456,7 +477,7 @@ export function RepositoryTrackingCard({
           }
         }
 
-        if (pollCount >= maxPolls) {
+        if (pollCount >= MAX_POLL_COUNT) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
@@ -467,36 +488,39 @@ export function RepositoryTrackingCard({
             // PLG Tracking: Calculate wait duration for timeout event
             const waitDurationMs = trackingStartTimeRef.current
               ? Date.now() - trackingStartTimeRef.current
-              : pollCount * 2000; // Fallback: 2 seconds per poll
+              : pollCount * POLL_INTERVAL_MS;
 
             // PLG Tracking: Fire timeout viewed event
             safeTrackEvent('track_repository_timeout_viewed', {
-              repository: `${owner}/${repo}`,
+              repository: `${currentOwner}/${currentRepo}`,
               wait_duration_ms: waitDurationMs,
             });
 
             // Track the polling timeout as a failure event
             safeTrackEvent('repository_tracking_failed', {
-              repository: `${owner}/${repo}`,
-              owner,
-              repo,
+              repository: `${currentOwner}/${currentRepo}`,
+              owner: currentOwner,
+              repo: currentRepo,
               errorType: 'POLLING_TIMEOUT',
               pollAttempts: pollCount,
             });
 
             // Sentry: Capture timeout for monitoring
-            captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
-              level: 'warning',
-              tags: {
-                type: 'tracking_timeout',
-                repository: `${owner}/${repo}`,
-              },
-              extra: {
-                poll_count: pollCount,
-                max_polls: maxPolls,
-                wait_duration_ms: waitDurationMs,
-              },
-            });
+            captureException(
+              new Error(`Repository tracking polling timeout: ${currentOwner}/${currentRepo}`),
+              {
+                level: 'warning',
+                tags: {
+                  type: 'tracking_timeout',
+                  repository: `${currentOwner}/${currentRepo}`,
+                },
+                extra: {
+                  poll_count: pollCount,
+                  max_polls: MAX_POLL_COUNT,
+                  wait_duration_ms: waitDurationMs,
+                },
+              }
+            );
 
             // Set timeout state to show improved UX
             setHasTimedOut(true);
@@ -514,7 +538,7 @@ export function RepositoryTrackingCard({
         // Silently continue polling
         console.error('Polling error:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, POLL_INTERVAL_MS);
   };
 
   return (
