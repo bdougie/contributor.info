@@ -526,23 +526,76 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                     ))}
                   </div>
 
-                  {/* Capture-optimized view - simplified layout without icons */}
+                  {/* Capture-optimized view - with inline SVG icons */}
                   <div className="hidden shareable-capture-only">
                     <div className="grid grid-cols-4 gap-4">
                       {trends.slice(0, 4).map((trend, index) => (
-                        <div key={index} className="rounded-lg border bg-card p-4 text-center">
-                          <p className="text-sm font-medium text-foreground mb-1">{trend.metric}</p>
-                          <p className="text-2xl font-bold">
+                        <div key={index} className="rounded-lg border bg-card p-6 text-center">
+                          {/* Inline SVG icons for capture */}
+                          <div className="flex justify-center mb-3">
+                            {trend.metric === 'Daily PR Volume' && (
+                              <svg
+                                className="h-6 w-6 text-muted-foreground"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="18" cy="18" r="3" />
+                                <circle cx="6" cy="6" r="3" />
+                                <path d="M6 21V9a9 9 0 0 0 9 9" />
+                              </svg>
+                            )}
+                            {trend.metric === 'Active Contributors' && (
+                              <svg
+                                className="h-6 w-6 text-muted-foreground"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                              </svg>
+                            )}
+                            {trend.metric === 'Avg Review Time' && (
+                              <svg
+                                className="h-6 w-6 text-muted-foreground"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                            )}
+                            {trend.metric === 'PR Completion Rate' && (
+                              <svg
+                                className="h-6 w-6 text-muted-foreground"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                              </svg>
+                            )}
+                          </div>
+                          <p className="text-3xl font-bold mb-1">
                             {trend.current}
                             {trend.unit && (
-                              <span className="text-sm font-normal text-muted-foreground ml-1">
+                              <span className="text-base font-normal text-muted-foreground ml-1">
                                 {trend.unit}
                               </span>
                             )}
                           </p>
                           <p
                             className={cn(
-                              'text-xs mt-1',
+                              'text-sm font-medium',
                               (() => {
                                 if (trend.change === 0) return 'text-muted-foreground';
                                 const isLowerBetter = trend.metric === 'Avg Review Time';
