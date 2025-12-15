@@ -5,6 +5,7 @@ import { handleApiResponse } from '@/lib/utils/api-helpers';
 import { NotificationService } from '@/lib/notifications';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { captureException } from '@/lib/sentry-lazy';
+import { classifyTrackingError } from '@/lib/utils/error-classification';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -247,6 +248,7 @@ export function useRepositoryTracking({
             }
 
             // Sentry: Capture timeout as an error for monitoring
+            const waitDurationMs = Date.now() - Date.now(); // Will be calculated from tracking start
             captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
               level: 'warning',
               tags: {
@@ -256,6 +258,7 @@ export function useRepositoryTracking({
               extra: {
                 poll_count: pollCount,
                 max_polls: maxPolls,
+                wait_duration_ms: pollCount * 2000, // 2 seconds per poll
               },
             });
 
@@ -275,20 +278,9 @@ export function useRepositoryTracking({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
 
-      // Determine error type for analytics (case-insensitive matching)
-      let errorType = 'UNKNOWN_ERROR';
-      if (error instanceof Error) {
-        const lowerMessage = error.message.toLowerCase();
-        if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
-          errorType = 'NETWORK_ERROR';
-        } else if (lowerMessage.includes('auth') || lowerMessage.includes('login')) {
-          errorType = 'AUTH_ERROR';
-        } else if (lowerMessage.includes('permission') || lowerMessage.includes('forbidden')) {
-          errorType = 'PERMISSION_ERROR';
-        } else if (lowerMessage.includes('not found')) {
-          errorType = 'NOT_FOUND_ERROR';
-        }
-      }
+      // Determine error type for analytics using shared utility
+      const errorType =
+        error instanceof Error ? classifyTrackingError(error) : 'UNKNOWN_ERROR';
 
       // PostHog: Track API failure
       trackEvent('repository_track_api_response', {

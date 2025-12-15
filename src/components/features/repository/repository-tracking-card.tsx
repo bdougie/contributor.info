@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { captureException } from '@/lib/sentry-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
+import { classifyTrackingError } from '@/lib/utils/error-classification';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -24,6 +25,19 @@ interface RepositoryTrackingCardProps {
 
 // Type for tracking flow stage (for PLG abandonment tracking)
 type TrackingStage = 'viewing' | 'clicked_track' | 'waiting_for_data';
+
+/**
+ * NOTE: This component duplicates tracking logic from useRepositoryTracking hook.
+ * This is intentional for different use cases:
+ * - This component: Used for public repository pages (non-authenticated flows)
+ * - useRepositoryTracking hook: Used in authenticated workspace contexts
+ *
+ * Both fire 'repository_track_attempt' events but are rendered in mutually exclusive
+ * contexts (component shows when status is 'not_tracked', hook manages workspace tracking).
+ *
+ * Future improvement: Consider consolidating to a single tracking service utility
+ * to reduce duplication and ensure consistent event schemas.
+ */
 
 export function RepositoryTrackingCard({
   owner,
@@ -204,30 +218,10 @@ export function RepositoryTrackingCard({
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
 
-      // Track tracking failure with error type instead of raw message (case-insensitive)
-      let errorType = 'UNKNOWN_ERROR';
-      if (err instanceof Error) {
-        const lowerMessage = err.message.toLowerCase();
-        if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
-          errorType = 'NETWORK_ERROR';
-        } else if (lowerMessage.includes('auth') || lowerMessage.includes('login')) {
-          errorType = 'AUTH_ERROR';
-        } else if (lowerMessage.includes('permission') || lowerMessage.includes('forbidden')) {
-          errorType = 'PERMISSION_ERROR';
-        } else if (lowerMessage.includes('not found')) {
-          errorType = 'NOT_FOUND_ERROR';
-        }
-      }
+      // Classify error type using shared utility for consistent analytics
+      const errorType = err instanceof Error ? classifyTrackingError(err) : 'UNKNOWN_ERROR';
 
-      // PostHog: Track failure event
-      safeTrackEvent('repository_tracking_failed', {
-        repository: `${owner}/${repo}`,
-        owner,
-        repo,
-        errorType,
-      });
-
-      // PostHog: Track API response with failure
+      // PostHog: Track API response with failure (single consolidated event)
       safeTrackEvent('repository_track_api_response', {
         repository: `${owner}/${repo}`,
         owner,
