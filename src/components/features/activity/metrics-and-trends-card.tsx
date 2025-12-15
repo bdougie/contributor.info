@@ -459,7 +459,11 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                           <div
                             className="h-full bg-primary rounded-full"
                             style={{
-                              width: `${(metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100}%`,
+                              width: `${
+                                Math.max(metrics.velocity.current, metrics.velocity.previous) > 0
+                                  ? (metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100
+                                  : 0
+                              }%`,
                             }}
                           />
                         </div>
