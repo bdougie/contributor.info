@@ -95,7 +95,6 @@ External service integrations:
 
 - `inngest-prod` - Inngest event processing
 - `codeowners-llm` - LLM CODEOWNERS suggestions
-- `social-cards` - Social media cards
 - `url-shortener` - URL shortening
 
 ### 📧 Communications

@@ -29,6 +29,26 @@ interface MetaTags {
   image: string;
 }
 
+// Chart type mappings for social meta
+const CHART_TYPE_META: Record<string, { title: string; description: string }> = {
+  'lottery-factor': {
+    title: 'Lottery Factor',
+    description: 'Contributor concentration risk analysis',
+  },
+  'self-selection': {
+    title: 'Self-Selection Rate',
+    description: 'External vs internal contribution analysis',
+  },
+  health: {
+    title: 'Repository Health',
+    description: 'Health metrics and factors analysis',
+  },
+  distribution: {
+    title: 'PR Distribution',
+    description: 'Pull request size distribution analysis',
+  },
+};
+
 function getMetaTagsForPath(pathname: string): MetaTags {
   // Remove trailing slash
   const path = pathname.replace(/\/$/, '') || '/';
@@ -68,7 +88,28 @@ function getMetaTagsForPath(pathname: string): MetaTags {
     };
   }
 
-  // Repo page: /{owner}/{repo} or /{owner}/{repo}/anything
+  // Chart page: /{owner}/{repo}/{chartType}
+  const chartMatch = path.match(
+    /^\/([^/]+)\/([^/]+)\/(lottery-factor|self-selection|health|distribution)$/
+  );
+  if (chartMatch) {
+    const [, owner, repo, chartType] = chartMatch;
+    if (owner && repo && !owner.includes('?') && !repo.includes('?')) {
+      const chartMeta = CHART_TYPE_META[chartType] || {
+        title: 'Chart',
+        description: 'Repository analysis',
+      };
+      // Map 'health' to 'health-factors' for the API
+      const apiChartType = chartType === 'health' ? 'health-factors' : chartType;
+      return {
+        title: `${chartMeta.title} - ${owner}/${repo} - contributor.info`,
+        description: `${chartMeta.description} for ${owner}/${repo} on GitHub.`,
+        image: `${SOCIAL_CARDS_BASE}/charts/${apiChartType}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+      };
+    }
+  }
+
+  // Repo page: /{owner}/{repo} or /{owner}/{repo}/anything (except chart types)
   const repoMatch = path.match(/^\/([^/]+)\/([^/]+)(?:\/.*)?$/);
   if (repoMatch) {
     const [, owner, repo] = repoMatch;

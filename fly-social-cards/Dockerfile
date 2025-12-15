@@ -1,9 +1,5 @@
-# Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine
-
-# Install vips for sharp (SVG to PNG conversion)
-# Sharp requires libvips to convert SVG to raster formats
-RUN apk add --no-cache vips-dev
+# Use Playwright base image for headless browser support
+FROM mcr.microsoft.com/playwright:v1.57.0-jammy
 
 # Set working directory
 WORKDIR /app
@@ -16,10 +12,12 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copy application code
 COPY src ./src
+COPY templates ./templates
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs && \
+    useradd -u 1001 -g nodejs -s /bin/bash nodejs && \
+    chown -R nodejs:nodejs /app
 
 # Switch to non-root user
 USER nodejs
@@ -28,7 +26,7 @@ USER nodejs
 EXPOSE 8080
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})"
 
 # Start the application
