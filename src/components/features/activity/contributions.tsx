@@ -397,6 +397,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         return (
           <animated.g style={nodeStyle}>
             <rect
+              className="contribution-square"
               x={(size - squareSize) / 2}
               y={(size - squareSize) / 2}
               width={squareSize}
@@ -508,6 +509,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             }}
           >
             <div
+              className="contribution-square"
               role="button"
               tabIndex={0}
               aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
@@ -698,7 +700,9 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
   return (
     <div className="space-y-4 w-full overflow-hidden">
-      <div className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'}`}>
+      <div
+        className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'} shareable-desktop-only`}
+      >
         {showYoloButton && owner && repo && (
           <Link
             to={`/repo/${owner}/${repo}/health`}

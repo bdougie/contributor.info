@@ -1,6 +1,8 @@
 // Wrapper component to conditionally load contributions chart
 import { lazy, Suspense } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 // Lazy load the contributions component to avoid ES module issues in tests
 const ContributionsChart = lazy(() => {
@@ -27,26 +29,38 @@ const ContributionsChart = lazy(() => {
 });
 
 export default function ContributionsWrapper() {
+  const { owner, repo } = useParams();
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Contributor Distribution</CardTitle>
-        <CardDescription>
-          This chart is a representation of 30 days of PR contributions based on size (Y axis) and
-          date (X axis).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <Suspense
-          fallback={
-            <div className="h-[400px] w-full flex items-center justify-center">
-              <span className="text-muted-foreground">Loading chart...</span>
-            </div>
-          }
-        >
-          <ContributionsChart />
-        </Suspense>
-      </CardContent>
+      <ShareableCard
+        title="Contributor Distribution"
+        contextInfo={{
+          repository: owner && repo ? `${owner}/${repo}` : undefined,
+          metric: 'contributor distribution',
+        }}
+        chartType="contributor-distribution"
+        className="flex flex-col h-full"
+      >
+        <CardHeader>
+          <CardTitle>Contributor Distribution</CardTitle>
+          <CardDescription>
+            This chart is a representation of 30 days of PR contributions based on size (Y axis) and
+            date (X axis).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <Suspense
+            fallback={
+              <div className="h-[400px] w-full flex items-center justify-center">
+                <span className="text-muted-foreground">Loading chart...</span>
+              </div>
+            }
+          >
+            <ContributionsChart />
+          </Suspense>
+        </CardContent>
+      </ShareableCard>
     </Card>
   );
 }
