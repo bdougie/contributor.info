@@ -410,38 +410,80 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
 
                 {/* Capture-optimized view - simplified layout without icons */}
                 <div className="hidden shareable-capture-only">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Avg Merge Time - with color coding */}
                     <div className="rounded-lg border bg-card p-4 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">Open PRs</p>
-                      <p className="text-3xl font-bold">{metrics.openPRs}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        of {metrics.totalPRs} in 30d
-                      </p>
-                    </div>
-                    <div className="rounded-lg border bg-card p-4 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">Avg Merge Time</p>
-                      <p className="text-3xl font-bold">
+                      <p className="text-sm font-medium text-foreground mb-2">Avg Merge Time</p>
+                      <p
+                        className={cn(
+                          'text-3xl font-bold',
+                          (() => {
+                            const hours = metrics.averageMergeTime * 24;
+                            if (hours <= 24) return 'text-green-500';
+                            if (hours <= 72) return 'text-yellow-500';
+                            return 'text-red-500';
+                          })()
+                        )}
+                      >
                         {metrics.averageMergeTime < 1
                           ? `${Math.round(metrics.averageMergeTime * 24)}h`
                           : `${metrics.averageMergeTime.toFixed(1)}d`}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p
+                        className={cn(
+                          'text-xs mt-1',
+                          (() => {
+                            const hours = metrics.averageMergeTime * 24;
+                            if (hours <= 24) return 'text-green-500';
+                            if (hours <= 72) return 'text-muted-foreground';
+                            return 'text-red-500';
+                          })()
+                        )}
+                      >
                         {(() => {
-                          if (metrics.averageMergeTimeTrend === 'down') return 'Faster';
-                          if (metrics.averageMergeTimeTrend === 'up') return 'Slower';
-                          return 'Normal';
+                          const hours = metrics.averageMergeTime * 24;
+                          if (hours <= 24) return 'Fast';
+                          if (hours <= 72) return 'Normal';
+                          return 'Slow';
                         })()}
                       </p>
                     </div>
-                    <div className="rounded-lg border bg-card p-4 text-center">
-                      <p className="text-xs text-muted-foreground mb-1">Weekly Velocity</p>
-                      <p className="text-3xl font-bold">{metrics.velocity.current}</p>
-                      <p
-                        className={`text-xs mt-1 ${metrics.velocity.change >= 0 ? 'text-green-500' : 'text-red-500'}`}
-                      >
-                        {metrics.velocity.change >= 0 ? '+' : ''}
-                        {metrics.velocity.change}% change
-                      </p>
+                    {/* Weekly Velocity - with progress bar */}
+                    <div className="rounded-lg border bg-card p-4">
+                      <p className="text-sm font-medium text-foreground mb-2">Weekly PR Velocity</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Current week</span>
+                          <span className="text-sm font-bold">
+                            {metrics.velocity.current.toFixed(1)} PRs
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{
+                              width: `${(metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Previous week</span>
+                          <span className="text-xs font-medium">
+                            {metrics.velocity.previous.toFixed(1)} PRs
+                          </span>
+                        </div>
+                        {metrics.velocity.change !== 0 && (
+                          <p
+                            className={cn(
+                              'text-xs font-medium',
+                              metrics.velocity.change > 0 ? 'text-green-500' : 'text-red-500'
+                            )}
+                          >
+                            {metrics.velocity.change > 0 ? '+' : ''}
+                            {Math.round(metrics.velocity.change)}% change
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -492,7 +534,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                     <div className="grid grid-cols-4 gap-4">
                       {trends.slice(0, 4).map((trend, index) => (
                         <div key={index} className="rounded-lg border bg-card p-4 text-center">
-                          <p className="text-xs text-muted-foreground mb-1">{trend.metric}</p>
+                          <p className="text-sm font-medium text-foreground mb-1">{trend.metric}</p>
                           <p className="text-2xl font-bold">
                             {trend.current}
                             {trend.unit && (
@@ -502,15 +544,18 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             )}
                           </p>
                           <p
-                            className={`text-xs mt-1 ${(() => {
-                              if (trend.change === 0) return 'text-muted-foreground';
-                              const isLowerBetter = trend.metric === 'Avg Review Time';
-                              const isPositive = trend.change > 0;
-                              if (isLowerBetter) {
-                                return isPositive ? 'text-red-500' : 'text-green-500';
-                              }
-                              return isPositive ? 'text-green-500' : 'text-red-500';
-                            })()}`}
+                            className={cn(
+                              'text-xs mt-1',
+                              (() => {
+                                if (trend.change === 0) return 'text-muted-foreground';
+                                const isLowerBetter = trend.metric === 'Avg Review Time';
+                                const isPositive = trend.change > 0;
+                                if (isLowerBetter) {
+                                  return isPositive ? 'text-red-500' : 'text-green-500';
+                                }
+                                return isPositive ? 'text-green-500' : 'text-red-500';
+                              })()
+                            )}
                           >
                             {trend.change > 0 ? '+' : ''}
                             {trend.change}%
