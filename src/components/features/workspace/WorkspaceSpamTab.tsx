@@ -317,7 +317,7 @@ export function WorkspaceSpamTab({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleMarkAsLegitimate(pr)}
-                                className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                                 title="Mark as legitimate"
                               >
                                 <Check className="h-4 w-4" />
