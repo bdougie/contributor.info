@@ -62,6 +62,7 @@ export interface WorkspaceDashboardProps {
   onUpgradeClick?: () => void;
   onMyWorkItemClick?: (item: MyWorkItem) => void;
   onMyWorkItemRespond?: (item: MyWorkItem) => void;
+  onMyWorkItemMarkAsResponded?: (item: MyWorkItem) => void;
   onSyncComments?: () => Promise<void>;
   isSyncingComments?: boolean;
   commentSyncStatus?: {
@@ -111,6 +112,7 @@ export function WorkspaceDashboard({
   onGitHubAppModalOpen,
   onMyWorkItemClick,
   onMyWorkItemRespond,
+  onMyWorkItemMarkAsResponded,
   onSyncComments,
   isSyncingComments,
   commentSyncStatus,
@@ -268,6 +270,7 @@ export function WorkspaceDashboard({
         onTabChange={onMyWorkTabChange}
         onItemClick={onMyWorkItemClick}
         onRespond={onMyWorkItemRespond}
+        onMarkAsResponded={onMyWorkItemMarkAsResponded}
         onSyncComments={onSyncComments}
         isSyncingComments={isSyncingComments}
         commentSyncStatus={commentSyncStatus}

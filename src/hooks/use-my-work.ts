@@ -119,6 +119,11 @@ export function useMyWork(
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [commentSyncStatus, setCommentSyncStatus] = useState<CommentSyncStatus | null>(null);
   const [isSyncingComments, setIsSyncingComments] = useState(false);
+  // Track items that are being optimistically removed (for instant UI feedback)
+  // Maps item ID to the tab it belongs to for accurate count adjustments
+  const [pendingRemovals, setPendingRemovals] = useState<
+    Map<string, 'needs_response' | 'follow_ups' | 'replies'>
+  >(new Map());
 
   useEffect(() => {
     async function fetchMyWork() {
@@ -820,7 +825,70 @@ export function useMyWork(
     filters?.activeTab,
   ]);
 
-  const refresh = () => setRefreshTrigger((prev) => prev + 1);
+  const refresh = () => {
+    // Clear pending removals when refreshing - the DB is source of truth
+    setPendingRemovals(new Map());
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  /**
+   * Optimistically remove an item from the list for instant UI feedback.
+   * The item will be hidden immediately while the actual database update happens.
+   * @param itemId - The ID of the item to remove
+   * @param itemType - The itemType to determine which tab to decrement
+   */
+  const optimisticallyRemoveItem = (
+    itemId: string,
+    itemType:
+      | 'authored'
+      | 'assigned'
+      | 'review_requested'
+      | 'mentioned'
+      | 'participant'
+      | 'follow_up'
+      | 'my_comment'
+  ) => {
+    // Map itemType to tab
+    let tab: 'needs_response' | 'follow_ups' | 'replies';
+    if (itemType === 'follow_up') {
+      tab = 'follow_ups';
+    } else if (itemType === 'my_comment') {
+      tab = 'replies';
+    } else {
+      tab = 'needs_response';
+    }
+
+    setPendingRemovals((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(itemId, tab);
+      return newMap;
+    });
+  };
+
+  /**
+   * Restore an item that was optimistically removed (e.g., if DB update failed)
+   */
+  const restoreItem = (itemId: string) => {
+    setPendingRemovals((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(itemId);
+      return newMap;
+    });
+  };
+
+  // Filter out items that are pending removal for optimistic UI
+  const visibleItems = items.filter((item) => !pendingRemovals.has(item.id));
+
+  // Calculate adjusted tab counts based on pending removals
+  const adjustedTabCounts = {
+    needsResponse:
+      tabCounts.needsResponse -
+      [...pendingRemovals.values()].filter((t) => t === 'needs_response').length,
+    followUps:
+      tabCounts.followUps - [...pendingRemovals.values()].filter((t) => t === 'follow_ups').length,
+    replies:
+      tabCounts.replies - [...pendingRemovals.values()].filter((t) => t === 'replies').length,
+  };
 
   /**
    * Sync comments for the workspace
@@ -872,12 +940,14 @@ export function useMyWork(
   };
 
   return {
-    items,
-    totalCount,
-    tabCounts,
+    items: visibleItems,
+    totalCount: totalCount - pendingRemovals.size,
+    tabCounts: adjustedTabCounts,
     loading,
     error,
     refresh,
+    optimisticallyRemoveItem,
+    restoreItem,
     syncComments,
     checkCommentSyncStatus,
     isSyncingComments,

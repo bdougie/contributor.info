@@ -3,8 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Activity, RefreshCw, AlertCircle, CheckCircle } from '@/components/ui/icon';
+import {
+  ArrowRight,
+  Activity,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  Check,
+  MessageSquare,
+} from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { useState, memo, useEffect, useRef } from 'react';
 import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
@@ -69,6 +84,7 @@ export interface MyWorkCardProps {
   onTypesChange?: (types: Array<'pr' | 'issue' | 'discussion'>) => void;
   onTabChange?: (tab: 'needs_response' | 'follow_ups' | 'replies') => void;
   onRespond?: (item: MyWorkItem) => void;
+  onMarkAsResponded?: (item: MyWorkItem) => void;
   onSyncComments?: () => Promise<void>;
   isSyncingComments?: boolean;
   commentSyncStatus?: {
@@ -93,10 +109,12 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
   item,
   onClick,
   onRespond,
+  onMarkAsResponded,
 }: {
   item: MyWorkItem;
   onClick?: (item: MyWorkItem) => void;
   onRespond?: (item: MyWorkItem) => void;
+  onMarkAsResponded?: (item: MyWorkItem) => void;
 }) {
   // Only show respond button for open items where user can respond
   const canRespond = item.status === 'open' || item.status === 'answered';
@@ -198,22 +216,48 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
   };
 
   // Avoid conditional rendering with && - Rollup 4.45.0 bug
-  const renderRespondButton = () => {
-    if (!canRespond || !onRespond) {
+  const renderRespondDropdown = () => {
+    if (!canRespond || (!onRespond && !onMarkAsResponded)) {
       return null;
     }
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="h-6 px-2 text-xs"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRespond(item);
-        }}
-      >
-        Respond
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 px-2 text-xs gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Respond
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          {onMarkAsResponded && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onMarkAsResponded(item);
+              }}
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Mark as Responded
+            </DropdownMenuItem>
+          )}
+          {onRespond && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onRespond(item);
+              }}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Generate Response
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   };
 
@@ -271,7 +315,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
             <time className="text-xs text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(new Date(item.updated_at), { addSuffix: true })}
             </time>
-            {renderRespondButton()}
+            {renderRespondDropdown()}
           </div>
         </div>
       </div>
@@ -295,6 +339,7 @@ export function MyWorkCard({
   onTypesChange,
   onTabChange,
   onRespond,
+  onMarkAsResponded,
   onSyncComments,
   isSyncingComments = false,
   commentSyncStatus,
@@ -409,6 +454,7 @@ export function MyWorkCard({
             item={item}
             onClick={onItemClick}
             onRespond={onRespond}
+            onMarkAsResponded={onMarkAsResponded}
           />
         ))}
       </div>
