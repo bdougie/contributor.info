@@ -293,14 +293,20 @@ describe('server-tracking utilities', () => {
       expect(mockFetch).toHaveBeenCalledTimes(2);
 
       // Verify Sentry call
-      const sentryCall = mockFetch.mock.calls.find((call) => call[0].includes('sentry.io'));
+      const sentryCall = mockFetch.mock.calls.find((call) => {
+        const url = new URL(call[0]);
+        return url.hostname.endsWith('sentry.io');
+      });
       expect(sentryCall).toBeDefined();
       const sentryBody = JSON.parse(sentryCall[1].body);
       expect(sentryBody.tags.event_name).toBe('capture/repository.sync');
       expect(sentryBody.tags.repository).toBe('testowner/testrepo');
 
       // Verify PostHog call
-      const posthogCall = mockFetch.mock.calls.find((call) => call[0].includes('posthog.com'));
+      const posthogCall = mockFetch.mock.calls.find((call) => {
+        const url = new URL(call[0]);
+        return url.hostname.endsWith('posthog.com');
+      });
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.event).toBe('inngest_event_failed');
@@ -323,7 +329,10 @@ describe('server-tracking utilities', () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
 
-      const posthogCall = mockFetch.mock.calls.find((call) => call[0].includes('posthog.com'));
+      const posthogCall = mockFetch.mock.calls.find((call) => {
+        const url = new URL(call[0]);
+        return url.hostname.endsWith('posthog.com');
+      });
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_type).toBe('InngestError');
     });
