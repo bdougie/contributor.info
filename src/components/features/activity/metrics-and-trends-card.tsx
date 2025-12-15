@@ -15,7 +15,7 @@ import {
   type ActivityMetrics,
 } from '@/lib/insights/pr-activity-metrics';
 import { DataStateIndicator } from '@/components/ui/data-state-indicator';
-// Removed Sentry import - using simple logging instead
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 interface MetricsAndTrendsCardProps {
   owner: string;
@@ -371,65 +371,271 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           )}
 
         {/* Metrics Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
-          {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <PrCountCard openPRs={0} totalPRs={0} loading={true} />
-              <AvgTimeCard averageMergeTime={0} loading={true} />
-              <div className="sm:col-span-2 md:col-span-2">
-                <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
+        <ShareableCard
+          title="Activity Metrics"
+          contextInfo={{
+            repository: `${owner}/${repo}`,
+            metric: 'activity metrics',
+          }}
+          chartType="activity-metrics"
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
+            {loading || !metrics ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                <PrCountCard openPRs={0} totalPRs={0} loading={true} />
+                <AvgTimeCard averageMergeTime={0} loading={true} />
+                <div className="sm:col-span-2 md:col-span-2">
+                  <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <PrCountCard
-                openPRs={metrics.openPRs}
-                totalPRs={metrics.totalPRs}
-                loading={loading}
-              />
-              <AvgTimeCard
-                averageMergeTime={metrics.averageMergeTime}
-                averageMergeTimeTrend={metrics.averageMergeTimeTrend}
-                loading={loading}
-              />
-              <div className="sm:col-span-2 md:col-span-2">
-                <VelocityCard velocity={metrics.velocity} loading={loading} />
-              </div>
-            </div>
-          )}
-        </section>
+            ) : (
+              <>
+                {/* Desktop view - full grid with all cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                  <PrCountCard
+                    openPRs={metrics.openPRs}
+                    totalPRs={metrics.totalPRs}
+                    loading={loading}
+                  />
+                  <AvgTimeCard
+                    averageMergeTime={metrics.averageMergeTime}
+                    averageMergeTimeTrend={metrics.averageMergeTimeTrend}
+                    loading={loading}
+                  />
+                  <div className="sm:col-span-2 md:col-span-2">
+                    <VelocityCard velocity={metrics.velocity} loading={loading} />
+                  </div>
+                </div>
+
+                {/* Capture-optimized view - simplified layout without icons */}
+                <div className="hidden shareable-capture-only">
+                  <div className="grid grid-cols-10 gap-4">
+                    {/* Avg Merge Time - 30% width, same logic as AvgTimeCard (averageMergeTime is in HOURS) */}
+                    <div className="col-span-3 rounded-lg border bg-card p-4 text-center">
+                      <p className="text-sm font-medium text-foreground mb-2">Avg Merge Time</p>
+                      <p
+                        className={cn(
+                          'text-3xl font-bold',
+                          (() => {
+                            if (metrics.averageMergeTime <= 24) return 'text-green-500';
+                            if (metrics.averageMergeTime <= 72) return 'text-yellow-500';
+                            return 'text-red-500';
+                          })()
+                        )}
+                      >
+                        {metrics.averageMergeTime < 24
+                          ? `${Math.round(metrics.averageMergeTime)}hrs`
+                          : `${(metrics.averageMergeTime / 24).toFixed(1)}d`}
+                      </p>
+                      <p
+                        className={cn(
+                          'text-xs mt-1',
+                          (() => {
+                            if (metrics.averageMergeTime <= 24) return 'text-green-500';
+                            if (metrics.averageMergeTime <= 72) return 'text-muted-foreground';
+                            return 'text-red-500';
+                          })()
+                        )}
+                      >
+                        {(() => {
+                          if (metrics.averageMergeTime <= 24) return 'Fast';
+                          if (metrics.averageMergeTime <= 72) return 'Normal';
+                          return 'Slow';
+                        })()}
+                      </p>
+                    </div>
+                    {/* Weekly Velocity - 70% width, with progress bar */}
+                    <div className="col-span-7 rounded-lg border bg-card p-4">
+                      <p className="text-sm font-medium text-foreground mb-2">Weekly PR Velocity</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Current week</span>
+                          <span className="text-sm font-bold">
+                            {metrics.velocity.current.toFixed(1)} PRs
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary rounded-full"
+                            style={{
+                              width: `${
+                                Math.max(metrics.velocity.current, metrics.velocity.previous) > 0
+                                  ? (metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100
+                                  : 0
+                              }%`,
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Previous week</span>
+                          <span className="text-xs font-medium">
+                            {metrics.velocity.previous.toFixed(1)} PRs
+                          </span>
+                        </div>
+                        {metrics.velocity.change !== 0 && (
+                          <p
+                            className={cn(
+                              'text-xs font-medium',
+                              metrics.velocity.change > 0 ? 'text-green-500' : 'text-red-500'
+                            )}
+                          >
+                            {metrics.velocity.change > 0 ? '+' : ''}
+                            {Math.round(metrics.velocity.change)}% change
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        </ShareableCard>
 
         {/* Trends Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Trends</h3>
-          {(() => {
-            if (loading) {
+        <ShareableCard
+          title="Trends"
+          contextInfo={{
+            repository: `${owner}/${repo}`,
+            metric: 'trends',
+          }}
+          chartType="trends"
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Trends</h3>
+            {(() => {
+              if (loading) {
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                    {[1, 2, 3, 4].map((i) => (
+                      <TrendCard key={i} loading={true} />
+                    ))}
+                  </div>
+                );
+              }
+              if (trends.length === 0) {
+                return (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
+                  </div>
+                );
+              }
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <TrendCard key={i} loading={true} />
-                  ))}
-                </div>
+                <>
+                  {/* Desktop view - full grid with TrendCards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                    {trends.slice(0, 4).map((trend, index) => (
+                      <TrendCard key={index} trend={trend} loading={loading} />
+                    ))}
+                  </div>
+
+                  {/* Capture-optimized view - with inline SVG icons */}
+                  <div className="hidden shareable-capture-only">
+                    <div className="grid grid-cols-4 gap-4">
+                      {trends.slice(0, 4).map((trend, index) => (
+                        <div
+                          key={index}
+                          className="rounded-lg border bg-card p-5 flex flex-col justify-between"
+                        >
+                          {/* Top: Big number with small unit */}
+                          <div className="text-center mb-3">
+                            <p className="text-3xl font-bold">
+                              {trend.current}
+                              {trend.unit && trend.unit !== 'people' && (
+                                <span className="text-xs font-normal text-muted-foreground ml-1">
+                                  {trend.unit === 'hours' ? 'hrs' : trend.unit}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          {/* Bottom row: Icon + percentage change */}
+                          <div className="flex items-center gap-2">
+                            {/* Inline SVG icons for capture */}
+                            {trend.metric === 'Daily PR Volume' && (
+                              <svg
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="18" cy="18" r="3" />
+                                <circle cx="6" cy="6" r="3" />
+                                <path d="M6 21V9a9 9 0 0 0 9 9" />
+                              </svg>
+                            )}
+                            {trend.metric === 'Active Contributors' && (
+                              <svg
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                              </svg>
+                            )}
+                            {trend.metric === 'Avg Review Time' && (
+                              <svg
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                              </svg>
+                            )}
+                            {trend.metric === 'PR Completion Rate' && (
+                              <svg
+                                className="h-4 w-4 text-muted-foreground flex-shrink-0"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                              >
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                              </svg>
+                            )}
+                            <span
+                              className={cn(
+                                'text-sm font-medium',
+                                (() => {
+                                  if (trend.change === 0) return 'text-muted-foreground';
+                                  const isLowerBetter = trend.metric === 'Avg Review Time';
+                                  const isPositive = trend.change > 0;
+                                  if (isLowerBetter) {
+                                    return isPositive ? 'text-red-500' : 'text-green-500';
+                                  }
+                                  return isPositive ? 'text-green-500' : 'text-red-500';
+                                })()
+                              )}
+                            >
+                              {trend.change > 0 ? '+' : ''}
+                              {trend.change}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Badge at bottom left */}
+                    <div className="mt-3">
+                      <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                        vs previous 30d
+                      </span>
+                    </div>
+                  </div>
+                </>
               );
-            }
-            if (trends.length === 0) {
-              return (
-                <div className="text-center py-8">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
-                </div>
-              );
-            }
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {trends.slice(0, 4).map((trend, index) => (
-                  <TrendCard key={index} trend={trend} loading={loading} />
-                ))}
-              </div>
-            );
-          })()}
-        </section>
+            })()}
+          </section>
+        </ShareableCard>
       </CardContent>
     </Card>
   );

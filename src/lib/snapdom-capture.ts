@@ -712,6 +712,10 @@ export class SnapDOMCaptureService {
       element.classList.remove('dark');
     }
 
+    // Add 'capturing' class to enable capture-specific CSS rules
+    // This ensures .shareable-capture-only elements are shown and .shareable-desktop-only are hidden
+    element.classList.add('capturing');
+
     // Add a style element with minimal overrides to ensure visibility
     const styleElement = document.createElement('style');
     styleElement.textContent = `
@@ -719,18 +723,27 @@ export class SnapDOMCaptureService {
       .snapdom-theme-preserve {
         visibility: visible !important;
       }
-      
+
       .snapdom-theme-preserve * {
         visibility: visible !important;
       }
-      
+
       /* Ensure charts render properly in both themes */
       .snapdom-theme-preserve svg text {
         visibility: visible !important;
       }
-      
+
       .snapdom-theme-preserve .recharts-text {
         visibility: visible !important;
+      }
+
+      /* Capture-specific layout switching */
+      .capturing .shareable-desktop-only {
+        display: none !important;
+      }
+
+      .capturing .shareable-capture-only {
+        display: block !important;
       }
     `;
 
