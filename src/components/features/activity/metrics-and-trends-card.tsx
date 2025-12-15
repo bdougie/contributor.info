@@ -410,46 +410,43 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
 
                 {/* Capture-optimized view - simplified layout without icons */}
                 <div className="hidden shareable-capture-only">
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Avg Merge Time - with color coding */}
-                    <div className="rounded-lg border bg-card p-4 text-center">
+                  <div className="grid grid-cols-10 gap-4">
+                    {/* Avg Merge Time - 30% width, same logic as AvgTimeCard (averageMergeTime is in HOURS) */}
+                    <div className="col-span-3 rounded-lg border bg-card p-4 text-center">
                       <p className="text-sm font-medium text-foreground mb-2">Avg Merge Time</p>
                       <p
                         className={cn(
                           'text-3xl font-bold',
                           (() => {
-                            const hours = metrics.averageMergeTime * 24;
-                            if (hours <= 24) return 'text-green-500';
-                            if (hours <= 72) return 'text-yellow-500';
+                            if (metrics.averageMergeTime <= 24) return 'text-green-500';
+                            if (metrics.averageMergeTime <= 72) return 'text-yellow-500';
                             return 'text-red-500';
                           })()
                         )}
                       >
-                        {metrics.averageMergeTime < 1
-                          ? `${Math.round(metrics.averageMergeTime * 24)}h`
-                          : `${metrics.averageMergeTime.toFixed(1)}d`}
+                        {metrics.averageMergeTime < 24
+                          ? `${Math.round(metrics.averageMergeTime)}hrs`
+                          : `${(metrics.averageMergeTime / 24).toFixed(1)}d`}
                       </p>
                       <p
                         className={cn(
                           'text-xs mt-1',
                           (() => {
-                            const hours = metrics.averageMergeTime * 24;
-                            if (hours <= 24) return 'text-green-500';
-                            if (hours <= 72) return 'text-muted-foreground';
+                            if (metrics.averageMergeTime <= 24) return 'text-green-500';
+                            if (metrics.averageMergeTime <= 72) return 'text-muted-foreground';
                             return 'text-red-500';
                           })()
                         )}
                       >
                         {(() => {
-                          const hours = metrics.averageMergeTime * 24;
-                          if (hours <= 24) return 'Fast';
-                          if (hours <= 72) return 'Normal';
+                          if (metrics.averageMergeTime <= 24) return 'Fast';
+                          if (metrics.averageMergeTime <= 72) return 'Normal';
                           return 'Slow';
                         })()}
                       </p>
                     </div>
-                    {/* Weekly Velocity - with progress bar */}
-                    <div className="rounded-lg border bg-card p-4">
+                    {/* Weekly Velocity - 70% width, with progress bar */}
+                    <div className="col-span-7 rounded-lg border bg-card p-4">
                       <p className="text-sm font-medium text-foreground mb-2">Weekly PR Velocity</p>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
