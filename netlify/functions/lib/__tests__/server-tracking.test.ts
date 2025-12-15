@@ -135,7 +135,7 @@ describe('server-tracking utilities', () => {
       expect(posthogBody.properties.error_category).toBe('INNGEST_ERROR');
     });
 
-    it('should categorize errors containing "event" as inngest error', async () => {
+    it('should NOT categorize generic "event" as inngest error', async () => {
       process.env.SENTRY_DSN = 'https://key@sentry.io/123';
       process.env.POSTHOG_API_KEY = 'phc_test';
 
@@ -143,8 +143,8 @@ describe('server-tracking utilities', () => {
 
       const { trackInngestFailure } = await import('../server-tracking.mts');
 
-      // Note: The categorizeError function treats any message containing "event"
-      // as INNGEST_ERROR. This is intentional for broad error capture.
+      // Note: The categorizeError function is specific about Inngest errors.
+      // It only matches "inngest", "event queue", or "event send" - NOT generic "event".
       await trackInngestFailure('test.event', new Error('some event happened'), {
         owner: 'test',
         repo: 'repo',
@@ -155,8 +155,8 @@ describe('server-tracking utilities', () => {
       );
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
-      // Current implementation categorizes any "event" as INNGEST_ERROR
-      expect(posthogBody.properties.error_category).toBe('INNGEST_ERROR');
+      // Generic "event" should be UNKNOWN_ERROR, not INNGEST_ERROR
+      expect(posthogBody.properties.error_category).toBe('UNKNOWN_ERROR');
     });
 
     it('should categorize unknown errors correctly', async () => {
