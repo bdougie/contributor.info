@@ -99,9 +99,12 @@ export function RepositoryTrackingCard({
     const timeoutId = setTimeout(() => abortController.abort(), STATUS_CHECK_TIMEOUT_MS);
 
     try {
-      const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`, {
-        signal: abortController.signal,
-      });
+      const response = await fetch(
+        `/api/repository-status?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        {
+          signal: abortController.signal,
+        }
+      );
       clearTimeout(timeoutId);
 
       if (!isMountedRef.current) return;
@@ -419,13 +422,13 @@ export function RepositoryTrackingCard({
       try {
         // Check if repository now has data
         const response = await fetch(
-          `/api/repository-status?owner=${currentOwner}&repo=${currentRepo}`
+          `/api/repository-status?owner=${encodeURIComponent(currentOwner)}&repo=${encodeURIComponent(currentRepo)}`
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
 
         // Determine poll status
