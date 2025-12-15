@@ -107,7 +107,7 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
                 id: item.contributor_id,
                 username: item.username,
                 displayName: item.display_name || item.username,
-                avatarUrl: item.avatar_url || '',
+                avatarUrl: item.avatar_url || `https://github.com/${item.username}.png`,
                 profileUrl: `https://github.com/${item.username}`,
                 pullRequestsCount: item.pull_requests_count || 0,
                 reviewsCount: item.reviews_count || 0,
@@ -245,7 +245,9 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
             id: item.contributors.id,
             username: item.contributors.username,
             displayName: item.contributors.display_name || item.contributors.username,
-            avatarUrl: item.contributors.avatar_url || '',
+            avatarUrl:
+              item.contributors.avatar_url ||
+              `https://github.com/${item.contributors.username}.png`,
             profileUrl: `https://github.com/${item.contributors.username}`,
             pullRequestsCount: item.pull_requests_count || 0,
             reviewsCount: item.reviews_count || 0,
