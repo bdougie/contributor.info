@@ -366,10 +366,7 @@ npm run test:e2e         # Run all E2E tests
 npm run test:e2e:ui      # Interactive mode
 npm run test:e2e:headed  # See browser
 
-# Storybook Tests
-npm run storybook        # Start dev server
-npm run test-storybook   # Interaction tests
-npm run test-storybook-a11y  # Accessibility tests
+
 ```
 
 ### Writing Tests
@@ -433,33 +430,24 @@ test('user can search for repositories', async ({ page }) => {
 - Use data-testid for reliable selectors
 - Tests live in `e2e/` directory
 
-#### Storybook Tests
+#### Component Testing
 
-For component interactions and accessibility:
+For component testing, use Vitest with React Testing Library:
 
 ```typescript
-import type { Meta, StoryObj } from '@storybook/react';
-import { expect, userEvent, within } from '@storybook/test';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Button } from './button';
 
-const meta: Meta<typeof Button> = {
-  component: Button,
-  title: 'UI/Button',
-};
-
-export default meta;
-type Story = StoryObj<typeof Button>;
-
-export const Clickable: Story = {
-  args: { children: 'Click me' },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const button = canvas.getByRole('button');
-    
-    await userEvent.click(button);
-    await expect(button).toBeInTheDocument();
-  },
-};
+test('button is clickable', async () => {
+  const user = userEvent.setup();
+  render(<Button>Click me</Button>);
+  
+  const button = screen.getByRole('button');
+  await user.click(button);
+  
+  expect(button).toBeInTheDocument();
+});
 ```
 
 **📚 Testing Documentation**:
@@ -635,7 +623,7 @@ For security vulnerabilities, please email security@contributor.info instead of 
 - [Testing Best Practices](./docs/testing/testing-best-practices.md)
 - [Bulletproof Testing Guidelines](./docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
 - [E2E Testing Philosophy](./docs/testing/e2e-minimal-testing-philosophy.md)
-- [Storybook Guide](./docs/testing/chromatic-readme.md)
+
 
 ### Architecture & Design
 - [Architecture Overview](./docs/setup/ARCHITECTURE_2025-06-26.md)
