@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/functions';
+import { trackInngestFailure } from './lib/server-tracking.mts';
 
 /**
  * Blocked owner names that are app routes, not GitHub organizations
@@ -488,6 +489,14 @@ export default async (req: Request, context: Context) => {
             console.log('Repository sync event sent successfully:', syncResult.ids);
           } catch (syncError) {
             console.error('Failed to send repository sync event:', syncError);
+            // Track Inngest failure to Sentry + PostHog
+            await trackInngestFailure('capture/repository.sync.graphql', syncError, {
+              owner: existingRepo.owner,
+              repo: existingRepo.name,
+              repositoryId: existingRepo.id,
+              eventType: 're-tracking',
+              isLocal,
+            });
             // Still continue - repository tracking can proceed without commit capture
           }
 
@@ -507,11 +516,26 @@ export default async (req: Request, context: Context) => {
             console.log('Commit capture event sent successfully:', commitResult.ids);
           } catch (commitError) {
             console.error('Failed to send commit capture event:', commitError);
+            // Track Inngest failure to Sentry + PostHog
+            await trackInngestFailure('capture/commits.update', commitError, {
+              owner: existingRepo.owner,
+              repo: existingRepo.name,
+              repositoryId: existingRepo.id,
+              eventType: 're-tracking-commits',
+              isLocal,
+            });
             // Log but don't fail the overall operation
             console.log('Repository will be tracked but commit capture may be delayed');
           }
         } catch (eventError) {
           console.error('Failed to send events:', eventError);
+          // Track general Inngest initialization failure
+          await trackInngestFailure('inngest.client.init', eventError, {
+            owner: existingRepo.owner,
+            repo: existingRepo.name,
+            repositoryId: existingRepo.id,
+            eventType: 'client-init',
+          });
         }
 
         return new Response(
@@ -706,11 +730,26 @@ export default async (req: Request, context: Context) => {
           console.log('Commit capture event sent successfully:', commitResult.ids);
         } catch (commitError) {
           console.error('Failed to send commit capture event:', commitError);
+          // Track Inngest failure to Sentry + PostHog
+          await trackInngestFailure('capture/commits.initial', commitError, {
+            owner: repository.owner,
+            repo: repository.name,
+            repositoryId: repository.id,
+            eventType: 'initial-commits',
+            isLocal,
+          });
           console.log('Repository tracking will continue, but commit capture may be delayed');
           // Don't fail the overall operation - repository tracking is more important
         }
       } catch (eventError) {
         console.error('Failed to send Inngest events:', eventError);
+        // Track Inngest failure to Sentry + PostHog
+        await trackInngestFailure('inngest.critical_events', eventError, {
+          owner: repository.owner,
+          repo: repository.name,
+          repositoryId: repository.id,
+          eventType: 'initial-discovery',
+        });
         // Don't throw - events are non-critical for tracking success
       }
 

@@ -1,19 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
+import {
+  BarChart3,
+  Lock,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+} from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { captureException } from '@/lib/sentry-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
+import type { TrackRepositoryResponse, RepositoryStatusResponse } from '@/types/repository-api';
 
-// Type for track repository API response
-interface TrackRepositoryResponse {
-  success: boolean;
-  eventId?: string;
-  message?: string;
-}
+// Constants
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_COUNT = 60; // Poll for up to 2 minutes
+const STATUS_CHECK_DEBOUNCE_MS = 1000;
+const STATUS_CHECK_TIMEOUT_MS = 10000;
 
 interface RepositoryTrackingCardProps {
   owner: string;
@@ -34,9 +42,14 @@ export function RepositoryTrackingCard({
   const { isLoggedIn, login } = useGitHubAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [pipelineStatus, setPipelineStatus] = useState<RepositoryStatusResponse | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastStatusCheckRef = useRef<number>(0);
 
   // PLG Tracking: Track user stage and timing for abandonment detection
   const trackingStageRef = useRef<TrackingStage>('viewing');
@@ -60,6 +73,101 @@ export function RepositoryTrackingCard({
     },
     []
   );
+
+  // Check repository status from the API with debounce and timeout
+  const checkPipelineStatus = useCallback(async () => {
+    if (!owner || !repo) return;
+
+    // Debounce: prevent rapid successive calls
+    const now = Date.now();
+    if (now - lastStatusCheckRef.current < STATUS_CHECK_DEBOUNCE_MS) {
+      return;
+    }
+    lastStatusCheckRef.current = now;
+
+    // Clear any pending debounced check
+    if (statusCheckDebounceRef.current) {
+      clearTimeout(statusCheckDebounceRef.current);
+      statusCheckDebounceRef.current = null;
+    }
+
+    setIsCheckingStatus(true);
+    setPipelineStatus(null);
+
+    // Create abort controller for timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), STATUS_CHECK_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(
+        `/api/repository-status?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        {
+          signal: abortController.signal,
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (!isMountedRef.current) return;
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data: RepositoryStatusResponse = await response.json();
+
+      setPipelineStatus(data);
+
+      // Track status check
+      safeTrackEvent('repository_status_checked', {
+        repository: `${owner}/${repo}`,
+        status: data.status,
+        has_data: data.hasData,
+        has_commits: data.dataAvailability?.hasCommits,
+        has_prs: data.dataAvailability?.hasPullRequests,
+      });
+
+      // If data is now available, offer to refresh
+      if (data.hasData) {
+        toast.success('Repository data is now available!', {
+          description: 'Click refresh to see your repository analytics.',
+          action: {
+            label: 'Refresh',
+            onClick: () => window.location.reload(),
+          },
+          duration: 10000,
+        });
+      } else if (data.status === 'syncing') {
+        toast.info('Repository is still syncing', {
+          description: data.message || 'Data will be available shortly. Check back in a minute.',
+          duration: 6000,
+        });
+      } else if (data.status === 'pending') {
+        toast.warning('Sync may be delayed', {
+          description:
+            'The background process may be experiencing delays. Try again in a few minutes.',
+          duration: 8000,
+        });
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (!isMountedRef.current) return;
+
+      if (err instanceof Error && err.name === 'AbortError') {
+        toast.error('Status check timed out', {
+          description: 'The server took too long to respond. Please try again.',
+        });
+      } else {
+        console.error('Failed to check status:', err);
+        toast.error('Failed to check status', {
+          description: 'Please try again in a moment.',
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsCheckingStatus(false);
+      }
+    }
+  }, [owner, repo, safeTrackEvent]);
 
   // Track when users view the "Track This Repository" prompt (debounced)
   useEffect(() => {
@@ -288,13 +396,16 @@ export function RepositoryTrackingCard({
         clearTimeout(viewEventTimeoutRef.current);
         viewEventTimeoutRef.current = null;
       }
+      if (statusCheckDebounceRef.current) {
+        clearTimeout(statusCheckDebounceRef.current);
+        statusCheckDebounceRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - cleanup should only run on unmount, uses refs to avoid stale closures
 
   const startPollingForData = () => {
     let pollCount = 0;
-    const maxPolls = 60; // Poll for up to 2 minutes
 
     // Clear any existing interval before starting a new one
     if (pollIntervalRef.current) {
@@ -304,24 +415,35 @@ export function RepositoryTrackingCard({
     pollIntervalRef.current = setInterval(async () => {
       pollCount++;
 
+      // Use refs to get current owner/repo values to avoid stale closure
+      const currentOwner = ownerRef.current;
+      const currentRepo = repoRef.current;
+
       try {
         // Check if repository now has data
-        const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
+        const response = await fetch(
+          `/api/repository-status?owner=${encodeURIComponent(currentOwner)}&repo=${encodeURIComponent(currentRepo)}`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
 
         // Determine poll status
         let pollStatus: 'success' | 'timeout' | 'pending' = 'pending';
         if (data.hasData) {
           pollStatus = 'success';
-        } else if (pollCount >= maxPolls) {
+        } else if (pollCount >= MAX_POLL_COUNT) {
           pollStatus = 'timeout';
         }
 
         // PostHog: Track polling lifecycle
         safeTrackEvent('repository_status_poll', {
-          repository: `${owner}/${repo}`,
-          owner,
-          repo,
+          repository: `${currentOwner}/${currentRepo}`,
+          owner: currentOwner,
+          repo: currentRepo,
           poll_count: pollCount,
           has_data: data.hasData,
           final_status: pollStatus,
@@ -343,9 +465,9 @@ export function RepositoryTrackingCard({
 
           // Track when data becomes available
           safeTrackEvent('repository_data_ready', {
-            repository: `${owner}/${repo}`,
-            owner,
-            repo,
+            repository: `${currentOwner}/${currentRepo}`,
+            owner: currentOwner,
+            repo: currentRepo,
             pollAttempts: pollCount,
           });
 
@@ -367,7 +489,7 @@ export function RepositoryTrackingCard({
           }
         }
 
-        if (pollCount >= maxPolls) {
+        if (pollCount >= MAX_POLL_COUNT) {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
@@ -378,39 +500,48 @@ export function RepositoryTrackingCard({
             // PLG Tracking: Calculate wait duration for timeout event
             const waitDurationMs = trackingStartTimeRef.current
               ? Date.now() - trackingStartTimeRef.current
-              : pollCount * 2000; // Fallback: 2 seconds per poll
+              : pollCount * POLL_INTERVAL_MS;
 
             // PLG Tracking: Fire timeout viewed event
             safeTrackEvent('track_repository_timeout_viewed', {
-              repository: `${owner}/${repo}`,
+              repository: `${currentOwner}/${currentRepo}`,
               wait_duration_ms: waitDurationMs,
             });
 
             // Track the polling timeout as a failure event
             safeTrackEvent('repository_tracking_failed', {
-              repository: `${owner}/${repo}`,
-              owner,
-              repo,
+              repository: `${currentOwner}/${currentRepo}`,
+              owner: currentOwner,
+              repo: currentRepo,
               errorType: 'POLLING_TIMEOUT',
               pollAttempts: pollCount,
             });
 
             // Sentry: Capture timeout for monitoring
-            captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
-              level: 'warning',
-              tags: {
-                type: 'tracking_timeout',
-                repository: `${owner}/${repo}`,
-              },
-              extra: {
-                poll_count: pollCount,
-                max_polls: maxPolls,
-                wait_duration_ms: waitDurationMs,
-              },
-            });
+            captureException(
+              new Error(`Repository tracking polling timeout: ${currentOwner}/${currentRepo}`),
+              {
+                level: 'warning',
+                tags: {
+                  type: 'tracking_timeout',
+                  repository: `${currentOwner}/${currentRepo}`,
+                },
+                extra: {
+                  poll_count: pollCount,
+                  max_polls: MAX_POLL_COUNT,
+                  wait_duration_ms: waitDurationMs,
+                },
+              }
+            );
+
+            // Set timeout state to show improved UX
+            setHasTimedOut(true);
+            setError(
+              'Data sync is taking longer than expected. The background sync is still running.'
+            );
 
             toast.info('Data sync is taking longer than expected', {
-              description: 'Please refresh the page in a few minutes.',
+              description: 'Use the "Check Status" button to see current progress.',
               duration: 10000,
             });
           }
@@ -419,7 +550,7 @@ export function RepositoryTrackingCard({
         // Silently continue polling
         console.error('Polling error:', err);
       }
-    }, 2000); // Poll every 2 seconds
+    }, POLL_INTERVAL_MS);
   };
 
   return (
@@ -484,12 +615,134 @@ export function RepositoryTrackingCard({
 
         {/* Error display */}
         {error && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
-            {error.includes('longer than expected') && (
+
+            {/* Timeout-specific UI with Check Status */}
+            {hasTimedOut && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Pipeline Status</span>
+                </div>
+
+                {/* Status display */}
+                {pipelineStatus && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      {pipelineStatus.hasData ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      <span className="capitalize">
+                        {(() => {
+                          switch (pipelineStatus.status) {
+                            case 'syncing':
+                              return 'Syncing in progress...';
+                            case 'pending':
+                              return 'Waiting for sync';
+                            case 'ready':
+                              return 'Data ready!';
+                            default:
+                              return pipelineStatus.message || pipelineStatus.status;
+                          }
+                        })()}
+                      </span>
+                    </div>
+
+                    {pipelineStatus.dataAvailability && (
+                      <div className="text-xs text-muted-foreground space-y-1 pl-6">
+                        <div className="flex gap-4">
+                          <span>
+                            Commits: {pipelineStatus.dataAvailability.commitCount}
+                            {pipelineStatus.dataAvailability.hasCommits && ' ✓'}
+                          </span>
+                          <span>
+                            PRs: {pipelineStatus.dataAvailability.prCount}
+                            {pipelineStatus.dataAvailability.hasPullRequests && ' ✓'}
+                          </span>
+                          <span>
+                            Contributors: {pipelineStatus.dataAvailability.contributorCount}
+                            {pipelineStatus.dataAvailability.hasContributors && ' ✓'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {pipelineStatus.repository?.createdAt && (
+                      <div className="text-xs text-muted-foreground pl-6">
+                        Tracking started:{' '}
+                        {new Date(pipelineStatus.repository.createdAt).toLocaleTimeString()}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={checkPipelineStatus}
+                    disabled={isCheckingStatus}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {isCheckingStatus ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-3 w-3" />
+                        Check Status
+                      </>
+                    )}
+                  </Button>
+
+                  {pipelineStatus?.hasData && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => window.location.reload()}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <CheckCircle2 className="mr-2 h-3 w-3" />
+                      View Repository
+                    </Button>
+                  )}
+
+                  <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                    Refresh Page
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setError(null);
+                      setHasTimedOut(false);
+                      setPipelineStatus(null);
+                      handleTrackRepository();
+                    }}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Large repositories may take several minutes to sync. The background process
+                  continues even after this page times out.
+                </p>
+              </div>
+            )}
+
+            {/* Generic error actions (for non-timeout errors) */}
+            {!hasTimedOut && (
               <div className="flex gap-2 justify-center">
                 <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
                   Refresh Page
