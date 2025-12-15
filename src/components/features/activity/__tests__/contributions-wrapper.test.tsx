@@ -13,7 +13,7 @@ vi.mock('@/components/features/sharing/shareable-card', () => ({
 }));
 
 describe('ContributionsWrapper', () => {
-  it('renders correctly with shareable card', async () => {
+  it('renders correctly with shareable card containing header and content', async () => {
     render(
       <MemoryRouter initialEntries={['/owner/repo']}>
         <Routes>
@@ -22,17 +22,25 @@ describe('ContributionsWrapper', () => {
       </MemoryRouter>
     );
 
-    // Check if card title is rendered
-    expect(screen.getByText('Contributor Distribution')).toBeInTheDocument();
-
     // Check if ShareableCard is rendered
     const shareableCard = screen.getByTestId('shareable-card');
     expect(shareableCard).toBeInTheDocument();
     expect(shareableCard).toHaveAttribute('title', 'Contributor Distribution');
 
+    // Check if header content is INSIDE the shareable card
+    const titleElement = screen.getByText('Contributor Distribution');
+    expect(shareableCard).toContainElement(titleElement);
+
+    const descElement = screen.getByText(/This chart is a representation/);
+    expect(shareableCard).toContainElement(descElement);
+
     // In test environment, ContributionsWrapper uses an internal mock
     await waitFor(() => {
         expect(screen.getByTestId('mock-contributions-chart')).toBeInTheDocument();
     });
+
+    // Check if chart is also inside shareable card
+    const chart = screen.getByTestId('mock-contributions-chart');
+    expect(shareableCard).toContainElement(chart);
   });
 });

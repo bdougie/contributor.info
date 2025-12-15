@@ -33,22 +33,23 @@ export default function ContributionsWrapper() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Contributor Distribution</CardTitle>
-        <CardDescription>
-          This chart is a representation of 30 days of PR contributions based on size (Y axis) and
-          date (X axis).
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <ShareableCard
-          title="Contributor Distribution"
-          contextInfo={{
-            repository: owner && repo ? `${owner}/${repo}` : undefined,
-            metric: 'contributor distribution',
-          }}
-          chartType="contributor-distribution"
-        >
+      <ShareableCard
+        title="Contributor Distribution"
+        contextInfo={{
+          repository: owner && repo ? `${owner}/${repo}` : undefined,
+          metric: 'contributor distribution',
+        }}
+        chartType="contributor-distribution"
+        className="flex flex-col h-full"
+      >
+        <CardHeader>
+          <CardTitle>Contributor Distribution</CardTitle>
+          <CardDescription>
+            This chart is a representation of 30 days of PR contributions based on size (Y axis) and
+            date (X axis).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
           <Suspense
             fallback={
               <div className="h-[400px] w-full flex items-center justify-center">
@@ -58,8 +59,8 @@ export default function ContributionsWrapper() {
           >
             <ContributionsChart />
           </Suspense>
-        </ShareableCard>
-      </CardContent>
+        </CardContent>
+      </ShareableCard>
     </Card>
   );
 }
