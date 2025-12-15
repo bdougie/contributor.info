@@ -46,7 +46,6 @@ export interface SpamStats {
 interface UseWorkspaceSpamOptions {
   repositories: Repository[];
   selectedRepositories: string[];
-  workspaceId: string;
   minSpamScore?: number;
   maxSpamScore?: number;
   includeUnanalyzed?: boolean;
@@ -234,7 +233,7 @@ export function useWorkspaceSpam({
 
       setAllPullRequests(transformedPRs);
     } catch (err) {
-      console.error('Error fetching spam data:', err);
+      console.error('Error fetching spam data: %s', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch spam data');
       setAllPullRequests([]);
     } finally {
@@ -321,7 +320,7 @@ export function useWorkspaceSpam({
         )
       );
     } catch (err) {
-      console.error('Error updating spam status:', err);
+      console.error('Error updating spam status: %s', err);
       throw err;
     }
   }, []);

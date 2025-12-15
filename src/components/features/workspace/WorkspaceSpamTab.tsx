@@ -20,16 +20,13 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { SpamIndicator, SpamProbabilityBadge } from '@/components/features/spam/spam-indicator';
 import { useWorkspaceSpam, type SpamPullRequest } from '@/hooks/useWorkspaceSpam';
-import type { TimeRange } from '@/components/features/workspace/TimeRangeSelector';
 import type { Repository } from '@/components/features/workspace';
-import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
+import type { WorkspaceMemberWithUser } from '@/types/workspace';
 
 interface WorkspaceSpamTabProps {
   repositories: Repository[];
   selectedRepositories: string[];
-  timeRange: TimeRange;
   workspaceId: string;
-  workspace?: Workspace;
   currentUser: User | null;
   currentMember: WorkspaceMemberWithUser | null;
 }
@@ -65,7 +62,8 @@ export function WorkspaceSpamTab({
     try {
       await updateSpamStatus(pr.id, true);
       toast.success('Marked as spam');
-    } catch {
+    } catch (err) {
+      console.error('Failed to mark PR as spam: %s', err);
       toast.error('Failed to mark as spam');
     }
   };
@@ -74,7 +72,8 @@ export function WorkspaceSpamTab({
     try {
       await updateSpamStatus(pr.id, false);
       toast.success('Marked as legitimate');
-    } catch {
+    } catch (err) {
+      console.error('Failed to mark PR as legitimate: %s', err);
       toast.error('Failed to mark as legitimate');
     }
   };

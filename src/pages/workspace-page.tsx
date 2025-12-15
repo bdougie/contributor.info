@@ -1699,9 +1699,7 @@ function WorkspacePage() {
               <WorkspaceSpamTab
                 repositories={repositories}
                 selectedRepositories={selectedRepositories}
-                timeRange={timeRange}
                 workspaceId={workspace.id}
-                workspace={workspace}
                 currentUser={currentUser}
                 currentMember={currentMember}
               />
