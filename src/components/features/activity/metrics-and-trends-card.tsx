@@ -382,7 +382,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           <section className="rounded-lg border bg-card p-4">
             <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
             {loading || !metrics ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
                 <PrCountCard openPRs={0} totalPRs={0} loading={true} />
                 <AvgTimeCard averageMergeTime={0} loading={true} />
                 <div className="sm:col-span-2 md:col-span-2">
@@ -390,21 +390,62 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <PrCountCard
-                  openPRs={metrics.openPRs}
-                  totalPRs={metrics.totalPRs}
-                  loading={loading}
-                />
-                <AvgTimeCard
-                  averageMergeTime={metrics.averageMergeTime}
-                  averageMergeTimeTrend={metrics.averageMergeTimeTrend}
-                  loading={loading}
-                />
-                <div className="sm:col-span-2 md:col-span-2">
-                  <VelocityCard velocity={metrics.velocity} loading={loading} />
+              <>
+                {/* Desktop view - full grid with all cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                  <PrCountCard
+                    openPRs={metrics.openPRs}
+                    totalPRs={metrics.totalPRs}
+                    loading={loading}
+                  />
+                  <AvgTimeCard
+                    averageMergeTime={metrics.averageMergeTime}
+                    averageMergeTimeTrend={metrics.averageMergeTimeTrend}
+                    loading={loading}
+                  />
+                  <div className="sm:col-span-2 md:col-span-2">
+                    <VelocityCard velocity={metrics.velocity} loading={loading} />
+                  </div>
                 </div>
-              </div>
+
+                {/* Capture-optimized view - simplified layout without icons */}
+                <div className="hidden shareable-capture-only">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Open PRs</p>
+                      <p className="text-3xl font-bold">{metrics.openPRs}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        of {metrics.totalPRs} in 30d
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Avg Merge Time</p>
+                      <p className="text-3xl font-bold">
+                        {metrics.averageMergeTime < 1
+                          ? `${Math.round(metrics.averageMergeTime * 24)}h`
+                          : `${metrics.averageMergeTime.toFixed(1)}d`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(() => {
+                          if (metrics.averageMergeTimeTrend === 'down') return 'Faster';
+                          if (metrics.averageMergeTimeTrend === 'up') return 'Slower';
+                          return 'Normal';
+                        })()}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Weekly Velocity</p>
+                      <p className="text-3xl font-bold">{metrics.velocity.current}</p>
+                      <p
+                        className={`text-xs mt-1 ${metrics.velocity.change >= 0 ? 'text-green-500' : 'text-red-500'}`}
+                      >
+                        {metrics.velocity.change >= 0 ? '+' : ''}
+                        {metrics.velocity.change}% change
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </section>
         </ShareableCard>
@@ -423,7 +464,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
             {(() => {
               if (loading) {
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
                     {[1, 2, 3, 4].map((i) => (
                       <TrendCard key={i} loading={true} />
                     ))}
@@ -433,17 +474,52 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               if (trends.length === 0) {
                 return (
                   <div className="text-center py-8">
-                    <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground">Not enough data to show trends</p>
                   </div>
                 );
               }
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                  {trends.slice(0, 4).map((trend, index) => (
-                    <TrendCard key={index} trend={trend} loading={loading} />
-                  ))}
-                </div>
+                <>
+                  {/* Desktop view - full grid with TrendCards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                    {trends.slice(0, 4).map((trend, index) => (
+                      <TrendCard key={index} trend={trend} loading={loading} />
+                    ))}
+                  </div>
+
+                  {/* Capture-optimized view - simplified layout without icons */}
+                  <div className="hidden shareable-capture-only">
+                    <div className="grid grid-cols-4 gap-4">
+                      {trends.slice(0, 4).map((trend, index) => (
+                        <div key={index} className="rounded-lg border bg-card p-4 text-center">
+                          <p className="text-xs text-muted-foreground mb-1">{trend.metric}</p>
+                          <p className="text-2xl font-bold">
+                            {trend.current}
+                            {trend.unit && (
+                              <span className="text-sm font-normal text-muted-foreground ml-1">
+                                {trend.unit}
+                              </span>
+                            )}
+                          </p>
+                          <p
+                            className={`text-xs mt-1 ${(() => {
+                              if (trend.change === 0) return 'text-muted-foreground';
+                              const isLowerBetter = trend.metric === 'Avg Review Time';
+                              const isPositive = trend.change > 0;
+                              if (isLowerBetter) {
+                                return isPositive ? 'text-red-500' : 'text-green-500';
+                              }
+                              return isPositive ? 'text-green-500' : 'text-red-500';
+                            })()}`}
+                          >
+                            {trend.change > 0 ? '+' : ''}
+                            {trend.change}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               );
             })()}
           </section>
