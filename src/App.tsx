@@ -55,7 +55,7 @@ const ChangelogPage = lazy(() =>
 // Documentation has been migrated to Mintlify
 // See mintlify-docs/ directory
 const FeedPage = lazy(() => import('@/components/features/feed/feed-page'));
-const SpamFeedPage = lazy(() => import('@/components/features/feed/spam-feed-page'));
+// SpamFeedPage moved to workspace scope - see WorkspaceSpamTab
 const SocialCardPreview = lazy(() => import('@/components/social-cards/preview'));
 const GitHubSyncDebug = lazy(() =>
   import('@/components/debug/github-sync-debug').then((m) => ({ default: m.GitHubSyncDebug }))
@@ -732,14 +732,7 @@ function App() {
                       <Route path="health" element={<LotteryFactorRoute />} />
                       <Route path="distribution" element={<DistributionRoute />} />
                       <Route path="feed" element={<FeedPage />} />
-                      <Route
-                        path="feed/spam"
-                        element={
-                          <ProtectedRoute>
-                            <SpamFeedPage />
-                          </ProtectedRoute>
-                        }
-                      />
+                      {/* Spam feed moved to workspace scope - /i/{workspaceId}/spam */}
                     </Route>
 
                     {/* Profile view (user/org) - after repo routes to prevent intercepting repo patterns */}

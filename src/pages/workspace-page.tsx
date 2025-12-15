@@ -52,6 +52,7 @@ import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
 // Extracted tab components
 import { WorkspacePRsTab } from '@/components/features/workspace/WorkspacePRsTab';
 import { WorkspaceIssuesTab } from '@/components/features/workspace/WorkspaceIssuesTab';
+import { WorkspaceSpamTab } from '@/components/features/workspace/WorkspaceSpamTab';
 import {
   WorkspaceActivityTab,
   type WorkspaceActivityTabProps as WorkspaceActivityProps,
@@ -1771,6 +1772,17 @@ function WorkspacePage() {
                 userRole={currentMember?.role}
                 isLoggedIn={!!currentUser}
                 onRespondClick={handleDiscussionRespond}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="spam" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceSpamTab
+                repositories={repositories}
+                selectedRepositories={selectedRepositories}
+                currentUser={currentUser}
+                currentMember={currentMember}
               />
             </div>
           </TabsContent>

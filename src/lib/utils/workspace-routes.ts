@@ -76,3 +76,10 @@ export function getWorkspaceContributorsRoute(
 export function getWorkspacePRsRoute(workspace: WorkspaceIdentifier | null | undefined): string {
   return getWorkspaceRoute(workspace, 'prs');
 }
+
+/**
+ * Generate workspace spam route
+ */
+export function getWorkspaceSpamRoute(workspace: WorkspaceIdentifier | null | undefined): string {
+  return getWorkspaceRoute(workspace, 'spam');
+}

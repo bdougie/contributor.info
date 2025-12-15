@@ -7,6 +7,7 @@ import {
   Settings,
   Activity,
   MessageSquare,
+  Shield,
 } from '@/components/ui/icon';
 
 export function WorkspaceTabNavigation() {
@@ -27,6 +28,10 @@ export function WorkspaceTabNavigation() {
       <TabsTrigger value="discussions" className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4" />
         <span className="hidden sm:inline">Discussions</span>
+      </TabsTrigger>
+      <TabsTrigger value="spam" className="flex items-center gap-2">
+        <Shield className="h-4 w-4" />
+        <span className="hidden sm:inline">Spam</span>
       </TabsTrigger>
       <TabsTrigger value="contributors" className="flex items-center gap-2">
         <Users className="h-4 w-4" />
