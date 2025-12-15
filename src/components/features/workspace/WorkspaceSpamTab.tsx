@@ -22,6 +22,7 @@ import { SpamIndicator, SpamProbabilityBadge } from '@/components/features/spam/
 import { useWorkspaceSpam, type SpamPullRequest } from '@/hooks/useWorkspaceSpam';
 import type { Repository } from '@/components/features/workspace';
 import type { WorkspaceMemberWithUser } from '@/types/workspace';
+import { getFallbackAvatar } from '@/lib/utils/avatar';
 
 interface WorkspaceSpamTabProps {
   repositories: Repository[];
@@ -37,7 +38,7 @@ export function WorkspaceSpamTab({
   currentMember,
 }: WorkspaceSpamTabProps) {
   const navigate = useNavigate();
-  const [minSpamScore, setMinSpamScore] = useState(50); // Default to 50% to show likely spam+
+  const [minSpamScore, setMinSpamScore] = useState(0); // Default to 0% to show all analyzed PRs
   const [includeUnanalyzed, setIncludeUnanalyzed] = useState(false);
 
   const { pullRequests, stats, loading, error, refresh, updateSpamStatus } = useWorkspaceSpam({
@@ -116,7 +117,7 @@ export function WorkspaceSpamTab({
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Spam Detected</CardDescription>
-              <CardTitle className="text-2xl text-red-600">
+              <CardTitle className="text-2xl text-destructive">
                 {stats.spamCount} ({stats.spamPercentage}%)
               </CardTitle>
             </CardHeader>
@@ -131,27 +132,20 @@ export function WorkspaceSpamTab({
             <CardHeader className="pb-2">
               <CardDescription>Distribution</CardDescription>
               <div className="grid grid-cols-2 gap-1 mt-1">
-                <Badge
-                  variant="outline"
-                  className="bg-green-50 text-green-700 text-xs justify-center"
-                >
-                  {stats.distribution.legitimate} clean
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-yellow-50 text-yellow-700 text-xs justify-center"
-                >
-                  {stats.distribution.warning} warn
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="bg-orange-50 text-orange-700 text-xs justify-center"
-                >
-                  {stats.distribution.likelySpam} likely
-                </Badge>
-                <Badge variant="outline" className="bg-red-50 text-red-700 text-xs justify-center">
-                  {stats.distribution.definiteSpam} spam
-                </Badge>
+                {[
+                  { label: 'clean', value: stats.distribution.legitimate, variant: 'default' as const },
+                  { label: 'warn', value: stats.distribution.warning, variant: 'secondary' as const },
+                  { label: 'likely', value: stats.distribution.likelySpam, variant: 'secondary' as const },
+                  { label: 'spam', value: stats.distribution.definiteSpam, variant: 'destructive' as const },
+                ].map((item) => (
+                  <Badge
+                    key={item.label}
+                    variant="outline"
+                    className="text-xs justify-center"
+                  >
+                    {item.value} {item.label}
+                  </Badge>
+                ))}
               </div>
             </CardHeader>
           </Card>
@@ -179,7 +173,6 @@ export function WorkspaceSpamTab({
                 variant={minSpamScore === 25 ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setMinSpamScore(25)}
-                className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 hover:text-yellow-800 data-[state=active]:bg-yellow-600"
               >
                 Warning+ (25%)
               </Button>
@@ -187,7 +180,6 @@ export function WorkspaceSpamTab({
                 variant={minSpamScore === 50 ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setMinSpamScore(50)}
-                className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:text-orange-800"
               >
                 Likely+ (50%)
               </Button>
@@ -195,7 +187,6 @@ export function WorkspaceSpamTab({
                 variant={minSpamScore === 75 ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setMinSpamScore(75)}
-                className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:text-red-800"
               >
                 Definite (75%)
               </Button>
@@ -287,7 +278,7 @@ export function WorkspaceSpamTab({
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <img
-                            src={pr.author.avatar_url || '/placeholder-avatar.png'}
+                            src={pr.author.avatar_url || getFallbackAvatar()}
                             alt={pr.author.username}
                             className="h-6 w-6 rounded-full flex-shrink-0"
                           />
@@ -315,7 +306,7 @@ export function WorkspaceSpamTab({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleMarkAsSpam(pr)}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                 title="Mark as spam"
                               >
                                 <X className="h-4 w-4" />
@@ -326,7 +317,7 @@ export function WorkspaceSpamTab({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleMarkAsLegitimate(pr)}
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                                 title="Mark as legitimate"
                               >
                                 <Check className="h-4 w-4" />
