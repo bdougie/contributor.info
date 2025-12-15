@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
+import {
+  BarChart3,
+  Lock,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+} from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
@@ -13,6 +21,30 @@ interface TrackRepositoryResponse {
   success: boolean;
   eventId?: string;
   message?: string;
+}
+
+// Type for repository status API response
+interface RepositoryStatusResponse {
+  success: boolean;
+  hasData: boolean;
+  status: 'not_found' | 'pending' | 'syncing' | 'ready' | 'error';
+  repository?: {
+    id: string;
+    owner: string;
+    name: string;
+    createdAt: string;
+    lastUpdatedAt: string | null;
+  };
+  dataAvailability?: {
+    hasCommits: boolean;
+    hasPullRequests: boolean;
+    hasContributors: boolean;
+    commitCount: number;
+    prCount: number;
+    contributorCount: number;
+  };
+  message?: string;
+  error?: string;
 }
 
 interface RepositoryTrackingCardProps {
@@ -34,6 +66,9 @@ export function RepositoryTrackingCard({
   const { isLoggedIn, login } = useGitHubAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [pipelineStatus, setPipelineStatus] = useState<RepositoryStatusResponse | null>(null);
+  const [hasTimedOut, setHasTimedOut] = useState(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const viewEventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,6 +95,60 @@ export function RepositoryTrackingCard({
     },
     []
   );
+
+  // Check repository status from the API
+  const checkPipelineStatus = useCallback(async () => {
+    if (!owner || !repo) return;
+
+    setIsCheckingStatus(true);
+    setPipelineStatus(null);
+
+    try {
+      const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
+      const data: RepositoryStatusResponse = await response.json();
+
+      setPipelineStatus(data);
+
+      // Track status check
+      safeTrackEvent('repository_status_checked', {
+        repository: `${owner}/${repo}`,
+        status: data.status,
+        has_data: data.hasData,
+        has_commits: data.dataAvailability?.hasCommits,
+        has_prs: data.dataAvailability?.hasPullRequests,
+      });
+
+      // If data is now available, offer to refresh
+      if (data.hasData) {
+        toast.success('Repository data is now available!', {
+          description: 'Click refresh to see your repository analytics.',
+          action: {
+            label: 'Refresh',
+            onClick: () => window.location.reload(),
+          },
+          duration: 10000,
+        });
+      } else if (data.status === 'syncing') {
+        toast.info('Repository is still syncing', {
+          description: data.message || 'Data will be available shortly. Check back in a minute.',
+          duration: 6000,
+        });
+      } else if (data.status === 'pending') {
+        toast.warning('Sync may be delayed', {
+          description:
+            'The background process may be experiencing delays. Try again in a few minutes.',
+          duration: 8000,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to check status:', err);
+      toast.error('Failed to check status', {
+        description: 'Please try again in a moment.',
+      });
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  }, [owner, repo, safeTrackEvent]);
 
   // Track when users view the "Track This Repository" prompt (debounced)
   useEffect(() => {
@@ -409,8 +498,14 @@ export function RepositoryTrackingCard({
               },
             });
 
+            // Set timeout state to show improved UX
+            setHasTimedOut(true);
+            setError(
+              'Data sync is taking longer than expected. The background sync is still running.'
+            );
+
             toast.info('Data sync is taking longer than expected', {
-              description: 'Please refresh the page in a few minutes.',
+              description: 'Use the "Check Status" button to see current progress.',
               duration: 10000,
             });
           }
@@ -484,12 +579,134 @@ export function RepositoryTrackingCard({
 
         {/* Error display */}
         {error && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 text-sm text-destructive">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
-            {error.includes('longer than expected') && (
+
+            {/* Timeout-specific UI with Check Status */}
+            {hasTimedOut && (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Pipeline Status</span>
+                </div>
+
+                {/* Status display */}
+                {pipelineStatus && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      {pipelineStatus.hasData ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      <span className="capitalize">
+                        {(() => {
+                          switch (pipelineStatus.status) {
+                            case 'syncing':
+                              return 'Syncing in progress...';
+                            case 'pending':
+                              return 'Waiting for sync';
+                            case 'ready':
+                              return 'Data ready!';
+                            default:
+                              return pipelineStatus.message || pipelineStatus.status;
+                          }
+                        })()}
+                      </span>
+                    </div>
+
+                    {pipelineStatus.dataAvailability && (
+                      <div className="text-xs text-muted-foreground space-y-1 pl-6">
+                        <div className="flex gap-4">
+                          <span>
+                            Commits: {pipelineStatus.dataAvailability.commitCount}
+                            {pipelineStatus.dataAvailability.hasCommits && ' ✓'}
+                          </span>
+                          <span>
+                            PRs: {pipelineStatus.dataAvailability.prCount}
+                            {pipelineStatus.dataAvailability.hasPullRequests && ' ✓'}
+                          </span>
+                          <span>
+                            Contributors: {pipelineStatus.dataAvailability.contributorCount}
+                            {pipelineStatus.dataAvailability.hasContributors && ' ✓'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {pipelineStatus.repository?.createdAt && (
+                      <div className="text-xs text-muted-foreground pl-6">
+                        Tracking started:{' '}
+                        {new Date(pipelineStatus.repository.createdAt).toLocaleTimeString()}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={checkPipelineStatus}
+                    disabled={isCheckingStatus}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {isCheckingStatus ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-3 w-3" />
+                        Check Status
+                      </>
+                    )}
+                  </Button>
+
+                  {pipelineStatus?.hasData && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => window.location.reload()}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <CheckCircle2 className="mr-2 h-3 w-3" />
+                      View Repository
+                    </Button>
+                  )}
+
+                  <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                    Refresh Page
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setError(null);
+                      setHasTimedOut(false);
+                      setPipelineStatus(null);
+                      handleTrackRepository();
+                    }}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Large repositories may take several minutes to sync. The background process
+                  continues even after this page times out.
+                </p>
+              </div>
+            )}
+
+            {/* Non-timeout error actions */}
+            {!hasTimedOut && error.includes('longer than expected') && (
               <div className="flex gap-2 justify-center">
                 <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
                   Refresh Page
