@@ -34,7 +34,11 @@ export function VelocityCard({ velocity, loading }: VelocityCardProps) {
           <span className="text-sm font-bold truncate">{velocity.current.toFixed(1)} PRs</span>
         </div>
         <Progress
-          value={(velocity.current / Math.max(velocity.current, velocity.previous)) * 100}
+          value={
+            Math.max(velocity.current, velocity.previous) > 0
+              ? (velocity.current / Math.max(velocity.current, velocity.previous)) * 100
+              : 0
+          }
           className="h-2"
         />
         <div className="flex items-center justify-between">
