@@ -47,7 +47,6 @@ Testing tools cover:
 | `test-social-card-speed.js` | Social card performance testing | Speed optimization |
 | `test-dub-api-direct.js` | dub.co link shortening testing | URL shortening issues |
 | `test-social-elements.html` | Interactive browser test suite | Manual validation |
-| `test-storybook-interactions.sh` | Storybook interaction tests | UI changes |
 | `test-visual-regression.sh` | Visual regression testing | Before release |
 | `test-visual-workflow.sh` | Visual testing workflow | CI/CD |
 
@@ -113,9 +112,6 @@ node scripts/testing-tools/test-update-activity.mjs --days 7
 ```bash
 # Run visual regression tests
 ./scripts/testing-tools/test-visual-regression.sh
-
-# Test Storybook interactions
-./scripts/testing-tools/test-storybook-interactions.sh
 
 # Test social cards
 node scripts/testing-tools/test-social-cards.js --all
@@ -385,7 +381,6 @@ import { mockPR, mockRepo, mockUser } from './fixtures'
 
 ## 🔗 Related Tools
 
-- **Jest**: Unit testing framework
+- **Vitest**: Unit testing framework
 - **Playwright**: Visual testing
-- **Storybook**: Component testing
 - **GitHub Actions**: CI/CD integration

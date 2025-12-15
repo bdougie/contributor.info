@@ -31,7 +31,7 @@ The application now uses a **manual, user-initiated repository tracking system**
 
 ## Design
 All components should match the existing design language.
-Storybook should be leverage to build and validate ui first
+Figma should be used for design collaboration and component documentation
 
 ## Project Planning
 
@@ -102,10 +102,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ## Development Memories
 
-- Replaced all require() calls with proper ES module patterns in storybook
+- Replaced all require() calls with proper ES module patterns
 - remember to use bulletproof testing practices, only when absolutely need in e2e tests
 - never use jest. only vitest
-- jest is leveraged in the storybook only
 - use the /docs folder for postmortems and /tasks for plans. remove plans when feature is implemented, but write docs when plans are completed
 - after visual changes always look for opportunity to improve performance
 - no premmature optimizations without testing
