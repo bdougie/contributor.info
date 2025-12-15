@@ -51,6 +51,7 @@ import { useMyWork } from '@/hooks/use-my-work';
 // Extracted tab components
 import { WorkspacePRsTab } from '@/components/features/workspace/WorkspacePRsTab';
 import { WorkspaceIssuesTab } from '@/components/features/workspace/WorkspaceIssuesTab';
+import { WorkspaceSpamTab } from '@/components/features/workspace/WorkspaceSpamTab';
 import {
   WorkspaceActivityTab,
   type WorkspaceActivityTabProps as WorkspaceActivityProps,
@@ -1290,9 +1291,8 @@ function WorkspacePage() {
       // Perform debounced search if not cached
       const searchResult = await debouncedSearch(cacheKey, async () => {
         // Dynamically import similarity search to avoid loading ML models on page init
-        const { findSimilarItems, generateResponseMessage } = await import(
-          '@/services/similarity-search'
-        );
+        const { findSimilarItems, generateResponseMessage } =
+          await import('@/services/similarity-search');
 
         // Find similar items in the workspace
         const items = await findSimilarItems({
@@ -1363,9 +1363,8 @@ function WorkspacePage() {
       // Perform debounced search if not cached
       const searchResult = await debouncedSearch(cacheKey, async () => {
         // Dynamically import similarity search to avoid loading ML models on page init
-        const { findSimilarItems, generateResponseMessage } = await import(
-          '@/services/similarity-search'
-        );
+        const { findSimilarItems, generateResponseMessage } =
+          await import('@/services/similarity-search');
 
         // Find similar items in the workspace
         const items = await findSimilarItems({
@@ -1590,9 +1589,8 @@ function WorkspacePage() {
                     if (cachedItems) {
                       // Use cached results
                       setSimilarItems(cachedItems);
-                      const { generateResponseMessage } = await import(
-                        '@/services/similarity-search'
-                      );
+                      const { generateResponseMessage } =
+                        await import('@/services/similarity-search');
                       const message = generateResponseMessage(cachedItems);
                       setResponseMessage(message);
                       setLoadingSimilarItems(false);
@@ -1602,9 +1600,8 @@ function WorkspacePage() {
                     // Perform debounced search if not cached
                     const searchResult = await debouncedSearch(cacheKey, async () => {
                       // Dynamically import similarity search to avoid loading ML models on page init
-                      const { findSimilarItems, generateResponseMessage } = await import(
-                        '@/services/similarity-search'
-                      );
+                      const { findSimilarItems, generateResponseMessage } =
+                        await import('@/services/similarity-search');
 
                       // Find similar items in the workspace
                       const items = await findSimilarItems({
@@ -1693,6 +1690,20 @@ function WorkspacePage() {
                 userRole={currentMember?.role}
                 isLoggedIn={!!currentUser}
                 onRespondClick={handleDiscussionRespond}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="spam" className="mt-6">
+            <div className="container max-w-7xl mx-auto">
+              <WorkspaceSpamTab
+                repositories={repositories}
+                selectedRepositories={selectedRepositories}
+                timeRange={timeRange}
+                workspaceId={workspace.id}
+                workspace={workspace}
+                currentUser={currentUser}
+                currentMember={currentMember}
               />
             </div>
           </TabsContent>

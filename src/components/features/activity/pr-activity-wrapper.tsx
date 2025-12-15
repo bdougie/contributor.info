@@ -1,5 +1,4 @@
 import { lazy, Suspense } from 'react';
-import { FeedSourceToggle } from './feed-source-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 
@@ -24,14 +23,8 @@ export default function PRActivityWrapper() {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <FeedSourceToggle />
-      </div>
-
-      <Suspense fallback={<LoadingFallback />}>
-        <PRActivity />
-      </Suspense>
-    </div>
+    <Suspense fallback={<LoadingFallback />}>
+      <PRActivity />
+    </Suspense>
   );
 }
