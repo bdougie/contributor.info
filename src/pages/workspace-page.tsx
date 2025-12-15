@@ -155,6 +155,8 @@ function WorkspacePage() {
     tabCounts: myWorkTabCounts,
     loading: myWorkLoading,
     refresh: refreshMyWork,
+    optimisticallyRemoveItem,
+    restoreItem,
     syncComments,
     isSyncingComments,
     commentSyncStatus,
@@ -1404,6 +1406,9 @@ function WorkspacePage() {
       return;
     }
 
+    // Optimistically remove the item immediately for instant UI feedback
+    optimisticallyRemoveItem(item.id);
+
     try {
       const supabase = await getSupabase();
       const {
@@ -1412,6 +1417,8 @@ function WorkspacePage() {
 
       if (!user) {
         toast.error('You must be logged in to mark items as responded.');
+        // Restore the item since we couldn't complete the action
+        restoreItem(item.id);
         return;
       }
 
@@ -1432,10 +1439,6 @@ function WorkspacePage() {
         ''
       );
 
-      // Optimistically trigger refresh BEFORE the database update
-      // This immediately removes the item from the UI for better UX
-      refreshMyWork();
-
       // Update the item with responded_by and responded_at
       const { error } = await supabase
         .from(tableName)
@@ -1447,9 +1450,9 @@ function WorkspacePage() {
 
       if (error) {
         console.error('Error marking item as responded: %s', error.message);
-        toast.error(`Failed to mark as responded: ${error.message}. Please refresh.`);
-        // Trigger another refresh to show the item again since update failed
-        refreshMyWork();
+        toast.error(`Failed to mark as responded: ${error.message}`);
+        // Restore the item since the database update failed
+        restoreItem(item.id);
         return;
       }
 
@@ -1463,12 +1466,16 @@ function WorkspacePage() {
       }
 
       toast.success(`${itemTypeLabel} #${item.number} marked as responded.`);
+
+      // Refresh after successful update to sync with database
+      // This clears the pending removal state and fetches fresh data
+      refreshMyWork();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error marking item as responded: %s', errorMessage);
-      toast.error(`Failed to mark as responded: ${errorMessage}. Please refresh.`);
-      // Trigger refresh to restore proper state
-      refreshMyWork();
+      toast.error(`Failed to mark as responded: ${errorMessage}`);
+      // Restore the item since the operation failed
+      restoreItem(item.id);
     }
   };
 

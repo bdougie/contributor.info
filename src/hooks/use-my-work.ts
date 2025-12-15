@@ -119,6 +119,8 @@ export function useMyWork(
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [commentSyncStatus, setCommentSyncStatus] = useState<CommentSyncStatus | null>(null);
   const [isSyncingComments, setIsSyncingComments] = useState(false);
+  // Track items that are being optimistically removed (for instant UI feedback)
+  const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchMyWork() {
@@ -820,7 +822,33 @@ export function useMyWork(
     filters?.activeTab,
   ]);
 
-  const refresh = () => setRefreshTrigger((prev) => prev + 1);
+  const refresh = () => {
+    // Clear pending removals when refreshing - the DB is source of truth
+    setPendingRemovalIds(new Set());
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  /**
+   * Optimistically remove an item from the list for instant UI feedback.
+   * The item will be hidden immediately while the actual database update happens.
+   */
+  const optimisticallyRemoveItem = (itemId: string) => {
+    setPendingRemovalIds((prev) => new Set([...prev, itemId]));
+  };
+
+  /**
+   * Restore an item that was optimistically removed (e.g., if DB update failed)
+   */
+  const restoreItem = (itemId: string) => {
+    setPendingRemovalIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+  };
+
+  // Filter out items that are pending removal for optimistic UI
+  const visibleItems = items.filter((item) => !pendingRemovalIds.has(item.id));
 
   /**
    * Sync comments for the workspace
@@ -872,12 +900,14 @@ export function useMyWork(
   };
 
   return {
-    items,
-    totalCount,
+    items: visibleItems,
+    totalCount: totalCount - pendingRemovalIds.size,
     tabCounts,
     loading,
     error,
     refresh,
+    optimisticallyRemoveItem,
+    restoreItem,
     syncComments,
     checkCommentSyncStatus,
     isSyncingComments,
