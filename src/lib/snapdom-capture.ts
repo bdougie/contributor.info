@@ -1,5 +1,23 @@
-import { snapdom } from '@zumer/snapdom';
 import { env } from './env';
+
+// Lazy-loaded capture libraries to avoid bundle bloat
+// These are only loaded when user clicks share/download buttons
+let snapdomModule: typeof import('@zumer/snapdom') | null = null;
+let html2canvasModule: typeof import('html2canvas') | null = null;
+
+async function getSnapdom() {
+  if (!snapdomModule) {
+    snapdomModule = await import('@zumer/snapdom');
+  }
+  return snapdomModule.snapdom;
+}
+
+async function getHtml2Canvas() {
+  if (!html2canvasModule) {
+    html2canvasModule = await import('html2canvas');
+  }
+  return html2canvasModule.default;
+}
 
 function escapeHtml(unsafe: string): string {
   return unsafe
@@ -9,7 +27,6 @@ function escapeHtml(unsafe: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
-import html2canvas from 'html2canvas';
 
 export interface CaptureOptions {
   title: string;
@@ -225,6 +242,9 @@ export class SnapDOMCaptureService {
       // Try using SnapDOM's direct canvas method first (more reliable)
       let canvas: HTMLCanvasElement;
       let blob: Blob;
+
+      // Lazy load snapdom only when needed
+      const snapdom = await getSnapdom();
 
       try {
         // Use SnapDOM's direct canvas method
@@ -987,6 +1007,7 @@ export class SnapDOMCaptureService {
   private static async captureWithHtml2Canvas(wrapper: HTMLElement): Promise<CaptureResult> {
     console.log('Starting html2canvas fallback capture...');
 
+    const html2canvas = await getHtml2Canvas();
     const canvas = await html2canvas(wrapper, {
       useCORS: true,
       allowTaint: false,
@@ -1040,6 +1061,7 @@ export class SnapDOMCaptureService {
     document.body.appendChild(testElement);
 
     try {
+      const snapdom = await getSnapdom();
       const testCanvas = await snapdom.toCanvas(testElement, {
         scale: 1,
         backgroundColor: 'white',
