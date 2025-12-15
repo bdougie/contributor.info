@@ -13,8 +13,8 @@ ON pull_requests (repository_id, spam_score DESC NULLS LAST)
 WHERE spam_score IS NOT NULL;
 
 -- Add indexes on foreign keys used in JOINs
-CREATE INDEX IF NOT EXISTS idx_pull_requests_assignee ON pull_requests (assignee);
-CREATE INDEX IF NOT EXISTS idx_pull_requests_merged_by ON pull_requests (merged_by);
+CREATE INDEX IF NOT EXISTS idx_pull_requests_assignee_id ON pull_requests (assignee_id);
+CREATE INDEX IF NOT EXISTS idx_pull_requests_merged_by_id ON pull_requests (merged_by_id);
 CREATE INDEX IF NOT EXISTS idx_pull_requests_responded_by ON pull_requests (responded_by);
 
 -- Add comment for future reference
