@@ -397,6 +397,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         return (
           <animated.g style={nodeStyle}>
             <rect
+              className="contribution-square"
               x={(size - squareSize) / 2}
               y={(size - squareSize) / 2}
               width={squareSize}
@@ -508,6 +509,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             }}
           >
             <div
+              className="contribution-square"
               role="button"
               tabIndex={0}
               aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}

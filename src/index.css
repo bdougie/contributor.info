@@ -344,4 +344,15 @@
       padding-right: calc(420px + 1rem); /* Sidebar width + base padding */
     }
   }
+
+  /* Fix for contribution square borders during capture */
+  .capturing .contribution-square {
+    border-color: rgba(220, 224, 228, 0.5) !important;
+    stroke: rgba(220, 224, 228, 0.5) !important;
+  }
+
+  .capturing.dark .contribution-square {
+    border-color: rgba(38, 38, 38, 0.5) !important;
+    stroke: rgba(38, 38, 38, 0.5) !important;
+  }
 }
