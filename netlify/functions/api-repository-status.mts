@@ -168,6 +168,27 @@ export default async (req: Request, _context: Context) => {
         .limit(1),
     ]);
 
+    // Check for errors in count queries
+    if (commitsResult.error || prsResult.error || contributorsResult.error) {
+      console.error('Error checking data counts:', {
+        commits: commitsResult.error,
+        prs: prsResult.error,
+        contributors: contributorsResult.error,
+      });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          hasData: false,
+          status: 'error',
+          error: 'Unable to check repository data',
+        } satisfies RepositoryStatusResponse),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const commitCount = commitsResult.count ?? 0;
     const prCount = prsResult.count ?? 0;
     const contributorCount = contributorsResult.count ?? 0;

@@ -106,6 +106,10 @@ export function RepositoryTrackingCard({
 
       if (!isMountedRef.current) return;
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data: RepositoryStatusResponse = await response.json();
 
       setPipelineStatus(data);
@@ -417,6 +421,11 @@ export function RepositoryTrackingCard({
         const response = await fetch(
           `/api/repository-status?owner=${currentOwner}&repo=${currentRepo}`
         );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
 
         // Determine poll status
@@ -729,8 +738,8 @@ export function RepositoryTrackingCard({
               </div>
             )}
 
-            {/* Non-timeout error actions */}
-            {!hasTimedOut && error.includes('longer than expected') && (
+            {/* Generic error actions (for non-timeout errors) */}
+            {!hasTimedOut && (
               <div className="flex gap-2 justify-center">
                 <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
                   Refresh Page
