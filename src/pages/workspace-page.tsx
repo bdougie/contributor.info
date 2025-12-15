@@ -1467,9 +1467,9 @@ function WorkspacePage() {
 
       toast.success(`${itemTypeLabel} #${item.number} marked as responded.`);
 
-      // Refresh after successful update to sync with database
-      // This clears the pending removal state and fetches fresh data
-      refreshMyWork();
+      // Don't call refreshMyWork() here - the optimistic UI already shows the correct state
+      // Data will sync naturally on next tab change, pagination, or page reload
+      // This prevents the whole list from flickering/disappearing during refresh
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Error marking item as responded: %s', errorMessage);
