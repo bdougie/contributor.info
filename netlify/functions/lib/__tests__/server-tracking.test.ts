@@ -1,12 +1,45 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Helper to safely check if a URL matches expected host
-// Prevents URL substring sanitization vulnerabilities
+/**
+ * Helper to safely check if a URL matches expected host
+ * 
+ * Security: This function prevents URL substring sanitization vulnerabilities
+ * by parsing the URL and validating the hostname property, not the full URL string.
+ * 
+ * Safe patterns:
+ *   - Exact match: urlObj.hostname === 'sentry.io'
+ *   - Subdomain match: urlObj.hostname.endsWith('.sentry.io') 
+ *     (note the dot prefix prevents 'evilsentry.io' from matching)
+ * 
+ * The endsWith check on the parsed hostname is safe because:
+ * 1. We extract hostname via new URL() which gives us just the domain
+ * 2. The dot prefix ensures we only match proper subdomains
+ * 3. This prevents attacks like: https://evil.com/sentry.io or https://sentry.io.attacker.com
+ * 
+ * @param url - The URL string to validate
+ * @param expectedHost - The expected hostname (e.g., 'sentry.io')
+ * @returns true if URL hostname matches (exactly or as subdomain)
+ */
 function isUrlForHost(url: string, expectedHost: string): boolean {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname === expectedHost || urlObj.hostname.endsWith(`.${expectedHost}`);
+    const { hostname } = urlObj;
+    
+    // Exact match: hostname is exactly the expected host
+    if (hostname === expectedHost) {
+      return true;
+    }
+    
+    // Subdomain match: hostname ends with .expectedHost
+    // The dot prefix ensures 'evilsentry.io' won't match '.sentry.io'
+    // This is safe because we're checking the parsed hostname, not the full URL
+    if (hostname.endsWith(`.${expectedHost}`)) {
+      return true;
+    }
+    
+    return false;
   } catch {
+    // Invalid URL
     return false;
   }
 }
