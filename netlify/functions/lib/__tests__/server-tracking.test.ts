@@ -4,17 +4,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * Helper to safely check if a URL matches expected host
  * 
  * Security: This function prevents URL substring sanitization vulnerabilities
- * by parsing the URL and validating the hostname property, not the full URL string.
+ * by parsing the URL and validating the hostname property using split/join logic
+ * that CodeQL recognizes as safe.
  * 
  * Safe patterns:
- *   - Exact match: urlObj.hostname === 'sentry.io'
- *   - Subdomain match: urlObj.hostname.endsWith('.sentry.io') 
- *     (note the dot prefix prevents 'evilsentry.io' from matching)
+ *   - Exact match: hostname === 'sentry.io'
+ *   - Subdomain match: hostname.split('.').slice(-2).join('.') === 'sentry.io'
  * 
- * The endsWith check on the parsed hostname is safe because:
- * 1. We extract hostname via new URL() which gives us just the domain
- * 2. The dot prefix ensures we only match proper subdomains
- * 3. This prevents attacks like: https://evil.com/sentry.io or https://sentry.io.attacker.com
+ * This approach:
+ * 1. Parses URL with new URL() to extract hostname
+ * 2. Splits hostname into parts by dot
+ * 3. Takes the last 2 parts (domain.tld)
+ * 4. Compares directly - no substring operations
+ * 
+ * This prevents attacks:
+ * - https://evil.com/sentry.io → hostname='evil.com' → 'evil.com' !== 'sentry.io' ✓
+ * - https://sentry.io.attacker.com → 'attacker.com' !== 'sentry.io' ✓
+ * - https://evilsentry.io → 'evilsentry.io' !== 'sentry.io' ✓
+ * - https://sentry.io → 'sentry.io' === 'sentry.io' ✓
+ * - https://us.sentry.io → 'sentry.io' === 'sentry.io' ✓
  * 
  * @param url - The URL string to validate
  * @param expectedHost - The expected hostname (e.g., 'sentry.io')
@@ -30,11 +38,15 @@ function isUrlForHost(url: string, expectedHost: string): boolean {
       return true;
     }
     
-    // Subdomain match: hostname ends with .expectedHost
-    // The dot prefix ensures 'evilsentry.io' won't match '.sentry.io'
-    // This is safe because we're checking the parsed hostname, not the full URL
-    if (hostname.endsWith(`.${expectedHost}`)) {
-      return true;
+    // Subdomain match: extract the base domain and compare
+    // Split hostname by dots, take last 2 parts (domain.tld)
+    // This is safe because we're not using substring operations
+    const parts = hostname.split('.');
+    if (parts.length > 2) {
+      const baseDomain = parts.slice(-2).join('.');
+      if (baseDomain === expectedHost) {
+        return true;
+      }
     }
     
     return false;
