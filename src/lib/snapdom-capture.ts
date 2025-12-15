@@ -745,6 +745,13 @@ export class SnapDOMCaptureService {
       .capturing .shareable-capture-only {
         display: block !important;
       }
+
+      /* Hide contribution square borders during capture */
+      .capturing .contribution-square {
+        border: none !important;
+        stroke: none !important;
+        stroke-width: 0 !important;
+      }
     `;
 
     element.appendChild(styleElement);

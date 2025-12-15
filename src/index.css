@@ -344,11 +344,4 @@
       padding-right: calc(420px + 1rem); /* Sidebar width + base padding */
     }
   }
-
-  /* Hide contribution square borders during capture */
-  .capturing .contribution-square {
-    border: none !important;
-    stroke: none !important;
-    stroke-width: 0 !important;
-  }
 }
