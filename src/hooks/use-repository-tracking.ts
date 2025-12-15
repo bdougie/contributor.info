@@ -206,7 +206,7 @@ export function useRepositoryTracking({
             repository: `${owner}/${repo}`,
             poll_count: pollCount,
             has_data: hasData,
-            final_status: pollStatus,
+            poll_status: pollStatus,
           });
 
           if (repoData) {
@@ -275,16 +275,17 @@ export function useRepositoryTracking({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
 
-      // Determine error type for analytics
+      // Determine error type for analytics (case-insensitive matching)
       let errorType = 'UNKNOWN_ERROR';
       if (error instanceof Error) {
-        if (error.message.includes('network') || error.message.includes('fetch')) {
+        const lowerMessage = error.message.toLowerCase();
+        if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
           errorType = 'NETWORK_ERROR';
-        } else if (error.message.includes('auth') || error.message.includes('login')) {
+        } else if (lowerMessage.includes('auth') || lowerMessage.includes('login')) {
           errorType = 'AUTH_ERROR';
-        } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
+        } else if (lowerMessage.includes('permission') || lowerMessage.includes('forbidden')) {
           errorType = 'PERMISSION_ERROR';
-        } else if (error.message.includes('not found')) {
+        } else if (lowerMessage.includes('not found')) {
           errorType = 'NOT_FOUND_ERROR';
         }
       }

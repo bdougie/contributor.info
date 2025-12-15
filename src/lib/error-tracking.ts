@@ -189,13 +189,15 @@ class ErrorTracker {
    */
   private async sendToSentry(report: ErrorReport): Promise<void> {
     try {
-      // Add breadcrumbs for context
+      // Add breadcrumbs for context with proper level and timestamp
       report.breadcrumbs?.forEach((breadcrumb) => {
-        sentryAddBreadcrumb(breadcrumb.message, breadcrumb.category, {
-          level: breadcrumb.level,
-          timestamp: breadcrumb.timestamp,
-          ...breadcrumb.data,
-        });
+        sentryAddBreadcrumb(
+          breadcrumb.message,
+          breadcrumb.category,
+          breadcrumb.data,
+          breadcrumb.level,
+          breadcrumb.timestamp
+        );
       });
 
       // Capture the exception with full context

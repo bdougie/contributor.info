@@ -204,16 +204,17 @@ export function RepositoryTrackingCard({
       const errorMessage = err instanceof Error ? err.message : 'Failed to track repository';
       setError(errorMessage);
 
-      // Track tracking failure with error type instead of raw message
+      // Track tracking failure with error type instead of raw message (case-insensitive)
       let errorType = 'UNKNOWN_ERROR';
       if (err instanceof Error) {
-        if (err.message.includes('network') || err.message.includes('fetch')) {
+        const lowerMessage = err.message.toLowerCase();
+        if (lowerMessage.includes('network') || lowerMessage.includes('fetch')) {
           errorType = 'NETWORK_ERROR';
-        } else if (err.message.includes('auth') || err.message.includes('login')) {
+        } else if (lowerMessage.includes('auth') || lowerMessage.includes('login')) {
           errorType = 'AUTH_ERROR';
-        } else if (err.message.includes('permission') || err.message.includes('forbidden')) {
+        } else if (lowerMessage.includes('permission') || lowerMessage.includes('forbidden')) {
           errorType = 'PERMISSION_ERROR';
-        } else if (err.message.includes('not found')) {
+        } else if (lowerMessage.includes('not found')) {
           errorType = 'NOT_FOUND_ERROR';
         }
       }
@@ -324,7 +325,7 @@ export function RepositoryTrackingCard({
           repo,
           poll_count: pollCount,
           has_data: data.hasData,
-          final_status: pollStatus,
+          poll_status: pollStatus,
         });
 
         if (data.hasData) {

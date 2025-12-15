@@ -161,7 +161,13 @@ export function captureMessage(
 /**
  * Add breadcrumb (non-blocking)
  */
-export function addBreadcrumb(message: string, category: string, data?: Record<string, unknown>) {
+export function addBreadcrumb(
+  message: string,
+  category: string,
+  data?: Record<string, unknown>,
+  level?: 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug',
+  timestamp?: number
+) {
   // Fire and forget
   (async () => {
     try {
@@ -170,8 +176,8 @@ export function addBreadcrumb(message: string, category: string, data?: Record<s
         Sentry.addBreadcrumb({
           message,
           category,
-          level: 'info',
-          timestamp: Date.now() / 1000,
+          level: level || 'info',
+          timestamp: timestamp ? timestamp / 1000 : Date.now() / 1000,
           data,
         });
       }
