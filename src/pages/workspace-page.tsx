@@ -1407,7 +1407,7 @@ function WorkspacePage() {
     }
 
     // Optimistically remove the item immediately for instant UI feedback
-    optimisticallyRemoveItem(item.id);
+    optimisticallyRemoveItem(item.id, item.itemType);
 
     try {
       const supabase = await getSupabase();
