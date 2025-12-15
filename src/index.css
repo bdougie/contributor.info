@@ -170,6 +170,16 @@
     visibility: hidden !important;
   }
 
+  /* Shareable card capture layout switching */
+  /* Hide desktop-only layout during capture, show capture-optimized layout */
+  .capturing .shareable-desktop-only {
+    display: none !important;
+  }
+
+  .capturing .shareable-capture-only {
+    display: block !important;
+  }
+
   /* Light mode specific shadow enhancements */
   .light .bg-card {
     @apply shadow-card;

@@ -1,0 +1,3 @@
+# GitHub Avatar Proxy Function Configuration
+# Disabling JWT verification allows public access for CORS-bypassed image loading
+verify_jwt = false

@@ -248,8 +248,8 @@ export function ContributorOfTheMonth({
                   </div>
                 </div>
 
-                {/* Show all contributors in monthly leaderboard */}
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+                {/* Large screens: 3-column grid (in-app view) - hidden during capture */}
+                <div className="grid gap-4 grid-cols-3 shareable-desktop-only">
                   {topContributors.map((contributor, index) => {
                     const isFirstPlace = index === 0 && showBlurredFirst && !isLoggedIn;
 
@@ -279,6 +279,59 @@ export function ContributorOfTheMonth({
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Simplified layout for shareable card capture - shown during capture */}
+                <div className="hidden shareable-capture-only space-y-4">
+                  {/* Top contributor - prominently displayed */}
+                  {topContributors[0] && (
+                    <div className="relative max-w-sm mx-auto">
+                      {showBlurredFirst && !isLoggedIn && (
+                        <div className="absolute inset-0 z-10 rounded-lg bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2">
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                          <Button
+                            size="sm"
+                            onClick={() => setShowWorkspaceModal(true)}
+                            className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            Login to view
+                          </Button>
+                        </div>
+                      )}
+                      <ContributorCard
+                        contributor={topContributors[0]}
+                        showRank={true}
+                        className={showBlurredFirst && !isLoggedIn ? 'blur-sm' : ''}
+                        repositoryOwner={repositoryOwner}
+                        repositoryName={repositoryName}
+                        month={ranking.month}
+                        year={ranking.year}
+                      />
+                    </div>
+                  )}
+
+                  {/* Runners-up - simple avatar + name list */}
+                  {topContributors.length > 1 && (
+                    <div className="flex justify-center gap-6">
+                      {topContributors.slice(1, 3).map((contributor, index) => (
+                        <div key={contributor.login} className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {index + 2}.
+                          </span>
+                          <img
+                            src={
+                              contributor.avatar_url ||
+                              `https://github.com/${contributor.login}.png?size=32`
+                            }
+                            alt={`${contributor.login} avatar`}
+                            className="w-6 h-6 rounded-full"
+                            crossOrigin="anonymous"
+                          />
+                          <span className="text-sm font-medium">{contributor.login}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

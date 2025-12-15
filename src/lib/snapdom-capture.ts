@@ -1,4 +1,5 @@
 import { snapdom } from '@zumer/snapdom';
+import { env } from './env';
 
 function escapeHtml(unsafe: string): string {
   return unsafe
@@ -35,9 +36,97 @@ export class SnapDOMCaptureService {
 
   /**
    * Gets the GitHub avatar URL for a repository owner
+   * Uses server-side proxy to avoid CORS issues during canvas capture
    */
   private static getRepositoryOwnerAvatarUrl(owner: string, size: number = 24): string {
-    return `https://github.com/${owner}.png?s=${size}`;
+    // Use Supabase edge function proxy to avoid CORS issues
+    const supabaseUrl = env.SUPABASE_URL;
+    if (supabaseUrl) {
+      return `${supabaseUrl}/functions/v1/github-avatar-proxy?username=${encodeURIComponent(owner)}&size=${size}`;
+    }
+    // Fallback to direct GitHub URL if Supabase URL not available
+    return `https://avatars.githubusercontent.com/${owner}?s=${size}`;
+  }
+
+  /**
+   * Fetches an image URL and converts it to a data URL to avoid CORS issues during canvas capture
+   * Uses canvas-based approach which handles CORS better for images
+   */
+  private static async fetchImageAsDataUrl(url: string): Promise<string | null> {
+    // Try canvas-based approach first (better CORS handling for images)
+    try {
+      const dataUrl = await this.loadImageToDataUrl(url);
+      if (dataUrl) {
+        return dataUrl;
+      }
+    } catch {
+      // Canvas approach failed, try fetch fallback
+    }
+
+    // Fallback to fetch approach
+    try {
+      const response = await fetch(url, {
+        mode: 'cors',
+        redirect: 'follow',
+        credentials: 'omit',
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Loads an image and converts it to a data URL using canvas
+   * This approach handles CORS better for cross-origin images
+   */
+  private static loadImageToDataUrl(url: string): Promise<string | null> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      const timeout = setTimeout(() => {
+        console.warn('Image load timeout: %s', url);
+        resolve(null);
+      }, 5000);
+
+      img.onload = () => {
+        clearTimeout(timeout);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve(dataUrl);
+        } catch (error) {
+          console.warn('Canvas draw failed (CORS): %s', url, error);
+          resolve(null);
+        }
+      };
+
+      img.onerror = () => {
+        clearTimeout(timeout);
+        console.warn('Image load error: %s', url);
+        resolve(null);
+      };
+
+      img.src = url;
+    });
   }
 
   /**
@@ -47,8 +136,8 @@ export class SnapDOMCaptureService {
     element: HTMLElement,
     options: CaptureOptions
   ): Promise<CaptureResult> {
-    // Create a wrapper with attribution for the capture
-    const wrapper = this.createCaptureWrapperForElement(element, options);
+    // Create a wrapper with attribution for the capture (async to pre-fetch images)
+    const wrapper = await this.createCaptureWrapperForElement(element, options);
 
     // Store original element position for restoration
     const originalParent = element.parentNode;
@@ -65,7 +154,7 @@ export class SnapDOMCaptureService {
       document.body.appendChild(wrapper);
 
       // Force layout calculation before waiting
-      wrapper.offsetHeight;
+      void wrapper.offsetHeight;
 
       // Wait for chart libraries and async rendering to complete
       await this.waitForChartRender(contentContainer);
@@ -208,7 +297,7 @@ export class SnapDOMCaptureService {
 
       // Fallback to html2canvas
       try {
-        const html2canvasResult = await this.captureWithHtml2Canvas(wrapper, options);
+        const html2canvasResult = await this.captureWithHtml2Canvas(wrapper);
         return html2canvasResult;
       } catch (fallbackError) {
         console.error('Both SnapDOM and html2canvas failed:', fallbackError);
@@ -237,19 +326,23 @@ export class SnapDOMCaptureService {
 
   /**
    * Creates a wrapper element with attribution header for capture (without cloning element)
+   * Pre-fetches images as data URLs to avoid CORS issues during canvas capture
    */
-  private static createCaptureWrapperForElement(
+  private static async createCaptureWrapperForElement(
     _element: HTMLElement, // Used for context but not directly accessed
     options: CaptureOptions
-  ): HTMLDivElement {
+  ): Promise<HTMLDivElement> {
     const wrapper = document.createElement('div');
     wrapper.setAttribute('data-snapdom-wrapper', 'true');
 
     // Apply wrapper styling
     this.applyWrapperStyles(wrapper, options);
 
-    // Create and add attribution header
-    const header = this.createAttributionHeader(options.repository);
+    // Pre-fetch images as data URLs to avoid CORS issues
+    const preloadedImages = await this.preloadAttributionImages(options.repository);
+
+    // Create and add attribution header with pre-loaded images
+    const header = this.createAttributionHeader(options.repository, preloadedImages);
     wrapper.appendChild(header);
 
     // Create content container (will hold the original element temporarily)
@@ -262,6 +355,30 @@ export class SnapDOMCaptureService {
     wrapper.appendChild(contentContainer);
 
     return wrapper;
+  }
+
+  /**
+   * Pre-loads images for the attribution header as data URLs
+   */
+  private static async preloadAttributionImages(
+    repository?: string
+  ): Promise<{ avatarDataUrl: string | null; faviconDataUrl: string | null }> {
+    const owner = repository ? repository.split('/')[0] : null;
+
+    // Fetch both images in parallel
+    const [avatarDataUrl, faviconDataUrl] = await Promise.all([
+      owner
+        ? this.fetchImageAsDataUrl(this.getRepositoryOwnerAvatarUrl(owner, 48))
+        : Promise.resolve(null),
+      this.fetchImageAsDataUrl(`${window.location.origin}/favicon.svg`),
+    ]);
+
+    console.log('Pre-loaded attribution images:', {
+      hasAvatar: !!avatarDataUrl,
+      hasFavicon: !!faviconDataUrl,
+    });
+
+    return { avatarDataUrl, faviconDataUrl };
   }
 
   /**
@@ -300,7 +417,10 @@ export class SnapDOMCaptureService {
   /**
    * Creates the attribution header with theme-aware colors
    */
-  private static createAttributionHeader(repository?: string): HTMLDivElement {
+  private static createAttributionHeader(
+    repository?: string,
+    preloadedImages?: { avatarDataUrl: string | null; faviconDataUrl: string | null }
+  ): HTMLDivElement {
     const header = document.createElement('div');
 
     // Detect current theme from document
@@ -340,12 +460,16 @@ export class SnapDOMCaptureService {
       z-index: 1000;
     `;
 
-    // Left side - repo info
-    const leftContainer = this.createLeftContainer(repository, isDarkMode);
+    // Left side - repo info (with pre-loaded avatar)
+    const leftContainer = this.createLeftContainer(
+      repository,
+      isDarkMode,
+      preloadedImages?.avatarDataUrl
+    );
     header.appendChild(leftContainer);
 
-    // Right side - branding
-    const rightContainer = this.createRightContainer(isDarkMode);
+    // Right side - branding (with pre-loaded favicon)
+    const rightContainer = this.createRightContainer(isDarkMode, preloadedImages?.faviconDataUrl);
     header.appendChild(rightContainer);
 
     return header;
@@ -354,7 +478,11 @@ export class SnapDOMCaptureService {
   /**
    * Creates the left side of the attribution header with theme-aware colors
    */
-  private static createLeftContainer(repository?: string, isDarkMode = false): HTMLDivElement {
+  private static createLeftContainer(
+    repository?: string,
+    isDarkMode = false,
+    preloadedAvatarDataUrl?: string | null
+  ): HTMLDivElement {
     const leftContainer = document.createElement('div');
     leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
 
@@ -376,45 +504,62 @@ export class SnapDOMCaptureService {
         border: 1px solid ${isDarkMode ? '#d1d5db' : '#e5e7eb'};
       `;
 
-      const logoImg = document.createElement('img');
-      const avatarUrl = this.getRepositoryOwnerAvatarUrl(owner, 24);
-      logoImg.src = avatarUrl;
-      logoImg.alt = `${owner} logo`;
-      logoImg.style.cssText = `
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      `;
-
-      console.log('Loading repository logo for %s: %s', owner, avatarUrl);
-
-      // Add fallback for failed image loads
-      logoImg.onerror = () => {
-        console.log('Repository logo failed to load for %s, using fallback', owner);
-        // Replace with initials fallback in rounded square
-        logoContainer.innerHTML = `
-          <div style="
-            width: 100%;
-            height: 100%;
-            background-color: ${isDarkMode ? '#9ca3af' : '#6b7280'};
-            color: ${isDarkMode ? '#ffffff' : '#ffffff'};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: bold;
-            font-family: 'Inter', system-ui, sans-serif;
-          ">
-            ${escapeHtml(owner.slice(0, 2).toUpperCase())}
-          </div>
+      // Use pre-loaded data URL if available (avoids CORS issues during capture)
+      if (preloadedAvatarDataUrl) {
+        const logoImg = document.createElement('img');
+        logoImg.src = preloadedAvatarDataUrl;
+        logoImg.alt = `${owner} logo`;
+        logoImg.style.cssText = `
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         `;
-      };
+        console.log('Using pre-loaded avatar data URL for %s', owner);
+        logoContainer.appendChild(logoImg);
+      } else {
+        // Fallback to loading from URL (may fail due to CORS in capture)
+        const logoImg = document.createElement('img');
+        const avatarUrl = this.getRepositoryOwnerAvatarUrl(owner, 24);
+        logoImg.src = avatarUrl;
+        logoImg.alt = `${owner} logo`;
+        logoImg.crossOrigin = 'anonymous';
+        logoImg.style.cssText = `
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        `;
 
-      logoImg.onload = () => {
-        console.log('Repository logo loaded successfully for %s', owner);
-      };
+        console.log('Loading repository logo for %s: %s', owner, avatarUrl);
 
-      logoContainer.appendChild(logoImg);
+        // Add fallback for failed image loads
+        logoImg.onerror = () => {
+          console.log('Repository logo failed to load for %s, using fallback', owner);
+          // Replace with initials fallback in rounded square
+          logoContainer.innerHTML = `
+            <div style="
+              width: 100%;
+              height: 100%;
+              background-color: ${isDarkMode ? '#9ca3af' : '#6b7280'};
+              color: ${isDarkMode ? '#ffffff' : '#ffffff'};
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 10px;
+              font-weight: bold;
+              font-family: 'Inter', system-ui, sans-serif;
+            ">
+              ${escapeHtml(owner.slice(0, 2).toUpperCase())}
+            </div>
+          `;
+        };
+
+        logoImg.onload = () => {
+          console.log('Repository logo loaded successfully for %s', owner);
+        };
+
+        logoContainer.appendChild(logoImg);
+      }
+
       leftContainer.appendChild(logoContainer);
     } else {
       // Fallback: Use a generic repository icon when no owner info is available
@@ -442,7 +587,7 @@ export class SnapDOMCaptureService {
       leftContainer.appendChild(iconContainer);
     }
 
-    // Repository name
+    // Repository name - no truncation to show full name
     const repoName = document.createElement('span');
     repoName.style.cssText = `
       color: ${textColor};
@@ -450,9 +595,6 @@ export class SnapDOMCaptureService {
       font-weight: bold;
       font-family: "Inter", system-ui, sans-serif;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 280px;
     `;
     repoName.textContent = repository || 'Repository';
 
@@ -464,16 +606,29 @@ export class SnapDOMCaptureService {
   /**
    * Creates the right side of the attribution header with theme-aware colors
    */
-  private static createRightContainer(isDarkMode = false): HTMLDivElement {
+  private static createRightContainer(
+    isDarkMode = false,
+    preloadedFaviconDataUrl?: string | null
+  ): HTMLDivElement {
     const rightContainer = document.createElement('div');
     rightContainer.style.cssText = 'display: flex; align-items: center; flex-shrink: 0;';
 
     // Theme-aware text color for the logo
     const logoTextColor = isDarkMode ? '#111827' : '#ffffff'; // gray-900 for dark, white for light
 
-    const logoIcon = document.createElement('span');
-    logoIcon.style.cssText = 'font-size: 18px; margin-right: 4px;';
-    logoIcon.textContent = '🌱';
+    // Use pre-loaded favicon data URL if available (avoids CORS issues during capture)
+    const logoIcon = document.createElement('img');
+    if (preloadedFaviconDataUrl) {
+      logoIcon.src = preloadedFaviconDataUrl;
+      console.log('Using pre-loaded favicon data URL');
+    } else {
+      // Fallback to loading from URL
+      logoIcon.src = `${window.location.origin}/favicon.svg`;
+      logoIcon.crossOrigin = 'anonymous';
+      console.log('Loading favicon from URL');
+    }
+    logoIcon.alt = 'contributor.info logo';
+    logoIcon.style.cssText = 'width: 20px; height: 20px; margin-right: 6px;';
 
     const logoText = document.createElement('span');
     logoText.style.cssText = `
@@ -563,7 +718,7 @@ export class SnapDOMCaptureService {
     element.classList.add('snapdom-theme-preserve');
 
     // Force layout recalculation
-    element.offsetHeight;
+    void element.offsetHeight;
   }
 
   /**
@@ -658,19 +813,19 @@ export class SnapDOMCaptureService {
   }
 
   /**
-   * Waits for attribution header images (repository logos) to load
+   * Waits for all images in the wrapper to load (attribution header + content)
    */
   private static async waitForAttributionImages(wrapper: HTMLElement): Promise<void> {
-    console.log('Waiting for attribution images to load...');
+    console.log('Waiting for all images to load...');
 
-    // Find all images in the attribution header specifically
-    const attributionImages = wrapper.querySelectorAll('img[alt*="logo"], img[alt*="avatar"]');
+    // Find ALL images in the wrapper (attribution header + content)
+    const allImages = wrapper.querySelectorAll('img');
 
-    if (attributionImages.length > 0) {
-      console.log('Found %s attribution images to load...', attributionImages.length);
+    if (allImages.length > 0) {
+      console.log('Found %s images to load...', allImages.length);
 
       await Promise.all(
-        Array.from(attributionImages).map((img) => {
+        Array.from(allImages).map((img) => {
           const imgElement = img as HTMLImageElement;
 
           // If already loaded, return immediately
@@ -707,10 +862,10 @@ export class SnapDOMCaptureService {
       );
     }
 
-    // Additional small wait for any CSS transitions
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Additional wait for any CSS transitions and image rendering
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
-    console.log('Attribution images wait complete');
+    console.log('All images wait complete');
   }
 
   /**
@@ -791,7 +946,7 @@ export class SnapDOMCaptureService {
     link.click();
 
     // Clean up after a short delay to ensure download starts
-    const timeoutId = setTimeout(() => {
+    setTimeout(() => {
       // Additional safety checks for browser environment
       if (typeof document !== 'undefined' && document.body && link.parentNode === document.body) {
         document.body.removeChild(link);
@@ -799,11 +954,7 @@ export class SnapDOMCaptureService {
       if (typeof URL !== 'undefined' && URL.revokeObjectURL) {
         URL.revokeObjectURL(url);
       }
-      console.log('Cleaned up download link and blob URL');
     }, 100);
-
-    // Store timeout ID for potential cleanup (useful for testing)
-    (link as any)._timeoutId = timeoutId;
   }
 
   /**
@@ -833,10 +984,7 @@ export class SnapDOMCaptureService {
   /**
    * Fallback capture method using html2canvas
    */
-  private static async captureWithHtml2Canvas(
-    wrapper: HTMLElement,
-    _options: CaptureOptions
-  ): Promise<CaptureResult> {
+  private static async captureWithHtml2Canvas(wrapper: HTMLElement): Promise<CaptureResult> {
     console.log('Starting html2canvas fallback capture...');
 
     const canvas = await html2canvas(wrapper, {
