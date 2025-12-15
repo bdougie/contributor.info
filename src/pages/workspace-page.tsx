@@ -1426,9 +1426,9 @@ function WorkspacePage() {
       }
 
       // Extract the actual database ID by removing the prefix
-      // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", or "follow-up-pr-{id}", etc.
+      // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", "follow-up-pr-{id}", "my-comment-{id}", "my-discussion-comment-{id}", etc.
       const actualId = item.id.replace(
-        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-)/,
+        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-|my-comment-|my-discussion-comment-)/,
         ''
       );
 
@@ -1446,7 +1446,7 @@ function WorkspacePage() {
         .eq('id', actualId);
 
       if (error) {
-        console.error('Error marking item as responded: %s', error.message);
+        logger.error('Error marking item as responded: %s', error.message);
         toast.error(`Failed to mark as responded: ${error.message}. Please refresh.`);
         // Trigger another refresh to show the item again since update failed
         refreshMyWork();
@@ -1465,7 +1465,7 @@ function WorkspacePage() {
       toast.success(`${itemTypeLabel} #${item.number} marked as responded.`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error marking item as responded: %s', errorMessage);
+      logger.error('Error marking item as responded: %s', errorMessage);
       toast.error(`Failed to mark as responded: ${errorMessage}. Please refresh.`);
       // Trigger refresh to restore proper state
       refreshMyWork();
