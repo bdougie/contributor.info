@@ -1,8 +1,12 @@
 import { LoadingError, LoadingStage } from '@/lib/types/data-loading-errors';
+import {
+  captureException as sentryCaptureException,
+  addBreadcrumb as sentryAddBreadcrumb,
+} from './sentry-lazy';
 
 /**
  * Error tracking and reporting system for data loading failures
- * Integrates with monitoring systems and provides analytics
+ * Integrates with Sentry for monitoring and provides analytics
  */
 
 export interface ErrorTrackingContext {
@@ -126,9 +130,7 @@ class ErrorTracker {
     await Promise.allSettled([
       this.sendToConsole(report),
       this.sendToLocalStorage(report),
-      // Add additional tracking services here
-      // this.sendToSentry(report),
-      // this.sendToDatadog(report),
+      this.sendToSentry(report),
     ]);
   }
 
@@ -181,39 +183,42 @@ class ErrorTracker {
     }
   }
 
-  // Example Sentry integration (commented out - would need Sentry SDK)
-  /*
+  /**
+   * Send error report to Sentry for centralized monitoring
+   * Uses the lazy-loaded Sentry module to avoid blocking page load
+   */
   private async sendToSentry(report: ErrorReport): Promise<void> {
     try {
-      const Sentry = await import('@sentry/browser');
-      
-      Sentry.withScope(scope => {
-        scope.setTag('error_type', 'data_loading');
-        scope.setTag('loading_stage', report.error.stage);
-        scope.setTag('error_category', report.error.type);
-        scope.setContext('loading_context', report.context);
-        
-        if (report.additionalData) {
-          scope.setContext('additional_data', report.additionalData);
-        }
-        
-        report.breadcrumbs?.forEach(breadcrumb => {
-          scope.addBreadcrumb({
-            message: breadcrumb.message,
-            category: breadcrumb.category,
-            level: breadcrumb.level,
-            timestamp: breadcrumb.timestamp / 1000,
-            data: breadcrumb.data,
-          });
+      // Add breadcrumbs for context
+      report.breadcrumbs?.forEach((breadcrumb) => {
+        sentryAddBreadcrumb(breadcrumb.message, breadcrumb.category, {
+          level: breadcrumb.level,
+          timestamp: breadcrumb.timestamp,
+          ...breadcrumb.data,
         });
-        
-        Sentry.captureException(report.error);
+      });
+
+      // Capture the exception with full context
+      sentryCaptureException(report.error, {
+        level: report.error.stage === 'critical' ? 'fatal' : 'error',
+        tags: {
+          error_type: 'data_loading',
+          loading_stage: report.error.stage,
+          error_category: report.error.type,
+          retryable: String(report.error.retryable),
+          repository: report.context.repository,
+        },
+        extra: {
+          context: report.context,
+          userMessage: report.error.userMessage,
+          technicalDetails: report.error.technicalDetails,
+          additionalData: report.additionalData,
+        },
       });
     } catch (error) {
       console.warn('Failed to send error to Sentry:', error);
     }
   }
-  */
 
   // Get error statistics for monitoring
   getErrorStats(): {

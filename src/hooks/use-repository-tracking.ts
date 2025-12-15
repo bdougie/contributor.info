@@ -3,6 +3,8 @@ import { getSupabase } from '@/lib/supabase-lazy';
 import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 import { NotificationService } from '@/lib/notifications';
+import { trackEvent } from '@/lib/posthog-lazy';
+import { captureException } from '@/lib/sentry-lazy';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -125,6 +127,15 @@ export function useRepositoryTracking({
       return { success: false, error: 'Please login to track repositories' };
     }
 
+    // PostHog: Track when user initiates tracking
+    trackEvent('repository_track_attempt', {
+      owner,
+      repo,
+      repository: `${owner}/${repo}`,
+      is_authenticated: isLoggedIn,
+      timestamp: new Date().toISOString(),
+    });
+
     setState((prev) => ({
       ...prev,
       status: 'tracking',
@@ -144,6 +155,17 @@ export function useRepositoryTracking({
       });
 
       const result = await handleApiResponse<TrackRepositoryResponse>(response, 'track-repository');
+
+      // PostHog: Track API response
+      trackEvent('repository_track_api_response', {
+        owner,
+        repo,
+        repository: `${owner}/${repo}`,
+        status_code: response.status,
+        success: result?.success ?? false,
+        inngest_event_sent: !!result?.eventId,
+        timestamp: new Date().toISOString(),
+      });
 
       // Clear any existing polling interval
       if (pollIntervalRef.current) {
@@ -166,6 +188,26 @@ export function useRepositoryTracking({
             .eq('owner', owner)
             .eq('name', repo)
             .maybeSingle();
+
+          const hasData = !!repoData;
+
+          // Determine poll status
+          let pollStatus: 'success' | 'timeout' | 'pending' = 'pending';
+          if (hasData) {
+            pollStatus = 'success';
+          } else if (pollCount >= maxPolls) {
+            pollStatus = 'timeout';
+          }
+
+          // PostHog: Track polling lifecycle
+          trackEvent('repository_status_poll', {
+            owner,
+            repo,
+            repository: `${owner}/${repo}`,
+            poll_count: pollCount,
+            has_data: hasData,
+            final_status: pollStatus,
+          });
 
           if (repoData) {
             if (pollIntervalRef.current) {
@@ -203,6 +245,20 @@ export function useRepositoryTracking({
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
             }
+
+            // Sentry: Capture timeout as an error for monitoring
+            captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
+              level: 'warning',
+              tags: {
+                type: 'tracking_timeout',
+                repository: `${owner}/${repo}`,
+              },
+              extra: {
+                poll_count: pollCount,
+                max_polls: maxPolls,
+              },
+            });
+
             setState((prev) => ({
               ...prev,
               status: 'timeout',
@@ -218,6 +274,44 @@ export function useRepositoryTracking({
       return { success: true, repositoryId: result?.repositoryId };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
+
+      // Determine error type for analytics
+      let errorType = 'UNKNOWN_ERROR';
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorType = 'NETWORK_ERROR';
+        } else if (error.message.includes('auth') || error.message.includes('login')) {
+          errorType = 'AUTH_ERROR';
+        } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
+          errorType = 'PERMISSION_ERROR';
+        } else if (error.message.includes('not found')) {
+          errorType = 'NOT_FOUND_ERROR';
+        }
+      }
+
+      // PostHog: Track API failure
+      trackEvent('repository_track_api_response', {
+        owner,
+        repo,
+        repository: `${owner}/${repo}`,
+        success: false,
+        error_type: errorType,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Sentry: Capture the error for detailed debugging
+      captureException(error instanceof Error ? error : new Error(errorMessage), {
+        level: 'error',
+        tags: {
+          type: 'tracking_failed',
+          error_type: errorType,
+          repository: `${owner}/${repo}`,
+        },
+        extra: {
+          owner,
+          repo,
+        },
+      });
 
       setState({
         status: 'error',

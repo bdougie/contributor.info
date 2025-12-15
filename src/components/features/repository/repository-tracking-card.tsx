@@ -5,6 +5,7 @@ import { BarChart3, Lock, Loader2, AlertCircle } from '@/components/ui/icon';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { captureException } from '@/lib/sentry-lazy';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 
 // Type for track repository API response
@@ -114,7 +115,16 @@ export function RepositoryTrackingCard({
     trackingStageRef.current = 'clicked_track';
     trackingStartTimeRef.current = Date.now();
 
-    // Track button click
+    // PostHog: Track repository tracking attempt (comprehensive event)
+    safeTrackEvent('repository_track_attempt', {
+      repository: `${owner}/${repo}`,
+      owner,
+      repo,
+      is_authenticated: isLoggedIn,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Track button click (PLG event)
     safeTrackEvent('clicked_track_repository', {
       repository: `${owner}/${repo}`,
       owner,
@@ -152,6 +162,17 @@ export function RepositoryTrackingCard({
 
       console.log('Track repository response: %o', result);
 
+      // PostHog: Track API response
+      safeTrackEvent('repository_track_api_response', {
+        repository: `${owner}/${repo}`,
+        owner,
+        repo,
+        status_code: response.status,
+        success: result?.success ?? false,
+        inngest_event_sent: !!result?.eventId,
+        timestamp: new Date().toISOString(),
+      });
+
       // Check if tracking was successful
       if (result && result.success) {
         console.log('Tracking initiated successfully, eventId: %s', result.eventId);
@@ -186,20 +207,47 @@ export function RepositoryTrackingCard({
       // Track tracking failure with error type instead of raw message
       let errorType = 'UNKNOWN_ERROR';
       if (err instanceof Error) {
-        if (err.message.includes('network')) {
+        if (err.message.includes('network') || err.message.includes('fetch')) {
           errorType = 'NETWORK_ERROR';
-        } else if (err.message.includes('auth')) {
+        } else if (err.message.includes('auth') || err.message.includes('login')) {
           errorType = 'AUTH_ERROR';
-        } else if (err.message.includes('permission')) {
+        } else if (err.message.includes('permission') || err.message.includes('forbidden')) {
           errorType = 'PERMISSION_ERROR';
+        } else if (err.message.includes('not found')) {
+          errorType = 'NOT_FOUND_ERROR';
         }
       }
 
+      // PostHog: Track failure event
       safeTrackEvent('repository_tracking_failed', {
         repository: `${owner}/${repo}`,
         owner,
         repo,
         errorType,
+      });
+
+      // PostHog: Track API response with failure
+      safeTrackEvent('repository_track_api_response', {
+        repository: `${owner}/${repo}`,
+        owner,
+        repo,
+        success: false,
+        error_type: errorType,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Sentry: Capture error for debugging
+      captureException(err instanceof Error ? err : new Error(errorMessage), {
+        level: 'error',
+        tags: {
+          type: 'tracking_failed',
+          error_type: errorType,
+          repository: `${owner}/${repo}`,
+        },
+        extra: {
+          owner,
+          repo,
+        },
       });
 
       toast.error('Tracking failed', {
@@ -260,6 +308,24 @@ export function RepositoryTrackingCard({
         // Check if repository now has data
         const response = await fetch(`/api/repository-status?owner=${owner}&repo=${repo}`);
         const data = await response.json();
+
+        // Determine poll status
+        let pollStatus: 'success' | 'timeout' | 'pending' = 'pending';
+        if (data.hasData) {
+          pollStatus = 'success';
+        } else if (pollCount >= maxPolls) {
+          pollStatus = 'timeout';
+        }
+
+        // PostHog: Track polling lifecycle
+        safeTrackEvent('repository_status_poll', {
+          repository: `${owner}/${repo}`,
+          owner,
+          repo,
+          poll_count: pollCount,
+          has_data: data.hasData,
+          final_status: pollStatus,
+        });
 
         if (data.hasData) {
           if (pollIntervalRef.current) {
@@ -327,6 +393,20 @@ export function RepositoryTrackingCard({
               repo,
               errorType: 'POLLING_TIMEOUT',
               pollAttempts: pollCount,
+            });
+
+            // Sentry: Capture timeout for monitoring
+            captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
+              level: 'warning',
+              tags: {
+                type: 'tracking_timeout',
+                repository: `${owner}/${repo}`,
+              },
+              extra: {
+                poll_count: pollCount,
+                max_polls: maxPolls,
+                wait_duration_ms: waitDurationMs,
+              },
             });
 
             toast.info('Data sync is taking longer than expected', {
