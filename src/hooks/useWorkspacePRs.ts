@@ -309,7 +309,7 @@ export function useWorkspacePRs({
       labels: [],
       reviewers,
       requested_reviewers: pr.reviewer_data?.requested_reviewers || [],
-      url: pr.html_url,
+      url: pr.html_url || `https://github.com/${repo?.owner || 'unknown'}/${repo?.name || 'unknown'}/pull/${pr.number}`,
     };
   }, []);
 
