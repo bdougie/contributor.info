@@ -57,21 +57,26 @@ const ActivityRow = memo(function ActivityRow({
     }
   })();
 
-  // Calculate contributor stats
-  const contributorActivities = activities.filter(
-    (a) => a.author.username === activity.author.username
-  );
-  const pullRequestsCount = contributorActivities.filter((a) => a.type === 'pr').length;
-  const reviewsCount = contributorActivities.filter((a) => a.type === 'review').length;
-  const commentsCount = contributorActivities.filter((a) => a.type === 'comment').length;
+  // Build contributor stats for hover card
+  const contributorStats: ContributorStats = useMemo(() => {
+    const recentActivities = getRecentActivitiesForContributor(
+      activity.author.username,
+      activities
+    );
+    const contributorActivities = activities.filter(
+      (a) => a.author.username === activity.author.username
+    );
+    const pullRequestsCount = contributorActivities.filter((a) => a.type === 'pr').length;
 
-  const contributorStats: ContributorStats = {
-    login: activity.author.username,
-    avatar_url: activity.author.avatar_url || `https://github.com/${activity.author.username}.png`,
-    pullRequests: pullRequestsCount,
-    percentage: 0,
-    recentActivities: getRecentActivitiesForContributor(activity.author.username, activities, 5),
-  };
+    return {
+      login: activity.author.username,
+      avatar_url:
+        activity.author.avatar_url || `https://github.com/${activity.author.username}.png`,
+      pullRequests: pullRequestsCount,
+      percentage: 0,
+      recentActivities,
+    };
+  }, [activities, activity.author.username, activity.author.avatar_url]);
 
   return (
     <div
@@ -143,13 +148,7 @@ const ActivityRow = memo(function ActivityRow({
 
           {/* Author */}
           <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
-            <ContributorHoverCard
-              contributor={contributorStats}
-              showReviews={true}
-              showComments={true}
-              reviewsCount={reviewsCount}
-              commentsCount={commentsCount}
-            >
+            <ContributorHoverCard contributor={contributorStats}>
               <a
                 href={`https://github.com/${activity.author.username}`}
                 target="_blank"
@@ -347,18 +346,25 @@ export function ActivityTable({
 
   const totalPages = Math.ceil(processedActivities.length / pageSize);
 
+  // Memoize callbacks to prevent infinite re-renders from useVirtualizer
+  const getScrollElement = useCallback(() => parentRef.current, []);
+
+  const getItemKey = useCallback(
+    (index: number) => {
+      const activity = paginatedActivities[index];
+      if (!activity) return `empty-${index}`;
+      return `${activity.type}-${activity.id}`;
+    },
+    [paginatedActivities]
+  );
+
   // Virtual scrolling for large datasets
   const virtualizer = useVirtualizer({
     count: paginatedActivities.length,
-    getScrollElement: () => parentRef.current,
+    getScrollElement,
     estimateSize: () => 60,
     overscan: 5,
-    // Add getItemKey to ensure proper key management
-    getItemKey: (index) => {
-      const activity = paginatedActivities[index];
-      if (!activity) return `empty-${index}`;
-      return `${activity.type}-${activity.id}-${index}-${activity.created_at}`;
-    },
+    getItemKey,
   });
 
   const handleSort = useCallback(
