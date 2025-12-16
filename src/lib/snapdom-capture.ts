@@ -34,6 +34,7 @@ export interface CaptureOptions {
   width?: number;
   height?: number;
   backgroundColor?: string;
+  hideLogo?: boolean;
 }
 
 export interface CaptureResult {
@@ -362,7 +363,11 @@ export class SnapDOMCaptureService {
     const preloadedImages = await this.preloadAttributionImages(options.repository);
 
     // Create and add attribution header with pre-loaded images
-    const header = this.createAttributionHeader(options.repository, preloadedImages);
+    const header = this.createAttributionHeader(
+      options.repository,
+      preloadedImages,
+      options.hideLogo
+    );
     wrapper.appendChild(header);
 
     // Create content container (will hold the original element temporarily)
@@ -439,7 +444,8 @@ export class SnapDOMCaptureService {
    */
   private static createAttributionHeader(
     repository?: string,
-    preloadedImages?: { avatarDataUrl: string | null; faviconDataUrl: string | null }
+    preloadedImages?: { avatarDataUrl: string | null; faviconDataUrl: string | null },
+    hideLogo?: boolean
   ): HTMLDivElement {
     const header = document.createElement('div');
 
@@ -484,7 +490,8 @@ export class SnapDOMCaptureService {
     const leftContainer = this.createLeftContainer(
       repository,
       isDarkMode,
-      preloadedImages?.avatarDataUrl
+      preloadedImages?.avatarDataUrl,
+      hideLogo
     );
     header.appendChild(leftContainer);
 
@@ -501,7 +508,8 @@ export class SnapDOMCaptureService {
   private static createLeftContainer(
     repository?: string,
     isDarkMode = false,
-    preloadedAvatarDataUrl?: string | null
+    preloadedAvatarDataUrl?: string | null,
+    hideLogo = false
   ): HTMLDivElement {
     const leftContainer = document.createElement('div');
     leftContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
@@ -512,8 +520,8 @@ export class SnapDOMCaptureService {
     // Theme-aware colors
     const textColor = isDarkMode ? '#111827' : '#000000'; // gray-900 for dark, black for light
 
-    // Add repository owner logo if available
-    if (owner && repository) {
+    // Add repository owner logo if available (and not hidden)
+    if (owner && repository && !hideLogo) {
       const logoContainer = document.createElement('div');
       logoContainer.style.cssText = `
         width: 24px;
@@ -581,7 +589,7 @@ export class SnapDOMCaptureService {
       }
 
       leftContainer.appendChild(logoContainer);
-    } else {
+    } else if (!hideLogo) {
       // Fallback: Use a generic repository icon when no owner info is available
       const iconBgColor = isDarkMode ? '#e5e7eb' : '#e5e7eb'; // gray-200 for both modes
       const iconContainer = document.createElement('div');
@@ -685,7 +693,6 @@ export class SnapDOMCaptureService {
     contentContainer.style.cssText = `
       padding: ${this.CONTENT_PADDING}px;
       background: ${backgroundColor};
-      min-height: 300px;
       color-scheme: ${colorScheme};
     `;
 

@@ -18,6 +18,7 @@ interface ShareableCardProps {
   };
   chartType?: string; // For categorizing the type of chart/metric
   bypassAnalytics?: boolean; // For testing purposes
+  hideLogo?: boolean;
 }
 
 export function ShareableCard({
@@ -27,6 +28,7 @@ export function ShareableCard({
   contextInfo,
   chartType = 'chart',
   bypassAnalytics = false,
+  hideLogo = false,
 }: ShareableCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -59,6 +61,7 @@ export function ShareableCard({
         repository: contextInfo?.repository,
         width: captureWidth,
         backgroundColor: 'white',
+        hideLogo,
       });
 
       const { blob } = captureResult;
