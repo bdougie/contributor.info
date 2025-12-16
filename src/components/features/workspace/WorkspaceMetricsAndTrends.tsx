@@ -24,6 +24,7 @@ interface WorkspaceMetricsAndTrendsProps {
   timeRange: string;
   userRole?: string | null;
   isLoggedIn?: boolean;
+  workspaceName?: string;
 }
 
 function TrendCard({ trend, loading = false }: { trend?: TrendData; loading?: boolean }) {
@@ -110,6 +111,7 @@ export function WorkspaceMetricsAndTrends({
   timeRange,
   userRole,
   isLoggedIn = false,
+  workspaceName,
 }: WorkspaceMetricsAndTrendsProps) {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
@@ -285,6 +287,8 @@ export function WorkspaceMetricsAndTrends({
   const hasWorkspaceAccess = isLoggedIn && userRole;
   const showUpgradePrompt = !hasWorkspaceAccess;
 
+  const repoName = workspaceName || "Workspace Overview";
+
   return (
     <Card className="relative">
       <CardHeader>
@@ -313,10 +317,11 @@ export function WorkspaceMetricsAndTrends({
         <ShareableCard
           title="Activity Metrics"
           contextInfo={{
-            repository: "Workspace Overview",
+            repository: repoName,
             metric: 'activity metrics',
           }}
           chartType="activity-metrics"
+          hideLogo={true}
         >
           <section className="rounded-lg border bg-card p-4">
             <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
@@ -435,10 +440,11 @@ export function WorkspaceMetricsAndTrends({
         <ShareableCard
           title="Trends"
           contextInfo={{
-            repository: "Workspace Overview",
+            repository: repoName,
             metric: 'trends',
           }}
           chartType="trends"
+          hideLogo={true}
         >
           <section className="rounded-lg border bg-card p-4">
             <h3 className="text-sm font-medium mb-3">Trends</h3>

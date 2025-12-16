@@ -141,6 +141,7 @@ export function WorkspacePRsTab({
         timeRange={timeRange}
         userRole={currentMember?.role}
         isLoggedIn={!!currentUser}
+        workspaceName={workspace?.name}
       />
 
       {/* Review Charts - PR Status and Distribution side by side */}
