@@ -35,11 +35,15 @@ jobs:
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli@0.14.x
 
+      # Rename dist folder to prevent LHCI auto-detection
+      # LHCI auto-detects ./dist and uses static file server instead of startServerCommand
+      - name: Prevent LHCI staticDistDir auto-detection
+        run: mv dist .lighthouse-build
+
       - name: Run Lighthouse CI
-        run: lhci autorun
+        run: lhci autorun --config=.lighthouserc.json
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Without DEPLOY_URL, uses local preview server (npm run preview)
 
       - name: Upload Lighthouse Report
         uses: actions/upload-artifact@v4
