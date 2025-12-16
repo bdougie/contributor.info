@@ -22,7 +22,7 @@ if (isCI && !baseUrl) {
   process.exit(1);
 }
 
-module.exports = {
+export default {
   ci: {
     collect: {
       // Use staticDistDir for local testing, URLs for CI
