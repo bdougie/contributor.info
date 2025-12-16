@@ -1172,4 +1172,95 @@ describe('WorkspaceService', () => {
       expect(result.statusCode).toBe(403);
     });
   });
+
+  describe('getWorkspace', () => {
+    const mockWorkspaceId = 'workspace-123';
+    const mockUserId = 'user-123';
+
+    it('should calculate total stars correctly', async () => {
+      // Mock workspace data with repositories
+      const mockWorkspaceData = {
+        id: mockWorkspaceId,
+        name: 'Test Workspace',
+        workspace_members: [{ user_id: mockUserId, role: 'owner' }],
+        repository_count: [{ count: 2 }],
+        member_count: [{ count: 1 }],
+        workspace_repos: [
+          { repository: { stargazers_count: 10 } },
+          { repository: { stargazers_count: 5 } },
+          { repository: null }, // Handle missing repository data
+        ],
+      };
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: mockWorkspaceData,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.getWorkspace(mockWorkspaceId, mockUserId);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.total_stars).toBe(15);
+    });
+  });
+
+  describe('listWorkspaces', () => {
+    const mockUserId = 'user-123';
+
+    it('should list workspaces with calculated total stars', async () => {
+      const mockWorkspacesData = [
+        {
+          id: 'ws-1',
+          name: 'Workspace 1',
+          workspace_members: [{ user_id: mockUserId, role: 'owner' }],
+          repository_count: [{ count: 1 }],
+          member_count: [{ count: 1 }],
+          workspace_repos: [
+            { repository: { stargazers_count: 20 } },
+          ],
+        },
+        {
+          id: 'ws-2',
+          name: 'Workspace 2',
+          workspace_members: [{ user_id: mockUserId, role: 'member' }],
+          repository_count: [{ count: 2 }],
+          member_count: [{ count: 1 }],
+          workspace_repos: [
+            { repository: { stargazers_count: 5 } },
+            { repository: { stargazers_count: 5 } },
+          ],
+        },
+      ];
+
+      // Mock chain: select -> eq -> order -> range
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            order: vi.fn().mockReturnValue({
+              range: vi.fn().mockResolvedValue({
+                data: mockWorkspacesData,
+                count: 2,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
+      const result = await WorkspaceService.listWorkspaces(mockUserId, {});
+
+      expect(result.success).toBe(true);
+      expect(result.data?.items).toHaveLength(2);
+      expect(result.data?.items[0].total_stars).toBe(20);
+      expect(result.data?.items[1].total_stars).toBe(10);
+    });
+  });
 });
