@@ -50,6 +50,11 @@ export interface ProgressiveChartProps {
 
 type LoadingStage = 'skeleton' | 'low-fi' | 'high-fi';
 
+const DEFAULT_OBSERVER_OPTIONS: IntersectionObserverInit = {
+  rootMargin: '50px',
+  threshold: 0.01,
+};
+
 /**
  * Progressive chart loading component
  * Implements a three-stage loading pattern:
@@ -65,10 +70,7 @@ export function ProgressiveChart({
   highFiDelay = 500,
   priority = false,
   className,
-  observerOptions = {
-    rootMargin: '50px',
-    threshold: 0.01,
-  },
+  observerOptions = DEFAULT_OBSERVER_OPTIONS,
 }: ProgressiveChartProps) {
   const [stage, setStage] = useState<LoadingStage>('skeleton');
   const [isVisible, setIsVisible] = useState(priority);
