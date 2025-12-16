@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './index.css';
 import './styles/cls-fixes.css'; // Global CLS fixes
@@ -8,17 +8,7 @@ import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { logger } from './lib/logger';
 import { initSentryAfterLoad, setupGlobalErrorHandlers } from './lib/sentry-lazy';
-
-// Create a client for React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes default stale time
-    },
-  },
-});
+import { queryClient } from './lib/query-client';
 
 // Set up lightweight global error handlers (non-blocking)
 setupGlobalErrorHandlers();

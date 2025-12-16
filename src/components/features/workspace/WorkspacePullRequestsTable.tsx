@@ -1,16 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   flexRender,
   createColumnHelper,
   type ColumnDef,
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,11 @@ import {
   GitPullRequest,
   GitBranch,
   XCircle,
-  FileText as GitPullRequestDraft,
+  GitPullRequestDraft,
   Search,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsUpDown,
   ChevronUp,
   ChevronDown,
+  ChevronsUpDown,
   ExternalLink,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -485,12 +483,17 @@ export function WorkspacePullRequestsTable({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
+  });
+
+  const { rows } = table.getRowModel();
+
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60,
+    overscan: 20,
   });
 
   if (loading) {
@@ -511,7 +514,7 @@ export function WorkspacePullRequestsTable({
   }
 
   return (
-    <Card className={cn('w-full', className)}>
+    <Card className={cn('w-full flex flex-col', className)}>
       <CardHeader>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -560,16 +563,15 @@ export function WorkspacePullRequestsTable({
                 </p>
               </div>
             ) : (
-              <div className="rounded-md border">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[800px] md:min-w-[1400px]">
-                    <thead>
+              <div className="rounded-md border h-[600px] overflow-auto" ref={parentRef}>
+                  <table className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative">
+                    <thead className="sticky top-0 z-10 bg-background shadow-sm">
                       {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id} className="border-b">
                           {headerGroup.headers.map((header) => (
                             <th
                               key={header.id}
-                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap"
+                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap bg-background"
                               style={{
                                 width: header.column.columnDef.size,
                                 minWidth: header.column.columnDef.minSize,
@@ -582,83 +584,54 @@ export function WorkspacePullRequestsTable({
                       ))}
                     </thead>
                     <tbody>
-                      {table.getRowModel().rows.map((row) => (
-                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
-                          {row.getVisibleCells().map((cell) => (
-                            <td
-                              key={cell.id}
-                              className="px-4 py-4"
-                              style={{
-                                width: cell.column.columnDef.size,
-                                minWidth: cell.column.columnDef.minSize,
-                              }}
-                            >
-                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                            </td>
-                          ))}
+                      {rowVirtualizer.getVirtualItems().length > 0 && (
+                        <tr>
+                          <td style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }} colSpan={columns.length} />
                         </tr>
-                      ))}
+                      )}
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const row = rows[virtualRow.index];
+                        return (
+                          <tr
+                            key={row.id}
+                            className="border-b hover:bg-muted/50 transition-colors"
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <td
+                                key={cell.id}
+                                className="px-4 py-4"
+                                style={{
+                                  width: cell.column.columnDef.size,
+                                  minWidth: cell.column.columnDef.minSize,
+                                }}
+                              >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                      {rowVirtualizer.getVirtualItems().length > 0 && (
+                         <tr>
+                          <td style={{ height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px` }} colSpan={columns.length} />
+                        </tr>
+                      )}
                     </tbody>
                   </table>
-                </div>
               </div>
             )}
 
-            {/* Pagination */}
-            {filteredPullRequests.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4">
-                <div className="text-sm text-muted-foreground order-2 sm:order-1">
-                  {filteredPullRequests.length > 0 ? (
-                    <>
-                      Showing {table.getState().pagination.pageIndex * 10 + 1} to{' '}
-                      {Math.min(
-                        (table.getState().pagination.pageIndex + 1) * 10,
-                        filteredPullRequests.length
-                      )}{' '}
-                      of {filteredPullRequests.length} pull requests
-                      {filteredPullRequests.length < pullRequests.length && (
-                        <span className="text-muted-foreground">
-                          {' '}
-                          (filtered from {pullRequests.length})
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      No pull requests found
-                      {pullRequests.length > 0 && (
-                        <span className="text-muted-foreground">
-                          {' '}
-                          (filtered from {pullRequests.length})
-                        </span>
-                      )}
-                    </>
-                  )}
+            <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                    Showing {filteredPullRequests.length} pull requests
+                    {filteredPullRequests.length < pullRequests.length && (
+                      <span className="text-muted-foreground">
+                        {' '}
+                        (filtered from {pullRequests.length})
+                      </span>
+                    )}
                 </div>
-                <div className="flex items-center gap-2 order-1 sm:order-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
-                    className="min-h-[44px] px-3"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-2">Previous</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
-                    className="min-h-[44px] px-3"
-                  >
-                    <span className="hidden sm:inline mr-2">Next</span>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            </div>
           </>
         )}
       </CardContent>
