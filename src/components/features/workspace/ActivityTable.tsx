@@ -487,21 +487,25 @@ export function ActivityTable({
                                     )}
                                   </span>
                                 </TooltipTrigger>
-                                {activity.status && (
-                                  <TooltipContent>
-                                    <p className="font-semibold">Status: {activity.status}</p>
-                                    <p className="text-xs">
-                                      {(() => {
-                                        if (activity.status === 'merged')
-                                          return 'Successfully merged';
-                                        if (activity.status === 'open') return 'Awaiting review';
-                                        if (activity.status === 'closed')
-                                          return 'Closed without merging';
-                                        return 'Review approved';
-                                      })()}
-                                    </p>
-                                  </TooltipContent>
-                                )}
+                                <TooltipContent>
+                                  {activity.status ? (
+                                    <>
+                                      <p className="font-semibold">Status: {activity.status}</p>
+                                      <p className="text-xs">
+                                        {(() => {
+                                          if (activity.status === 'merged')
+                                            return 'Successfully merged';
+                                          if (activity.status === 'open') return 'Awaiting review';
+                                          if (activity.status === 'closed')
+                                            return 'Closed without merging';
+                                          return 'Review approved';
+                                        })()}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">No status</p>
+                                  )}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </div>
