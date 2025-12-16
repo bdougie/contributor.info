@@ -186,7 +186,7 @@ const InvitationAcceptancePage = lazy(() =>
 
 // Minimal loading fallback for fast FCP - simplified to reduce JS execution time
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col">
+  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
     {/* Minimal header */}
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
@@ -202,6 +202,7 @@ const PageSkeleton = () => (
         <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto" />
       </div>
     </main>
+    <span className="sr-only">Loading content, please wait...</span>
   </div>
 );
 
@@ -333,7 +334,7 @@ function App() {
         import('@/lib/progressive-capture/manual-trigger'),
         import('@/lib/progressive-capture/smart-notifications'),
         import('@/lib/progressive-capture/background-processor'),
-      ]).catch(console.warn);
+      ]).catch((error) => logger.warn('Failed to load progressive features', error));
     };
 
     // Wait 5 seconds, then schedule during idle time if available
