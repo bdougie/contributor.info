@@ -309,6 +309,7 @@ export function WorkspaceIssuesTab({
             issues={issues}
             onAssigneeClick={handleAssigneeClick}
             maxVisible={5}
+            workspaceName={workspace?.name}
           />
         </div>
       )}

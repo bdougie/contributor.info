@@ -71,6 +71,7 @@ interface LazyReviewerDistributionChartProps {
   maxVisible?: number;
   showPercentage?: boolean;
   title?: string;
+  workspaceName?: string;
 }
 
 export function LazyReviewerDistributionChart(props: LazyReviewerDistributionChartProps) {
