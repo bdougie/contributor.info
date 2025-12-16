@@ -35,20 +35,37 @@ export class ContributionAnalyzer {
     maintenance: 0,
   };
 
+  // Cache for PR analysis results to avoid re-computing (WeakMap allows GC of unused PRs)
+  private static analysisCache = new WeakMap<PullRequest, ContributionMetrics>();
+
   static analyze(pr: PullRequest): ContributionMetrics {
+    // Check cache first to avoid re-analyzing the same PR
+    const cached = this.analysisCache.get(pr);
+    if (cached) {
+      // Still increment the quadrant count for distribution tracking
+      this.quadrantCounts[cached.quadrant]++;
+      return cached;
+    }
+
     const { isConfig, isCodePresent, codeAdditions, codeDeletions } = this.calculateMetrics(pr);
+
+    let result: ContributionMetrics;
 
     // If PR only contains configuration/documentation files, it's maintenance
     if (isConfig && !isCodePresent) {
       this.quadrantCounts.maintenance++;
-      return this.getMaintenanceMetrics();
+      result = this.getMaintenanceMetrics();
+      this.analysisCache.set(pr, result);
+      return result;
     }
 
     // If PR contains code, analyze based on code changes only
     const total = codeAdditions + codeDeletions;
     if (total === 0) {
       this.quadrantCounts.maintenance++;
-      return this.getMaintenanceMetrics();
+      result = this.getMaintenanceMetrics();
+      this.analysisCache.set(pr, result);
+      return result;
     }
 
     const additionRatio = codeAdditions / total;
@@ -56,14 +73,18 @@ export class ContributionAnalyzer {
 
     if (additionRatio > 0.7) {
       this.quadrantCounts.new++;
-      return this.getNewMetrics(additionRatio, deletionRatio);
+      result = this.getNewMetrics(additionRatio, deletionRatio);
     } else if (deletionRatio > 0.7) {
       this.quadrantCounts.refinement++;
-      return this.getRefinementMetrics(additionRatio, deletionRatio);
+      result = this.getRefinementMetrics(additionRatio, deletionRatio);
     } else {
       this.quadrantCounts.refactoring++;
-      return this.getRefactoringMetrics(additionRatio, deletionRatio);
+      result = this.getRefactoringMetrics(additionRatio, deletionRatio);
     }
+
+    // Cache and return the result
+    this.analysisCache.set(pr, result);
+    return result;
   }
 
   // Reset counts before analyzing a new set of PRs

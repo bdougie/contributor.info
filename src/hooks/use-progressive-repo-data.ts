@@ -211,13 +211,10 @@ export function useProgressiveRepoData(
             error: null,
           };
 
-          // Calculate lottery factor if we have data
-          const lotteryFactor =
-            pullRequests && pullRequests.length > 0 ? calculateLotteryFactor(pullRequests) : null;
-
+          // Update stage immediately with null lottery factor to avoid blocking
           updateStage('full', {
             stats,
-            lotteryFactor,
+            lotteryFactor: null,
             dataStatus: {
               status: (status === 'error' ? 'no_data' : status) || 'success',
               message,
@@ -225,17 +222,41 @@ export function useProgressiveRepoData(
             },
           });
 
-          // Cache the results - capture current data state
-          setData((currentData) => {
-            const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
-            progressiveCache[cacheKey] = {
-              data: { ...currentData, stats, lotteryFactor },
-              timestamp: Date.now(),
-            };
-            return currentData;
-          });
+          // Defer lottery factor calculation to idle time to reduce TBT
+          if (pullRequests && pullRequests.length > 0) {
+            const calculateAndUpdate = () => {
+              if (abortController.signal.aborted) return;
+              const lotteryFactor = calculateLotteryFactor(pullRequests);
 
-          return { stats, lotteryFactor };
+              setData((prev) => {
+                // Cache the results with lottery factor
+                const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+                progressiveCache[cacheKey] = {
+                  data: { ...prev, stats, lotteryFactor },
+                  timestamp: Date.now(),
+                };
+                return { ...prev, lotteryFactor };
+              });
+            };
+
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(calculateAndUpdate, { timeout: 2000 });
+            } else {
+              setTimeout(calculateAndUpdate, 100);
+            }
+          } else {
+            // Cache without lottery factor for empty data
+            setData((currentData) => {
+              const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+              progressiveCache[cacheKey] = {
+                data: { ...currentData, stats, lotteryFactor: null },
+                timestamp: Date.now(),
+              };
+              return currentData;
+            });
+          }
+
+          return { stats, lotteryFactor: null };
         } catch (error) {
           span?.setStatus('error');
           console.error('Failed to load full data:', error);

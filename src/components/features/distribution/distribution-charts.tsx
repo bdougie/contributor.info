@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, memo } from 'react';
 import { ChevronRight } from '@/components/ui/icon';
 import { DonutChart, type DonutChartData } from '@/components/ui/charts';
 import { BarChart as UPlotBarChart } from '@/components/ui/charts';
@@ -739,5 +739,6 @@ function DistributionCharts({
   );
 }
 
-export default DistributionCharts;
-export { DistributionCharts };
+const MemoizedDistributionCharts = memo(DistributionCharts);
+export default MemoizedDistributionCharts;
+export { MemoizedDistributionCharts as DistributionCharts };
