@@ -15,6 +15,27 @@ import {
 import { getCurrentMonthlyCycleState, getMonthDateRange } from '../utils/date-helpers';
 
 /**
+ * Fast hash function for cache keys - avoids expensive JSON.stringify
+ * Uses a simple numeric hash that's much faster than serializing objects
+ */
+function hashContributors(contributors: ContributorActivity[]): number {
+  let hash = contributors.length;
+  for (const c of contributors) {
+    // Hash the string id character by character
+    for (let i = 0; i < c.id.length; i++) {
+      hash = ((hash << 5) - hash + c.id.charCodeAt(i)) | 0;
+    }
+    // Combine numeric values into hash
+    hash = ((hash << 5) - hash + c.pullRequests) | 0;
+    hash = ((hash << 5) - hash + c.mergedPullRequests) | 0;
+    hash = ((hash << 5) - hash + c.comments) | 0;
+    hash = ((hash << 5) - hash + c.reviews) | 0;
+    hash = ((hash << 5) - hash + c.earliestContribution.getTime()) | 0;
+  }
+  return hash >>> 0; // Convert to unsigned 32-bit integer
+}
+
+/**
  * Default configuration for contributor calculations
  */
 export const DEFAULT_CALCULATION_CONFIG: ContributorCalculationConfig = {
@@ -415,16 +436,10 @@ export function createContributorRankingsCached(
     return createContributorRankings(contributors, config);
   }
 
-  const cacheKey = `rankings:${JSON.stringify(
-    contributors.map((c) => ({
-      id: c.id,
-      pr: c.pullRequests,
-      mpr: c.mergedPullRequests,
-      c: c.comments,
-      r: c.reviews,
-      ec: c.earliestContribution.getTime(),
-    }))
-  )}:${JSON.stringify(config)}`;
+  // Use fast hash instead of JSON.stringify for large contributor arrays
+  const contributorHash = hashContributors(contributors);
+  const configHash = fullConfig.maxLeaderboardSize + (fullConfig.minimumActivityThreshold << 8);
+  const cacheKey = `rankings:${contributorHash}:${configHash}`;
 
   const cached = calculationCache.get<ContributorRanking[]>(cacheKey);
   if (cached) {

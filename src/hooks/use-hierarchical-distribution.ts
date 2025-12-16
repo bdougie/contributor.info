@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import type { PullRequest } from '@/lib/types';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 
-// Chunk size for breaking up long tasks (50 PRs per chunk)
-const CHUNK_SIZE = 50;
+// Chunk size for breaking up long tasks (20 PRs per chunk for better responsiveness)
+const CHUNK_SIZE = 20;
 // Yield interval for requestIdleCallback timeout
 const YIELD_TIMEOUT = 16;
 
