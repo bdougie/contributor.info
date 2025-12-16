@@ -16,6 +16,8 @@ const useLocalServer = !deployUrl;
 export default {
   ci: {
     collect: {
+      // Explicitly disable staticDistDir auto-detection - we use preview server instead
+      staticDistDir: undefined,
       // Use preview server for local/CI testing, URLs for deployed environments
       ...(useLocalServer
         ? {
