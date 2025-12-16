@@ -25,9 +25,7 @@ const AdminRoute = lazy(() =>
   import('@/components/features/auth').then((m) => ({ default: m.AdminRoute }))
 );
 // Lazy load components not needed for initial FCP
-const SVGSpriteInliner = lazy(() =>
-  import('@/components/ui/svg-sprite-loader').then((m) => ({ default: m.SVGSpriteInliner }))
-);
+import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
 const WorkspaceRedirect = lazy(() =>
   import('@/components/WorkspaceRedirect').then((m) => ({ default: m.WorkspaceRedirect }))
 );
@@ -336,17 +334,15 @@ function App() {
       ]).catch(console.warn);
     };
 
-    // Use requestIdleCallback with long timeout, or setTimeout as fallback
+    // Use requestIdleCallback with 5s timeout, or setTimeout as fallback
     // This ensures these modules don't compete with initial render resources
-    const timeoutId = setTimeout(() => {
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
-      } else {
-        loadProgressiveFeatures();
-      }
-    }, 5000); // Wait 5 seconds after mount before even trying to load
-
-    return () => clearTimeout(timeoutId);
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
+      return () => {}; // requestIdleCallback doesn't have easy cancellation
+    } else {
+      const timeoutId = setTimeout(loadProgressiveFeatures, 5000);
+      return () => clearTimeout(timeoutId);
+    }
   }, []);
 
   return (
