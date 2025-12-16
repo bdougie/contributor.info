@@ -465,23 +465,29 @@ export function ActivityTable({
                             </TooltipProvider>
                           </div>
 
-                          {/* Status */}
+                          {/* Status - always render Tooltip to maintain consistent hook count */}
                           <div className="hidden sm:block flex-shrink-0 w-36">
-                            {activity.status && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge
-                                      variant="secondary"
-                                      className={cn(
-                                        STATUS_COLORS[
-                                          activity.status as keyof typeof STATUS_COLORS
-                                        ] || ''
-                                      )}
-                                    >
-                                      {activity.status}
-                                    </Badge>
-                                  </TooltipTrigger>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>
+                                    {activity.status ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className={cn(
+                                          STATUS_COLORS[
+                                            activity.status as keyof typeof STATUS_COLORS
+                                          ] || ''
+                                        )}
+                                      >
+                                        {activity.status}
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground text-xs">—</span>
+                                    )}
+                                  </span>
+                                </TooltipTrigger>
+                                {activity.status && (
                                   <TooltipContent>
                                     <p className="font-semibold">Status: {activity.status}</p>
                                     <p className="text-xs">
@@ -495,9 +501,9 @@ export function ActivityTable({
                                       })()}
                                     </p>
                                   </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
 
                           {/* Date */}
