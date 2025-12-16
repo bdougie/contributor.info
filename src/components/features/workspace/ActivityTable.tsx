@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,24 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  GitPullRequest,
-  GitCommit,
-  MessageSquare,
-  AlertCircle,
-  Search,
-  Star,
-  GitFork,
-  ChevronUp,
-  ChevronDown,
-  ExternalLink,
-} from '@/components/ui/icon';
+import { Search, ChevronUp, ChevronDown, ExternalLink } from '@/components/ui/icon';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ActivityItem } from './AnalyticsDashboard';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
 import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
+import { TYPE_ICONS, TYPE_COLORS, STATUS_COLORS } from './components/activity-table-constants';
 
 export interface ActivityTableProps {
   activities: ActivityItem[];
@@ -41,33 +31,252 @@ export interface ActivityTableProps {
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
 
-const TYPE_ICONS = {
-  pr: GitPullRequest,
-  issue: AlertCircle,
-  commit: GitCommit,
-  review: MessageSquare,
-  comment: MessageSquare,
-  star: Star,
-  fork: GitFork,
-};
+// Memoized row component to isolate hooks and prevent reconciliation issues with virtualization
+interface ActivityRowProps {
+  activity: ActivityItem;
+  activities: ActivityItem[];
+  virtualItemSize: number;
+  virtualItemStart: number;
+}
 
-const TYPE_COLORS = {
-  pr: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-  commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
-  star: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  fork: 'bg-white/10 text-white dark:text-white',
-};
+const ActivityRow = memo(function ActivityRow({
+  activity,
+  activities,
+  virtualItemSize,
+  virtualItemStart,
+}: ActivityRowProps) {
+  // Get icon for activity type with fallback
+  const Icon = TYPE_ICONS[activity.type] || TYPE_ICONS.pr;
 
-const STATUS_COLORS = {
-  open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
-  approved: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  changes_requested: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-};
+  // Safely parse date with fallback
+  const activityDate = (() => {
+    try {
+      return activity.created_at ? parseISO(activity.created_at) : new Date();
+    } catch {
+      return new Date();
+    }
+  })();
+
+  // Build contributor stats for hover card
+  const contributorStats: ContributorStats = useMemo(() => {
+    const recentActivities = getRecentActivitiesForContributor(
+      activity.author.username,
+      activities
+    );
+    const contributorActivities = activities.filter(
+      (a) => a.author.username === activity.author.username
+    );
+    const pullRequestsCount = contributorActivities.filter((a) => a.type === 'pr').length;
+
+    return {
+      login: activity.author.username,
+      avatar_url:
+        activity.author.avatar_url || `https://github.com/${activity.author.username}.png`,
+      pullRequests: pullRequestsCount,
+      percentage: 0,
+      recentActivities,
+    };
+  }, [activities, activity.author.username, activity.author.avatar_url]);
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: `${virtualItemSize}px`,
+        transform: `translateY(${virtualItemStart}px)`,
+      }}
+    >
+      <div className="flex items-center px-2 sm:px-4 py-2 border-b min-w-[1100px]">
+        <div className="flex items-center gap-3 w-full">
+          {/* Type */}
+          <div className="flex-shrink-0 w-16 sm:w-24">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
+                    <Icon className="h-3 w-3" />
+                    {activity.type.toUpperCase()}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-semibold">
+                    {(() => {
+                      if (activity.type === 'pr') return 'Pull Request';
+                      if (activity.type === 'issue') return 'Issue';
+                      if (activity.type === 'commit') return 'Commit';
+                      return 'Review';
+                    })()}
+                  </p>
+                  <p className="text-xs">Status: {activity.status}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Activity */}
+          <div className="flex-1 min-w-[250px]">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {activity.url ? (
+                    <a
+                      href={activity.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                    >
+                      {activity.title}
+                    </a>
+                  ) : (
+                    <span className="text-sm font-medium truncate block text-muted-foreground">
+                      {activity.title}
+                    </span>
+                  )}
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold text-sm">{activity.title}</p>
+                  <p className="text-xs mt-1">Repository: {activity.repository}</p>
+                  <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
+                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Author */}
+          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
+            <ContributorHoverCard contributor={contributorStats}>
+              <a
+                href={`https://github.com/${activity.author.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage
+                    src={
+                      activity.author.avatar_url ||
+                      `https://github.com/${activity.author.username}.png`
+                    }
+                  />
+                  <AvatarFallback>
+                    {activity.author.username.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm truncate hover:text-primary transition-colors">
+                  {activity.author.username}
+                </span>
+              </a>
+            </ContributorHoverCard>
+          </div>
+
+          {/* Repository */}
+          <div className="hidden md:block flex-shrink-0 w-44">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={`https://github.com/${activity.repository}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-muted-foreground truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                  >
+                    {activity.repository}
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-semibold">{activity.repository}</p>
+                  <p className="text-xs">Click to view repository</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Status - always render Tooltip to maintain consistent hook count */}
+          <div className="hidden sm:block flex-shrink-0 w-36">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    {activity.status ? (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] || ''
+                        )}
+                      >
+                        {activity.status}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {activity.status ? (
+                    <>
+                      <p className="font-semibold">Status: {activity.status}</p>
+                      <p className="text-xs">
+                        {(() => {
+                          if (activity.status === 'merged') return 'Successfully merged';
+                          if (activity.status === 'open') return 'Awaiting review';
+                          if (activity.status === 'closed') return 'Closed without merging';
+                          return 'Review approved';
+                        })()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No status</p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Date */}
+          <div className="flex-shrink-0 w-44">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(activityDate, {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-semibold">Exact time</p>
+                  <p className="text-xs">{format(activityDate, 'PPpp')}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {/* Link */}
+          <div className="w-8 sm:w-12">
+            {activity.url ? (
+              <a
+                href={activity.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : (
+              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
+                <ExternalLink className="h-4 w-4" />
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export function ActivityTable({
   activities,
@@ -137,18 +346,25 @@ export function ActivityTable({
 
   const totalPages = Math.ceil(processedActivities.length / pageSize);
 
+  // Memoize callbacks to prevent infinite re-renders from useVirtualizer
+  const getScrollElement = useCallback(() => parentRef.current, []);
+
+  const getItemKey = useCallback(
+    (index: number) => {
+      const activity = paginatedActivities[index];
+      if (!activity) return `empty-${index}`;
+      return `${activity.type}-${activity.id}`;
+    },
+    [paginatedActivities]
+  );
+
   // Virtual scrolling for large datasets
   const virtualizer = useVirtualizer({
     count: paginatedActivities.length,
-    getScrollElement: () => parentRef.current,
+    getScrollElement,
     estimateSize: () => 60,
     overscan: 5,
-    // Add getItemKey to ensure proper key management
-    getItemKey: (index) => {
-      const activity = paginatedActivities[index];
-      if (!activity) return `empty-${index}`;
-      return `${activity.type}-${activity.id}-${index}-${activity.created_at}`;
-    },
+    getItemKey,
   });
 
   const handleSort = useCallback(
@@ -163,17 +379,15 @@ export function ActivityTable({
     [sortField]
   );
 
-  const SortIcon = useCallback(
-    ({ field }: { field: SortField }) => {
-      if (sortField !== field) return null;
-      return sortOrder === 'asc' ? (
-        <ChevronUp className="h-4 w-4" />
-      ) : (
-        <ChevronDown className="h-4 w-4" />
-      );
-    },
-    [sortField, sortOrder]
-  );
+  // Helper function to render sort icon - not a component to avoid hooks issues
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
+  };
 
   if (loading) {
     return (
@@ -227,7 +441,7 @@ export function ActivityTable({
                   onClick={() => handleSort('type')}
                 >
                   Type
-                  <SortIcon field="type" />
+                  {renderSortIcon('type')}
                 </Button>
               </div>
               <div className="flex-1 min-w-[250px]">
@@ -241,7 +455,7 @@ export function ActivityTable({
                   onClick={() => handleSort('author')}
                 >
                   Author
-                  <SortIcon field="author" />
+                  {renderSortIcon('author')}
                 </Button>
               </div>
               <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
@@ -252,7 +466,7 @@ export function ActivityTable({
                   onClick={() => handleSort('repository')}
                 >
                   Repo
-                  <SortIcon field="repository" />
+                  {renderSortIcon('repository')}
                 </Button>
               </div>
               <div className="hidden sm:block flex-shrink-0 w-36">Status</div>
@@ -264,7 +478,7 @@ export function ActivityTable({
                   onClick={() => handleSort('created_at')}
                 >
                   Date
-                  <SortIcon field="created_at" />
+                  {renderSortIcon('created_at')}
                 </Button>
               </div>
               <div className="w-8 sm:w-12"></div>
@@ -290,252 +504,19 @@ export function ActivityTable({
                   position: 'relative',
                 }}
               >
-                {virtualizer.getVirtualItems().map((virtualItem, arrayIndex) => {
+                {virtualizer.getVirtualItems().map((virtualItem) => {
                   const activity = paginatedActivities[virtualItem.index];
                   if (!activity) {
-                    return null; // Skip if activity doesn't exist
+                    return null;
                   }
-                  const Icon = TYPE_ICONS[activity.type];
-
-                  // Generate unique key using multiple identifiers to ensure uniqueness
-                  // Use arrayIndex as a fallback to guarantee uniqueness
-                  const uniqueKey = `activity-${virtualItem.index}-${arrayIndex}-${activity.type}-${activity.id}`;
-
                   return (
-                    <div
-                      key={uniqueKey}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: `${virtualItem.size}px`,
-                        transform: `translateY(${virtualItem.start}px)`,
-                      }}
-                    >
-                      <div className="flex items-center px-2 sm:px-4 py-2 border-b min-w-[1100px]">
-                        <div className="flex items-center gap-3 w-full">
-                          {/* Type */}
-                          <div className="flex-shrink-0 w-16 sm:w-24">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="secondary"
-                                    className={cn('gap-1', TYPE_COLORS[activity.type])}
-                                  >
-                                    <Icon className="h-3 w-3" />
-                                    {activity.type.toUpperCase()}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-semibold">
-                                    {(() => {
-                                      if (activity.type === 'pr') return 'Pull Request';
-                                      if (activity.type === 'issue') return 'Issue';
-                                      if (activity.type === 'commit') return 'Commit';
-                                      return 'Review';
-                                    })()}
-                                  </p>
-                                  <p className="text-xs">Status: {activity.status}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Activity */}
-                          <div className="flex-1 min-w-[250px]">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  {activity.url ? (
-                                    <a
-                                      href={activity.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                                    >
-                                      {activity.title}
-                                    </a>
-                                  ) : (
-                                    <span className="text-sm font-medium truncate block text-muted-foreground">
-                                      {activity.title}
-                                    </span>
-                                  )}
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="font-semibold text-sm">{activity.title}</p>
-                                  <p className="text-xs mt-1">Repository: {activity.repository}</p>
-                                  <p className="text-xs">
-                                    Created: {format(parseISO(activity.created_at), 'PPp')}
-                                  </p>
-                                  {activity.url && (
-                                    <p className="text-xs">Click to open in GitHub</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Author */}
-                          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
-                            {(() => {
-                              // Calculate contributor stats from all activities
-                              const contributorActivities = activities.filter(
-                                (a) => a.author.username === activity.author.username
-                              );
-
-                              const pullRequestsCount = contributorActivities.filter(
-                                (a) => a.type === 'pr'
-                              ).length;
-
-                              const reviewsCount = contributorActivities.filter(
-                                (a) => a.type === 'review'
-                              ).length;
-
-                              const commentsCount = contributorActivities.filter(
-                                (a) => a.type === 'comment'
-                              ).length;
-
-                              const contributorStats: ContributorStats = {
-                                login: activity.author.username,
-                                avatar_url: activity.author.avatar_url || '',
-                                pullRequests: pullRequestsCount,
-                                percentage: 0,
-                                recentActivities: getRecentActivitiesForContributor(
-                                  activity.author.username,
-                                  activities,
-                                  5
-                                ),
-                              };
-
-                              return (
-                                <ContributorHoverCard
-                                  contributor={contributorStats}
-                                  showReviews={true}
-                                  showComments={true}
-                                  reviewsCount={reviewsCount}
-                                  commentsCount={commentsCount}
-                                >
-                                  <a
-                                    href={`https://github.com/${activity.author.username}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                                  >
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarImage src={activity.author.avatar_url} />
-                                      <AvatarFallback>
-                                        {activity.author.username.slice(0, 2).toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="text-sm truncate hover:text-primary transition-colors">
-                                      {activity.author.username}
-                                    </span>
-                                  </a>
-                                </ContributorHoverCard>
-                              );
-                            })()}
-                          </div>
-
-                          {/* Repository */}
-                          <div className="hidden md:block flex-shrink-0 w-44">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <a
-                                    href={`https://github.com/${activity.repository}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-muted-foreground truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                                  >
-                                    {activity.repository}
-                                  </a>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-semibold">{activity.repository}</p>
-                                  <p className="text-xs">Click to view repository</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Status */}
-                          <div className="hidden sm:block flex-shrink-0 w-36">
-                            {activity.status && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Badge
-                                      variant="secondary"
-                                      className={cn(
-                                        STATUS_COLORS[
-                                          activity.status as keyof typeof STATUS_COLORS
-                                        ] || ''
-                                      )}
-                                    >
-                                      {activity.status}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="font-semibold">Status: {activity.status}</p>
-                                    <p className="text-xs">
-                                      {(() => {
-                                        if (activity.status === 'merged')
-                                          return 'Successfully merged';
-                                        if (activity.status === 'open') return 'Awaiting review';
-                                        if (activity.status === 'closed')
-                                          return 'Closed without merging';
-                                        return 'Review approved';
-                                      })()}
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                          </div>
-
-                          {/* Date */}
-                          <div className="flex-shrink-0 w-44">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <p className="text-sm text-muted-foreground">
-                                    {formatDistanceToNow(parseISO(activity.created_at), {
-                                      addSuffix: true,
-                                    })}
-                                  </p>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="font-semibold">Exact time</p>
-                                  <p className="text-xs">
-                                    {format(parseISO(activity.created_at), 'PPpp')}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Link */}
-                          <div className="w-8 sm:w-12">
-                            {activity.url ? (
-                              <a
-                                href={activity.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            ) : (
-                              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
-                                <ExternalLink className="h-4 w-4" />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <ActivityRow
+                      key={`${activity.type}-${activity.id}`}
+                      activity={activity}
+                      activities={activities}
+                      virtualItemSize={virtualItem.size}
+                      virtualItemStart={virtualItem.start}
+                    />
                   );
                 })}
               </div>

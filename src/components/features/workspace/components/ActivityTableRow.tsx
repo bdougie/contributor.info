@@ -3,53 +3,21 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  ExternalLink,
-  GitPullRequest,
-  GitCommit,
-  MessageSquare,
-  AlertCircle,
-  Star,
-  GitFork,
-} from '@/components/ui/icon';
+import { ExternalLink } from '@/components/ui/icon';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ActivityItem } from '../AnalyticsDashboard';
+import {
+  TYPE_ICONS,
+  TYPE_COLORS,
+  STATUS_COLORS,
+  type StatusType,
+} from './activity-table-constants';
 
 interface ActivityTableRowProps {
   activity: ActivityItem;
   style?: React.CSSProperties;
 }
-
-export const TYPE_ICONS = {
-  pr: GitPullRequest,
-  issue: AlertCircle,
-  commit: GitCommit,
-  review: MessageSquare,
-  comment: MessageSquare,
-  star: Star,
-  fork: GitFork,
-};
-
-export const TYPE_COLORS = {
-  pr: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-  commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
-  star: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  fork: 'bg-pink-500/10 text-pink-700 dark:text-pink-400',
-};
-
-type StatusType = 'open' | 'merged' | 'closed' | 'approved' | 'changes_requested';
-
-export const STATUS_COLORS: Record<StatusType, string> = {
-  open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
-  approved: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  changes_requested: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-};
 
 export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps) => {
   const Icon = TYPE_ICONS[activity.type];
@@ -129,7 +97,7 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
                   <div className="flex items-center gap-2 cursor-help">
                     <Avatar className="h-6 w-6">
                       <AvatarImage
-                        src={activity.author.avatar_url || ''}
+                        src={activity.author.avatar_url || undefined}
                         alt={`${activity.author.username}'s avatar`}
                       />
                       <AvatarFallback>

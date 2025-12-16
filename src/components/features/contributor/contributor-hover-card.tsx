@@ -62,14 +62,14 @@ export function ContributorHoverCard({
   primaryLabel,
   secondaryLabel,
 }: ContributorHoverCardProps) {
-  // Validate required contributor data
-  if (!contributor || !contributor.login) {
+  // Validate required contributor data - but ALWAYS render HoverCard structure for consistent hook count
+  const isValidContributor = Boolean(contributor && contributor.login);
+  if (!isValidContributor) {
     console.warn('ContributorHoverCard: Missing required contributor data', contributor);
-    return <>{children}</>;
   }
 
   // Use contributor data from props (which may include cached profile data)
-  const displayOrganizations = contributor.organizations || [];
+  const displayOrganizations = contributor?.organizations || [];
 
   return (
     <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
@@ -80,7 +80,7 @@ export function ContributorHoverCard({
       </HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
         <HoverCardPrimitive.Content
-          aria-label={`Contributor information for ${contributor.login}`}
+          aria-label={`Contributor information for ${contributor?.login || 'Unknown'}`}
           className={cn(
             'relative z-[100] w-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md outline-none',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -99,254 +99,265 @@ export function ContributorHoverCard({
           onPointerDownOutside={(e) => e.preventDefault()}
           forceMount
         >
-          {role && (
-            <Badge
-              className={cn(
-                'absolute top-4 right-4 border-0',
-                role.toLowerCase() === 'contributor'
-                  ? 'bg-blue-500 text-white hover:bg-blue-600'
-                  : 'bg-gray-500 text-white hover:bg-gray-600'
+          {/* Show placeholder content for invalid contributors to maintain consistent component tree */}
+          {!isValidContributor ? (
+            <div className="text-sm text-muted-foreground">Contributor data unavailable</div>
+          ) : (
+            <>
+              {role && (
+                <Badge
+                  className={cn(
+                    'absolute top-4 right-4 border-0',
+                    role.toLowerCase() === 'contributor'
+                      ? 'bg-blue-500 text-white hover:bg-blue-600'
+                      : 'bg-gray-500 text-white hover:bg-gray-600'
+                  )}
+                  variant="default"
+                >
+                  {role}
+                </Badge>
               )}
-              variant="default"
-            >
-              {role}
-            </Badge>
-          )}
-          <div className="flex gap-3">
-            <a
-              href={`https://github.com/${contributor.login}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <OptimizedAvatar
-                src={contributor.avatar_url}
-                alt={contributor.login}
-                size={48}
-                priority={true}
-                fallback={contributor.login ? contributor.login[0].toUpperCase() : '?'}
-                className="cursor-pointer hover:opacity-80 transition-opacity"
-              />
-            </a>
-            <div className="flex-1 min-w-0">
-              <a
-                href={`https://github.com/${contributor.login}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block hover:underline"
-              >
-                <h4 className="text-sm font-semibold">{contributor.login}</h4>
-              </a>
-              {contributor.name && (
-                <p className="text-xs text-muted-foreground">{contributor.name}</p>
-              )}
-              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                {useIssueIcons ? (
-                  <AlertCircle className="h-4 w-4" />
-                ) : (
-                  <GitPullRequest className="h-4 w-4" />
-                )}
-                <span>
-                  {contributor.pullRequests}
-                  {primaryLabel && <span className="ml-1 text-xs">{primaryLabel}</span>}
-                </span>
-                {showReviews && (
-                  <>
-                    <span className="text-muted-foreground/50">•</span>
+              <div className="flex gap-3">
+                <a
+                  href={`https://github.com/${contributor.login}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <OptimizedAvatar
+                    src={contributor.avatar_url}
+                    alt={contributor.login}
+                    size={48}
+                    priority={true}
+                    fallback={contributor.login ? contributor.login[0].toUpperCase() : '?'}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </a>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={`https://github.com/${contributor.login}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block hover:underline"
+                  >
+                    <h4 className="text-sm font-semibold">{contributor.login}</h4>
+                  </a>
+                  {contributor.name && (
+                    <p className="text-xs text-muted-foreground">{contributor.name}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     {useIssueIcons ? (
-                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertCircle className="h-4 w-4" />
                     ) : (
-                      <GitPullRequestDraft className="h-4 w-4" />
+                      <GitPullRequest className="h-4 w-4" />
                     )}
                     <span>
-                      {reviewsCount}
-                      {secondaryLabel && <span className="ml-1 text-xs">{secondaryLabel}</span>}
+                      {contributor.pullRequests}
+                      {primaryLabel && <span className="ml-1 text-xs">{primaryLabel}</span>}
                     </span>
-                  </>
-                )}
-                {showComments && (
-                  <>
-                    <span className="text-muted-foreground/50">•</span>
-                    <MessageSquare className="h-4 w-4" />
-                    <span>{commentsCount}</span>
-                  </>
-                )}
-                {!showReviews && !showComments && contributor.percentage > 0 && (
-                  <>
-                    <span className="text-muted-foreground/50">•</span>
-                    <span>{Math.round(contributor.percentage)}%</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {contributor.recentPRs && contributor.recentPRs.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Recent PRs</div>
-                <div className="space-y-2">
-                  {contributor.recentPRs.slice(0, 5).map((pr) => {
-                    // Validate PR data before rendering
-                    if (!pr.repository_owner || !pr.repository_name || !pr.number) {
-                      console.warn('Invalid PR data for hover card', pr);
-                      return null;
-                    }
-                    return (
-                      <a
-                        key={pr.id}
-                        href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            #{pr.number}
-                          </Badge>
-                          <span className="truncate">{pr.title}</span>
-                          <Badge
-                            variant="outline"
-                            className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
-                              pr.state,
-                              pr.merged_at !== null
-                            )}`}
-                          >
-                            {getStatusLabel(pr.state, pr.merged_at !== null)}
-                          </Badge>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-
-          {contributor.recentIssues && contributor.recentIssues.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Recent Issues</div>
-                <div className="space-y-2">
-                  {contributor.recentIssues.slice(0, 5).map((issue) => {
-                    // Validate issue data before rendering
-                    if (!issue.repository_owner || !issue.repository_name || !issue.number) {
-                      console.warn('Invalid issue data for hover card', issue);
-                      return null;
-                    }
-                    return (
-                      <a
-                        key={issue.id}
-                        href={
-                          issue.html_url ||
-                          `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            #{issue.number}
-                          </Badge>
-                          <span className="truncate">{issue.title}</span>
-                          <Badge
-                            variant="outline"
-                            className={`ml-auto text-xs shrink-0 ${
-                              issue.state === 'closed' ? STATUS_COLORS.closed : STATUS_COLORS.open
-                            }`}
-                          >
-                            {issue.state}
-                          </Badge>
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
-          )}
-
-          {contributor.recentActivities && contributor.recentActivities.length > 0 && (
-            <>
-              <Separator className="my-4" />
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Recent Activity</div>
-                <div className="space-y-2">
-                  {contributor.recentActivities.slice(0, 5).map((activity) => (
-                    <a
-                      key={activity.id}
-                      href={activity.url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs shrink-0 capitalize">
-                          {activity.type === 'pr' ? 'PR' : activity.type}
-                        </Badge>
-                        <span className="truncate">{activity.title}</span>
-                        {activity.status && (
-                          <Badge
-                            variant="outline"
-                            className={`ml-auto text-xs shrink-0 capitalize ${
-                              STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] ||
-                              STATUS_COLORS.open
-                            }`}
-                          >
-                            {activity.status}
-                          </Badge>
+                    {showReviews && (
+                      <>
+                        <span className="text-muted-foreground/50">•</span>
+                        {useIssueIcons ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <GitPullRequestDraft className="h-4 w-4" />
                         )}
-                      </div>
-                    </a>
-                  ))}
+                        <span>
+                          {reviewsCount}
+                          {secondaryLabel && <span className="ml-1 text-xs">{secondaryLabel}</span>}
+                        </span>
+                      </>
+                    )}
+                    {showComments && (
+                      <>
+                        <span className="text-muted-foreground/50">•</span>
+                        <MessageSquare className="h-4 w-4" />
+                        <span>{commentsCount}</span>
+                      </>
+                    )}
+                    {!showReviews && !showComments && contributor.percentage > 0 && (
+                      <>
+                        <span className="text-muted-foreground/50">•</span>
+                        <span>{Math.round(contributor.percentage)}%</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
-          )}
 
-          {displayOrganizations && displayOrganizations.length > 0 && (
-            <>
-              <Separator className="my-3" />
-              <div>
-                <div className="text-sm font-medium mb-2">Organizations</div>
-                <div className="flex flex-wrap gap-2">
-                  {displayOrganizations.slice(0, 4).map((org) => {
-                    // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
-                    const avatarUrl: string =
-                      'avatarUrl' in org ? (org.avatarUrl as string) : (org.avatar_url as string);
-                    const orgName: string | undefined =
-                      'name' in org ? (org.name as string | undefined) : undefined;
+              {contributor.recentPRs && contributor.recentPRs.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Recent PRs</div>
+                    <div className="space-y-2">
+                      {contributor.recentPRs.slice(0, 5).map((pr) => {
+                        // Validate PR data before rendering
+                        if (!pr.repository_owner || !pr.repository_name || !pr.number) {
+                          console.warn('Invalid PR data for hover card', pr);
+                          return null;
+                        }
+                        return (
+                          <a
+                            key={pr.id}
+                            href={`https://github.com/${pr.repository_owner}/${pr.repository_name}/pull/${pr.number}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                #{pr.number}
+                              </Badge>
+                              <span className="truncate">{pr.title}</span>
+                              <Badge
+                                variant="outline"
+                                className={`ml-auto text-xs shrink-0 ${getStatusBadgeStyle(
+                                  pr.state,
+                                  pr.merged_at !== null
+                                )}`}
+                              >
+                                {getStatusLabel(pr.state, pr.merged_at !== null)}
+                              </Badge>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
 
-                    return (
-                      <a
-                        key={org.login}
-                        href={`https://github.com/${org.login}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
-                        title={orgName || org.login}
-                      >
-                        <OptimizedAvatar
-                          src={avatarUrl}
-                          alt={org.login}
-                          size={32}
-                          lazy={false}
-                          fallback={org.login[0].toUpperCase()}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-xs">{org.login}</span>
-                      </a>
-                    );
-                  })}
-                  {displayOrganizations.length > 4 && (
-                    <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
-                      +{displayOrganizations.length - 4}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {contributor.recentIssues && contributor.recentIssues.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Recent Issues</div>
+                    <div className="space-y-2">
+                      {contributor.recentIssues.slice(0, 5).map((issue) => {
+                        // Validate issue data before rendering
+                        if (!issue.repository_owner || !issue.repository_name || !issue.number) {
+                          console.warn('Invalid issue data for hover card', issue);
+                          return null;
+                        }
+                        return (
+                          <a
+                            key={issue.id}
+                            href={
+                              issue.html_url ||
+                              `https://github.com/${issue.repository_owner}/${issue.repository_name}/issues/${issue.number}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                #{issue.number}
+                              </Badge>
+                              <span className="truncate">{issue.title}</span>
+                              <Badge
+                                variant="outline"
+                                className={`ml-auto text-xs shrink-0 ${
+                                  issue.state === 'closed'
+                                    ? STATUS_COLORS.closed
+                                    : STATUS_COLORS.open
+                                }`}
+                              >
+                                {issue.state}
+                              </Badge>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {contributor.recentActivities && contributor.recentActivities.length > 0 && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Recent Activity</div>
+                    <div className="space-y-2">
+                      {contributor.recentActivities.slice(0, 5).map((activity) => (
+                        <a
+                          key={activity.id}
+                          href={activity.url || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-sm hover:bg-muted/50 rounded p-1 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs shrink-0 capitalize">
+                              {activity.type === 'pr' ? 'PR' : activity.type}
+                            </Badge>
+                            <span className="truncate">{activity.title}</span>
+                            {activity.status && (
+                              <Badge
+                                variant="outline"
+                                className={`ml-auto text-xs shrink-0 capitalize ${
+                                  STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] ||
+                                  STATUS_COLORS.open
+                                }`}
+                              >
+                                {activity.status}
+                              </Badge>
+                            )}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {displayOrganizations && displayOrganizations.length > 0 && (
+                <>
+                  <Separator className="my-3" />
+                  <div>
+                    <div className="text-sm font-medium mb-2">Organizations</div>
+                    <div className="flex flex-wrap gap-2">
+                      {displayOrganizations.slice(0, 4).map((org) => {
+                        // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
+                        const avatarUrl: string =
+                          'avatarUrl' in org
+                            ? (org.avatarUrl as string)
+                            : (org.avatar_url as string);
+                        const orgName: string | undefined =
+                          'name' in org ? (org.name as string | undefined) : undefined;
+
+                        return (
+                          <a
+                            key={org.login}
+                            href={`https://github.com/${org.login}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                            title={orgName || org.login}
+                          >
+                            <OptimizedAvatar
+                              src={avatarUrl}
+                              alt={org.login}
+                              size={32}
+                              lazy={false}
+                              fallback={org.login[0].toUpperCase()}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-xs">{org.login}</span>
+                          </a>
+                        );
+                      })}
+                      {displayOrganizations.length > 4 && (
+                        <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
+                          +{displayOrganizations.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           )}
         </HoverCardPrimitive.Content>

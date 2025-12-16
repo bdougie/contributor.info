@@ -161,7 +161,7 @@ export function WorkspaceActivityTab({
             created_at: pr.created_at,
             author: {
               username: pr.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: `https://github.com/${pr.author_login || 'ghost'}.png`,
             },
             repository: getRepoName(pr.repository_id),
             status: (() => {
@@ -187,7 +187,7 @@ export function WorkspaceActivityTab({
             created_at: issue.created_at,
             author: {
               username: issue.author_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: `https://github.com/${issue.author_login || 'ghost'}.png`,
             },
             repository: getRepoName(issue.repository_id),
             status: issue.closed_at ? 'closed' : 'open',
@@ -209,7 +209,7 @@ export function WorkspaceActivityTab({
             created_at: review.submitted_at,
             author: {
               username: review.reviewer_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: `https://github.com/${review.reviewer_login || 'ghost'}.png`,
             },
             repository: review.repository_name || 'Unknown Repository',
             status: review.state.toLowerCase() as ActivityItem['status'],
@@ -231,7 +231,7 @@ export function WorkspaceActivityTab({
             created_at: comment.created_at,
             author: {
               username: comment.commenter_login || 'Unknown',
-              avatar_url: '', // Should come from contributors table via join
+              avatar_url: `https://github.com/${comment.commenter_login || 'ghost'}.png`,
             },
             repository: comment.repository_name || 'Unknown Repository',
             status: 'open',
@@ -253,7 +253,7 @@ export function WorkspaceActivityTab({
             created_at: star.captured_at,
             author: {
               username: star.actor_login || 'Unknown',
-              avatar_url: star.actor_avatar || `https://github.com/${star.actor_login}.png`,
+              avatar_url: star.actor_avatar || `https://github.com/${star.actor_login || 'ghost'}.png`,
             },
             repository: star.repository_name || 'Unknown Repository',
             // No status for star events
@@ -279,7 +279,7 @@ export function WorkspaceActivityTab({
             created_at: fork.captured_at,
             author: {
               username: fork.actor_login || 'Unknown',
-              avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login}.png`,
+              avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login || 'ghost'}.png`,
             },
             repository: fork.repository_name || 'Unknown Repository',
             // No status for fork events
