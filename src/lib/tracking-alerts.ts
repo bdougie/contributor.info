@@ -69,43 +69,55 @@ export function trackApiError(error: TrackingApiError, context: TrackingEventCon
   const severity = error.statusCode >= 500 ? 'error' : 'warning';
   const isCritical = error.statusCode >= 500;
 
-  // Sentry: Capture for alerting on 5xx errors
-  captureException(new Error(`Tracking API Error: ${error.statusCode} - ${error.message}`), {
-    level: isCritical ? 'error' : 'warning',
-    tags: {
-      type: 'tracking_api_error',
-      status_code: String(error.statusCode),
-      is_server_error: String(isCritical),
-      endpoint: error.endpoint,
-      alert_category: 'repository_tracking',
-    },
-    extra: {
+  try {
+    // Sentry: Capture for alerting on 5xx errors
+    captureException(new Error(`Tracking API Error: ${error.statusCode} - ${error.message}`), {
+      level: isCritical ? 'error' : 'warning',
+      tags: {
+        type: 'tracking_api_error',
+        status_code: String(error.statusCode),
+        is_server_error: String(isCritical),
+        endpoint: error.endpoint,
+        alert_category: 'repository_tracking',
+      },
+      extra: {
+        repository,
+        owner: context.owner,
+        repo: context.repo,
+        response_body: error.responseBody,
+        timestamp: context.timestamp || new Date().toISOString(),
+      },
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to capture API error to Sentry:', e);
+  }
+
+  try {
+    // PostHog: Track for success rate calculation
+    trackEvent('repository_tracking_api_error', {
       repository,
       owner: context.owner,
       repo: context.repo,
-      response_body: error.responseBody,
-      timestamp: context.timestamp || new Date().toISOString(),
-    },
-  });
+      status_code: error.statusCode,
+      is_server_error: isCritical,
+      error_message: error.message,
+      endpoint: error.endpoint,
+      severity,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track API error to PostHog:', e);
+  }
 
-  // PostHog: Track for success rate calculation
-  trackEvent('repository_tracking_api_error', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    status_code: error.statusCode,
-    is_server_error: isCritical,
-    error_message: error.message,
-    endpoint: error.endpoint,
-    severity,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Add breadcrumb for debugging trail
-  addBreadcrumb(`Tracking API error: ${error.statusCode}`, 'tracking', {
-    repository,
-    endpoint: error.endpoint,
-  });
+  try {
+    // Add breadcrumb for debugging trail
+    addBreadcrumb(`Tracking API error: ${error.statusCode}`, 'tracking', {
+      repository,
+      endpoint: error.endpoint,
+    });
+  } catch {
+    // Breadcrumb failures are non-critical
+  }
 }
 
 /**
@@ -115,40 +127,55 @@ export function trackApiError(error: TrackingApiError, context: TrackingEventCon
 export function trackInngestFailure(error: InngestEventError, context: TrackingEventContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // Sentry: Capture with specific tag for Inngest failures
-  captureException(new Error(`Inngest Event Failure: ${error.eventName} - ${error.errorMessage}`), {
-    level: 'warning',
-    tags: {
-      type: 'inngest_event_failure',
-      event_name: error.eventName,
-      alert_category: 'repository_tracking',
-      alert_type: 'inngest_failure',
-    },
-    extra: {
+  try {
+    // Sentry: Capture with specific tag for Inngest failures
+    captureException(
+      new Error(`Inngest Event Failure: ${error.eventName} - ${error.errorMessage}`),
+      {
+        level: 'warning',
+        tags: {
+          type: 'inngest_event_failure',
+          event_name: error.eventName,
+          alert_category: 'repository_tracking',
+          alert_type: 'inngest_failure',
+        },
+        extra: {
+          repository,
+          owner: context.owner,
+          repo: context.repo,
+          attempt_count: error.attemptCount || 1,
+          timestamp: context.timestamp || new Date().toISOString(),
+        },
+      }
+    );
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to capture Inngest failure to Sentry:', e);
+  }
+
+  try {
+    // PostHog: Track for failure rate monitoring
+    trackEvent('repository_tracking_inngest_failure', {
       repository,
       owner: context.owner,
       repo: context.repo,
+      event_name: error.eventName,
+      error_message: error.errorMessage,
       attempt_count: error.attemptCount || 1,
-      timestamp: context.timestamp || new Date().toISOString(),
-    },
-  });
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track Inngest failure to PostHog:', e);
+  }
 
-  // PostHog: Track for failure rate monitoring
-  trackEvent('repository_tracking_inngest_failure', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    event_name: error.eventName,
-    error_message: error.errorMessage,
-    attempt_count: error.attemptCount || 1,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Add breadcrumb
-  addBreadcrumb(`Inngest failure: ${error.eventName}`, 'tracking', {
-    repository,
-    error: error.errorMessage,
-  });
+  try {
+    // Add breadcrumb
+    addBreadcrumb(`Inngest failure: ${error.eventName}`, 'tracking', {
+      repository,
+      error: error.errorMessage,
+    });
+  } catch {
+    // Breadcrumb failures are non-critical
+  }
 }
 
 /**
@@ -158,43 +185,55 @@ export function trackInngestFailure(error: InngestEventError, context: TrackingE
 export function trackPollingTimeout(context: PollingTimeoutContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // Sentry: Capture with timeout tag for rate calculation
-  captureMessage(`Repository tracking polling timeout: ${repository}`, 'warning');
-  captureException(new Error(`Polling Timeout: ${repository}`), {
-    level: 'warning',
-    tags: {
-      type: 'tracking_polling_timeout',
-      alert_category: 'repository_tracking',
-      alert_type: 'polling_timeout',
-    },
-    extra: {
+  try {
+    // Sentry: Capture with timeout tag for rate calculation
+    captureMessage(`Repository tracking polling timeout: ${repository}`, 'warning');
+    captureException(new Error(`Polling Timeout: ${repository}`), {
+      level: 'warning',
+      tags: {
+        type: 'tracking_polling_timeout',
+        alert_category: 'repository_tracking',
+        alert_type: 'polling_timeout',
+      },
+      extra: {
+        repository,
+        owner: context.owner,
+        repo: context.repo,
+        poll_count: context.pollCount,
+        max_polls: context.maxPolls,
+        poll_duration_ms: context.pollDurationMs,
+        timestamp: context.timestamp || new Date().toISOString(),
+      },
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to capture polling timeout to Sentry:', e);
+  }
+
+  try {
+    // PostHog: Track for timeout rate calculation
+    trackEvent('repository_tracking_timeout', {
       repository,
       owner: context.owner,
       repo: context.repo,
       poll_count: context.pollCount,
       max_polls: context.maxPolls,
       poll_duration_ms: context.pollDurationMs,
-      timestamp: context.timestamp || new Date().toISOString(),
-    },
-  });
+      timeout_occurred: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track polling timeout to PostHog:', e);
+  }
 
-  // PostHog: Track for timeout rate calculation
-  trackEvent('repository_tracking_timeout', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    poll_count: context.pollCount,
-    max_polls: context.maxPolls,
-    poll_duration_ms: context.pollDurationMs,
-    timeout_occurred: true,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Add breadcrumb
-  addBreadcrumb(`Polling timeout after ${context.pollCount} polls`, 'tracking', {
-    repository,
-    duration_ms: context.pollDurationMs,
-  });
+  try {
+    // Add breadcrumb
+    addBreadcrumb(`Polling timeout after ${context.pollCount} polls`, 'tracking', {
+      repository,
+      duration_ms: context.pollDurationMs,
+    });
+  } catch {
+    // Breadcrumb failures are non-critical
+  }
 }
 
 /**
@@ -204,23 +243,31 @@ export function trackPollingTimeout(context: PollingTimeoutContext): void {
 export function trackTrackingSuccess(context: TrackingSuccessContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // PostHog: Track success for rate calculation
-  trackEvent('repository_tracking_completed', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    repository_id: context.repositoryId,
-    duration_ms: context.durationMs,
-    source: context.source,
-    success: true,
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    // PostHog: Track success for rate calculation
+    trackEvent('repository_tracking_completed', {
+      repository,
+      owner: context.owner,
+      repo: context.repo,
+      repository_id: context.repositoryId,
+      duration_ms: context.durationMs,
+      source: context.source,
+      success: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track success to PostHog:', e);
+  }
 
-  // Sentry: Log success breadcrumb for debugging trail
-  addBreadcrumb(`Repository tracked successfully: ${repository}`, 'tracking', {
-    repository_id: context.repositoryId,
-    duration_ms: context.durationMs,
-  });
+  try {
+    // Sentry: Log success breadcrumb for debugging trail
+    addBreadcrumb(`Repository tracked successfully: ${repository}`, 'tracking', {
+      repository_id: context.repositoryId,
+      duration_ms: context.durationMs,
+    });
+  } catch {
+    // Breadcrumb failures are non-critical
+  }
 }
 
 /**
@@ -230,43 +277,55 @@ export function trackTrackingSuccess(context: TrackingSuccessContext): void {
 export function trackTrackingFailure(context: TrackingFailureContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // PostHog: Track failure for rate calculation
-  trackEvent('repository_tracking_failed', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    error_type: context.errorType,
-    error_message: context.errorMessage,
-    duration_ms: context.durationMs,
-    success: false,
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    // PostHog: Track failure for rate calculation
+    trackEvent('repository_tracking_failed', {
+      repository,
+      owner: context.owner,
+      repo: context.repo,
+      error_type: context.errorType,
+      error_message: context.errorMessage,
+      duration_ms: context.durationMs,
+      success: false,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track failure to PostHog:', e);
+  }
 
-  // Sentry: Capture as error for alerting
-  captureException(
-    new Error(`Repository Tracking Failed: ${repository} - ${context.errorMessage}`),
-    {
-      level: 'error',
-      tags: {
-        type: 'tracking_failed',
-        error_type: context.errorType,
-        alert_category: 'repository_tracking',
-      },
-      extra: {
-        repository,
-        owner: context.owner,
-        repo: context.repo,
-        duration_ms: context.durationMs,
-        timestamp: context.timestamp || new Date().toISOString(),
-      },
-    }
-  );
+  try {
+    // Sentry: Capture as error for alerting
+    captureException(
+      new Error(`Repository Tracking Failed: ${repository} - ${context.errorMessage}`),
+      {
+        level: 'error',
+        tags: {
+          type: 'tracking_failed',
+          error_type: context.errorType,
+          alert_category: 'repository_tracking',
+        },
+        extra: {
+          repository,
+          owner: context.owner,
+          repo: context.repo,
+          duration_ms: context.durationMs,
+          timestamp: context.timestamp || new Date().toISOString(),
+        },
+      }
+    );
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to capture failure to Sentry:', e);
+  }
 
-  // Add breadcrumb
-  addBreadcrumb(`Repository tracking failed: ${context.errorType}`, 'tracking', {
-    repository,
-    error: context.errorMessage,
-  });
+  try {
+    // Add breadcrumb
+    addBreadcrumb(`Repository tracking failed: ${context.errorType}`, 'tracking', {
+      repository,
+      error: context.errorMessage,
+    });
+  } catch {
+    // Breadcrumb failures are non-critical
+  }
 }
 
 /**
@@ -276,13 +335,17 @@ export function trackTrackingFailure(context: TrackingFailureContext): void {
 export function trackTrackingAttempt(context: TrackingEventContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // PostHog: Track attempt for daily digest
-  trackEvent('repository_tracking_attempt', {
-    repository,
-    owner: context.owner,
-    repo: context.repo,
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    // PostHog: Track attempt for daily digest
+    trackEvent('repository_tracking_attempt', {
+      repository,
+      owner: context.owner,
+      repo: context.repo,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to track attempt to PostHog:', e);
+  }
 }
 
 /**
@@ -304,37 +367,45 @@ export function emitTrackingHealthMetrics(metrics: {
   const timeoutRate =
     metrics.totalAttempts > 0 ? (metrics.timeoutCount / metrics.totalAttempts) * 100 : 0;
 
-  // PostHog: Emit health metrics for dashboards
-  trackEvent('repository_tracking_health_metrics', {
-    total_attempts: metrics.totalAttempts,
-    success_count: metrics.successCount,
-    failure_count: metrics.failureCount,
-    timeout_count: metrics.timeoutCount,
-    api_error_count: metrics.apiErrorCount,
-    inngest_failure_count: metrics.inngestFailureCount,
-    success_rate: successRate,
-    timeout_rate: timeoutRate,
-    period_minutes: metrics.periodMinutes,
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    // PostHog: Emit health metrics for dashboards
+    trackEvent('repository_tracking_health_metrics', {
+      total_attempts: metrics.totalAttempts,
+      success_count: metrics.successCount,
+      failure_count: metrics.failureCount,
+      timeout_count: metrics.timeoutCount,
+      api_error_count: metrics.apiErrorCount,
+      inngest_failure_count: metrics.inngestFailureCount,
+      success_rate: successRate,
+      timeout_rate: timeoutRate,
+      period_minutes: metrics.periodMinutes,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to emit health metrics to PostHog:', e);
+  }
 
-  // Sentry: Log health metrics as breadcrumb
-  addBreadcrumb('Tracking health metrics emitted', 'metrics', {
-    success_rate: successRate,
-    timeout_rate: timeoutRate,
-    total_attempts: metrics.totalAttempts,
-  });
+  try {
+    // Sentry: Log health metrics as breadcrumb
+    addBreadcrumb('Tracking health metrics emitted', 'metrics', {
+      success_rate: successRate,
+      timeout_rate: timeoutRate,
+      total_attempts: metrics.totalAttempts,
+    });
 
-  // If success rate is critically low, capture as Sentry message
-  if (successRate < 50 && metrics.totalAttempts >= 10) {
-    captureMessage(
-      `Critical: Repository tracking success rate at ${successRate.toFixed(1)}%`,
-      'error'
-    );
-  } else if (successRate < 80 && metrics.totalAttempts >= 10) {
-    captureMessage(
-      `Warning: Repository tracking success rate at ${successRate.toFixed(1)}%`,
-      'warning'
-    );
+    // If success rate is critically low, capture as Sentry message
+    if (successRate < 50 && metrics.totalAttempts >= 10) {
+      captureMessage(
+        `Critical: Repository tracking success rate at ${successRate.toFixed(1)}%`,
+        'error'
+      );
+    } else if (successRate < 80 && metrics.totalAttempts >= 10) {
+      captureMessage(
+        `Warning: Repository tracking success rate at ${successRate.toFixed(1)}%`,
+        'warning'
+      );
+    }
+  } catch (e) {
+    console.error('[tracking-alerts] Failed to emit health metrics to Sentry:', e);
   }
 }
