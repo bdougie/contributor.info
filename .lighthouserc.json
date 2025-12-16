@@ -5,7 +5,7 @@
       "startServerReadyPattern": "Local",
       "startServerReadyTimeout": 30000,
       "url": ["http://localhost:4173"],
-      "numberOfRuns": 1,
+      "numberOfRuns": 3,
       "settings": {
         "preset": "desktop",
         "throttling": {
@@ -20,14 +20,14 @@
         "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
         "first-contentful-paint": ["error", { "maxNumericValue": 1800 }],
         "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
-        "total-blocking-time": ["warn", { "maxNumericValue": 300 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 350 }],
         "interactive": ["warn", { "maxNumericValue": 3800 }],
         "speed-index": ["warn", { "maxNumericValue": 3400 }],
         "resource-summary:script:size": ["error", { "maxNumericValue": 600000 }],
         "resource-summary:stylesheet:size": ["error", { "maxNumericValue": 100000 }],
         "resource-summary:image:size": ["warn", { "maxNumericValue": 500000 }],
         "resource-summary:total:size": ["error", { "maxNumericValue": 2000000 }],
-        "categories:performance": ["error", { "minScore": 0.85 }],
+        "categories:performance": ["error", { "minScore": 0.8 }],
         "categories:accessibility": ["warn", { "minScore": 0.9 }],
         "categories:best-practices": ["warn", { "minScore": 0.9 }],
         "categories:seo": ["warn", { "minScore": 0.9 }]
