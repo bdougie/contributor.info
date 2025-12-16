@@ -13,13 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  GitPullRequest,
-  GitCommit,
-  MessageSquare,
-  AlertCircle,
   Search,
-  Star,
-  GitFork,
   ChevronUp,
   ChevronDown,
   ExternalLink,
