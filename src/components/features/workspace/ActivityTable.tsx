@@ -30,6 +30,11 @@ import type { ActivityItem } from './AnalyticsDashboard';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
 import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
+import {
+  TYPE_ICONS,
+  TYPE_COLORS,
+  STATUS_COLORS,
+} from './components/activity-table-constants';
 
 export interface ActivityTableProps {
   activities: ActivityItem[];
@@ -40,34 +45,6 @@ export interface ActivityTableProps {
 
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
-
-const TYPE_ICONS = {
-  pr: GitPullRequest,
-  issue: AlertCircle,
-  commit: GitCommit,
-  review: MessageSquare,
-  comment: MessageSquare,
-  star: Star,
-  fork: GitFork,
-};
-
-const TYPE_COLORS = {
-  pr: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-  commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  review: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  comment: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400',
-  star: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  fork: 'bg-white/10 text-white dark:text-white',
-};
-
-const STATUS_COLORS = {
-  open: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  merged: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-  closed: 'bg-gray-500/10 text-gray-700 dark:text-gray-400',
-  approved: 'bg-green-500/10 text-green-700 dark:text-green-400',
-  changes_requested: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
-};
 
 export function ActivityTable({
   activities,
