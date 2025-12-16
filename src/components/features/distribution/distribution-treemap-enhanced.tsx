@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { ChevronLeft, Users } from '@/components/ui/icon';
 import { ResponsiveContainer, Treemap, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ const COLORS = {
   maintenance: '#a78bfa',
 };
 
-export function DistributionTreemapEnhanced({
+export const DistributionTreemapEnhanced = memo(function DistributionTreemapEnhanced({
   data,
   currentView,
   selectedQuadrant,
@@ -134,7 +134,15 @@ export function DistributionTreemapEnhanced({
       }, 400);
       return () => clearTimeout(timer);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- viewAnimation is set by this effect, not a dependency
   }, [currentView]);
+
+  // Helper to compute animation className for treemap-view
+  const getViewAnimationClass = useCallback(() => {
+    if (viewAnimation === 'drill-in') return 'treemap-drill-in';
+    if (viewAnimation === 'drill-out') return 'treemap-drill-out';
+    return '';
+  }, [viewAnimation]);
 
   // Add CSS for smooth transitions
   const treemapStyles = `
@@ -321,6 +329,13 @@ export function DistributionTreemapEnhanced({
         setHoveredPRs([]);
       };
 
+      // Compute fill color - extracted to avoid nested ternary
+      const getFillColor = (): string => {
+        if (isQuadrant && color) return color;
+        if (isPR && languageColor) return languageColor;
+        return COLORS[selectedQuadrant as keyof typeof COLORS] ?? '#888888';
+      };
+
       return (
         <g>
           <rect
@@ -330,11 +345,7 @@ export function DistributionTreemapEnhanced({
             height={height}
             className="distribution-treemap-rect"
             style={{
-              fill: isQuadrant
-                ? color
-                : isPR && languageColor
-                  ? languageColor
-                  : COLORS[selectedQuadrant as keyof typeof COLORS],
+              fill: getFillColor(),
               stroke: '#ffffff',
               strokeWidth: 2,
               strokeOpacity: 0.8,
@@ -348,6 +359,7 @@ export function DistributionTreemapEnhanced({
           />
 
           {/* Content for different node types */}
+          {/* eslint-disable-next-line no-nested-ternary -- complex JSX conditional for node type rendering */}
           {isQuadrant ? (
             // Overview: Clean quadrant view - only show the name
             width > 60 &&
@@ -470,6 +482,7 @@ export function DistributionTreemapEnhanced({
                           })()}
                           alt={login || 'Contributor'}
                           fallback={(login || 'U').slice(0, 2).toUpperCase()}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic size calc doesn't match union type
                           size={Math.min(60, Math.min(width, height) * 0.6) as any}
                           lazy={true}
                           priority={false}
@@ -627,7 +640,7 @@ export function DistributionTreemapEnhanced({
 
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2">
-        {currentView === 'contributor' && selectedQuadrant && selectedContributor ? (
+        {currentView === 'contributor' && selectedQuadrant && selectedContributor && (
           <>
             <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
@@ -646,7 +659,8 @@ export function DistributionTreemapEnhanced({
               })()}
             </span>
           </>
-        ) : currentView === 'quadrant' && selectedQuadrant ? (
+        )}
+        {currentView === 'quadrant' && selectedQuadrant && !selectedContributor && (
           <>
             <Button variant="ghost" size="sm" onClick={onDrillUp} className="gap-1">
               <ChevronLeft className="h-4 w-4" />
@@ -658,21 +672,17 @@ export function DistributionTreemapEnhanced({
                 selectedQuadrant}
             </span>
           </>
-        ) : (
+        )}
+        {/* Fallback for overview or any unhandled state */}
+        {(currentView === 'overview' ||
+          (currentView === 'quadrant' && !selectedQuadrant) ||
+          (currentView === 'contributor' && (!selectedQuadrant || !selectedContributor))) && (
           <span className="font-medium">All Contributions</span>
         )}
       </div>
 
       <div className="treemap-container">
-        <div
-          className={`treemap-view ${
-            viewAnimation === 'drill-in'
-              ? 'treemap-drill-in'
-              : viewAnimation === 'drill-out'
-                ? 'treemap-drill-out'
-                : ''
-          }`}
-        >
+        <div className={`treemap-view ${getViewAnimationClass()}`}>
           <ProgressiveChart
             skeleton={<SkeletonChart variant="quadrant" height="lg" showAxes={false} />}
             highFidelity={
@@ -681,7 +691,7 @@ export function DistributionTreemapEnhanced({
                   data={getTreemapData()}
                   dataKey="value"
                   aspectRatio={4 / 3}
-                  content={CustomTreemapContent as any}
+                  content={CustomTreemapContent as unknown as React.ReactElement}
                   animationBegin={0}
                   animationDuration={300}
                   isAnimationActive={true}
@@ -700,7 +710,7 @@ export function DistributionTreemapEnhanced({
       </div>
     </div>
   );
-}
+});
 
 const QUADRANT_INFO = {
   refinement: { label: 'Refinement' },
