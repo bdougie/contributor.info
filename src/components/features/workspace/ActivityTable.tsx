@@ -163,17 +163,15 @@ export function ActivityTable({
     [sortField]
   );
 
-  const SortIcon = useCallback(
-    ({ field }: { field: SortField }) => {
-      if (sortField !== field) return null;
-      return sortOrder === 'asc' ? (
-        <ChevronUp className="h-4 w-4" />
-      ) : (
-        <ChevronDown className="h-4 w-4" />
-      );
-    },
-    [sortField, sortOrder]
-  );
+  // Helper function to render sort icon - not a component to avoid hooks issues
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
+    return sortOrder === 'asc' ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
+      <ChevronDown className="h-4 w-4" />
+    );
+  };
 
   if (loading) {
     return (
@@ -227,7 +225,7 @@ export function ActivityTable({
                   onClick={() => handleSort('type')}
                 >
                   Type
-                  <SortIcon field="type" />
+                  {renderSortIcon('type')}
                 </Button>
               </div>
               <div className="flex-1 min-w-[250px]">
@@ -241,7 +239,7 @@ export function ActivityTable({
                   onClick={() => handleSort('author')}
                 >
                   Author
-                  <SortIcon field="author" />
+                  {renderSortIcon('author')}
                 </Button>
               </div>
               <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
@@ -252,7 +250,7 @@ export function ActivityTable({
                   onClick={() => handleSort('repository')}
                 >
                   Repo
-                  <SortIcon field="repository" />
+                  {renderSortIcon('repository')}
                 </Button>
               </div>
               <div className="hidden sm:block flex-shrink-0 w-36">Status</div>
@@ -264,7 +262,7 @@ export function ActivityTable({
                   onClick={() => handleSort('created_at')}
                 >
                   Date
-                  <SortIcon field="created_at" />
+                  {renderSortIcon('created_at')}
                 </Button>
               </div>
               <div className="w-8 sm:w-12"></div>
