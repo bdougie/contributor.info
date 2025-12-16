@@ -693,7 +693,6 @@ export class SnapDOMCaptureService {
     contentContainer.style.cssText = `
       padding: ${this.CONTENT_PADDING}px;
       background: ${backgroundColor};
-      min-height: 300px;
       color-scheme: ${colorScheme};
     `;
 
