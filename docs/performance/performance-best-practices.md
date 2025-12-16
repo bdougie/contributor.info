@@ -69,6 +69,7 @@ const routes = {
 - Use Web Workers for heavy computations
 - Implement virtual scrolling for long lists
 - Memoize expensive calculations
+- Defer non-critical initialization to idle time
 
 ```typescript
 // Good - Debounce search input
@@ -78,16 +79,32 @@ const debouncedSearch = useMemo(
 );
 
 // Good - Virtualize long lists
-<VirtualizedList 
+<VirtualizedList
   items={contributors}
   itemHeight={100}
 />
+
+// Good - Defer non-critical work to idle time
+function deferToIdle(callback: () => void): void {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(callback);
+  } else {
+    // Safari fallback
+    setTimeout(callback, 1);
+  }
+}
+
+// Example: Defer persistence setup
+deferToIdle(() => {
+  persistQueryClient({ queryClient, persister });
+});
 ```
 
 **❌ DON'T:**
 - Run expensive operations on every render
 - Render thousands of DOM nodes
 - Block the main thread with long tasks
+- Add static HTML shells to CSR SPAs (React's createRoot replaces DOM entirely)
 
 ### 4. CSS Optimization
 
@@ -221,6 +238,11 @@ Performance tests run automatically on:
 - Preload critical resources
 - Optimize images and fonts
 - Remove render-blocking resources
+- Defer non-critical JS initialization (use `requestIdleCallback`)
+
+**What NOT to do:**
+- Don't add static HTML shells to CSR SPAs - React's `createRoot()` replaces DOM entirely, not hydrates
+- See [LCP Improvements Postmortem](../postmortems/lcp-improvements-dec-2025.md) for details
 
 ### Issue: Poor INP
 

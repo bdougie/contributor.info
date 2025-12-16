@@ -84,9 +84,33 @@ Comprehensive guides for monitoring and optimizing contributor.info performance.
 
 ## 📋 Recent Performance Work
 
+### December 2025 Performance Sprint (Issues #1342-1347)
+
+**Status:** ✅ Complete
+**Tracking Issue:** [#1342 - Performance regression: Lighthouse score dropped from 74 to 68](https://github.com/bdougie/contributor.info/issues/1342)
+
+**Related Issues:**
+| Issue | Metric | Status |
+|-------|--------|--------|
+| [#1343](https://github.com/bdougie/contributor.info/issues/1343) | FCP (2.7s → <1.8s target) | ✅ Closed |
+| [#1344](https://github.com/bdougie/contributor.info/issues/1344) | TTI (4.5s → <3.8s target) | ✅ Closed |
+| [#1346](https://github.com/bdougie/contributor.info/issues/1346) | TBT (250ms → <200ms target) | ✅ Closed |
+| [#1347](https://github.com/bdougie/contributor.info/issues/1347) | LCP (5.6s → <2.5s target) | ✅ Closed |
+
+**Key Fixes:**
+- [PR #1367](https://github.com/bdougie/contributor.info/pull/1367): Defer query-client persistence to improve initial render
+- Used `requestIdleCallback` with `setTimeout` fallback for Safari compatibility
+
+**Lessons Learned:**
+- Static HTML shell approach was attempted but **reverted** - React's `createRoot()` replaces DOM entirely (not hydration), causing high TBT (1,420ms)
+- Deferred persistence is safer than shell approaches for SPAs
+- See [LCP Improvements Postmortem](../postmortems/lcp-improvements-dec-2025.md)
+
+---
+
 ### PR #1282: Supabase Lazy Loading
 
-**Status:** ✅ Deployed  
+**Status:** ✅ Deployed
 **Impact:** 200-500ms LCP improvement (~111 KiB deferred)
 
 **Documentation:**
@@ -228,6 +252,6 @@ localStorage.setItem('enablePostHogDev', 'true')
 
 ---
 
-**Last Updated:** 2025-12-09  
-**Maintainer:** Performance Team (@bdougieyo)  
-**Next Review:** 2025-12-23
+**Last Updated:** 2025-12-16
+**Maintainer:** Performance Team (@bdougieyo)
+**Next Review:** 2025-12-30
