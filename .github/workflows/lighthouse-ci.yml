@@ -39,8 +39,7 @@ jobs:
         run: lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Use local static files instead of deployed URL
-          CI: 'false'
+          # Without DEPLOY_URL, uses local preview server (npm run preview)
 
       - name: Upload Lighthouse Report
         uses: actions/upload-artifact@v4

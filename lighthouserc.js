@@ -2,36 +2,32 @@
  * Lighthouse CI Configuration
  *
  * Environment Variables:
- * - LHCI_BUILD_CONTEXT__CURRENT_HASH: Set by Lighthouse CI in CI environments
- * - CI: Generic CI indicator (set to 'true' in most CI systems)
- * - DEPLOY_URL: The URL of the deployed preview (required in CI, e.g., from Netlify/Vercel)
+ * - DEPLOY_URL: Optional URL of a deployed preview (e.g., from Netlify/Vercel)
  *
- * Local Development: Tests against built files at http://localhost:4173
- * CI: Tests against the deployed preview URL
+ * Modes:
+ * - With DEPLOY_URL: Tests against the deployed preview
+ * - Without DEPLOY_URL: Starts local preview server and tests against it
  */
 
-// Detect CI environment
-const isCI = process.env.LHCI_BUILD_CONTEXT__CURRENT_HASH || process.env.CI === 'true';
-
-// Get base URL - fail fast in CI if not provided to avoid testing wrong environment
-const baseUrl = isCI ? process.env.DEPLOY_URL : 'http://localhost:4173';
-
-// Fail fast in CI if no DEPLOY_URL is provided
-if (isCI && !baseUrl) {
-  console.error('Error: DEPLOY_URL environment variable is required in CI environments');
-  process.exit(1);
-}
+// Use deployed URL if provided, otherwise use local preview server
+const deployUrl = process.env.DEPLOY_URL;
+const useLocalServer = !deployUrl;
 
 export default {
   ci: {
     collect: {
-      // Use staticDistDir for local testing, URLs for CI
-      ...(baseUrl.startsWith('http://localhost')
-        ? { staticDistDir: './dist' }
+      // Use preview server for local/CI testing, URLs for deployed environments
+      ...(useLocalServer
+        ? {
+            startServerCommand: 'npm run preview',
+            startServerReadyPattern: 'Local:',
+            startServerReadyTimeout: 30000,
+            url: ['http://localhost:4173'],
+          }
         : {
-            url: [baseUrl, `${baseUrl}/vercel/next.js`, `${baseUrl}/continuedev/continue`],
+            url: [deployUrl, `${deployUrl}/vercel/next.js`, `${deployUrl}/continuedev/continue`],
           }),
-      numberOfRuns: baseUrl.startsWith('http://localhost') ? 1 : 3,
+      numberOfRuns: useLocalServer ? 1 : 3,
       settings: {
         preset: 'desktop',
         throttling: {
