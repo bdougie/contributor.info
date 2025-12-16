@@ -7,7 +7,11 @@ import {
   GitFork,
 } from '@/components/ui/icon';
 
-export const TYPE_ICONS = {
+type ActivityType = 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
+
+type IconComponent = typeof GitPullRequest;
+
+export const TYPE_ICONS: Record<ActivityType, IconComponent> = {
   pr: GitPullRequest,
   issue: AlertCircle,
   commit: GitCommit,
@@ -17,7 +21,7 @@ export const TYPE_ICONS = {
   fork: GitFork,
 };
 
-export const TYPE_COLORS = {
+export const TYPE_COLORS: Record<ActivityType, string> = {
   pr: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
   issue: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
   commit: 'bg-green-500/10 text-green-700 dark:text-green-400',
