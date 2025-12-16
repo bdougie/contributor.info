@@ -62,12 +62,17 @@ export function Markdown({ children, className }: MarkdownProps) {
             return <h3 id={id}>{children}</h3>;
           },
           img: ({ src, alt }) => {
+            // Don't render if src is empty/undefined to avoid unnecessary network requests
+            if (!src) {
+              return null;
+            }
+
             // Determine if image should be priority loaded (above the fold)
-            const isPriority = src?.includes('hero') || src?.includes('banner');
+            const isPriority = src.includes('hero') || src.includes('banner');
 
             return (
               <OptimizedImage
-                src={src || ''}
+                src={src}
                 alt={alt || ''}
                 lazy={!isPriority}
                 priority={isPriority}

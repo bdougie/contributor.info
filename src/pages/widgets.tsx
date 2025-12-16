@@ -41,7 +41,7 @@ export default function WidgetsPage() {
               const pr = stats.pullRequests.find((p) => p.user.login === login);
               return {
                 login,
-                avatar_url: pr?.user.avatar_url || '',
+                avatar_url: pr?.user.avatar_url ?? `https://github.com/${login}.png`,
                 contributions: count,
               };
             });
