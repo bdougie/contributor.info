@@ -39,8 +39,7 @@
     <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
     <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
 
-    <!-- Modulepreload for critical vendor chunks -->
-    <!-- Vite automatically injects the correct modulepreload links during build -->
+    <!-- Vite automatically injects modulepreload links for critical vendor chunks during build -->
     <!--vite-plugin-pwa:modulepreload-->
     <!--/vite-plugin-pwa:modulepreload-->
     
@@ -75,6 +74,8 @@
       /* Minimal layout for FCP */
       .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
       @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+      /* Critical CSS for static LCP shell */
+      .bg-card{background-color:hsl(var(--card))}.rounded-lg{border-radius:var(--radius)}.border{border-width:1px;border-color:hsl(var(--border))}.shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05)}.p-6{padding:1.5rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.font-bold{font-weight:700}.text-center{text-align:center}.text-lg{font-size:1.125rem;line-height:1.75rem}.mt-2{margin-top:0.5rem}.text-muted-foreground{color:hsl(var(--muted-foreground))}.max-w-2xl{max-width:42rem}.w-full{width:100%}.px-4{padding-left:1rem;padding-right:1rem}.h-16{height:4rem}.flex-1{flex:1 1 0%}.space-y-6>:not([hidden])~:not([hidden]){margin-top:1.5rem}
       /* Prevent FOUC */
       body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
       #root{min-height:100vh;background-color:hsl(var(--background))}
@@ -100,7 +101,28 @@
     <meta property="twitter:image:alt" content="Contributor.info - Visualizing Open Source Contributions" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static shell for instant LCP - replaced by React on hydrate -->
+      <div class="min-h-screen bg-background flex flex-col">
+        <header class="border-b h-16 flex items-center px-4">
+          <span class="font-bold">contributor.info</span>
+        </header>
+        <main class="flex-1 flex items-center justify-center">
+          <article class="w-full max-w-2xl px-4">
+            <div class="space-y-6">
+              <div class="bg-card rounded-lg border shadow-sm p-6">
+                <h1 class="text-3xl font-bold text-center">
+                  Analyze GitHub Repository Contributors
+                </h1>
+                <p class="text-center text-lg mt-2 text-muted-foreground">
+                  Enter a GitHub repository URL or owner/repo to visualize contribution patterns
+                </p>
+              </div>
+            </div>
+          </article>
+        </main>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
-    </body>
+  </body>
 </html>
