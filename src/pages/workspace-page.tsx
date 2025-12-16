@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
@@ -13,7 +13,6 @@ import {
   generateActivityData,
   type MergedPR,
 } from '@/services/workspace-metrics.service';
-import { WorkspaceContributorsTab } from '@/components/features/workspace/WorkspaceContributorsTab';
 import { WorkspaceDashboard, WorkspaceDashboardSkeleton } from '@/components/features/workspace';
 import type { CurrentItem } from '@/components/features/workspace/ResponsePreviewModal';
 import type { SimilarItem } from '@/services/similarity-search';
@@ -24,10 +23,7 @@ import {
   useDebouncedSimilaritySearch,
 } from '@/hooks/use-similarity-search-cache';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
-import {
-  WorkspaceDiscussionsTable,
-  type Discussion,
-} from '@/components/features/workspace/WorkspaceDiscussionsTable';
+import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,20 +39,49 @@ import type {
 } from '@/components/features/workspace';
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
-import { WorkspaceSettings as WorkspaceSettingsComponent } from '@/components/features/workspace/settings/WorkspaceSettings';
 import { useMyWork } from '@/hooks/use-my-work';
 import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
+import type { WorkspaceActivityTabProps as WorkspaceActivityProps } from '@/components/features/workspace/WorkspaceActivityTab';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 
-// Extracted tab components
-import { WorkspacePRsTab } from '@/components/features/workspace/WorkspacePRsTab';
-import { WorkspaceIssuesTab } from '@/components/features/workspace/WorkspaceIssuesTab';
-import { WorkspaceSpamTab } from '@/components/features/workspace/WorkspaceSpamTab';
-import {
-  WorkspaceActivityTab,
-  type WorkspaceActivityTabProps as WorkspaceActivityProps,
-} from '@/components/features/workspace/WorkspaceActivityTab';
+// Lazy load tab components for better TTI - only "overview" tab loads immediately
+// Other tabs load on-demand when user navigates to them
+const WorkspaceContributorsTab = lazy(() =>
+  import('@/components/features/workspace/WorkspaceContributorsTab').then((m) => ({
+    default: m.WorkspaceContributorsTab,
+  }))
+);
+const WorkspacePRsTab = lazy(() =>
+  import('@/components/features/workspace/WorkspacePRsTab').then((m) => ({
+    default: m.WorkspacePRsTab,
+  }))
+);
+const WorkspaceIssuesTab = lazy(() =>
+  import('@/components/features/workspace/WorkspaceIssuesTab').then((m) => ({
+    default: m.WorkspaceIssuesTab,
+  }))
+);
+const WorkspaceSpamTab = lazy(() =>
+  import('@/components/features/workspace/WorkspaceSpamTab').then((m) => ({
+    default: m.WorkspaceSpamTab,
+  }))
+);
+const WorkspaceActivityTab = lazy(() =>
+  import('@/components/features/workspace/WorkspaceActivityTab').then((m) => ({
+    default: m.WorkspaceActivityTab,
+  }))
+);
+const WorkspaceDiscussionsTable = lazy(() =>
+  import('@/components/features/workspace/WorkspaceDiscussionsTable').then((m) => ({
+    default: m.WorkspaceDiscussionsTable,
+  }))
+);
+const WorkspaceSettingsComponent = lazy(() =>
+  import('@/components/features/workspace/settings/WorkspaceSettings').then((m) => ({
+    default: m.WorkspaceSettings,
+  }))
+);
 // import { WorkspaceExportService } from '@/services/workspace-export.service';
 // import type {
 //   AnalyticsData,
@@ -73,6 +98,22 @@ import {
   WorkspaceModals,
   UpgradePrompt,
 } from '@/components/features/workspace-page/components';
+
+// Tab loading skeleton for lazy-loaded tabs
+const TabSkeleton = () => (
+  <div className="container max-w-7xl mx-auto space-y-4">
+    <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+    <div className="border rounded-lg p-6 space-y-4">
+      <div className="h-6 w-3/4 bg-muted animate-pulse rounded" />
+      <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
+      <div className="space-y-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 // ActivityItem type definition used in this page for hover cards and analytics
 interface ActivityItem {
@@ -1726,80 +1767,90 @@ function WorkspacePage() {
           </TabsContent>
 
           <TabsContent value="prs" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspacePRsTab
-                repositories={repositories}
-                selectedRepositories={selectedRepositories}
-                timeRange={timeRange}
-                workspaceId={workspace.id}
-                workspace={workspace}
-                setReviewerModalOpen={setReviewerModalOpen}
-                onGitHubAppModalOpen={handleGitHubAppModalOpen}
-                currentUser={currentUser}
-                currentMember={currentMember}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspacePRsTab
+                  repositories={repositories}
+                  selectedRepositories={selectedRepositories}
+                  timeRange={timeRange}
+                  workspaceId={workspace.id}
+                  workspace={workspace}
+                  setReviewerModalOpen={setReviewerModalOpen}
+                  onGitHubAppModalOpen={handleGitHubAppModalOpen}
+                  currentUser={currentUser}
+                  currentMember={currentMember}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="issues" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceIssuesTab
-                repositories={repositories}
-                selectedRepositories={selectedRepositories}
-                timeRange={timeRange}
-                workspaceId={workspace.id}
-                workspace={workspace}
-                onGitHubAppModalOpen={handleGitHubAppModalOpen}
-                currentUser={currentUser}
-                currentMember={currentMember}
-                onIssueRespond={handleIssueRespond}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceIssuesTab
+                  repositories={repositories}
+                  selectedRepositories={selectedRepositories}
+                  timeRange={timeRange}
+                  workspaceId={workspace.id}
+                  workspace={workspace}
+                  onGitHubAppModalOpen={handleGitHubAppModalOpen}
+                  currentUser={currentUser}
+                  currentMember={currentMember}
+                  onIssueRespond={handleIssueRespond}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="discussions" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceDiscussionsTable
-                repositories={repositories.map((r) => ({
-                  id: r.id,
-                  name: r.name,
-                  owner: r.owner,
-                  full_name: r.full_name,
-                }))}
-                selectedRepositories={selectedRepositories}
-                workspaceId={workspace.id}
-                timeRange={timeRange}
-                userRole={currentMember?.role}
-                isLoggedIn={!!currentUser}
-                onRespondClick={handleDiscussionRespond}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceDiscussionsTable
+                  repositories={repositories.map((r) => ({
+                    id: r.id,
+                    name: r.name,
+                    owner: r.owner,
+                    full_name: r.full_name,
+                  }))}
+                  selectedRepositories={selectedRepositories}
+                  workspaceId={workspace.id}
+                  timeRange={timeRange}
+                  userRole={currentMember?.role}
+                  isLoggedIn={!!currentUser}
+                  onRespondClick={handleDiscussionRespond}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="spam" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceSpamTab
-                repositories={repositories}
-                selectedRepositories={selectedRepositories}
-                currentUser={currentUser}
-                currentMember={currentMember}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceSpamTab
+                  repositories={repositories}
+                  selectedRepositories={selectedRepositories}
+                  currentUser={currentUser}
+                  currentMember={currentMember}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="contributors" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceContributorsTab
-                repositories={repositories}
-                selectedRepositories={selectedRepositories}
-                workspaceId={workspace.id}
-                userRole={currentMember?.role}
-                workspaceTier={workspace.tier}
-                isLoggedIn={!!currentUser}
-                currentUser={currentUser}
-                activities={activities}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceContributorsTab
+                  repositories={repositories}
+                  selectedRepositories={selectedRepositories}
+                  workspaceId={workspace.id}
+                  userRole={currentMember?.role}
+                  workspaceTier={workspace.tier}
+                  isLoggedIn={!!currentUser}
+                  currentUser={currentUser}
+                  activities={activities}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           {/* Analytics tab content disabled - will be implemented in issue #598
@@ -1844,54 +1895,58 @@ function WorkspacePage() {
           </TabsContent> */}
 
           <TabsContent value="activity" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceActivityTab
-                workspace={workspace}
-                prData={fullPRData}
-                issueData={fullIssueData}
-                reviewData={fullReviewData}
-                commentData={fullCommentData}
-                starData={fullStarData}
-                forkData={fullForkData}
-                repositories={repositories}
-                loading={loading}
-                error={error}
-                onSyncComplete={fetchWorkspace}
-              />
-            </div>
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceActivityTab
+                  workspace={workspace}
+                  prData={fullPRData}
+                  issueData={fullIssueData}
+                  reviewData={fullReviewData}
+                  commentData={fullCommentData}
+                  starData={fullStarData}
+                  forkData={fullForkData}
+                  repositories={repositories}
+                  loading={loading}
+                  error={error}
+                  onSyncComplete={fetchWorkspace}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
-              <WorkspaceSettingsComponent
-                workspace={workspace}
-                currentMember={
-                  currentMember || {
-                    id: '',
-                    workspace_id: workspace.id,
-                    user_id: currentUser?.id || '',
-                    role: isWorkspaceOwner ? 'owner' : 'contributor',
-                    accepted_at: null,
-                    invited_at: null,
-                    invited_by: null,
-                    notifications_enabled: true,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                    last_active_at: new Date().toISOString(),
+            <Suspense fallback={<TabSkeleton />}>
+              <div className="container max-w-7xl mx-auto">
+                <WorkspaceSettingsComponent
+                  workspace={workspace}
+                  currentMember={
+                    currentMember || {
+                      id: '',
+                      workspace_id: workspace.id,
+                      user_id: currentUser?.id || '',
+                      role: isWorkspaceOwner ? 'owner' : 'contributor',
+                      accepted_at: null,
+                      invited_at: null,
+                      invited_by: null,
+                      notifications_enabled: true,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                      last_active_at: new Date().toISOString(),
+                    }
                   }
-                }
-                memberCount={memberCount}
-                repositories={repositories.map((repo) => ({
-                  id: repo.id,
-                  owner: repo.owner,
-                  name: repo.name,
-                  full_name: repo.full_name,
-                  stargazers_count: repo.stars,
-                  forks_count: repo.forks,
-                }))}
-                onWorkspaceUpdate={handleWorkspaceUpdate}
-              />
-            </div>
+                  memberCount={memberCount}
+                  repositories={repositories.map((repo) => ({
+                    id: repo.id,
+                    owner: repo.owner,
+                    name: repo.name,
+                    full_name: repo.full_name,
+                    stargazers_count: repo.stars,
+                    forks_count: repo.forks,
+                  }))}
+                  onWorkspaceUpdate={handleWorkspaceUpdate}
+                />
+              </div>
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>
