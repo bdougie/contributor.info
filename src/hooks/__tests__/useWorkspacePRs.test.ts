@@ -1,5 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { useWorkspacePRs } from '../useWorkspacePRs';
 import type { Repository } from '@/components/features/workspace';
 
@@ -66,13 +68,30 @@ describe('useWorkspacePRs', () => {
     vi.restoreAllMocks();
   });
 
+  // Helper to wrap hooks with QueryClientProvider
+  const createWrapper = () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+        },
+      },
+    });
+    return ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  };
+
   it('should initialize with loading state', () => {
-    const { result } = renderHook(() =>
-      useWorkspacePRs({
-        repositories: [],
-        selectedRepositories: [],
-        workspaceId: 'workspace-123',
-      })
+    const { result } = renderHook(
+      () =>
+        useWorkspacePRs({
+          repositories: [],
+          selectedRepositories: [],
+          workspaceId: 'workspace-123',
+        }),
+      { wrapper: createWrapper() }
     );
 
     expect(result.current.loading).toBe(true);
@@ -81,12 +100,14 @@ describe('useWorkspacePRs', () => {
   });
 
   it('should not sync when repositories are empty', () => {
-    renderHook(() =>
-      useWorkspacePRs({
-        repositories: [],
-        selectedRepositories: [],
-        workspaceId: 'workspace-123',
-      })
+    renderHook(
+      () =>
+        useWorkspacePRs({
+          repositories: [],
+          selectedRepositories: [],
+          workspaceId: 'workspace-123',
+        }),
+      { wrapper: createWrapper() }
     );
 
     // Should not attempt to sync with empty repositories
@@ -128,14 +149,16 @@ describe('useWorkspacePRs', () => {
       staleMockClient as ReturnType<typeof mockSupabase.from>
     );
 
-    renderHook(() =>
-      useWorkspacePRs({
-        repositories: mockRepositories,
-        selectedRepositories: [],
-        workspaceId: 'workspace-123',
-        autoSyncOnMount: true,
-        maxStaleMinutes: 60,
-      })
+    renderHook(
+      () =>
+        useWorkspacePRs({
+          repositories: mockRepositories,
+          selectedRepositories: [],
+          workspaceId: 'workspace-123',
+          autoSyncOnMount: true,
+          maxStaleMinutes: 60,
+        }),
+      { wrapper: createWrapper() }
     );
 
     // NOTE: Cannot assert syncPullRequestReviewers was called because it happens asynchronously
