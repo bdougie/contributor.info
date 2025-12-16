@@ -17,10 +17,20 @@ const Home = lazy(() => import('@/components/common/layout').then((m) => ({ defa
 const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
 );
-import { ProtectedRoute, AdminRoute } from '@/components/features/auth';
-import { initializeLLMCitationTracking } from '@/lib/llm-citation-tracking';
-import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
-import { WorkspaceRedirect } from '@/components/WorkspaceRedirect';
+// Lazy load auth guards - only needed when navigating to protected routes
+const ProtectedRoute = lazy(() =>
+  import('@/components/features/auth').then((m) => ({ default: m.ProtectedRoute }))
+);
+const AdminRoute = lazy(() =>
+  import('@/components/features/auth').then((m) => ({ default: m.AdminRoute }))
+);
+// Lazy load components not needed for initial FCP
+const SVGSpriteInliner = lazy(() =>
+  import('@/components/ui/svg-sprite-loader').then((m) => ({ default: m.SVGSpriteInliner }))
+);
+const WorkspaceRedirect = lazy(() =>
+  import('@/components/WorkspaceRedirect').then((m) => ({ default: m.WorkspaceRedirect }))
+);
 
 // Lazy load route components for better performance
 const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
@@ -174,142 +184,26 @@ const InvitationAcceptancePage = lazy(() =>
   }))
 );
 
-// Loading fallback component matching actual app structure
-const PageSkeleton = () => {
-  const isOrgPage = window.location.pathname.startsWith('/orgs/');
-  const isRepoPage = /^\/[^/]+\/[^/]+/.test(window.location.pathname) && !isOrgPage;
-  const isHomePage = window.location.pathname === '/';
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header matching actual layout */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4">
-          <div className="flex items-center space-x-4">
-            {/* Hamburger menu skeleton */}
-            <div className="p-2">
-              <div className="h-5 w-5 bg-muted animate-pulse rounded" />
-            </div>
-            {/* Logo/Title */}
-            <div className="text-xl font-bold">contributor.info</div>
-          </div>
-          {/* Auth button skeleton */}
-          <div className="ml-auto">
-            <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
-          </div>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="container px-4 py-6 flex-1">
-        {(() => {
-          if (isHomePage) {
-            /* Home page skeleton - centered card with search */
-            return (
-              <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-                <div className="w-full max-w-2xl border rounded-lg p-8 space-y-6">
-                  {/* Title */}
-                  <div className="space-y-3">
-                    <div className="h-8 bg-muted animate-pulse rounded mx-auto w-3/4" />
-                    <div className="h-5 bg-muted animate-pulse rounded mx-auto w-2/3" />
-                  </div>
-                  {/* Search input skeleton */}
-                  <div className="h-10 bg-muted animate-pulse rounded" />
-                  {/* Example repos skeleton */}
-                  <div className="space-y-2 pt-4">
-                    <div className="h-4 bg-muted animate-pulse rounded w-32" />
-                    <div className="flex gap-2 flex-wrap">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-8 w-24 bg-muted animate-pulse rounded" />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          if (isOrgPage) {
-            /* Organization page skeleton */
-            return (
-              <div className="max-w-6xl mx-auto space-y-6">
-                {/* Breadcrumbs */}
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-4 w-12 bg-muted animate-pulse rounded" />
-                  <span>/</span>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                </div>
-                {/* Org header with avatar and name */}
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-muted animate-pulse rounded-md" />
-                  <div>
-                    <div className="h-8 w-32 bg-muted animate-pulse rounded mb-2" />
-                    <div className="h-4 w-48 bg-muted animate-pulse rounded" />
-                  </div>
-                </div>
-                {/* Table skeleton */}
-                <div className="border rounded-lg">
-                  <div className="p-4 border-b">
-                    <div className="h-6 w-24 bg-muted animate-pulse rounded" />
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-3 border-b last:border-0"
-                      >
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                          <div className="h-3 w-48 bg-muted animate-pulse rounded" />
-                        </div>
-                        <div className="h-6 w-16 bg-muted animate-pulse rounded" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          /* Repository/default page skeleton */
-          return (
-            <div className="space-y-6">
-              {/* Breadcrumbs for repo pages */}
-              {isRepoPage && (
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="h-4 w-12 bg-muted animate-pulse rounded" />
-                  <span>/</span>
-                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                  <span>/</span>
-                  <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                </div>
-              )}
-              {/* Page title */}
-              <div className="h-8 w-2/3 bg-muted animate-pulse rounded" />
-              {/* Content cards */}
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="border rounded-lg p-6 space-y-3">
-                    <div className="h-5 w-3/4 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-1/2 bg-muted animate-pulse rounded" />
-                    <div className="h-4 w-5/6 bg-muted animate-pulse rounded" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t py-4">
-        <div className="container px-4 text-center">
-          <div className="h-4 w-32 bg-muted animate-pulse rounded mx-auto" />
-        </div>
-      </footer>
-    </div>
-  );
-};
+// Minimal loading fallback for fast FCP - simplified to reduce JS execution time
+const PageSkeleton = () => (
+  <div className="min-h-screen bg-background flex flex-col">
+    {/* Minimal header */}
+    <header className="border-b">
+      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
+        <div className="text-xl font-bold">contributor.info</div>
+        <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
+      </div>
+    </header>
+    {/* Minimal content skeleton */}
+    <main className="flex-1 flex items-center justify-center">
+      <div className="w-full max-w-2xl px-4 space-y-4">
+        <div className="h-8 bg-muted animate-pulse rounded w-3/4 mx-auto" />
+        <div className="h-10 bg-muted animate-pulse rounded" />
+        <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto" />
+      </div>
+    </main>
+  </div>
+);
 
 function App() {
   // Sync subscription status on app load
@@ -405,16 +299,19 @@ function App() {
     };
   }, []);
 
-  // Initialize LLM Citation tracking
+  // Initialize LLM Citation tracking (deferred to avoid blocking FCP)
   useEffect(() => {
-    const citationTracker = initializeLLMCitationTracking();
+    let citationTracker: { destroy: () => void } | null = null;
 
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug('[LLM Citation Tracker] Initialized for tracking AI platform citations');
-    }
+    import('@/lib/llm-citation-tracking').then(({ initializeLLMCitationTracking }) => {
+      citationTracker = initializeLLMCitationTracking();
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[LLM Citation Tracker] Initialized for tracking AI platform citations');
+      }
+    });
 
     return () => {
-      citationTracker.destroy();
+      citationTracker?.destroy();
     };
   }, []);
 
@@ -428,48 +325,28 @@ function App() {
     });
   }, []);
 
-  // Preload critical routes and initialize progressive features after mount
+  // Load progressive features AFTER LCP (deferred to avoid impacting FCP/LCP)
   useEffect(() => {
-    // Initialize auto-tracking service for 404 interception
-
-    const initializeDeferred = async () => {
-      // Priority 1: Load auth (small, likely needed) immediately
-      // Note: repo-view is NOT preloaded here - it's 288KB and includes chart dependencies
-      // Instead, it's preloaded on hover via route-prefetch.ts for better LCP
-      const criticalImports = [
-        import('@/components/features/auth/login-page'),
-        // Supabase deferred to first interaction - see supabase-lazy.ts
-        import('@/hooks/use-cached-repo-data'),
-      ];
-
-      // Start critical loads immediately
-      Promise.all(criticalImports).catch(console.warn);
-
-      // Priority 2: Background progressive features (deferred to idle time)
-      const loadProgressiveFeatures = () => {
-        Promise.all([
-          import('@/lib/progressive-capture/manual-trigger'),
-          // Smart notifications auto-initialize on module load with singleton guard
-          import('@/lib/progressive-capture/smart-notifications'),
-          import('@/lib/progressive-capture/background-processor'),
-        ]).catch(console.warn);
-      };
-
-      // Load progressive features after browser idle time
-      // Note: repo-view is NOT preloaded here - it loads on-demand when navigating to a repo
-      // Hover-based prefetching is handled by route-prefetch.ts for better UX
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(loadProgressiveFeatures, { timeout: 1000 });
-      } else {
-        // Fallback for browsers without requestIdleCallback
-        setTimeout(loadProgressiveFeatures, 500);
-      }
+    // Progressive features are non-critical - defer 5 seconds to ensure FCP/LCP complete first
+    const loadProgressiveFeatures = () => {
+      Promise.all([
+        import('@/lib/progressive-capture/manual-trigger'),
+        import('@/lib/progressive-capture/smart-notifications'),
+        import('@/lib/progressive-capture/background-processor'),
+      ]).catch(console.warn);
     };
 
-    initializeDeferred();
+    // Use requestIdleCallback with long timeout, or setTimeout as fallback
+    // This ensures these modules don't compete with initial render resources
+    const timeoutId = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
+      } else {
+        loadProgressiveFeatures();
+      }
+    }, 5000); // Wait 5 seconds after mount before even trying to load
 
-    // Cleanup on unmount
-    return () => {};
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (

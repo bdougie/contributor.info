@@ -33,34 +33,16 @@
     <meta name="application-name" content="Contributor Info" />
     <meta name="format-detection" content="telephone=no" />
     
-    <!-- Performance optimizations -->
-    <!-- Keep only critical preconnect (Supabase) to stay under recommended limit of 4 -->
-    <link rel="preconnect" href="https://egcxzonpmmcirmgqdrla.supabase.co" crossorigin>
-    <!-- Use cheaper dns-prefetch for non-critical resources -->
+    <!-- Performance optimizations for FCP -->
+    <!-- Removed Supabase preconnect - flagged as unused by Lighthouse (issue #1343) -->
+    <!-- Use dns-prefetch for resources loaded after initial render -->
     <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
-    <link rel="dns-prefetch" href="https://api.github.com">
-    <link rel="dns-prefetch" href="https://github.com">
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-    
-    <!-- Fonts temporarily disabled due to CSP issues - using system fonts -->
-    <!-- TODO: Implement self-hosted fonts with subsetting (issue #475) -->
-    <!-- <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript> -->
-    
-    <!-- Preload icon sprite if using SVG icons -->
-    <link rel="preload" href="/icons.svg" as="image" type="image/svg+xml" fetchpriority="low">
-    
+    <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
+
     <!-- Modulepreload for critical vendor chunks -->
     <!-- Vite automatically injects the correct modulepreload links during build -->
-    <!-- The placeholder comments below help Vite identify where to inject them -->
     <!--vite-plugin-pwa:modulepreload-->
     <!--/vite-plugin-pwa:modulepreload-->
-    
-    <!-- Vite will inject additional modulepreload links for critical chunks automatically -->
-    
-    <!-- Prefetch likely next navigations -->
-    <!-- Note: API endpoints are now handled by Supabase client-side queries -->
     
     <!-- Prevent FOUC by detecting theme before render -->
     <script>
@@ -80,9 +62,23 @@
       })();
     </script>
     
-    <!-- Preload critical CSS for instant rendering -->
-    <link rel="preload" href="/critical.css" as="style">
-    <link rel="stylesheet" href="/critical.css">
+    <!-- Inlined critical CSS for instant rendering (no additional request) -->
+    <style>
+      /* Critical base styles - inlined to eliminate render-blocking request */
+      *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
+      ::before,::after{--tw-content:''}
+      html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+      body{margin:0;line-height:inherit;font-display:swap}
+      /* Critical theme variables */
+      :root{--background:210 20% 98%;--foreground:215 25% 27%;--card:0 0% 100%;--card-foreground:215 25% 27%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:210 20% 94%;--secondary-foreground:215 25% 27%;--muted:210 20% 94%;--muted-foreground:215 16% 47%;--border:220 13% 91%;--input:210 20% 96%;--ring:14 100% 50%;--radius:0.5rem}
+      .dark{--background:0 0% 3.9%;--foreground:0 0% 98%;--card:0 0% 3.9%;--card-foreground:0 0% 98%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:0 0% 14.9%;--secondary-foreground:0 0% 98%;--muted:0 0% 14.9%;--muted-foreground:0 0% 63.9%;--border:0 0% 14.9%;--input:0 0% 14.9%;--ring:14 100% 50%}
+      /* Minimal layout for FCP */
+      .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+      @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+      /* Prevent FOUC */
+      body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
+      #root{min-height:100vh;background-color:hsl(var(--background))}
+    </style>
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
