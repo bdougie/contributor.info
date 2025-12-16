@@ -16,8 +16,9 @@ const useLocalServer = !deployUrl;
 export default {
   ci: {
     collect: {
-      // Explicitly disable staticDistDir auto-detection - we use preview server instead
-      staticDistDir: undefined,
+      // Explicitly set to false to disable staticDistDir auto-detection
+      // LHCI auto-detects ./dist and overrides startServerCommand unless disabled
+      staticDistDir: false,
       // Use preview server for local/CI testing, URLs for deployed environments
       ...(useLocalServer
         ? {
