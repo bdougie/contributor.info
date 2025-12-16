@@ -8,24 +8,35 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000,   // 30 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes
     },
   },
 });
 
 // Create a persister using localStorage
 // Only initialize if window is defined (browser environment)
+// Deferred to avoid blocking LCP - persistence can happen after initial render
 if (typeof window !== 'undefined') {
-  const localStoragePersister = createSyncStoragePersister({
-    storage: window.localStorage,
-    key: 'REACT_QUERY_OFFLINE_CACHE',
-  });
+  const initializePersistence = () => {
+    const localStoragePersister = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: 'REACT_QUERY_OFFLINE_CACHE',
+    });
 
-  // Persist the query client
-  persistQueryClient({
-    queryClient,
-    persister: localStoragePersister,
-    maxAge: 30 * 60 * 1000, // 30 minutes
-    buster: 'v1', // Increment this to bust the cache on version updates
-  });
+    // Persist the query client
+    persistQueryClient({
+      queryClient,
+      persister: localStoragePersister,
+      maxAge: 30 * 60 * 1000, // 30 minutes
+      buster: 'v1', // Increment this to bust the cache on version updates
+    });
+  };
+
+  // Defer persistence setup to avoid blocking initial render
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initializePersistence, { timeout: 2000 });
+  } else {
+    // Fallback for Safari
+    setTimeout(initializePersistence, 100);
+  }
 }
