@@ -321,7 +321,7 @@ function App() {
     const initVitals = () => {
       import('./lib/web-vitals-monitoring').then(({ initializeWebVitalsMonitoring }) => {
         const vitalsMonitor = initializeWebVitalsMonitoring({
-          debug: process.env.NODE_ENV === 'development',
+          debug: (import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development',
           // Optional: Set up reporting endpoint for production
           // reportingEndpoint: '/api/vitals'
         });
@@ -334,7 +334,7 @@ function App() {
         });
 
         // Log metrics to console in development
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
           vitalsMonitor.onMetric((metric) => {
             // Additional logging or analytics can be added here
             if (metric.rating !== 'good') {
@@ -409,7 +409,7 @@ function App() {
   useEffect(() => {
     const citationTracker = initializeLLMCitationTracking();
 
-    if (process.env.NODE_ENV === 'development') {
+    if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
       logger.debug('[LLM Citation Tracker] Initialized for tracking AI platform citations');
     }
 
@@ -422,16 +422,14 @@ function App() {
   useEffect(() => {
     import('./lib/error-tracker').then(({ setupGlobalErrorTracking }) => {
       setupGlobalErrorTracking();
-      if (process.env.NODE_ENV === 'development') {
+      if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
         logger.debug('[Error Tracking] Global error handlers initialized with PostHog');
       }
     });
   }, []);
 
-  // Preload critical routes and initialize progressive features after mount
+  // Preload critical routes after mount
   useEffect(() => {
-    // Initialize auto-tracking service for 404 interception
-
     const initializeDeferred = async () => {
       // Priority 1: Load auth (small, likely needed) immediately
       // Note: repo-view is NOT preloaded here - it's 288KB and includes chart dependencies
@@ -444,32 +442,36 @@ function App() {
 
       // Start critical loads immediately
       Promise.all(criticalImports).catch(console.warn);
-
-      // Priority 2: Background progressive features (deferred to idle time)
-      const loadProgressiveFeatures = () => {
-        Promise.all([
-          import('@/lib/progressive-capture/manual-trigger'),
-          // Smart notifications auto-initialize on module load with singleton guard
-          import('@/lib/progressive-capture/smart-notifications'),
-          import('@/lib/progressive-capture/background-processor'),
-        ]).catch(console.warn);
-      };
-
-      // Load progressive features after browser idle time
-      // Note: repo-view is NOT preloaded here - it loads on-demand when navigating to a repo
-      // Hover-based prefetching is handled by route-prefetch.ts for better UX
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(loadProgressiveFeatures, { timeout: 1000 });
-      } else {
-        // Fallback for browsers without requestIdleCallback
-        setTimeout(loadProgressiveFeatures, 500);
-      }
     };
 
     initializeDeferred();
 
     // Cleanup on unmount
     return () => {};
+  }, []);
+
+  // Load progressive features with guaranteed 5-second delay (after FCP/LCP)
+  useEffect(() => {
+    // Progressive features are non-critical - wait 5 seconds to ensure FCP/LCP complete first
+    const loadProgressiveFeatures = () => {
+      Promise.all([
+        import('@/lib/progressive-capture/manual-trigger'),
+        // Smart notifications auto-initialize on module load with singleton guard
+        import('@/lib/progressive-capture/smart-notifications'),
+        import('@/lib/progressive-capture/background-processor'),
+      ]).catch(console.warn);
+    };
+
+    // Wait 5 seconds, then schedule during idle time if available
+    const timeoutId = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadProgressiveFeatures);
+      } else {
+        loadProgressiveFeatures();
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
