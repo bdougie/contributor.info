@@ -9,7 +9,7 @@ In mid-December 2025, we identified a performance regression where the Lighthous
 | Date | Event |
 |------|-------|
 | Dec 16 | Issue #1342 created tracking regression |
-| Dec 16 | Sub-issues #1343-1347 created for individual CWV metrics |
+| Dec 16 | Sub-issues #1343, #1344, #1346, #1347 created for individual CWV metrics |
 | Dec 16 | PR #1367 merged with deferred persistence fix |
 | Dec 16 | Issues #1343, #1344, #1346, #1347 closed |
 
