@@ -82,7 +82,8 @@ function transformToHierarchy(
   quadrantMap: Record<string, Record<string, PullRequest[]>>
 ): HierarchicalData {
   const children: QuadrantNode[] = Object.entries(quadrantMap).map(([quadrantId, contributors]) => {
-    const contributorNodes: ContributorNode[] = Object.entries(contributors)
+    // Sort all contributors by PR count first, then slice
+    const sortedContributors = Object.entries(contributors)
       .map(([login, prs]) => ({
         id: `${quadrantId}-${login}`,
         name: login,
@@ -91,15 +92,15 @@ function transformToHierarchy(
         avatar_url: prs[0]?.user.avatar_url || '',
         prs,
       }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 20); // Limit to top 20 contributors per quadrant
+      .sort((a, b) => b.value - a.value);
+
+    // Take top 20 contributors
+    const contributorNodes: ContributorNode[] = sortedContributors.slice(0, 20);
 
     // Add "Others" node if there are more contributors
-    const totalContributors = Object.keys(contributors).length;
+    const totalContributors = sortedContributors.length;
     if (totalContributors > 20) {
-      const othersCount = Object.entries(contributors)
-        .slice(20)
-        .reduce((sum, [, prs]) => sum + prs.length, 0);
+      const othersCount = sortedContributors.slice(20).reduce((sum, node) => sum + node.value, 0);
 
       if (othersCount > 0) {
         contributorNodes.push({
