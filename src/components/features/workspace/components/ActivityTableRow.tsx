@@ -96,12 +96,10 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-2 cursor-help">
                     <Avatar className="h-6 w-6">
-                      {activity.author.avatar_url && (
-                        <AvatarImage
-                          src={activity.author.avatar_url}
-                          alt={`${activity.author.username}'s avatar`}
-                        />
-                      )}
+                      <AvatarImage
+                        src={activity.author.avatar_url || undefined}
+                        alt={`${activity.author.username}'s avatar`}
+                      />
                       <AvatarFallback>
                         {activity.author.username.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
