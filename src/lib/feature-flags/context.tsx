@@ -2,6 +2,10 @@
  * Feature flags React context and provider
  */
 
+/* eslint-disable react-refresh/only-export-components */
+// This file exports both the FeatureFlagsProvider component and associated hooks
+// which is the standard pattern for React context files
+
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { featureFlagClient } from './posthog-client';
 import type {
@@ -25,58 +29,97 @@ interface FeatureFlagsProviderProps {
 
 /**
  * Feature flags provider component
+ * Deferred initialization for better TTI - uses defaults until PostHog loads
  */
 export function FeatureFlagsProvider({
   children,
   userId: propUserId,
   organizationId: propOrganizationId,
 }: FeatureFlagsProviderProps) {
-  const [flags, setFlags] = useState<Map<FeatureFlagName, FeatureFlagResult>>(new Map());
-  const [isLoading, setIsLoading] = useState(true);
+  const [flags, setFlags] = useState<Map<FeatureFlagName, FeatureFlagResult>>(() => {
+    // Initialize with default values immediately (no blocking)
+    const defaultFlags = new Map<FeatureFlagName, FeatureFlagResult>();
+    for (const flagName of Object.values(FEATURE_FLAGS)) {
+      defaultFlags.set(flagName, {
+        enabled: false,
+        value: false,
+        reason: 'default',
+      });
+    }
+    return defaultFlags;
+  });
+  const [isLoading, setIsLoading] = useState(false); // Start as false - defaults are ready
   const [error, setError] = useState<Error | null>(null);
 
   // Use prop values for user context
   const userId = propUserId || null;
   const organizationId = propOrganizationId || null;
 
-  // Initialize PostHog client
+  // Defer PostHog initialization to after first paint for better TTI
   useEffect(() => {
+    let cancelled = false;
+
     const initializeClient = async () => {
       try {
-        setIsLoading(true);
         await featureFlagClient.initialize();
+        if (cancelled) return;
+
         featureFlagClient.setUserContext(userId, organizationId);
         await loadAllFlags();
       } catch (err) {
+        if (cancelled) return;
         console.error('[FeatureFlags] Error initializing:', err);
         setError(err instanceof Error ? err : new Error('Failed to initialize feature flags'));
-      } finally {
-        setIsLoading(false);
       }
     };
 
-    initializeClient();
+    // Defer initialization until browser is idle (non-blocking)
+    if ('requestIdleCallback' in window) {
+      const idleId = requestIdleCallback(
+        () => {
+          initializeClient();
+        },
+        { timeout: 3000 } // Max 3s delay
+      );
+      return () => {
+        cancelled = true;
+        cancelIdleCallback(idleId);
+      };
+    } else {
+      // Fallback: defer with setTimeout
+      const timeoutId = setTimeout(initializeClient, 1000);
+      return () => {
+        cancelled = true;
+        clearTimeout(timeoutId);
+      };
+    }
   }, [userId, organizationId]);
 
-  // Load all feature flags
+  // Load all feature flags (parallel evaluation for better performance)
   const loadAllFlags = async () => {
-    const newFlags = new Map<FeatureFlagName, FeatureFlagResult>();
+    const flagNames = Object.values(FEATURE_FLAGS);
 
-    // Evaluate all defined flags
-    for (const flagName of Object.values(FEATURE_FLAGS)) {
-      try {
-        const result = await featureFlagClient.evaluateFlag(flagName);
-        newFlags.set(flagName, result);
-      } catch (err) {
-        console.error(`[FeatureFlags] Error evaluating flag ${flagName}:`, err);
-        // Set default value on error
-        newFlags.set(flagName, {
-          enabled: false,
-          value: false,
-          reason: 'default',
-        });
-      }
-    }
+    // Evaluate all flags in parallel
+    const results = await Promise.all(
+      flagNames.map(async (flagName) => {
+        try {
+          const result = await featureFlagClient.evaluateFlag(flagName);
+          return { flagName, result };
+        } catch (err) {
+          console.error(`[FeatureFlags] Error evaluating flag ${flagName}:`, err);
+          return {
+            flagName,
+            result: { enabled: false, value: false, reason: 'default' as const },
+          };
+        }
+      })
+    );
+
+    // Build the flags map from results
+    const newFlags = new Map<FeatureFlagName, FeatureFlagResult>();
+    results.forEach(({ flagName, result }) => {
+      newFlags.set(flagName, result);
+    });
 
     setFlags(newFlags);
   };
