@@ -213,7 +213,7 @@ function App() {
     const initVitals = () => {
       import('./lib/web-vitals-monitoring').then(({ initializeWebVitalsMonitoring }) => {
         const vitalsMonitor = initializeWebVitalsMonitoring({
-          debug: process.env.NODE_ENV === 'development',
+          debug: (import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development',
           // Optional: Set up reporting endpoint for production
           // reportingEndpoint: '/api/vitals'
         });
@@ -226,7 +226,7 @@ function App() {
         });
 
         // Log metrics to console in development
-        if (process.env.NODE_ENV === 'development') {
+        if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
           vitalsMonitor.onMetric((metric) => {
             // Additional logging or analytics can be added here
             if (metric.rating !== 'good') {
@@ -303,7 +303,7 @@ function App() {
 
     import('@/lib/llm-citation-tracking').then(({ initializeLLMCitationTracking }) => {
       citationTracker = initializeLLMCitationTracking();
-      if (process.env.NODE_ENV === 'development') {
+      if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
         logger.debug('[LLM Citation Tracker] Initialized for tracking AI platform citations');
       }
     });
@@ -317,15 +317,15 @@ function App() {
   useEffect(() => {
     import('./lib/error-tracker').then(({ setupGlobalErrorTracking }) => {
       setupGlobalErrorTracking();
-      if (process.env.NODE_ENV === 'development') {
+      if ((import.meta.env?.NODE_ENV || process.env.NODE_ENV) === 'development') {
         logger.debug('[Error Tracking] Global error handlers initialized with PostHog');
       }
     });
   }, []);
 
-  // Load progressive features AFTER LCP (deferred to avoid impacting FCP/LCP)
+  // Load progressive features AFTER LCP with guaranteed 5-second delay
   useEffect(() => {
-    // Progressive features are non-critical - defer 5 seconds to ensure FCP/LCP complete first
+    // Progressive features are non-critical - wait 5 seconds to ensure FCP/LCP complete first
     const loadProgressiveFeatures = () => {
       Promise.all([
         import('@/lib/progressive-capture/manual-trigger'),
@@ -334,15 +334,16 @@ function App() {
       ]).catch(console.warn);
     };
 
-    // Use requestIdleCallback with 5s timeout, or setTimeout as fallback
-    // This ensures these modules don't compete with initial render resources
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(loadProgressiveFeatures, { timeout: 5000 });
-      return () => {}; // requestIdleCallback doesn't have easy cancellation
-    } else {
-      const timeoutId = setTimeout(loadProgressiveFeatures, 5000);
-      return () => clearTimeout(timeoutId);
-    }
+    // Wait 5 seconds, then schedule during idle time if available
+    const timeoutId = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(loadProgressiveFeatures);
+      } else {
+        loadProgressiveFeatures();
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
