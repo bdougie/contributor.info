@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 import {
@@ -27,7 +27,6 @@ describeOrSkip('Confidence History Integration Tests', () => {
   // Only create client if tests will run
   let supabase: ReturnType<typeof createClient<Database>>;
   const testOwner = 'test-org';
-  const testRepo = `test-repo-${Date.now()}`;
 
   beforeAll(() => {
     if (shouldRunIntegrationTests) {
@@ -35,28 +34,19 @@ describeOrSkip('Confidence History Integration Tests', () => {
     }
   });
 
-  beforeEach(async () => {
-    if (!shouldRunIntegrationTests) return;
-    // Clean up any existing test data
-    await supabase
-      .from('repository_confidence_history')
-      .delete()
-      .eq('repository_owner', testOwner)
-      .eq('repository_name', testRepo);
-  });
-
   afterAll(async () => {
     if (!shouldRunIntegrationTests) return;
-    // Final cleanup
+    // Final cleanup - delete all test data for test-org
     await supabase
       .from('repository_confidence_history')
       .delete()
       .eq('repository_owner', testOwner)
-      .eq('repository_name', testRepo);
+      .like('repository_name', 'test-repo-%');
   });
 
   describe('saveConfidenceToHistory', () => {
     it('should save confidence score to database', async () => {
+      const testRepo = `test-repo-save-${Date.now()}`;
       const breakdown: ConfidenceBreakdownData = {
         starForkConfidence: 75,
         engagementConfidence: 80,
@@ -87,6 +77,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
     });
 
     it('should validate score range', async () => {
+      const testRepo = `test-repo-validate-score-${Date.now()}`;
       await expect(
         saveConfidenceToHistory(supabase, testOwner, testRepo, 30, 101, undefined)
       ).rejects.toThrow('Score must be between 0-100');
@@ -97,6 +88,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
     });
 
     it('should validate time range', async () => {
+      const testRepo = `test-repo-validate-time-${Date.now()}`;
       await expect(
         saveConfidenceToHistory(supabase, testOwner, testRepo, 0, 50, undefined)
       ).rejects.toThrow('Time range must be positive');
@@ -107,6 +99,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
     });
 
     it('should validate breakdown data structure', async () => {
+      const testRepo = `test-repo-validate-breakdown-${Date.now()}`;
       const invalidBreakdown = {
         starForkConfidence: 101, // Invalid: > 100
         engagementConfidence: 80,
@@ -120,6 +113,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
+      const testRepo = `test-repo-validate-fields-${Date.now()}`;
       await expect(
         saveConfidenceToHistory(supabase, '', testRepo, 30, 50, undefined)
       ).rejects.toThrow('Owner and repo are required');
@@ -131,6 +125,9 @@ describeOrSkip('Confidence History Integration Tests', () => {
   });
 
   describe('getConfidenceHistory', () => {
+    // Use a unique repo for this describe block
+    const historyTestRepo = `test-repo-history-${Date.now()}`;
+
     beforeAll(async () => {
       // Insert test data for history retrieval
       const scores = [
@@ -146,7 +143,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
 
         await supabase.from('repository_confidence_history').insert({
           repository_owner: testOwner,
-          repository_name: testRepo,
+          repository_name: historyTestRepo,
           confidence_score: score,
           time_range_days: days,
           calculated_at: timestamp.toISOString(),
@@ -157,8 +154,17 @@ describeOrSkip('Confidence History Integration Tests', () => {
       }
     });
 
+    afterAll(async () => {
+      // Clean up after this describe block
+      await supabase
+        .from('repository_confidence_history')
+        .delete()
+        .eq('repository_owner', testOwner)
+        .eq('repository_name', historyTestRepo);
+    });
+
     it('should fetch historical scores in chronological order', async () => {
-      const history = await getConfidenceHistory(supabase, testOwner, testRepo, 30, 4);
+      const history = await getConfidenceHistory(supabase, testOwner, historyTestRepo, 30, 4);
 
       expect(history.length).toBe(4);
       expect(history[0].confidenceScore).toBe(70);
@@ -168,8 +174,11 @@ describeOrSkip('Confidence History Integration Tests', () => {
     });
 
     it('should limit results by lookback periods', async () => {
-      const history = await getConfidenceHistory(supabase, testOwner, testRepo, 30, 2);
+      // With lookbackPeriods=1 and timeRangeDays=30, we look back 30 days
+      // This should return only records from the last 30 days (30 days ago and now)
+      const history = await getConfidenceHistory(supabase, testOwner, historyTestRepo, 30, 1);
 
+      // Should get records at 30 days ago and now (2 records)
       expect(history.length).toBeLessThanOrEqual(2);
     });
 
@@ -181,12 +190,15 @@ describeOrSkip('Confidence History Integration Tests', () => {
   });
 
   describe('calculateConfidenceTrend', () => {
+    // These are pure function tests - no database interaction
+    const trendTestRepo = 'test-repo-trend';
+
     it('should calculate improving trend', () => {
       const history = [
         {
           id: '1',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 70,
           timeRangeDays: 30,
           calculatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -197,7 +209,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '2',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 80,
           timeRangeDays: 30,
           calculatedAt: new Date(),
@@ -221,7 +233,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '1',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 80,
           timeRangeDays: 30,
           calculatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -232,7 +244,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '2',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 70,
           timeRangeDays: 30,
           calculatedAt: new Date(),
@@ -255,7 +267,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '1',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 75,
           timeRangeDays: 30,
           calculatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -266,7 +278,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '2',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 77,
           timeRangeDays: 30,
           calculatedAt: new Date(),
@@ -288,7 +300,7 @@ describeOrSkip('Confidence History Integration Tests', () => {
         {
           id: '1',
           repositoryOwner: testOwner,
-          repositoryName: testRepo,
+          repositoryName: trendTestRepo,
           confidenceScore: 75,
           timeRangeDays: 30,
           calculatedAt: new Date(),
@@ -305,12 +317,23 @@ describeOrSkip('Confidence History Integration Tests', () => {
   });
 
   describe('getLatestConfidenceFromHistory', () => {
+    // Use a unique repo for this describe block
+    const latestTestRepo = `test-repo-latest-${Date.now()}`;
+
     beforeAll(async () => {
-      await saveConfidenceToHistory(supabase, testOwner, testRepo, 30, 85);
+      await saveConfidenceToHistory(supabase, testOwner, latestTestRepo, 30, 85);
+    });
+
+    afterAll(async () => {
+      await supabase
+        .from('repository_confidence_history')
+        .delete()
+        .eq('repository_owner', testOwner)
+        .eq('repository_name', latestTestRepo);
     });
 
     it('should fetch the most recent score', async () => {
-      const latest = await getLatestConfidenceFromHistory(supabase, testOwner, testRepo, 30);
+      const latest = await getLatestConfidenceFromHistory(supabase, testOwner, latestTestRepo, 30);
 
       expect(latest).toBeDefined();
       expect(latest?.confidenceScore).toBe(85);
