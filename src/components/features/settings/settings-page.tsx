@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, CreditCard } from '@/components/ui/icon';
+import { ArrowLeft, Key } from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
@@ -235,7 +235,7 @@ export function SettingsPage() {
             <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="bg-background p-2 rounded-full border">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                  <Key className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
                   <p className="font-medium">Current Plan</p>

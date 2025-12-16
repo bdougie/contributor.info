@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { GithubIcon, LogOut, MessageSquare, Shield, Settings, CreditCard } from '@/components/ui/icon';
+import { GithubIcon, LogOut, MessageSquare, Shield, Settings, Key } from '@/components/ui/icon';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -336,7 +336,7 @@ export function AuthButton() {
 
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/billing')}>
-          <CreditCard className="mr-2 h-4 w-4" />
+          <Key className="mr-2 h-4 w-4" />
           Billing
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/settings')}>
