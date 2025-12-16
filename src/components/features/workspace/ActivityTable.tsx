@@ -45,7 +45,17 @@ const ActivityRow = memo(function ActivityRow({
   virtualItemSize,
   virtualItemStart,
 }: ActivityRowProps) {
-  const Icon = TYPE_ICONS[activity.type];
+  // Get icon for activity type with fallback
+  const Icon = TYPE_ICONS[activity.type] || TYPE_ICONS.pr;
+
+  // Safely parse date with fallback
+  const activityDate = (() => {
+    try {
+      return activity.created_at ? parseISO(activity.created_at) : new Date();
+    } catch {
+      return new Date();
+    }
+  })();
 
   // Calculate contributor stats
   const contributorActivities = activities.filter(
@@ -124,7 +134,7 @@ const ActivityRow = memo(function ActivityRow({
                 <TooltipContent className="max-w-xs">
                   <p className="font-semibold text-sm">{activity.title}</p>
                   <p className="text-xs mt-1">Repository: {activity.repository}</p>
-                  <p className="text-xs">Created: {format(parseISO(activity.created_at), 'PPp')}</p>
+                  <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
                   {activity.url && <p className="text-xs">Click to open in GitHub</p>}
                 </TooltipContent>
               </Tooltip>
@@ -233,14 +243,14 @@ const ActivityRow = memo(function ActivityRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(parseISO(activity.created_at), {
+                    {formatDistanceToNow(activityDate, {
                       addSuffix: true,
                     })}
                   </p>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="font-semibold">Exact time</p>
-                  <p className="text-xs">{format(parseISO(activity.created_at), 'PPpp')}</p>
+                  <p className="text-xs">{format(activityDate, 'PPpp')}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
