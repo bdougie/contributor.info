@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { PullRequest, QuadrantDistribution } from '@/lib/types';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 
@@ -81,11 +81,10 @@ export function useDistribution(pullRequests: PullRequest[]) {
     maintenance: [],
   });
 
-  // Track cancellation for async processing
-  const cancelledRef = useRef(false);
-
   useEffect(() => {
-    cancelledRef.current = false;
+    // Use local variable for cancellation to avoid race conditions
+    // Each effect invocation gets its own closure
+    let cancelled = false;
     setLoading(true);
 
     if (pullRequests.length === 0) {
@@ -113,7 +112,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
 
         // Process PRs in chunks
         for (let i = 0; i < pullRequests.length; i += CHUNK_SIZE) {
-          if (cancelledRef.current) return;
+          if (cancelled) return;
 
           const chunk = pullRequests.slice(i, i + CHUNK_SIZE);
 
@@ -154,7 +153,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
           }
         }
 
-        if (cancelledRef.current) return;
+        if (cancelled) return;
 
         // Store debug info
         setDebugInfo(debugQuadrantPRs);
@@ -186,11 +185,11 @@ export function useDistribution(pullRequests: PullRequest[]) {
         setChartData(data);
         setError(null);
       } catch (err) {
-        if (!cancelledRef.current) {
+        if (!cancelled) {
           setError(err instanceof Error ? err : new Error('Failed to analyze distribution'));
         }
       } finally {
-        if (!cancelledRef.current) {
+        if (!cancelled) {
           setLoading(false);
         }
       }
@@ -199,7 +198,7 @@ export function useDistribution(pullRequests: PullRequest[]) {
     processInChunks();
 
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
     };
   }, [pullRequests]);
 

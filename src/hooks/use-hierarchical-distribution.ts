@@ -141,7 +141,8 @@ export function useHierarchicalDistribution(
 
   // Track cancellation for async processing
   const cancelledRef = useRef(false);
-  const prCountRef = useRef(0);
+  // Store array reference to detect when PR array is replaced (not just length)
+  const previousPRsRef = useRef<PullRequest[]>([]);
 
   // Sync with external selection
   useEffect(() => {
@@ -159,13 +160,13 @@ export function useHierarchicalDistribution(
       return;
     }
 
-    // Skip if PRs haven't changed
-    if (prCountRef.current === pullRequests.length && hierarchicalData) {
+    // Skip if PRs haven't changed (compare array reference, not just length)
+    if (previousPRsRef.current === pullRequests && hierarchicalData) {
       return;
     }
 
     cancelledRef.current = false;
-    prCountRef.current = pullRequests.length;
+    previousPRsRef.current = pullRequests;
 
     /**
      * Process all PRs synchronously - used in test environment

@@ -673,7 +673,12 @@ export const DistributionTreemapEnhanced = memo(function DistributionTreemapEnha
             </span>
           </>
         )}
-        {currentView === 'overview' && <span className="font-medium">All Contributions</span>}
+        {/* Fallback for overview or any unhandled state */}
+        {(currentView === 'overview' ||
+          (currentView === 'quadrant' && !selectedQuadrant) ||
+          (currentView === 'contributor' && (!selectedQuadrant || !selectedContributor))) && (
+          <span className="font-medium">All Contributions</span>
+        )}
       </div>
 
       <div className="treemap-container">
