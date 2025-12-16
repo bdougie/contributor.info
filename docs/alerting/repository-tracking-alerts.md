@@ -45,7 +45,7 @@ Alert when Inngest events fail repeatedly.
 2. Select "Metric Alert"
 3. Configure:
    - **Metric:** Count of events
-   - **Filter:** `tags.type:inngest_event_failure`
+   - **Filter:** `tags.alert_type:inngest_failure`
    - **Threshold:** > 5 events in 1 hour
    - **Actions:**
      - Send notification to Slack #alerts-warning

@@ -158,8 +158,7 @@ export function trackInngestFailure(error: InngestEventError, context: TrackingE
 export function trackPollingTimeout(context: PollingTimeoutContext): void {
   const repository = context.repository || `${context.owner}/${context.repo}`;
 
-  // Sentry: Capture with timeout tag for rate calculation
-  captureMessage(`Repository tracking polling timeout: ${repository}`, 'warning');
+  // Sentry: Capture as exception with timeout tag for rate calculation
   captureException(new Error(`Polling Timeout: ${repository}`), {
     level: 'warning',
     tags: {
