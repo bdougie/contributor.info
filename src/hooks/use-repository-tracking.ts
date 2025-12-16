@@ -4,7 +4,12 @@ import { useGitHubAuth } from './use-github-auth';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 import { NotificationService } from '@/lib/notifications';
 import { trackEvent } from '@/lib/posthog-lazy';
-import { captureException } from '@/lib/sentry-lazy';
+import {
+  trackPollingTimeout,
+  trackTrackingSuccess,
+  trackTrackingFailure,
+  trackTrackingAttempt,
+} from '@/lib/tracking-alerts';
 
 // Type for track repository API response
 interface TrackRepositoryResponse {
@@ -127,7 +132,9 @@ export function useRepositoryTracking({
       return { success: false, error: 'Please login to track repositories' };
     }
 
-    // PostHog: Track when user initiates tracking
+    // Track when user initiates tracking (for alerts and analytics)
+    const trackingStartTime = Date.now();
+    trackTrackingAttempt({ owner, repo });
     trackEvent('repository_track_attempt', {
       owner,
       repo,
@@ -215,6 +222,17 @@ export function useRepositoryTracking({
               pollIntervalRef.current = null;
             }
 
+            const trackingDuration = Date.now() - trackingStartTime;
+
+            // Track successful repository tracking for alerts
+            trackTrackingSuccess({
+              owner,
+              repo,
+              repositoryId: repoData.id,
+              durationMs: trackingDuration,
+              source: 'user_initiated',
+            });
+
             setState({
               status: 'tracked',
               repository: repoData,
@@ -246,17 +264,15 @@ export function useRepositoryTracking({
               pollIntervalRef.current = null;
             }
 
-            // Sentry: Capture timeout as an error for monitoring
-            captureException(new Error(`Repository tracking polling timeout: ${owner}/${repo}`), {
-              level: 'warning',
-              tags: {
-                type: 'tracking_timeout',
-                repository: `${owner}/${repo}`,
-              },
-              extra: {
-                poll_count: pollCount,
-                max_polls: maxPolls,
-              },
+            const pollDurationMs = Date.now() - trackingStartTime;
+
+            // Track polling timeout for alerts (Sentry + PostHog)
+            trackPollingTimeout({
+              owner,
+              repo,
+              pollCount,
+              maxPolls,
+              pollDurationMs,
             });
 
             setState((prev) => ({
@@ -274,43 +290,54 @@ export function useRepositoryTracking({
       return { success: true, repositoryId: result?.repositoryId };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to track repository';
+      const trackingDuration = Date.now() - trackingStartTime;
 
-      // Determine error type for analytics
-      let errorType = 'UNKNOWN_ERROR';
+      // Determine error type for analytics and alerts
+      type TrackingErrorType =
+        | 'api_error'
+        | 'timeout'
+        | 'inngest_failure'
+        | 'validation_error'
+        | 'unknown';
+      let alertErrorType: TrackingErrorType = 'unknown';
+      let analyticsErrorType = 'UNKNOWN_ERROR';
+
       if (error instanceof Error) {
         if (error.message.includes('network') || error.message.includes('fetch')) {
-          errorType = 'NETWORK_ERROR';
+          alertErrorType = 'api_error';
+          analyticsErrorType = 'NETWORK_ERROR';
         } else if (error.message.includes('auth') || error.message.includes('login')) {
-          errorType = 'AUTH_ERROR';
+          alertErrorType = 'api_error';
+          analyticsErrorType = 'AUTH_ERROR';
         } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
-          errorType = 'PERMISSION_ERROR';
+          alertErrorType = 'api_error';
+          analyticsErrorType = 'PERMISSION_ERROR';
         } else if (error.message.includes('not found')) {
-          errorType = 'NOT_FOUND_ERROR';
+          alertErrorType = 'validation_error';
+          analyticsErrorType = 'NOT_FOUND_ERROR';
+        } else if (error.message.includes('inngest') || error.message.includes('event')) {
+          alertErrorType = 'inngest_failure';
+          analyticsErrorType = 'INNGEST_ERROR';
         }
       }
 
-      // PostHog: Track API failure
+      // Track failure for alerts (Sentry + PostHog)
+      trackTrackingFailure({
+        owner,
+        repo,
+        errorType: alertErrorType,
+        errorMessage,
+        durationMs: trackingDuration,
+      });
+
+      // PostHog: Track API failure (legacy event for backwards compatibility)
       trackEvent('repository_track_api_response', {
         owner,
         repo,
         repository: `${owner}/${repo}`,
         success: false,
-        error_type: errorType,
+        error_type: analyticsErrorType,
         timestamp: new Date().toISOString(),
-      });
-
-      // Sentry: Capture the error for detailed debugging
-      captureException(error instanceof Error ? error : new Error(errorMessage), {
-        level: 'error',
-        tags: {
-          type: 'tracking_failed',
-          error_type: errorType,
-          repository: `${owner}/${repo}`,
-        },
-        extra: {
-          owner,
-          repo,
-        },
       });
 
       setState({
