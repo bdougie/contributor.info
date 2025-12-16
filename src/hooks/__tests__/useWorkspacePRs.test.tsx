@@ -1,7 +1,7 @@
+import React, { type ReactNode } from 'react';
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
 import { useWorkspacePRs } from '../useWorkspacePRs';
 import type { Repository } from '@/components/features/workspace';
 
@@ -83,7 +83,7 @@ describe('useWorkspacePRs', () => {
     );
   };
 
-  it('should initialize with loading state', () => {
+  it('should initialize with correct state when no repositories', () => {
     const { result } = renderHook(
       () =>
         useWorkspacePRs({
@@ -94,7 +94,8 @@ describe('useWorkspacePRs', () => {
       { wrapper: createWrapper() }
     );
 
-    expect(result.current.loading).toBe(true);
+    // With empty repositories, query is disabled so loading is false
+    expect(result.current.loading).toBe(false);
     expect(result.current.pullRequests).toEqual([]);
     expect(result.current.error).toBeNull();
   });
