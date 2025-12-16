@@ -33,6 +33,7 @@ export function MetaTagsProvider({ children }: MetaTagsProviderProps) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSocialMeta() {
   const context = useContext(MetaTagsContext);
   if (!context) {
@@ -67,7 +68,7 @@ export function SocialMetaTags({
   if (!image.startsWith('http')) {
     // Check if it's a social card path - use Fly.io service for generation
     if (image.includes('social-cards/')) {
-      const urlPath = currentUrl.replace(/^https?:\/\/[^\/]+/, '');
+      const urlPath = currentUrl.replace(/^https?:\/\/[^/]+/, '');
 
       if (image === 'social-cards/repo') {
         // For repo cards, extract owner/repo from URL
@@ -139,10 +140,6 @@ export function SocialMetaTags({
       <meta name="twitter:image" content={imageUrl} />
       {/* Fallback image for Twitter */}
       {fallbackImageUrl !== imageUrl && <meta name="twitter:image" content={fallbackImageUrl} />}
-
-      {/* Fallback image for older browsers */}
-      <link rel="preload" as="image" href={imageUrl} />
-      <link rel="preload" as="image" href={fallbackImageUrl} />
 
       {/* Additional Meta Tags */}
       <meta name="viewport" content="width=device-width, initial-scale=1" />
