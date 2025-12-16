@@ -112,7 +112,7 @@ export default async (req: Request, _context: Context) => {
     // Step 1: Check if repository exists
     const { data: repoData, error: repoError } = await supabase
       .from('repositories')
-      .select('id, owner, name, created_at, last_updated_at, is_active')
+      .select('id, owner, name, first_tracked_at, last_updated_at, is_active')
       .eq('owner', owner)
       .eq('name', repo)
       .maybeSingle();
@@ -208,10 +208,12 @@ export default async (req: Request, _context: Context) => {
       message = 'Repository data is available';
     } else {
       // Check if repository was recently created (within threshold)
-      const createdAt = new Date(repoData.created_at);
+      const firstTrackedAt = repoData.first_tracked_at
+        ? new Date(repoData.first_tracked_at)
+        : new Date();
       const recentThreshold = new Date(Date.now() - RECENTLY_CREATED_THRESHOLD_MS);
 
-      if (createdAt > recentThreshold) {
+      if (firstTrackedAt > recentThreshold) {
         status = 'syncing';
         message = 'Repository is being synced. Data will be available shortly.';
       } else {
@@ -228,7 +230,7 @@ export default async (req: Request, _context: Context) => {
         id: repoData.id,
         owner: repoData.owner,
         name: repoData.name,
-        createdAt: repoData.created_at,
+        createdAt: repoData.first_tracked_at,
         lastUpdatedAt: repoData.last_updated_at,
       },
       dataAvailability: {
