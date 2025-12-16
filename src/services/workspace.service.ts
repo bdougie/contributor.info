@@ -393,6 +393,9 @@ export class WorkspaceService {
             email,
             display_name,
             avatar_url
+          ),
+          workspace_repos:workspace_repositories(
+            repository:repositories(stargazers_count)
           )
         `
         )
@@ -412,10 +415,17 @@ export class WorkspaceService {
       }
 
       // Calculate stats
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const totalStars = (workspace as any).workspace_repos?.reduce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (sum: number, item: any) => sum + (item.repository?.stargazers_count || 0),
+        0
+      );
+
       const stats = {
         repository_count: workspace.repository_count?.[0]?.count || 0,
         member_count: workspace.member_count?.[0]?.count || 0,
-        total_stars: 0, // TODO: Calculate from repositories
+        total_stars: totalStars || 0,
         total_contributors: 0, // TODO: Calculate from repositories
       };
 
@@ -472,6 +482,9 @@ export class WorkspaceService {
             email,
             display_name,
             avatar_url
+          ),
+          workspace_repos:workspace_repositories(
+            repository:repositories(stargazers_count)
           )
         `,
           { count: 'exact' }
@@ -498,13 +511,22 @@ export class WorkspaceService {
       }
 
       // Transform workspaces with stats
-      const workspacesWithStats: WorkspaceWithStats[] = (workspaces || []).map((w) => ({
-        ...w,
-        repository_count: w.repository_count?.[0]?.count || 0,
-        member_count: w.member_count?.[0]?.count || 0,
-        total_stars: 0, // TODO: Calculate
-        total_contributors: 0, // TODO: Calculate
-      }));
+      const workspacesWithStats: WorkspaceWithStats[] = (workspaces || []).map((w) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const totalStars = (w as any).workspace_repos?.reduce(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (sum: number, item: any) => sum + (item.repository?.stargazers_count || 0),
+          0
+        );
+
+        return {
+          ...w,
+          repository_count: w.repository_count?.[0]?.count || 0,
+          member_count: w.member_count?.[0]?.count || 0,
+          total_stars: totalStars || 0,
+          total_contributors: 0, // TODO: Calculate
+        };
+      });
 
       return {
         success: true,

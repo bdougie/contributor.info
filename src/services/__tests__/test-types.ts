@@ -24,6 +24,7 @@ export interface MockQueryBuilder<T = unknown> {
   single: () => MockQueryBuilder<T>;
   maybeSingle: () => MockQueryBuilder<T> | Promise<MockSupabaseResponse<T>>;
   limit: (count: number) => MockQueryBuilder<T>;
+  range: (from: number, to: number) => MockQueryBuilder<T> | Promise<MockSupabaseResponse<T>>;
   order: (column: string, options?: { ascending?: boolean }) => MockQueryBuilder<T>;
 }
 
@@ -50,6 +51,7 @@ export function createMockQueryBuilder<T = unknown>(
     single: () => builder,
     maybeSingle: () => Promise.resolve(response),
     limit: () => builder,
+    range: () => Promise.resolve(response),
     order: () => builder,
     then: (resolve: (value: MockSupabaseResponse<T>) => void) => {
       resolve(response);
