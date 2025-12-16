@@ -5,6 +5,7 @@ import { Link } from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 import {
   calculateIssueMetrics,
   calculateIssueTrendMetrics,
@@ -294,96 +295,182 @@ export function WorkspaceIssueMetricsAndTrends({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Metrics Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Metrics</h3>
-          {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <IssueHalfLifeCard halfLife={0} loading={true} />
-              <StaleIssuesCard staleCount={0} totalCount={0} loading={true} />
-              <IssueVolumeCalendarCard
-                volumeData={{
-                  current: 0,
-                  previous: 0,
-                  change: 0,
-                  dailyIssues: [],
-                }}
-                loading={true}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <IssueHalfLifeCard halfLife={metrics.healthMetrics.issueHalfLife} loading={loading} />
-              <StaleIssuesCard
-                staleCount={metrics.healthMetrics.staleVsActiveRatio.stale}
-                totalCount={
-                  metrics.healthMetrics.staleVsActiveRatio.stale +
-                  metrics.healthMetrics.staleVsActiveRatio.active
-                }
-                loading={loading}
-              />
-              {(() => {
-                const issueVolumeTrend = trends.find((trend) => trend.metric === 'Issue Volume');
-                if (issueVolumeTrend) {
-                  return (
-                    <IssueVolumeCalendarCard
-                      volumeData={{
-                        current:
-                          typeof issueVolumeTrend.current === 'number'
-                            ? issueVolumeTrend.current
-                            : 0,
-                        previous:
-                          typeof issueVolumeTrend.previous === 'number'
-                            ? issueVolumeTrend.previous
-                            : 0,
-                        change: issueVolumeTrend.change,
-                        dailyIssues: issueVolumeTrend.dailyIssues || [],
-                      }}
-                      loading={loading}
-                    />
-                  );
-                }
-                return (
-                  <IssueVolumeCalendarCard
-                    volumeData={{
-                      current: 0,
-                      previous: 0,
-                      change: 0,
-                      dailyIssues: [],
-                    }}
+        <ShareableCard
+          title="Issue Metrics"
+          contextInfo={{
+            repository: "Workspace Issues",
+            metric: 'issue metrics',
+          }}
+          chartType="issue-metrics"
+          hideLogo={true}
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Metrics</h3>
+            {loading || !metrics ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shareable-desktop-only">
+                <IssueHalfLifeCard halfLife={0} loading={true} />
+                <StaleIssuesCard staleCount={0} totalCount={0} loading={true} />
+                <IssueVolumeCalendarCard
+                  volumeData={{
+                    current: 0,
+                    previous: 0,
+                    change: 0,
+                    dailyIssues: [],
+                  }}
+                  loading={true}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shareable-desktop-only">
+                  <IssueHalfLifeCard halfLife={metrics.healthMetrics.issueHalfLife} loading={loading} />
+                  <StaleIssuesCard
+                    staleCount={metrics.healthMetrics.staleVsActiveRatio.stale}
+                    totalCount={
+                      metrics.healthMetrics.staleVsActiveRatio.stale +
+                      metrics.healthMetrics.staleVsActiveRatio.active
+                    }
                     loading={loading}
                   />
-                );
-              })()}
-            </div>
-          )}
-        </section>
+                  {(() => {
+                    const issueVolumeTrend = trends.find((trend) => trend.metric === 'Issue Volume');
+                    if (issueVolumeTrend) {
+                      return (
+                        <IssueVolumeCalendarCard
+                          volumeData={{
+                            current:
+                              typeof issueVolumeTrend.current === 'number'
+                                ? issueVolumeTrend.current
+                                : 0,
+                            previous:
+                              typeof issueVolumeTrend.previous === 'number'
+                                ? issueVolumeTrend.previous
+                                : 0,
+                            change: issueVolumeTrend.change,
+                            dailyIssues: issueVolumeTrend.dailyIssues || [],
+                          }}
+                          loading={loading}
+                        />
+                      );
+                    }
+                    return (
+                      <IssueVolumeCalendarCard
+                        volumeData={{
+                          current: 0,
+                          previous: 0,
+                          change: 0,
+                          dailyIssues: [],
+                        }}
+                        loading={loading}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Capture-optimized view */}
+                <div className="hidden shareable-capture-only">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-sm font-medium text-foreground mb-2">Issue Half-Life</p>
+                      <p className="text-3xl font-bold">{metrics.healthMetrics.issueHalfLife} days</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-sm font-medium text-foreground mb-2">Stale Rate</p>
+                      <p className="text-3xl font-bold">{metrics.healthMetrics.staleVsActiveRatio.percentage}%</p>
+                      <p className="text-xs text-muted-foreground">{metrics.healthMetrics.staleVsActiveRatio.stale} stale issues</p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-4 text-center">
+                      <p className="text-sm font-medium text-foreground mb-2">Bug Rate</p>
+                      <p className="text-3xl font-bold">{metrics.healthMetrics.legitimateBugPercentage}%</p>
+                      <p className="text-xs text-muted-foreground">legitimate bugs</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        </ShareableCard>
 
         {/* Trends Section */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Trends</h3>
-          {loading || !metrics ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <ActiveTriagerCard triager={null} loading={true} />
-              <FirstRespondersCard responders={[]} loading={true} />
-              <RepeatReportersCard reporters={[]} loading={true} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              <ActiveTriagerCard
-                triager={metrics.activityPatterns.mostActiveTriager}
-                loading={loading}
-              />
-              <FirstRespondersCard
-                responders={metrics.activityPatterns.firstResponders}
-                loading={loading}
-              />
-              <RepeatReportersCard
-                reporters={metrics.activityPatterns.repeatReporters}
-                loading={loading}
-              />
-            </div>
-          )}
-        </section>
+        <ShareableCard
+          title="Issue Trends"
+          contextInfo={{
+            repository: "Workspace Issues",
+            metric: 'issue trends',
+          }}
+          chartType="issue-trends"
+          hideLogo={true}
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Trends</h3>
+            {loading || !metrics ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shareable-desktop-only">
+                <ActiveTriagerCard triager={null} loading={true} />
+                <FirstRespondersCard responders={[]} loading={true} />
+                <RepeatReportersCard reporters={[]} loading={true} />
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shareable-desktop-only">
+                  <ActiveTriagerCard
+                    triager={metrics.activityPatterns.mostActiveTriager}
+                    loading={loading}
+                  />
+                  <FirstRespondersCard
+                    responders={metrics.activityPatterns.firstResponders}
+                    loading={loading}
+                  />
+                  <RepeatReportersCard
+                    reporters={metrics.activityPatterns.repeatReporters}
+                    loading={loading}
+                  />
+                </div>
+
+                {/* Capture-optimized view */}
+                <div className="hidden shareable-capture-only">
+                  <div className="grid grid-cols-3 gap-4">
+                     <div className="rounded-lg border bg-card p-4">
+                        <p className="text-sm font-medium text-foreground mb-2">Top Triager</p>
+                        {metrics.activityPatterns.mostActiveTriager ? (
+                           <div className="flex items-center gap-2">
+                              <img src={metrics.activityPatterns.mostActiveTriager.avatar_url} className="w-8 h-8 rounded-full" />
+                              <div className="overflow-hidden">
+                                 <p className="font-medium truncate">{metrics.activityPatterns.mostActiveTriager.username}</p>
+                                 <p className="text-xs text-muted-foreground">{metrics.activityPatterns.mostActiveTriager.triages} triages</p>
+                              </div>
+                           </div>
+                        ) : <p className="text-muted-foreground text-sm">No active triager</p>}
+                     </div>
+                     <div className="rounded-lg border bg-card p-4">
+                        <p className="text-sm font-medium text-foreground mb-2">First Responders</p>
+                        <div className="space-y-2">
+                           {metrics.activityPatterns.firstResponders.slice(0, 3).map(r => (
+                              <div key={r.username} className="flex justify-between items-center text-sm">
+                                 <span className="truncate max-w-[80px]">{r.username}</span>
+                                 <span className="font-medium">{r.responses}</span>
+                              </div>
+                           ))}
+                           {metrics.activityPatterns.firstResponders.length === 0 && <p className="text-muted-foreground text-sm">No data</p>}
+                        </div>
+                     </div>
+                     <div className="rounded-lg border bg-card p-4">
+                        <p className="text-sm font-medium text-foreground mb-2">Top Reporters</p>
+                         <div className="space-y-2">
+                           {metrics.activityPatterns.repeatReporters.slice(0, 3).map(r => (
+                              <div key={r.username} className="flex justify-between items-center text-sm">
+                                 <span className="truncate max-w-[80px]">{r.username}</span>
+                                 <span className="font-medium">{r.issues}</span>
+                              </div>
+                           ))}
+                           {metrics.activityPatterns.repeatReporters.length === 0 && <p className="text-muted-foreground text-sm">No data</p>}
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        </ShareableCard>
       </CardContent>
 
       {/* Blur overlay with upgrade prompt for users without workspace access */}

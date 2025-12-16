@@ -14,6 +14,7 @@ import {
   BarChart3,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import type { EventTrendMetrics } from '@/services/workspace-events.service';
 
@@ -263,58 +264,112 @@ export function WorkspaceEventsMetrics({
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Event Metrics Cards */}
-        <section>
-          <h3 className="text-sm font-medium mb-3">Event Metrics</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <EventMetricCard
-              title="Stars"
-              icon={<Star className="h-4 w-4 text-yellow-500" />}
-              metrics={
-                metrics?.stars || {
-                  total: 0,
-                  thisWeek: 0,
-                  lastWeek: 0,
-                  thisMonth: 0,
-                  lastMonth: 0,
-                  velocity: 0,
-                  trend: 'stable' as const,
-                  percentChange: 0,
+        <ShareableCard
+          title="Event Analytics"
+          contextInfo={{
+            repository: "Workspace Events",
+            metric: "event analytics"
+          }}
+          chartType="event-analytics"
+          hideLogo={true}
+        >
+          <section className="rounded-lg border bg-card p-4">
+            <h3 className="text-sm font-medium mb-3">Event Metrics</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shareable-desktop-only">
+              <EventMetricCard
+                title="Stars"
+                icon={<Star className="h-4 w-4 text-yellow-500" />}
+                metrics={
+                  metrics?.stars || {
+                    total: 0,
+                    thisWeek: 0,
+                    lastWeek: 0,
+                    thisMonth: 0,
+                    lastMonth: 0,
+                    velocity: 0,
+                    trend: 'stable' as const,
+                    percentChange: 0,
+                  }
                 }
-              }
-              loading={loading}
-            />
+                loading={loading}
+              />
 
-            <EventMetricCard
-              title="Forks"
-              icon={<GitFork className="h-4 w-4 text-blue-500" />}
-              metrics={
-                metrics?.forks || {
-                  total: 0,
-                  thisWeek: 0,
-                  lastWeek: 0,
-                  thisMonth: 0,
-                  lastMonth: 0,
-                  velocity: 0,
-                  trend: 'stable' as const,
-                  percentChange: 0,
+              <EventMetricCard
+                title="Forks"
+                icon={<GitFork className="h-4 w-4 text-blue-500" />}
+                metrics={
+                  metrics?.forks || {
+                    total: 0,
+                    thisWeek: 0,
+                    lastWeek: 0,
+                    thisMonth: 0,
+                    lastMonth: 0,
+                    velocity: 0,
+                    trend: 'stable' as const,
+                    percentChange: 0,
+                  }
                 }
-              }
-              loading={loading}
-            />
+                loading={loading}
+              />
 
-            <ActivitySummaryCard
-              metrics={
-                metrics?.activity || {
-                  totalEvents: 0,
-                  uniqueActors: 0,
-                  mostActiveRepo: null,
-                  activityScore: 0,
+              <ActivitySummaryCard
+                metrics={
+                  metrics?.activity || {
+                    totalEvents: 0,
+                    uniqueActors: 0,
+                    mostActiveRepo: null,
+                    activityScore: 0,
+                  }
                 }
-              }
-              loading={loading}
-            />
-          </div>
-        </section>
+                loading={loading}
+              />
+            </div>
+
+            {/* Capture-optimized view */}
+            <div className="hidden shareable-capture-only">
+              <div className="grid grid-cols-3 gap-4">
+                {/* Stars */}
+                <div className="rounded-lg border bg-card p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Star className="h-4 w-4 text-yellow-500" />
+                    <span className="text-sm font-medium">Stars</span>
+                  </div>
+                  <p className="text-3xl font-bold">{metrics?.stars.total ?? 0}</p>
+                  {metrics?.stars.percentChange !== 0 && metrics?.stars.percentChange !== undefined && (
+                    <p className={cn("text-xs font-medium", metrics.stars.percentChange > 0 ? "text-green-500" : "text-red-500")}>
+                      {metrics.stars.percentChange > 0 ? '+' : ''}{metrics.stars.percentChange}%
+                    </p>
+                  )}
+                </div>
+                {/* Forks */}
+                <div className="rounded-lg border bg-card p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <GitFork className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Forks</span>
+                  </div>
+                  <p className="text-3xl font-bold">{metrics?.forks.total ?? 0}</p>
+                  {metrics?.forks.percentChange !== 0 && metrics?.forks.percentChange !== undefined && (
+                    <p className={cn("text-xs font-medium", metrics.forks.percentChange > 0 ? "text-green-500" : "text-red-500")}>
+                      {metrics.forks.percentChange > 0 ? '+' : ''}{metrics.forks.percentChange}%
+                    </p>
+                  )}
+                </div>
+                {/* Activity */}
+                <div className="rounded-lg border bg-card p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Activity</span>
+                  </div>
+                  <p className="text-3xl font-bold">{metrics?.activity.totalEvents ?? 0}</p>
+                  <div className="flex justify-center gap-4 mt-1">
+                    <p className="text-xs text-muted-foreground">{metrics?.activity.uniqueActors ?? 0} contributors</p>
+                    <p className="text-xs text-muted-foreground">Score: {metrics?.activity.activityScore ?? 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </ShareableCard>
 
         {/* Timeline Preview */}
         {metrics?.timeline && metrics.timeline.length > 0 && (

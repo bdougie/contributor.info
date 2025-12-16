@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { WorkspaceAutoSync } from '@/components/features/workspace/WorkspaceAutoSync';
 import { TrendChart } from '@/components/features/workspace/TrendChart';
 import { ActivityTable } from '@/components/features/workspace/ActivityTable';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 import { WorkspaceActivitySkeleton } from '@/components/features/workspace/skeletons/WorkspaceActivitySkeleton';
 import type { Repository } from '@/components/features/workspace';
 import type { Workspace } from '@/types/workspace';
@@ -393,51 +394,62 @@ export function WorkspaceActivityTab({
       )}
 
       {/* Activity Trend Chart */}
-      <TrendChart
+      <ShareableCard
         title="Activity Trend"
-        description="Daily activity across all workspace repositories"
-        data={{
-          labels: activityByDay.map((d) => {
-            const date = new Date(d.date);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          }),
-          datasets: [
-            {
-              label: 'Pull Requests',
-              data: activityByDay.map((d) => d.prs),
-              color: '#10b981',
-            },
-            {
-              label: 'Issues',
-              data: activityByDay.map((d) => d.issues),
-              color: '#f97316',
-            },
-            {
-              label: 'Reviews',
-              data: activityByDay.map((d) => d.reviews),
-              color: '#8b5cf6',
-            },
-            {
-              label: 'Comments',
-              data: activityByDay.map((d) => d.comments),
-              color: '#06b6d4',
-            },
-            {
-              label: 'Stars',
-              data: activityByDay.map((d) => d.stars),
-              color: '#fbbf24',
-            },
-            {
-              label: 'Forks',
-              data: activityByDay.map((d) => d.forks),
-              color: '#ffffff',
-            },
-          ],
+        contextInfo={{
+          repository: "Workspace Activity",
+          metric: "activity trend"
         }}
-        height={350}
-        showLegend={true}
-        showGrid={true}
-      />
+        chartType="activity-trend"
+        hideLogo={true}
+      >
+        <TrendChart
+          title="Activity Trend"
+          description="Daily activity across all workspace repositories"
+          data={{
+            labels: activityByDay.map((d) => {
+              const date = new Date(d.date);
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }),
+            datasets: [
+              {
+                label: 'Pull Requests',
+                data: activityByDay.map((d) => d.prs),
+                color: '#10b981',
+              },
+              {
+                label: 'Issues',
+                data: activityByDay.map((d) => d.issues),
+                color: '#f97316',
+              },
+              {
+                label: 'Reviews',
+                data: activityByDay.map((d) => d.reviews),
+                color: '#8b5cf6',
+              },
+              {
+                label: 'Comments',
+                data: activityByDay.map((d) => d.comments),
+                color: '#06b6d4',
+              },
+              {
+                label: 'Stars',
+                data: activityByDay.map((d) => d.stars),
+                color: '#fbbf24',
+              },
+              {
+                label: 'Forks',
+                data: activityByDay.map((d) => d.forks),
+                color: '#ffffff',
+              },
+            ],
+          }}
+          height={350}
+          showLegend={true}
+          showGrid={true}
+          className="border-0 shadow-none"
+        />
+      </ShareableCard>
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-4">
