@@ -441,7 +441,9 @@ export function WorkspaceDiscussionsTable({
 
                         const contributorStats: ContributorStats = {
                           login: discussion.author_login || 'Unknown',
-                          avatar_url: discussion.author_avatar_url || '',
+                          avatar_url:
+                            discussion.author_avatar_url ||
+                            `https://github.com/${discussion.author_login || 'ghost'}.png`,
                           pullRequests: authoredDiscussions.length,
                           percentage: 0,
                           recentIssues: authoredDiscussions.slice(0, 5).map((d) => ({

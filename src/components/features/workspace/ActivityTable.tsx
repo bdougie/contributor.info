@@ -399,7 +399,9 @@ export function ActivityTable({
 
                               const contributorStats: ContributorStats = {
                                 login: activity.author.username,
-                                avatar_url: activity.author.avatar_url || '',
+                                avatar_url:
+                                  activity.author.avatar_url ||
+                                  `https://github.com/${activity.author.username}.png`,
                                 pullRequests: pullRequestsCount,
                                 percentage: 0,
                                 recentActivities: getRecentActivitiesForContributor(
@@ -424,7 +426,12 @@ export function ActivityTable({
                                     className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                                   >
                                     <Avatar className="h-6 w-6">
-                                      <AvatarImage src={activity.author.avatar_url} />
+                                      <AvatarImage
+                                        src={
+                                          activity.author.avatar_url ||
+                                          `https://github.com/${activity.author.username}.png`
+                                        }
+                                      />
                                       <AvatarFallback>
                                         {activity.author.username.slice(0, 2).toUpperCase()}
                                       </AvatarFallback>

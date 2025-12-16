@@ -283,7 +283,7 @@ export function ContributorProfileModal({
     if (!activities || activities.length === 0) {
       return {
         login: username,
-        avatar_url: avatarUrl || '',
+        avatar_url: avatarUrl || `https://github.com/${username}.png`,
         pullRequests: prCount || 0,
         percentage: 0,
         recentPRs: [],
@@ -347,7 +347,7 @@ export function ContributorProfileModal({
 
     return {
       login: username,
-      avatar_url: avatarUrl || '',
+      avatar_url: avatarUrl || `https://github.com/${username}.png`,
       pullRequests: prCount || 0,
       percentage: 0,
       recentPRs: result.recentPRs,
