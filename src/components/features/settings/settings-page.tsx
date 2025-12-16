@@ -1,20 +1,27 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft } from '@/components/ui/icon';
+import { ArrowLeft, CreditCard } from '@/components/ui/icon';
 import { useNavigate } from 'react-router-dom';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import type { User } from '@supabase/supabase-js';
 import { LastUpdated } from '@/components/ui/last-updated';
 import { usePageTimestamp } from '@/hooks/use-data-timestamp';
+import { SubscriptionService, SUBSCRIPTION_TIERS } from '@/services/polar/subscription.service';
 
 interface EmailPreferences {
   welcome_emails: boolean;
   marketing_emails: boolean;
   notification_emails: boolean;
   transactional_emails: boolean;
+}
+
+interface SubscriptionStats {
+  tier: string;
+  subscription: any;
 }
 
 export function SettingsPage() {
@@ -29,6 +36,7 @@ export function SettingsPage() {
     notification_emails: true,
     transactional_emails: true,
   });
+  const [subscriptionStats, setSubscriptionStats] = useState<SubscriptionStats | null>(null);
 
   // Track when the page was loaded for freshness indicator
   const { pageLoadedAt } = usePageTimestamp();
@@ -48,6 +56,14 @@ export function SettingsPage() {
         }
 
         setUser(user);
+
+        // Fetch subscription stats
+        try {
+          const stats = await SubscriptionService.getUsageStats(user.id);
+          setSubscriptionStats(stats);
+        } catch (error) {
+          console.error('Failed to fetch subscription:', error);
+        }
 
         // Fetch email preferences
         const { data } = await supabase
@@ -214,25 +230,48 @@ export function SettingsPage() {
         </section>
 
         <section className="border-t pt-8">
-          <h2 className="text-lg font-medium mb-4">Account</h2>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Signed in as <strong>{user?.email}</strong>
-            </p>
-            <div className="flex gap-4">
-              <Button variant="outline" onClick={() => navigate('/billing')}>
-                Manage Plan
-              </Button>
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  const supabase = await getSupabase();
-                  await supabase.auth.signOut();
-                  navigate('/');
-                }}
-              >
-                Sign Out
-              </Button>
+          <h2 className="text-lg font-medium mb-4">Billing & Account</h2>
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-background p-2 rounded-full border">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium">Current Plan</p>
+                  <p className="text-sm text-muted-foreground">
+                    {subscriptionStats
+                      ? SUBSCRIPTION_TIERS[subscriptionStats.tier].name
+                      : 'Loading...'}
+                  </p>
+                </div>
+              </div>
+              {subscriptionStats && (
+                <Badge variant={subscriptionStats.tier === 'free' ? 'secondary' : 'default'}>
+                  {subscriptionStats.tier === 'free' ? 'Free' : 'Active'}
+                </Badge>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Signed in as <strong>{user?.email}</strong>
+              </p>
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={() => navigate('/billing')}>
+                  Manage Plan & Billing
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const supabase = await getSupabase();
+                    await supabase.auth.signOut();
+                    navigate('/');
+                  }}
+                >
+                  Sign Out
+                </Button>
+              </div>
             </div>
           </div>
         </section>

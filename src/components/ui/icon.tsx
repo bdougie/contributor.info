@@ -95,6 +95,7 @@ export const CheckCircle2 = (props: Omit<IconProps, 'name'>) => (
 export const Clock = (props: Omit<IconProps, 'name'>) => <Icon name="clock" {...props} />;
 export const Code = (props: Omit<IconProps, 'name'>) => <Icon name="code" {...props} />;
 export const Copy = (props: Omit<IconProps, 'name'>) => <Icon name="copy" {...props} />;
+export const CreditCard = (props: Omit<IconProps, 'name'>) => <Icon name="credit-card" {...props} />;
 export const Crown = (props: Omit<IconProps, 'name'>) => <Icon name="crown" {...props} />;
 export const Database = (props: Omit<IconProps, 'name'>) => <Icon name="database" {...props} />;
 export const Download = (props: Omit<IconProps, 'name'>) => <Icon name="download" {...props} />;

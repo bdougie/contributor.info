@@ -206,6 +206,13 @@ export default function Layout() {
                 >
                   Changelog
                 </Link>
+                <Link
+                  to="/billing"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-base hover:text-primary transition-colors"
+                >
+                  Pricing
+                </Link>
                 <a
                   href="https://docs.contributor.info"
                   onClick={() => setIsMenuOpen(false)}
