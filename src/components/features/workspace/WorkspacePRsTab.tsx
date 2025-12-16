@@ -155,6 +155,7 @@ export function WorkspacePRsTab({
             onAuthorClick={handleReviewerClick}
             title="Pull Request Author Status"
             maxVisible={8}
+            workspaceName={workspace?.name}
           />
 
           {/* Reviewer Distribution Chart */}
@@ -162,6 +163,7 @@ export function WorkspacePRsTab({
             pullRequests={pullRequests}
             onReviewerClick={handleReviewerClick}
             maxVisible={8}
+            workspaceName={workspace?.name}
           />
         </div>
       )}

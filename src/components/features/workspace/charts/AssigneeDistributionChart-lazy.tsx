@@ -71,6 +71,7 @@ interface LazyAssigneeDistributionChartProps {
   maxVisible?: number;
   showPercentage?: boolean;
   title?: string;
+  workspaceName?: string;
 }
 
 export function LazyAssigneeDistributionChart(props: LazyAssigneeDistributionChartProps) {

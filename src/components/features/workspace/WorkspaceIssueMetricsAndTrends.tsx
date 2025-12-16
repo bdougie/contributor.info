@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Link } from '@/components/ui/icon';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
@@ -298,7 +299,7 @@ export function WorkspaceIssueMetricsAndTrends({
         <ShareableCard
           title="Issue Metrics"
           contextInfo={{
-            repository: "Workspace Issues",
+            repository: 'Workspace Issues',
             metric: 'issue metrics',
           }}
           chartType="issue-metrics"
@@ -323,7 +324,10 @@ export function WorkspaceIssueMetricsAndTrends({
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 shareable-desktop-only">
-                  <IssueHalfLifeCard halfLife={metrics.healthMetrics.issueHalfLife} loading={loading} />
+                  <IssueHalfLifeCard
+                    halfLife={metrics.healthMetrics.issueHalfLife}
+                    loading={loading}
+                  />
                   <StaleIssuesCard
                     staleCount={metrics.healthMetrics.staleVsActiveRatio.stale}
                     totalCount={
@@ -333,7 +337,9 @@ export function WorkspaceIssueMetricsAndTrends({
                     loading={loading}
                   />
                   {(() => {
-                    const issueVolumeTrend = trends.find((trend) => trend.metric === 'Issue Volume');
+                    const issueVolumeTrend = trends.find(
+                      (trend) => trend.metric === 'Issue Volume'
+                    );
                     if (issueVolumeTrend) {
                       return (
                         <IssueVolumeCalendarCard
@@ -372,16 +378,34 @@ export function WorkspaceIssueMetricsAndTrends({
                   <div className="grid grid-cols-3 gap-4">
                     <div className="rounded-lg border bg-card p-4 text-center">
                       <p className="text-sm font-medium text-foreground mb-2">Issue Half-Life</p>
-                      <p className="text-3xl font-bold">{metrics.healthMetrics.issueHalfLife} days</p>
+                      <p
+                        className={cn(
+                          'text-3xl font-bold',
+                          (() => {
+                            const days = metrics.healthMetrics.issueHalfLife;
+                            if (days <= 7) return 'text-green-500';
+                            if (days <= 30) return 'text-yellow-500';
+                            return 'text-red-500';
+                          })()
+                        )}
+                      >
+                        {metrics.healthMetrics.issueHalfLife} days
+                      </p>
                     </div>
                     <div className="rounded-lg border bg-card p-4 text-center">
                       <p className="text-sm font-medium text-foreground mb-2">Stale Rate</p>
-                      <p className="text-3xl font-bold">{metrics.healthMetrics.staleVsActiveRatio.percentage}%</p>
-                      <p className="text-xs text-muted-foreground">{metrics.healthMetrics.staleVsActiveRatio.stale} stale issues</p>
+                      <p className="text-3xl font-bold">
+                        {metrics.healthMetrics.staleVsActiveRatio.percentage}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {metrics.healthMetrics.staleVsActiveRatio.stale} stale issues
+                      </p>
                     </div>
                     <div className="rounded-lg border bg-card p-4 text-center">
                       <p className="text-sm font-medium text-foreground mb-2">Bug Rate</p>
-                      <p className="text-3xl font-bold">{metrics.healthMetrics.legitimateBugPercentage}%</p>
+                      <p className="text-3xl font-bold">
+                        {metrics.healthMetrics.legitimateBugPercentage}%
+                      </p>
                       <p className="text-xs text-muted-foreground">legitimate bugs</p>
                     </div>
                   </div>
@@ -395,7 +419,7 @@ export function WorkspaceIssueMetricsAndTrends({
         <ShareableCard
           title="Issue Trends"
           contextInfo={{
-            repository: "Workspace Issues",
+            repository: 'Workspace Issues',
             metric: 'issue trends',
           }}
           chartType="issue-trends"
@@ -429,42 +453,61 @@ export function WorkspaceIssueMetricsAndTrends({
                 {/* Capture-optimized view */}
                 <div className="hidden shareable-capture-only">
                   <div className="grid grid-cols-3 gap-4">
-                     <div className="rounded-lg border bg-card p-4">
-                        <p className="text-sm font-medium text-foreground mb-2">Top Triager</p>
-                        {metrics.activityPatterns.mostActiveTriager ? (
-                           <div className="flex items-center gap-2">
-                              <img src={metrics.activityPatterns.mostActiveTriager.avatar_url} className="w-8 h-8 rounded-full" />
-                              <div className="overflow-hidden">
-                                 <p className="font-medium truncate">{metrics.activityPatterns.mostActiveTriager.username}</p>
-                                 <p className="text-xs text-muted-foreground">{metrics.activityPatterns.mostActiveTriager.triages} triages</p>
-                              </div>
-                           </div>
-                        ) : <p className="text-muted-foreground text-sm">No active triager</p>}
-                     </div>
-                     <div className="rounded-lg border bg-card p-4">
-                        <p className="text-sm font-medium text-foreground mb-2">First Responders</p>
-                        <div className="space-y-2">
-                           {metrics.activityPatterns.firstResponders.slice(0, 3).map(r => (
-                              <div key={r.username} className="flex justify-between items-center text-sm">
-                                 <span className="truncate max-w-[80px]">{r.username}</span>
-                                 <span className="font-medium">{r.responses}</span>
-                              </div>
-                           ))}
-                           {metrics.activityPatterns.firstResponders.length === 0 && <p className="text-muted-foreground text-sm">No data</p>}
+                    <div className="rounded-lg border bg-card p-4">
+                      <p className="text-sm font-medium text-foreground mb-2">Top Triager</p>
+                      {metrics.activityPatterns.mostActiveTriager ? (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={metrics.activityPatterns.mostActiveTriager.avatar_url}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <div className="overflow-hidden">
+                            <p className="font-medium truncate">
+                              {metrics.activityPatterns.mostActiveTriager.username}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {metrics.activityPatterns.mostActiveTriager.triages} triages
+                            </p>
+                          </div>
                         </div>
-                     </div>
-                     <div className="rounded-lg border bg-card p-4">
-                        <p className="text-sm font-medium text-foreground mb-2">Top Reporters</p>
-                         <div className="space-y-2">
-                           {metrics.activityPatterns.repeatReporters.slice(0, 3).map(r => (
-                              <div key={r.username} className="flex justify-between items-center text-sm">
-                                 <span className="truncate max-w-[80px]">{r.username}</span>
-                                 <span className="font-medium">{r.issues}</span>
-                              </div>
-                           ))}
-                           {metrics.activityPatterns.repeatReporters.length === 0 && <p className="text-muted-foreground text-sm">No data</p>}
-                        </div>
-                     </div>
+                      ) : (
+                        <p className="text-muted-foreground text-sm">No active triager</p>
+                      )}
+                    </div>
+                    <div className="rounded-lg border bg-card p-4">
+                      <p className="text-sm font-medium text-foreground mb-2">First Responders</p>
+                      <div className="space-y-2">
+                        {metrics.activityPatterns.firstResponders.slice(0, 3).map((r) => (
+                          <div
+                            key={r.username}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <span className="truncate max-w-[80px]">{r.username}</span>
+                            <span className="font-medium">{r.responses}</span>
+                          </div>
+                        ))}
+                        {metrics.activityPatterns.firstResponders.length === 0 && (
+                          <p className="text-muted-foreground text-sm">No data</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-card p-4">
+                      <p className="text-sm font-medium text-foreground mb-2">Top Reporters</p>
+                      <div className="space-y-2">
+                        {metrics.activityPatterns.repeatReporters.slice(0, 3).map((r) => (
+                          <div
+                            key={r.username}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <span className="truncate max-w-[80px]">{r.username}</span>
+                            <span className="font-medium">{r.issues}</span>
+                          </div>
+                        ))}
+                        {metrics.activityPatterns.repeatReporters.length === 0 && (
+                          <p className="text-muted-foreground text-sm">No data</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </>

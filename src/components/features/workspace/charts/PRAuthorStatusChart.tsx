@@ -24,6 +24,7 @@ import { isBot } from '@/lib/utils/bot-detection';
 import type { PullRequest } from '../WorkspacePullRequestsTable';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
+import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 interface AuthorStatus {
   username: string;
@@ -44,6 +45,7 @@ interface PRAuthorStatusChartProps {
   maxVisible?: number;
   title?: string;
   repositories?: Array<{ owner: string; name: string }>;
+  workspaceName?: string;
 }
 
 type StatusFilter = 'all' | 'blocked' | 'approved' | 'pending';
@@ -55,6 +57,7 @@ export function PRAuthorStatusChart({
   maxVisible = 10,
   title = 'Pull Request Author Status',
   repositories,
+  workspaceName,
 }: PRAuthorStatusChartProps) {
   const [excludeBots, setExcludeBots] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -225,257 +228,268 @@ export function PRAuthorStatusChart({
   };
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GitPullRequest className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{title}</CardTitle>
+    <ShareableCard
+      title={title}
+      contextInfo={{
+        repository: workspaceName || 'Workspace',
+        metric: 'pr-author-status',
+      }}
+      chartType="pr-author-status"
+    >
+      <Card className={cn('w-full', className)}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitPullRequest className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>{title}</CardTitle>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  <Filter className="h-3 w-3 mr-2" />
+                  {getFilterLabel()}
+                  <ChevronDown className="h-3 w-3 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setStatusFilter('all')}
+                  className={cn(statusFilter === 'all' && 'bg-accent')}
+                >
+                  All PRs
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setStatusFilter('blocked')}
+                  className={cn(statusFilter === 'blocked' && 'bg-accent')}
+                >
+                  <AlertCircle className="h-3 w-3 mr-2 text-red-500" />
+                  Blocked (Changes Requested)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setStatusFilter('approved')}
+                  className={cn(statusFilter === 'approved' && 'bg-accent')}
+                >
+                  <CheckCircle2 className="h-3 w-3 mr-2 text-green-500" />
+                  Approved
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setStatusFilter('pending')}
+                  className={cn(statusFilter === 'pending' && 'bg-accent')}
+                >
+                  <Clock className="h-3 w-3 mr-2 text-yellow-500" />
+                  Pending Review
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8">
-                <Filter className="h-3 w-3 mr-2" />
-                {getFilterLabel()}
-                <ChevronDown className="h-3 w-3 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => setStatusFilter('all')}
-                className={cn(statusFilter === 'all' && 'bg-accent')}
-              >
-                All PRs
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setStatusFilter('blocked')}
-                className={cn(statusFilter === 'blocked' && 'bg-accent')}
-              >
-                <AlertCircle className="h-3 w-3 mr-2 text-red-500" />
-                Blocked (Changes Requested)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setStatusFilter('approved')}
-                className={cn(statusFilter === 'approved' && 'bg-accent')}
-              >
-                <CheckCircle2 className="h-3 w-3 mr-2 text-green-500" />
-                Approved
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setStatusFilter('pending')}
-                className={cn(statusFilter === 'pending' && 'bg-accent')}
-              >
-                <Clock className="h-3 w-3 mr-2 text-yellow-500" />
-                Pending Review
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {visibleAuthors.map((author) => {
-            const githubUrl = getGitHubAuthorUrl(author);
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {visibleAuthors.map((author) => {
+              const githubUrl = getGitHubAuthorUrl(author);
 
-            return (
-              <div
-                key={author.username}
-                className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
-                onClick={() => handleAuthorClick(author)}
-              >
-                <div className="flex items-center gap-3">
-                  {/* Avatar */}
-                  <ContributorHoverCard
-                    contributor={{
-                      login: author.username,
-                      avatar_url:
-                        author.avatar_url ||
-                        `https://github.com/${encodeURIComponent(author.username)}.png`,
-                      pullRequests: author.totalOpenPRs,
-                      percentage: 0,
-                      recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
-                    }}
-                  >
-                    <a
-                      href={githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                      title={`View PRs authored by ${author.username}`}
-                    >
-                      <img
-                        src={
+              return (
+                <div
+                  key={author.username}
+                  className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                  onClick={() => handleAuthorClick(author)}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Avatar */}
+                    <ContributorHoverCard
+                      contributor={{
+                        login: author.username,
+                        avatar_url:
                           author.avatar_url ||
-                          `https://github.com/${encodeURIComponent(author.username)}.png`
-                        }
-                        alt={author.username}
-                        className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
-                        onError={(e) => {
-                          e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
-                        }}
-                      />
-                    </a>
-                  </ContributorHoverCard>
+                          `https://github.com/${encodeURIComponent(author.username)}.png`,
+                        pullRequests: author.totalOpenPRs,
+                        percentage: 0,
+                        recentPRs: getRecentPRsForContributor(author.username, pullRequests, 5),
+                      }}
+                    >
+                      <a
+                        href={githubUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                        title={`View PRs authored by ${author.username}`}
+                      >
+                        <img
+                          src={
+                            author.avatar_url ||
+                            `https://github.com/${encodeURIComponent(author.username)}.png`
+                          }
+                          alt={author.username}
+                          className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
+                          onError={(e) => {
+                            e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
+                          }}
+                        />
+                      </a>
+                    </ContributorHoverCard>
 
-                  {/* Username and stats */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium truncate">{author.username}</span>
-                      {author.isBot && (
-                        <Badge variant="secondary" className="text-xs">
-                          Bot
-                        </Badge>
-                      )}
-                      {/* Status indicators with counts */}
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        {author.blockedPRs > 0 && (
-                          <>
-                            <span title="Changes requested (blocked)">
-                              <AlertCircle className="h-3 w-3 text-red-500" />
-                            </span>
-                            <span>{author.blockedPRs}</span>
-                          </>
+                    {/* Username and stats */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium truncate">{author.username}</span>
+                        {author.isBot && (
+                          <Badge variant="secondary" className="text-xs">
+                            Bot
+                          </Badge>
                         )}
-                        {author.approvedPRs > 0 && (
-                          <>
-                            {author.blockedPRs > 0 && <span>/</span>}
-                            <span title="Approved PRs">
-                              <CheckCircle2 className="h-3 w-3 text-green-500" />
-                            </span>
-                            <span>{author.approvedPRs}</span>
-                          </>
-                        )}
-                        {author.pendingPRs > 0 && (
-                          <>
-                            {(author.blockedPRs > 0 || author.approvedPRs > 0) && <span>/</span>}
-                            <span title="Pending review">
-                              <Clock className="h-3 w-3 text-yellow-500" />
-                            </span>
-                            <span>{author.pendingPRs}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Stacked progress bar for open PRs */}
-                    <div className="relative">
-                      <div className="h-6 bg-muted rounded-md overflow-hidden">
-                        <div className="flex h-full">
-                          {/* Blocked PRs (changes requested) */}
+                        {/* Status indicators with counts */}
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           {author.blockedPRs > 0 && (
-                            <div
-                              className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
-                              style={{
-                                width: `${(author.blockedPRs / maxCount) * 100}%`,
-                              }}
-                              title={`${author.blockedPRs} blocked (changes requested)`}
-                            />
+                            <>
+                              <span title="Changes requested (blocked)">
+                                <AlertCircle className="h-3 w-3 text-red-500" />
+                              </span>
+                              <span>{author.blockedPRs}</span>
+                            </>
                           )}
-                          {/* Pending review PRs */}
-                          {author.pendingPRs > 0 && (
-                            <div
-                              className="bg-yellow-500 dark:bg-yellow-600 transition-all duration-500 ease-out"
-                              style={{ width: `${(author.pendingPRs / maxCount) * 100}%` }}
-                              title={`${author.pendingPRs} pending review`}
-                            />
-                          )}
-                          {/* Approved PRs */}
                           {author.approvedPRs > 0 && (
-                            <div
-                              className="bg-green-500 dark:bg-green-600 transition-all duration-500 ease-out"
-                              style={{ width: `${(author.approvedPRs / maxCount) * 100}%` }}
-                              title={`${author.approvedPRs} approved`}
-                            />
+                            <>
+                              {author.blockedPRs > 0 && <span>/</span>}
+                              <span title="Approved PRs">
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              </span>
+                              <span>{author.approvedPRs}</span>
+                            </>
                           )}
-                          {/* Draft PRs */}
-                          {author.draftPRs > 0 && (
-                            <div
-                              className="bg-gray-500 dark:bg-gray-600 transition-all duration-500 ease-out"
-                              style={{ width: `${(author.draftPRs / maxCount) * 100}%` }}
-                              title={`${author.draftPRs} draft`}
-                            />
+                          {author.pendingPRs > 0 && (
+                            <>
+                              {(author.blockedPRs > 0 || author.approvedPRs > 0) && <span>/</span>}
+                              <span title="Pending review">
+                                <Clock className="h-3 w-3 text-yellow-500" />
+                              </span>
+                              <span>{author.pendingPRs}</span>
+                            </>
                           )}
                         </div>
                       </div>
-                      {/* Count overlay */}
-                      <div className="absolute inset-0 flex items-center justify-end pr-2">
-                        <span
-                          className={cn(
-                            'text-xs font-medium',
-                            // Use contrasting color when bar is more than 80% width
-                            author.totalOpenPRs / maxCount > 0.8 ? 'text-white' : 'text-foreground'
-                          )}
-                        >
-                          {author.totalOpenPRs}
-                        </span>
+
+                      {/* Stacked progress bar for open PRs */}
+                      <div className="relative">
+                        <div className="h-6 bg-muted rounded-md overflow-hidden">
+                          <div className="flex h-full">
+                            {/* Blocked PRs (changes requested) */}
+                            {author.blockedPRs > 0 && (
+                              <div
+                                className="bg-red-500 dark:bg-red-600 transition-all duration-500 ease-out"
+                                style={{
+                                  width: `${(author.blockedPRs / maxCount) * 100}%`,
+                                }}
+                                title={`${author.blockedPRs} blocked (changes requested)`}
+                              />
+                            )}
+                            {/* Pending review PRs */}
+                            {author.pendingPRs > 0 && (
+                              <div
+                                className="bg-yellow-500 dark:bg-yellow-600 transition-all duration-500 ease-out"
+                                style={{ width: `${(author.pendingPRs / maxCount) * 100}%` }}
+                                title={`${author.pendingPRs} pending review`}
+                              />
+                            )}
+                            {/* Approved PRs */}
+                            {author.approvedPRs > 0 && (
+                              <div
+                                className="bg-green-500 dark:bg-green-600 transition-all duration-500 ease-out"
+                                style={{ width: `${(author.approvedPRs / maxCount) * 100}%` }}
+                                title={`${author.approvedPRs} approved`}
+                              />
+                            )}
+                            {/* Draft PRs */}
+                            {author.draftPRs > 0 && (
+                              <div
+                                className="bg-gray-500 dark:bg-gray-600 transition-all duration-500 ease-out"
+                                style={{ width: `${(author.draftPRs / maxCount) * 100}%` }}
+                                title={`${author.draftPRs} draft`}
+                              />
+                            )}
+                          </div>
+                        </div>
+                        {/* Count overlay */}
+                        <div className="absolute inset-0 flex items-center justify-end pr-2">
+                          <span
+                            className={cn(
+                              'text-xs font-medium',
+                              // Use contrasting color when bar is more than 80% width
+                              author.totalOpenPRs / maxCount > 0.8
+                                ? 'text-white'
+                                : 'text-foreground'
+                            )}
+                          >
+                            {author.totalOpenPRs}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              );
+            })}
+
+            {/* Show more/less button */}
+            {hasMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Show {authorStatusData.length - maxVisible} More
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Summary stats and controls */}
+          <div className="mt-4 pt-4 border-t space-y-3">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Total authors: {authorStatusData.length}</span>
+              <div className="flex gap-2 flex-wrap">
+                {totals.totalBlocked > 0 && (
+                  <span className="text-red-600 dark:text-red-400 font-medium">
+                    {totals.totalBlocked} blocked
+                  </span>
+                )}
+                {totals.totalApproved > 0 && (
+                  <span className="text-green-600 dark:text-green-400">
+                    {totals.totalApproved} approved
+                  </span>
+                )}
+                {totals.totalPending > 0 && (
+                  <span className="text-yellow-600 dark:text-yellow-400">
+                    {totals.totalPending} pending
+                  </span>
+                )}
               </div>
-            );
-          })}
-
-          {/* Show more/less button */}
-          {hasMore && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  Show Less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Show {authorStatusData.length - maxVisible} More
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-
-        {/* Summary stats and controls */}
-        <div className="mt-4 pt-4 border-t space-y-3">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Total authors: {authorStatusData.length}</span>
-            <div className="flex gap-2 flex-wrap">
-              {totals.totalBlocked > 0 && (
-                <span className="text-red-600 dark:text-red-400 font-medium">
-                  {totals.totalBlocked} blocked
-                </span>
-              )}
-              {totals.totalApproved > 0 && (
-                <span className="text-green-600 dark:text-green-400">
-                  {totals.totalApproved} approved
-                </span>
-              )}
-              {totals.totalPending > 0 && (
-                <span className="text-yellow-600 dark:text-yellow-400">
-                  {totals.totalPending} pending
-                </span>
-              )}
+            </div>
+            <div className="flex items-center justify-end gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="exclude-bots-pr-author"
+                  checked={excludeBots}
+                  onCheckedChange={setExcludeBots}
+                />
+                <Label htmlFor="exclude-bots-pr-author" className="text-sm text-muted-foreground">
+                  Exclude Bots
+                </Label>
+              </div>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="exclude-bots-pr-author"
-                checked={excludeBots}
-                onCheckedChange={setExcludeBots}
-              />
-              <Label htmlFor="exclude-bots-pr-author" className="text-sm text-muted-foreground">
-                Exclude Bots
-              </Label>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </ShareableCard>
   );
 }
