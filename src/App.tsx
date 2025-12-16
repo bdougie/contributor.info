@@ -24,8 +24,10 @@ const ProtectedRoute = lazy(() =>
 const AdminRoute = lazy(() =>
   import('@/components/features/auth').then((m) => ({ default: m.AdminRoute }))
 );
-// Lazy load components not needed for initial FCP
+// SVGSpriteInliner must be eagerly loaded (not lazy) as it's rendered outside Suspense
+// and is needed immediately to inline SVG sprites for the entire app
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
+// Lazy load workspace redirect - only needed when navigating to legacy /workspace/* routes
 const WorkspaceRedirect = lazy(() =>
   import('@/components/WorkspaceRedirect').then((m) => ({ default: m.WorkspaceRedirect }))
 );
