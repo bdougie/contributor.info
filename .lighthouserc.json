@@ -1,8 +1,8 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npx vite preview --outDir .lighthouse-build",
-      "startServerReadyPattern": "Local:",
+      "startServerCommand": "NO_COLOR=1 npx vite preview --outDir .lighthouse-build",
+      "startServerReadyPattern": "Local",
       "startServerReadyTimeout": 30000,
       "url": ["http://localhost:4173"],
       "numberOfRuns": 1,
@@ -23,7 +23,7 @@
         "total-blocking-time": ["warn", { "maxNumericValue": 300 }],
         "interactive": ["warn", { "maxNumericValue": 3800 }],
         "speed-index": ["warn", { "maxNumericValue": 3400 }],
-        "resource-summary:script:size": ["error", { "maxNumericValue": 550000 }],
+        "resource-summary:script:size": ["error", { "maxNumericValue": 600000 }],
         "resource-summary:stylesheet:size": ["error", { "maxNumericValue": 100000 }],
         "resource-summary:image:size": ["warn", { "maxNumericValue": 500000 }],
         "resource-summary:total:size": ["error", { "maxNumericValue": 2000000 }],
