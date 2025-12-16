@@ -41,7 +41,7 @@ interface DatabasePR {
   created_at: string;
   updated_at: string;
   closed_at: string | null;
-  html_url: string;
+  html_url: string | null;
   commits: number | null;
   additions: number | null;
   deletions: number | null;
@@ -309,7 +309,12 @@ export function useWorkspacePRs({
       labels: [],
       reviewers,
       requested_reviewers: pr.reviewer_data?.requested_reviewers || [],
-      url: pr.html_url || `https://github.com/${repo?.owner || 'unknown'}/${repo?.name || 'unknown'}/pull/${pr.number}`,
+      url:
+        pr.html_url ||
+        // Only construct fallback URL if we have valid owner/name
+        (repo?.owner && repo?.name
+          ? `https://github.com/${repo.owner}/${repo.name}/pull/${pr.number}`
+          : undefined),
     };
   }, []);
 

@@ -75,9 +75,12 @@ export function WorkspacePRsTab({
   }, [error, refresh]);
 
   const handlePullRequestClick = (pr: PullRequest) => {
-    // Construct GitHub URL from repository and PR number to ensure it's always valid
-    const githubUrl = `https://github.com/${pr.repository.owner}/${pr.repository.name}/pull/${pr.number}`;
-    window.open(githubUrl, '_blank', 'noopener,noreferrer');
+    // Guard against missing URL - should only happen if database data is corrupt
+    if (!pr.url) {
+      toast.error('Pull request URL not available');
+      return;
+    }
+    window.open(pr.url, '_blank', 'noopener,noreferrer');
   };
 
   const handleRepositoryClick = (owner: string, name: string) => {

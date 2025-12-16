@@ -77,7 +77,7 @@ export interface PullRequest {
     username: string;
     avatar_url: string;
   }>;
-  url: string;
+  url: string | undefined;
 }
 
 export interface WorkspacePullRequestsTableProps {
