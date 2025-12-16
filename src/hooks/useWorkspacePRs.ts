@@ -274,7 +274,9 @@ const transformPR = (pr: DatabasePR): PullRequest => {
     labels: [],
     reviewers,
     requested_reviewers: pr.reviewer_data?.requested_reviewers || [],
-    url: pr.html_url || `https://github.com/${repo?.owner || 'unknown'}/${repo?.name || 'unknown'}/pull/${pr.number}`,
+    url:
+      pr.html_url ||
+      `https://github.com/${repo?.owner || 'unknown'}/${repo?.name || 'unknown'}/pull/${pr.number}`,
   };
 };
 
@@ -289,11 +291,13 @@ export function useWorkspacePRs({
   maxStaleMinutes = 60,
   autoSyncOnMount = true,
 }: UseWorkspacePRsOptions): UseWorkspacePRsResult {
-  const filteredRepos = useMemo(() =>
-    selectedRepositories.length > 0
-      ? repositories.filter((r) => selectedRepositories.includes(r.id))
-      : repositories,
-  [repositories, selectedRepositories]);
+  const filteredRepos = useMemo(
+    () =>
+      selectedRepositories.length > 0
+        ? repositories.filter((r) => selectedRepositories.includes(r.id))
+        : repositories,
+    [repositories, selectedRepositories]
+  );
 
   const repoIds = useMemo(() => filteredRepos.map((r) => r.id), [filteredRepos]);
 
@@ -322,7 +326,7 @@ export function useWorkspacePRs({
                   updateDatabase: true,
                 });
               } catch (err) {
-                console.error('Failed to sync %s/%s:', err, repo.owner, repo.name);
+                console.error('Failed to sync %s/%s:', repo.owner, repo.name, err);
               }
             })
           );
