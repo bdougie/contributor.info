@@ -93,9 +93,15 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
     }),
     {
       name: 'workspace-filters',
-      // Add storage error handling
+      // Skip hydration during SSR - localStorage not available
+      skipHydration: typeof window === 'undefined',
+      // Add storage error handling with SSR guards
       storage: {
         getItem: (name) => {
+          // SSR guard - localStorage not available on server
+          if (typeof window === 'undefined') {
+            return null;
+          }
           try {
             const str = localStorage.getItem(name);
             return str ? JSON.parse(str) : null;
@@ -105,6 +111,10 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
           }
         },
         setItem: (name, value) => {
+          // SSR guard - localStorage not available on server
+          if (typeof window === 'undefined') {
+            return;
+          }
           try {
             localStorage.setItem(name, JSON.stringify(value));
           } catch (err) {
@@ -113,6 +123,10 @@ export const useWorkspaceFiltersStore = create<WorkspaceFiltersState>()(
           }
         },
         removeItem: (name) => {
+          // SSR guard - localStorage not available on server
+          if (typeof window === 'undefined') {
+            return;
+          }
           try {
             localStorage.removeItem(name);
           } catch (err) {
