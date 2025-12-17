@@ -98,6 +98,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      // React Router v7 renamed package from react-router-dom to react-router
+      'react-router-dom': 'react-router',
     },
   },
 });

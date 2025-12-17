@@ -118,6 +118,8 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
       // Fix relative path resolution for netlify functions
       '../../src': resolve(__dirname, './src'),
+      // React Router v7 renamed package from react-router-dom to react-router
+      'react-router-dom': 'react-router',
     },
   },
 });
