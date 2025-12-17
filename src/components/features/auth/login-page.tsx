@@ -11,8 +11,15 @@ import { useAnalytics } from '@/hooks/use-analytics';
 
 /**
  * Validates redirect URLs to prevent open redirect attacks
+ * SSR-safe: returns false during server-side rendering
  */
 function isValidRedirectUrl(url: string): boolean {
+  // Guard against SSR - window not available
+  if (typeof window === 'undefined') {
+    // During SSR, only allow simple relative paths
+    return url.startsWith('/') && !url.startsWith('//');
+  }
+
   try {
     // Parse the URL relative to current origin
     const parsed = new URL(url, window.location.origin);
@@ -44,14 +51,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [testEmail, setTestEmail] = useState('');
   const [testPassword, setTestPassword] = useState('');
+  const [redirectTo, setRedirectTo] = useState('/');
   const { trackLoginInitiated, trackLoginSuccessful } = useAnalytics();
   const testMode = isTestMode();
 
-  // Get the intended destination from URL param or use home page as default
-  const urlParams = new URLSearchParams(window.location.search);
-  const rawRedirectTo = urlParams.get('redirectTo') || '/';
-  // Validate the redirect URL to prevent open redirect attacks
-  const redirectTo = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : '/';
+  // Get the intended destination from URL param (SSR-safe, runs only on client)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const rawRedirectTo = urlParams.get('redirectTo') || '/';
+      // Validate the redirect URL to prevent open redirect attacks
+      const validatedRedirect = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : '/';
+      setRedirectTo(validatedRedirect);
+    }
+  }, []);
 
   // If already logged in, redirect to the intended destination
   useEffect(() => {
