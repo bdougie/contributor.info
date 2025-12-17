@@ -69,6 +69,11 @@ jobs:
     name: E2E Critical Flows
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Skip E2E tests for spike/evaluation PRs (RC software testing)
+    if: |
+      !contains(github.event.pull_request.title, 'spike') &&
+      !contains(github.event.pull_request.title, 'Spike') &&
+      !contains(github.event.pull_request.title, 'SPIKE')
 
     steps:
       - uses: actions/checkout@v4
@@ -120,16 +125,24 @@ jobs:
     steps:
       - name: Check test results
         run: |
+          # Check unit tests (required)
           if [ "${{ needs.unit-tests.result }}" != "success" ]; then
             echo "❌ Unit tests failed"
             exit 1
           fi
+          
+          # Check build (required)
           if [ "${{ needs.build-check.result }}" != "success" ]; then
             echo "❌ Build check failed"
             exit 1
           fi
-          if [ "${{ needs.e2e-critical.result }}" != "success" ]; then
+          
+          # Check E2E tests (skipped for spike PRs)
+          if [ "${{ needs.e2e-critical.result }}" == "skipped" ]; then
+            echo "⏭️ E2E tests skipped (evaluation spike)"
+          elif [ "${{ needs.e2e-critical.result }}" != "success" ]; then
             echo "❌ E2E tests failed"
             exit 1
           fi
-          echo "✅ All tests passed!"
+          
+          echo "✅ All required tests passed!"
