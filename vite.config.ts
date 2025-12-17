@@ -118,74 +118,17 @@ export default defineConfig(() => ({
     commonjsOptions: {
       // Better handling of CommonJS modules (like some D3 packages)
       transformMixedEsModules: true,
-      strictRequires: 'auto',
+      strictRequires: 'auto' as const,
     },
-    rollupOptions: {
-      output: {
-        // Optimized chunking strategy for better code splitting
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            // Core React libraries - loaded immediately
-            if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
-              return 'vendor-react-core';
-            }
-            // UI components that are used everywhere
-            if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
-            }
-            // Chart libraries - can be split for lazy loading
-            if (id.includes('@nivo')) {
-              return 'vendor-nivo';
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-recharts';
-            }
-            if (id.includes('d3-')) {
-              return 'vendor-d3';
-            }
-            if (id.includes('uplot')) {
-              return 'vendor-uplot';
-            }
-            // Supabase SDK
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-            // Small utilities bundled together
-            if (
-              id.includes('clsx') ||
-              id.includes('tailwind-merge') ||
-              id.includes('class-variance-authority') ||
-              id.includes('date-fns')
-            ) {
-              return 'vendor-utils';
-            }
-            // Analytics - lazy loaded
-            if (id.includes('posthog-js')) {
-              return 'vendor-analytics';
-            }
-            // Web vitals - small, keep separate
-            if (id.includes('web-vitals')) {
-              return 'vendor-vitals';
-            }
-            // Monitoring
-            if (id.includes('@sentry')) {
-              return 'vendor-monitoring';
-            }
-            // Exclude heavy ML libraries
-            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
-              return 'embeddings-excluded';
-            }
-          }
-          // Don't split app code - let it stay in main bundle
-        },
-      },
-    },
+    // Note: manualChunks removed for React Router v7 SSR compatibility
+    // The React Router plugin handles chunking automatically for client builds
+    // SSR builds require inlineDynamicImports which is incompatible with manualChunks
     // Optimize CSS minification
-    cssMinify: 'esbuild',
+    cssMinify: 'esbuild' as const,
     // Disable sourcemaps in production to reduce bundle size
     sourcemap: process.env.NODE_ENV === 'production' ? false : true,
     // Optimize minification and target for better compression
-    minify: 'esbuild',
+    minify: 'esbuild' as const,
     target: 'es2020', // Modern target with good compatibility
     // Optimize chunk size warnings
     chunkSizeWarningLimit: 1300, // Increased to accommodate vendor-react bundle

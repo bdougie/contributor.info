@@ -4,10 +4,9 @@ export default {
   // Enable SSR for better LCP performance
   ssr: true,
 
-  // Pre-render static pages at build time for instant loading
-  async prerender() {
-    return ['/', '/trending', '/privacy', '/terms', '/changelog', '/login'];
-  },
+  // Note: prerender disabled due to known bug with @netlify/vite-plugin-react-router
+  // See: https://github.com/remix-run/react-router/issues/14096
+  // SSR still provides LCP benefits without static pre-rendering
 
   // App directory contains route files
   appDirectory: 'app',
