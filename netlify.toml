@@ -70,9 +70,10 @@
 
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs
-[[edge_functions]]
-  function = "social-meta"
-  path = "/*"
+# TEMPORARILY DISABLED: Testing if edge function conflicts with SSR
+# [[edge_functions]]
+#   function = "social-meta"
+#   path = "/*"
 
 # Inngest functions need longer timeouts for processing
 # Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
