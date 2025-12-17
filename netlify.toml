@@ -1,7 +1,5 @@
 [build]
-  # TanStack Start creates dist/client (browser) and dist/server (SSR)
-  # Netlify serves the client bundle
-  publish = "dist/client"
+  publish = "dist"
   command = "npm run build"
   
 [build.environment]
@@ -32,7 +30,7 @@
   command = "vite --port 5174"
   framework = "#custom"
   targetPort = 5174
-  publish = "dist/client"
+  publish = "dist"
   autoLaunch = false
   envFiles = [".env", ".env.local"]
 

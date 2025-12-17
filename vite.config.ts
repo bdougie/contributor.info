@@ -2,14 +2,17 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
-import { tanstackStart } from '@tanstack/react-start/plugin/vite';
-import netlify from '@netlify/vite-plugin-tanstack-start';
+// NOTE: TanStack Start plugins disabled - spike evaluation complete
+// Enabling these triggers SSR build which requires full server setup
+// See TANSTACK_START_EVALUATION.md for measured performance improvements
+// import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+// import netlify from '@netlify/vite-plugin-tanstack-start';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
-    tanstackStart(),
-    netlify(),
+    // tanstackStart(), // Disabled - spike evaluation only
+    // netlify(), // Disabled - spike evaluation only
     react(),
     imagetools({
       defaultDirectives: (url) => {
