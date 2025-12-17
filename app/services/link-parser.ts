@@ -12,16 +12,19 @@ export function extractLinkedItems(
   const links: { owner?: string; repo?: string; number: number }[] = [];
 
   // Regex for owner/repo#123
-  // Use [a-zA-Z0-9][a-zA-Z0-9._-]* to avoid ReDoS - first char must be alphanumeric
-  // This matches GitHub's actual username/repo naming rules
-  const repoRefRegex = /([a-zA-Z0-9][a-zA-Z0-9._-]*)\/([a-zA-Z0-9][a-zA-Z0-9._-]*)#(\d+)/g;
+  // Use length limits to prevent ReDoS: GitHub usernames max 39 chars, repo names max 100 chars
+  // First char must be alphanumeric per GitHub rules, allow dots/underscores/hyphens after
+  const repoRefRegex =
+    /([a-zA-Z0-9][a-zA-Z0-9._-]{0,38})\/([a-zA-Z0-9][a-zA-Z0-9._-]{0,99})#(\d+)/g;
   let match;
   while ((match = repoRefRegex.exec(text)) !== null) {
     links.push({ owner: match[1], repo: match[2], number: parseInt(match[3], 10) });
   }
 
   // Regex for full URLs
-  const urlRegex = /https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/(issues|pull)\/(\d+)/g;
+  // Use length limits to prevent ReDoS: GitHub usernames max 39 chars, repo names max 100 chars
+  const urlRegex =
+    /https:\/\/github\.com\/([a-zA-Z0-9][a-zA-Z0-9._-]{0,38})\/([a-zA-Z0-9][a-zA-Z0-9._-]{0,99})\/(issues|pull)\/(\d+)/g;
   while ((match = urlRegex.exec(text)) !== null) {
     links.push({ owner: match[1], repo: match[2], number: parseInt(match[4], 10) });
   }
