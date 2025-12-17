@@ -400,8 +400,9 @@ describe('LLM Service', () => {
     });
 
     it('should clear cache when requested', async () => {
-      // Use unique data for this test
-      const testData = { ...sampleHealthData, score: 83 };
+      // Use unique data for this test to prevent cache collisions with other tests
+      const uniqueRepoInfo = { owner: 'cache-clear-test', repo: 'unique-repo-12345' };
+      const testData = { ...sampleHealthData, score: 99 };
 
       // Clear cache and reset all mocks to ensure clean state
       llmService.clearCache();
@@ -418,13 +419,13 @@ describe('LLM Service', () => {
         timestamp: new Date(),
       });
 
-      await llmService.generateHealthInsight(testData, sampleRepoInfo);
+      await llmService.generateHealthInsight(testData, uniqueRepoInfo);
       expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(1);
 
       llmService.clearCache();
       localStorage.clear(); // Also clear localStorage to ensure persistent cache is cleared
 
-      await llmService.generateHealthInsight(testData, sampleRepoInfo);
+      await llmService.generateHealthInsight(testData, uniqueRepoInfo);
       expect(mockPostHogOpenAIService.generateHealthInsight).toHaveBeenCalledTimes(2);
     });
   });
