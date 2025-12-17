@@ -11,6 +11,7 @@ import {
   renderHTML,
   getSSRHeaders,
   escapeHtml,
+  getAssetReferences,
   type MetaTags,
   type SSRData,
 } from './_shared/html-template.ts';
@@ -258,10 +259,12 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch repository data and contributor stats in parallel
-    const [repoData, contributorStats] = await Promise.all([
+    // Fetch repository data, contributor stats, and asset references in parallel
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const [repoData, contributorStats, assets] = await Promise.all([
       fetchRepository(owner, repo),
       fetchRepoContributorStats(owner, repo),
+      getAssetReferences(baseUrl),
     ]);
 
     // If repo not found, return 404
@@ -295,7 +298,7 @@ async function handler(request: Request, context: Context) {
       timestamp: Date.now(),
     };
 
-    const html = renderHTML(content, meta, ssrData, request.url);
+    const html = renderHTML(content, meta, ssrData, request.url, assets);
     const headers = getSSRHeaders(300, 3600); // 5 min cache, 1 hour stale-while-revalidate
 
     return new Response(html, { headers });

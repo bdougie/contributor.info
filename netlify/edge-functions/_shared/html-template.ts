@@ -21,6 +21,87 @@ export interface SSRData {
   timestamp: number;
 }
 
+export interface AssetReferences {
+  scripts: string[];
+  modulePreloads: string[];
+  stylesheets: string[];
+}
+
+// Cache for asset references (lives for the duration of the edge function instance)
+let cachedAssets: AssetReferences | null = null;
+
+/**
+ * Fetch and parse index.html to extract asset references
+ * This ensures SSR pages use the same hashed assets as the SPA
+ */
+export async function getAssetReferences(baseUrl: string): Promise<AssetReferences> {
+  // Return cached assets if available
+  if (cachedAssets) {
+    return cachedAssets;
+  }
+
+  try {
+    // Fetch the actual index.html from the origin
+    const response = await fetch(`${baseUrl}/index.html`, {
+      headers: {
+        // Bypass edge functions to get the static file
+        'x-bypass-edge': 'true',
+      },
+    });
+
+    if (!response.ok) {
+      console.error('[SSR] Failed to fetch index.html:', response.status);
+      return getDefaultAssets();
+    }
+
+    const html = await response.text();
+
+    // Extract script tags with src attribute
+    const scriptMatches = html.matchAll(/<script[^>]+src="([^"]+)"[^>]*>/g);
+    const scripts: string[] = [];
+    for (const match of scriptMatches) {
+      if (match[1] && !match[1].includes('netlify')) {
+        scripts.push(match[1]);
+      }
+    }
+
+    // Extract modulepreload links
+    const preloadMatches = html.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"[^>]*>/g);
+    const modulePreloads: string[] = [];
+    for (const match of preloadMatches) {
+      if (match[1]) {
+        modulePreloads.push(match[1]);
+      }
+    }
+
+    // Extract stylesheet links
+    const styleMatches = html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>/g);
+    const stylesheets: string[] = [];
+    for (const match of styleMatches) {
+      if (match[1]) {
+        stylesheets.push(match[1]);
+      }
+    }
+
+    cachedAssets = { scripts, modulePreloads, stylesheets };
+    return cachedAssets;
+  } catch (error) {
+    console.error('[SSR] Error fetching index.html:', error);
+    return getDefaultAssets();
+  }
+}
+
+/**
+ * Default assets fallback (should rarely be used)
+ */
+function getDefaultAssets(): AssetReferences {
+  return {
+    scripts: [],
+    modulePreloads: [],
+    stylesheets: [],
+  };
+}
+
 /**
  * Escape HTML special characters to prevent XSS
  */
@@ -129,8 +210,30 @@ const THEME_SCRIPT = `
  * @param meta - Meta tags for SEO
  * @param ssrData - Data to be hydrated on the client
  * @param url - Current page URL
+ * @param assets - Asset references from the built index.html
  */
-export function renderHTML(content: string, meta: MetaTags, ssrData: SSRData, url: string): string {
+export function renderHTML(
+  content: string,
+  meta: MetaTags,
+  ssrData: SSRData,
+  url: string,
+  assets: AssetReferences
+): string {
+  // Generate modulepreload links
+  const modulePreloads = assets.modulePreloads
+    .map((href) => `<link rel="modulepreload" crossorigin href="${href}">`)
+    .join('\n    ');
+
+  // Generate stylesheet links
+  const stylesheets = assets.stylesheets
+    .map((href) => `<link rel="stylesheet" crossorigin href="${href}">`)
+    .join('\n    ');
+
+  // Generate script tags
+  const scripts = assets.scripts
+    .map((src) => `<script type="module" crossorigin src="${src}"></script>`)
+    .join('\n    ');
+
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -164,10 +267,16 @@ export function renderHTML(content: string, meta: MetaTags, ssrData: SSRData, ur
 
     <!-- SSR Data for hydration -->
     <script>window.__SSR_DATA__ = ${JSON.stringify(ssrData)};</script>
+
+    <!-- Modulepreload for critical chunks -->
+    ${modulePreloads}
+
+    <!-- Stylesheets -->
+    ${stylesheets}
   </head>
   <body>
     <div id="root">${content}</div>
-    <script type="module" src="/src/main.tsx"></script>
+    ${scripts}
   </body>
 </html>`;
 }

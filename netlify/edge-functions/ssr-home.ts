@@ -11,6 +11,7 @@ import {
   renderHTML,
   getSSRHeaders,
   escapeHtml,
+  getAssetReferences,
   type MetaTags,
   type SSRData,
 } from './_shared/html-template.ts';
@@ -158,8 +159,9 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch stats for the home page
-    const stats = await fetchHomeStats();
+    // Fetch stats and asset references in parallel
+    const baseUrl = `${url.protocol}//${url.host}`;
+    const [stats, assets] = await Promise.all([fetchHomeStats(), getAssetReferences(baseUrl)]);
 
     // Generate the page content
     const content = renderHomeContent(stats);
@@ -177,7 +179,7 @@ async function handler(request: Request, context: Context) {
       timestamp: Date.now(),
     };
 
-    const html = renderHTML(content, meta, ssrData, request.url);
+    const html = renderHTML(content, meta, ssrData, request.url, assets);
     const headers = getSSRHeaders(60, 300); // 1 min cache, 5 min stale-while-revalidate
 
     return new Response(html, { headers });
