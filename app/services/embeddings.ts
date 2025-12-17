@@ -1,13 +1,42 @@
 import { supabase } from '../../src/lib/supabase';
-import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
 
-// Configure Transformers.js
-env.allowLocalModels = false;
-env.useBrowserCache = false;
+// SSR Guard: Detect if we're running in a server/edge environment
+// This prevents @xenova/transformers from being imported during SSR
+// which would cause errors due to native dependencies (sharp)
+const isSSR =
+  typeof window === 'undefined' &&
+  typeof (globalThis as Record<string, unknown>).Deno === 'undefined';
 
-// Shared embedding pipeline
-let embeddingPipeline: Awaited<ReturnType<typeof pipeline>> | null = null;
+// Dynamic import type for transformers
+type TransformersPipeline = Awaited<ReturnType<typeof import('@xenova/transformers').pipeline>>;
+
+// Shared embedding pipeline - only initialized client-side or in dedicated functions
+let embeddingPipeline: TransformersPipeline | null = null;
+let transformersModule: typeof import('@xenova/transformers') | null = null;
+
+/**
+ * Dynamically load transformers module (only in non-SSR environments)
+ */
+async function loadTransformers() {
+  if (transformersModule) return transformersModule;
+
+  // Don't load transformers during SSR - it has native dependencies
+  if (isSSR) {
+    throw new Error(
+      'Embeddings cannot be generated during SSR. Use dedicated Netlify Functions or Supabase Edge Functions instead.'
+    );
+  }
+
+  // Dynamic import to avoid bundling in SSR
+  transformersModule = await import('@xenova/transformers');
+
+  // Configure Transformers.js after loading
+  transformersModule.env.allowLocalModels = false;
+  transformersModule.env.useBrowserCache = false;
+
+  return transformersModule;
+}
 
 export interface EmbeddingItem {
   id: string;
@@ -27,9 +56,12 @@ interface EmbeddingTensor {
 
 /**
  * Get or initialize the embedding pipeline
+ * This function will throw during SSR - embeddings should only be generated
+ * in dedicated serverless functions, not during page rendering
  */
 async function getEmbeddingPipeline() {
   if (!embeddingPipeline) {
+    const { pipeline } = await loadTransformers();
     console.log('Loading MiniLM embedding model...');
     embeddingPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     console.log('MiniLM model loaded successfully');
