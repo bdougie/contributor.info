@@ -186,7 +186,11 @@ const InvitationAcceptancePage = lazy(() =>
 
 // Minimal loading fallback for fast FCP - simplified to reduce JS execution time
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
     {/* Minimal header */}
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
@@ -354,12 +358,7 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <FeatureFlagsProvider>
           <SVGSpriteInliner />
-          <Router
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
+          <Router>
             <WorkspaceProvider>
               <OfflineNotification />
               <Suspense fallback={<PageSkeleton />}>

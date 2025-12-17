@@ -1,12 +1,14 @@
 import path from 'path';
-import react from '@vitejs/plugin-react-swc';
+import { reactRouter } from '@react-router/dev/vite';
+import netlifyPlugin from '@netlify/vite-plugin-react-router';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
-    react(),
+    reactRouter(),
+    netlifyPlugin(),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -42,6 +44,8 @@ export default defineConfig(() => ({
       '@': path.resolve(__dirname, './src'),
       react: path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      // React Router v7 migration compatibility - maps react-router-dom to react-router
+      'react-router-dom': path.resolve(__dirname, './node_modules/react-router'),
     },
     dedupe: ['react', 'react-dom'],
     // Narrow extensions list to reduce filesystem checks
@@ -74,7 +78,7 @@ export default defineConfig(() => ({
     include: [
       'react',
       'react-dom',
-      'react-router-dom',
+      'react-router',
       '@radix-ui/react-slot',
       '@radix-ui/react-avatar',
       '@radix-ui/react-dropdown-menu',

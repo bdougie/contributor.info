@@ -24,7 +24,8 @@
     /* for ShadCN */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react-router-dom": ["./node_modules/react-router"]
     }
   },
   "include": ["src"],
