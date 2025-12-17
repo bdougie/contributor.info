@@ -37,7 +37,7 @@ moment/moment
 nestjs/nest
 ollama/ollama
 open-sauced/app
-pgvector/pgvector
+TanStack/table
 pingcap/tidb
 prometheus/prometheus
 punkpeye/awesome-mcp-servers

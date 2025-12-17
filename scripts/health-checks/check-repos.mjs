@@ -29,7 +29,7 @@ async function checkRepositories() {
     'better-auth/better-auth', 
     'etcd-io/etcd',
     'argoproj/argo-cd',
-    'pgvector/pgvector'
+    'TanStack/table'
   ];
   
   console.log('\n🎯 Checking target repositories:');

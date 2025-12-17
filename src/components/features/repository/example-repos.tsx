@@ -10,7 +10,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
     // Medium repositories - ideal for demos
     'continuedev/continue', // Medium: AI code assistant (TypeScript) - primary demo
     'argoproj/argo-cd', // Medium: DevOps tool (Go) - shows enterprise usage
-    'pgvector/pgvector', // Medium: Vector search (C) - AI/ML context
+    'TanStack/table', // Medium: Headless UI (TypeScript) - Data Grid
 
     // Large repositories - performance examples
     'vitejs/vite', // Large: Frontend tooling (TypeScript) - very popular

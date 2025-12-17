@@ -15,12 +15,12 @@ test.describe('Homepage Functionality', () => {
       .filter({ hasText: /search|find|go/i })
       .first();
 
-    // Test search for pgvector/pgvector
-    await searchInput.fill('pgvector/pgvector');
+    // Test search for TanStack/table
+    await searchInput.fill('TanStack/table');
     await searchButton.click();
 
     // Verify correct routing
-    await expect(page).toHaveURL(/.*\/pgvector\/pgvector$/);
+    await expect(page).toHaveURL(/.*\/TanStack\/table$/);
   });
 
   test('example repository links', async ({ page }) => {
@@ -57,7 +57,7 @@ test.describe('Homepage Functionality', () => {
     // Check for any example repository links or mentions
     const hasExampleRepos =
       (await page.locator('text=continuedev').count()) > 0 ||
-      (await page.locator('text=pgvector').count()) > 0 ||
+      (await page.locator('text=TanStack').count()) > 0 ||
       (await page.locator('text=example').count()) > 0;
 
     // At minimum, page should have some interactive elements

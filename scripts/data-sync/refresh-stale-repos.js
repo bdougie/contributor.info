@@ -7,7 +7,7 @@ async function refreshStaleRepos() {
     'better-auth/better-auth',
     'etcd-io/etcd',
     'argoproj/argo-cd',
-    'pgvector/pgvector',
+    'TanStack/table',
   ];
 
   console.log('🔄 Starting refresh for stale repositories...');
