@@ -35,6 +35,35 @@ import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
 
+/**
+ * Reusable repository search section component
+ * Handles search input, example repos, and login requirements
+ */
+interface RepoSearchSectionProps {
+  onSearch: (repositoryPath: string) => void;
+  onSelect: (repository: GitHubRepository) => void;
+  onExampleSelect: (repo: string) => void;
+}
+
+function RepoSearchSection({ onSearch, onSelect, onExampleSelect }: RepoSearchSectionProps) {
+  return (
+    <section className="mb-8">
+      <Card>
+        <CardContent className="pt-6">
+          <GitHubSearchInput
+            placeholder="Search another repository (e.g., facebook/react)"
+            onSearch={onSearch}
+            onSelect={onSelect}
+          />
+          <aside>
+            <ExampleRepos onSelect={onExampleSelect} />
+          </aside>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
@@ -81,21 +110,40 @@ export default function RepoView() {
     autoUpdate: true,
   });
 
+  /**
+   * Handle repository search/selection with login requirements
+   * Requires login after the first search for non-authenticated users
+   */
+  const handleRepositoryNavigation = (repositoryPath: string) => {
+    // Check if login is required (second search while not logged in)
+    if (hasSearchedOnce && !isLoggedIn) {
+      localStorage.setItem('redirectAfterLogin', repositoryPath);
+      navigate('/login');
+      return;
+    }
+
+    // Mark that a search has been performed
+    setHasSearchedOnce(true);
+    navigate(repositoryPath);
+  };
+
+  const handleSearchInput = (repositoryPath: string) => {
+    const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    if (match) {
+      const [, newOwner, newRepo] = match;
+      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
+    }
+  };
+
+  const handleSelectRepository = (repository: GitHubRepository) => {
+    handleRepositoryNavigation(`/${repository.full_name}`);
+  };
+
   const handleSelectExample = (repo: string) => {
     const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
     if (match) {
       const [, newOwner, newRepo] = match;
-
-      // Check if login is required (second search while not logged in)
-      if (hasSearchedOnce && !isLoggedIn) {
-        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-        navigate('/login');
-        return;
-      }
-
-      // Mark that a search has been performed
-      setHasSearchedOnce(true);
-      navigate(`/${newOwner}/${newRepo}`);
+      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
     }
   };
 
@@ -211,28 +259,11 @@ export default function RepoView() {
     return (
       <article className="py-2">
         <Breadcrumbs />
-        <section className="mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <GitHubSearchInput
-                placeholder="Search another repository (e.g., facebook/react)"
-                onSearch={(repositoryPath) => {
-                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-                  if (match) {
-                    const [, newOwner, newRepo] = match;
-                    navigate(`/${newOwner}/${newRepo}`);
-                  }
-                }}
-                onSelect={(repository: GitHubRepository) => {
-                  navigate(`/${repository.full_name}`);
-                }}
-              />
-              <aside>
-                <ExampleRepos onSelect={handleSelectExample} />
-              </aside>
-            </CardContent>
-          </Card>
-        </section>
+        <RepoSearchSection
+          onSearch={handleSearchInput}
+          onSelect={handleSelectRepository}
+          onExampleSelect={handleSelectExample}
+        />
         <section className="grid gap-8">
           <RepositoryTrackingCard
             owner={owner || ''}
@@ -289,47 +320,11 @@ export default function RepoView() {
         image="social-cards/repo"
       />
       <Breadcrumbs />
-      <section className="mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <GitHubSearchInput
-              placeholder="Search another repository (e.g., facebook/react)"
-              onSearch={(repositoryPath) => {
-                const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-                if (match) {
-                  const [, newOwner, newRepo] = match;
-
-                  // Check if login is required (second search while not logged in)
-                  if (hasSearchedOnce && !isLoggedIn) {
-                    localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-                    navigate('/login');
-                    return;
-                  }
-
-                  // Mark that a search has been performed
-                  setHasSearchedOnce(true);
-                  navigate(`/${newOwner}/${newRepo}`);
-                }
-              }}
-              onSelect={(repository: GitHubRepository) => {
-                // Check if login is required (second search while not logged in)
-                if (hasSearchedOnce && !isLoggedIn) {
-                  localStorage.setItem('redirectAfterLogin', `/${repository.full_name}`);
-                  navigate('/login');
-                  return;
-                }
-
-                // Mark that a search has been performed
-                setHasSearchedOnce(true);
-                navigate(`/${repository.full_name}`);
-              }}
-            />
-            <aside>
-              <ExampleRepos onSelect={handleSelectExample} />
-            </aside>
-          </CardContent>
-        </Card>
-      </section>
+      <RepoSearchSection
+        onSearch={handleSearchInput}
+        onSelect={handleSelectRepository}
+        onExampleSelect={handleSelectExample}
+      />
 
       <section className="grid gap-8">
         <Card>
