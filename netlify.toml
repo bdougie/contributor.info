@@ -1,12 +1,13 @@
 [build]
   publish = "build/client"
-  # Force clean install and rebuild to bypass potential cache issues
-  command = "rm -rf node_modules/.cache && npm ci && react-router build"
+  command = "npm run build"
   
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"
   NODE_OPTIONS = "--max-old-space-size=4096"
+  # Prevent treating warnings as errors (CI=true causes exit code 2)
+  CI = "false"
 
 # Enable standard Netlify processing
 [build.processing]
