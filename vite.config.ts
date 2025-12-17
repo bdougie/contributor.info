@@ -2,10 +2,14 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+import netlify from '@netlify/vite-plugin-tanstack-start';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
+    tanstackStart(),
+    netlify(),
     react(),
     imagetools({
       defaultDirectives: (url) => {
@@ -48,6 +52,8 @@ export default defineConfig(() => ({
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
   server: {
+    host: true,
+    allowedHosts: ['work-1-ijaynbihnknceigy.prod-runtime.all-hands.dev', 'work-2-ijaynbihnknceigy.prod-runtime.all-hands.dev'],
     // Warm up frequently used files for better dev performance
     warmup: {
       clientFiles: [

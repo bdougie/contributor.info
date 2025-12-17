@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
-import App from './App';
+import { RouterProvider } from '@tanstack/react-router';
+import { StartClient } from '@tanstack/react-start/client';
+import { router } from './router';
 import './index.css';
 import './styles/cls-fixes.css'; // Global CLS fixes
 import { MetaTagsProvider, SchemaMarkup } from './components/common/layout';
@@ -63,23 +65,41 @@ if ('serviceWorker' in navigator && !import.meta.env.PROD) {
 
 // Web vitals tracking removed - was causing React hooks conflicts
 
-// Initialize app with proper provider pattern
+// Initialize app with TanStack Start
 const rootElement = document.getElementById('root')!;
-const root = createRoot(rootElement);
 
-// Render app with React Query provider
-root.render(
-  <StrictMode>
-    <ErrorBoundary context="Root Mount">
-      <QueryClientProvider client={queryClient}>
-        <MetaTagsProvider>
-          <SchemaMarkup />
-          <App />
-        </MetaTagsProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
-  </StrictMode>
-);
+// Check if we're hydrating SSR content or doing client-side rendering
+if (rootElement.hasChildNodes()) {
+  // Hydrate SSR content
+  hydrateRoot(
+    rootElement,
+    <StrictMode>
+      <ErrorBoundary context="Root Mount">
+        <QueryClientProvider client={queryClient}>
+          <MetaTagsProvider>
+            <SchemaMarkup />
+            <StartClient router={router} />
+          </MetaTagsProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StrictMode>
+  );
+} else {
+  // Client-side rendering
+  const root = createRoot(rootElement);
+  root.render(
+    <StrictMode>
+      <ErrorBoundary context="Root Mount">
+        <QueryClientProvider client={queryClient}>
+          <MetaTagsProvider>
+            <SchemaMarkup />
+            <StartClient router={router} />
+          </MetaTagsProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </StrictMode>
+  );
+}
 
 // Initialize Sentry after app is rendered (non-blocking)
 // This ensures Sentry doesn't impact initial page load
