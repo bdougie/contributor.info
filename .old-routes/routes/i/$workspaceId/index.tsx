@@ -1,18 +1,22 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, lazy } from 'react'
+import { createFileRoute } from '@tanstack/react-router';
+import { Suspense, lazy } from 'react';
 
 const ProtectedRoute = lazy(() =>
   import('@/components/features/auth').then((m) => ({ default: m.ProtectedRoute }))
-)
+);
 const WorkspaceRoutesWrapper = lazy(() =>
   import('@/components/features/workspace/WorkspaceRoutesWrapper').then((m) => ({
     default: m.WorkspaceRoutesWrapper,
   }))
-)
-const WorkspacePage = lazy(() => import('@/pages/workspace-page'))
+);
+const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <div className="text-xl font-bold">contributor.info</div>
@@ -28,7 +32,7 @@ const PageSkeleton = () => (
     </main>
     <span className="sr-only">Loading content, please wait...</span>
   </div>
-)
+);
 
 export const Route = createFileRoute('/i/$workspaceId/')({
   // Use data-only SSR for workspace pages - load data on server but render on client
@@ -43,4 +47,4 @@ export const Route = createFileRoute('/i/$workspaceId/')({
       </ProtectedRoute>
     </Suspense>
   ),
-})
+});

@@ -1,13 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, lazy } from 'react'
+import { createFileRoute } from '@tanstack/react-router';
+import { Suspense, lazy } from 'react';
 
-const Layout = lazy(() =>
-  import('@/components/common/layout').then((m) => ({ default: m.Layout }))
-)
-const RepoView = lazy(() => import('@/components/features/repository/repo-view'))
+const TrendingPageRoute = lazy(() =>
+  import('@/pages/trending').then((m) => ({ default: m.TrendingPageRoute }))
+);
 
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <div className="text-xl font-bold">contributor.info</div>
@@ -23,16 +26,14 @@ const PageSkeleton = () => (
     </main>
     <span className="sr-only">Loading content, please wait...</span>
   </div>
-)
+);
 
-export const Route = createFileRoute('/$owner/$repo/')({
-  // Enable full SSR for repository pages for better SEO and social sharing
+export const Route = createFileRoute('/trending')({
+  // Enable full SSR for trending page for better SEO
   ssr: true,
   component: () => (
     <Suspense fallback={<PageSkeleton />}>
-      <Layout>
-        <RepoView />
-      </Layout>
+      <TrendingPageRoute />
     </Suspense>
   ),
-})
+});

@@ -1,15 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, lazy } from 'react'
+import { createFileRoute } from '@tanstack/react-router';
+import { Suspense, lazy } from 'react';
 
-// Lazy load components for better performance
-const Layout = lazy(() =>
-  import('@/components/common/layout').then((m) => ({ default: m.Layout }))
-)
-const Home = lazy(() => import('@/components/common/layout').then((m) => ({ default: m.Home })))
+const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
 
-// Minimal loading fallback for fast FCP
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <div className="text-xl font-bold">contributor.info</div>
@@ -25,16 +24,14 @@ const PageSkeleton = () => (
     </main>
     <span className="sr-only">Loading content, please wait...</span>
   </div>
-)
+);
 
-export const Route = createFileRoute('/')({
-  // Enable full SSR for the home page for better SEO and LCP
+export const Route = createFileRoute('/$owner/$repo/')({
+  // Enable full SSR for repository pages for better SEO and social sharing
   ssr: true,
   component: () => (
     <Suspense fallback={<PageSkeleton />}>
-      <Layout>
-        <Home />
-      </Layout>
+      <RepoView />
     </Suspense>
   ),
-})
+});

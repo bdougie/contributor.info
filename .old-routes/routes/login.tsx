@@ -1,15 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { Suspense, lazy } from 'react'
+import { createFileRoute } from '@tanstack/react-router';
+import { Suspense, lazy } from 'react';
 
-const Layout = lazy(() =>
-  import('@/components/common/layout').then((m) => ({ default: m.Layout }))
-)
-const TrendingPageRoute = lazy(() =>
-  import('@/pages/trending').then((m) => ({ default: m.TrendingPageRoute }))
-)
+const LoginPage = lazy(() => import('@/components/features/auth/login-page'));
 
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
     <header className="border-b">
       <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
         <div className="text-xl font-bold">contributor.info</div>
@@ -25,16 +24,14 @@ const PageSkeleton = () => (
     </main>
     <span className="sr-only">Loading content, please wait...</span>
   </div>
-)
+);
 
-export const Route = createFileRoute('/trending')({
-  // Enable full SSR for trending page for better SEO
-  ssr: true,
+export const Route = createFileRoute('/login')({
+  // Disable SSR for login page since it requires browser APIs and user interaction
+  ssr: false,
   component: () => (
     <Suspense fallback={<PageSkeleton />}>
-      <Layout>
-        <TrendingPageRoute />
-      </Layout>
+      <LoginPage />
     </Suspense>
   ),
-})
+});
