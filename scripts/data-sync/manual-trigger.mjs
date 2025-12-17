@@ -16,7 +16,7 @@ async function triggerDataRefresh() {
     'better-auth/better-auth', 
     'etcd-io/etcd',
     'argoproj/argo-cd',
-    'pgvector/pgvector'
+    'TanStack/table'
   ];
   
   console.log('🔄 Triggering data refresh for stale repositories...');

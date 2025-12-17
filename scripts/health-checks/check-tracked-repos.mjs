@@ -43,7 +43,7 @@ async function checkAndUpdateTrackedRepos() {
     'better-auth/better-auth', 
     'etcd-io/etcd',
     'argoproj/argo-cd',
-    'pgvector/pgvector'
+    'TanStack/table'
   ];
   
   console.log('\n🎯 Updating target repositories for refresh:');
