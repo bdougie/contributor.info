@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/functions';
-import { trackInngestFailure } from './lib/server-tracking.mts';
+import { trackInngestFailure, trackTrackingFailure } from './lib/server-tracking.mts';
 
 /**
  * Blocked owner names that are app routes, not GitHub organizations
@@ -314,6 +314,16 @@ export default async (req: Request, context: Context) => {
 
       if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
+
+        // Track configuration error - this is a critical issue
+        await trackTrackingFailure({
+          owner,
+          repo,
+          errorType: 'database_error',
+          errorMessage: 'Missing Supabase configuration keys',
+          statusCode: 503,
+        });
+
         // Fallback to sending Inngest event
         const inngestEventKey =
           process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
@@ -338,11 +348,12 @@ export default async (req: Request, context: Context) => {
           });
         }
 
+        // Return degraded response - tracking may work via Inngest but is not guaranteed
         return new Response(
           JSON.stringify({
             success: true,
             message: `Tracking request received for ${owner}/${repo}`,
-            warning: 'Background processing may be delayed',
+            warning: 'Background processing may be delayed due to configuration issue',
           }),
           {
             status: 200,
@@ -783,15 +794,25 @@ export default async (req: Request, context: Context) => {
     } catch (error) {
       console.error('Failed to track repository:', error);
 
-      // Still return success to not break the UI
+      // Track the failure to Sentry + PostHog for alerting
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await trackTrackingFailure({
+        owner,
+        repo,
+        errorType: 'database_error',
+        errorMessage,
+        statusCode: 500,
+      });
+
+      // Return error status so frontend knows tracking failed
       return new Response(
         JSON.stringify({
-          success: true,
-          message: `Tracking request received for ${owner}/${repo}`,
-          warning: 'Processing may be delayed',
+          success: false,
+          error: 'Tracking failed',
+          message: `Failed to track ${owner}/${repo}. Please try again.`,
         }),
         {
-          status: 200,
+          status: 500,
           headers: {
             ...corsHeaders,
             'Content-Type': 'application/json',
@@ -801,6 +822,29 @@ export default async (req: Request, context: Context) => {
     }
   } catch (error) {
     console.error('Function error:', error);
+
+    // Track unexpected function-level errors
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Try to extract owner/repo from request body for tracking
+    let owner = 'unknown';
+    let repo = 'unknown';
+    try {
+      const clonedReq = req.clone();
+      const body = await clonedReq.json();
+      owner = body?.owner || 'unknown';
+      repo = body?.repo || 'unknown';
+    } catch {
+      // Ignore parsing errors
+    }
+
+    await trackTrackingFailure({
+      owner,
+      repo,
+      errorType: 'unknown',
+      errorMessage,
+      statusCode: 500,
+    });
 
     return new Response(
       JSON.stringify({

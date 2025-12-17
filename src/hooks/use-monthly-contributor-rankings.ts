@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { captureException } from '@/lib/sentry-lazy';
+import { trackEvent } from '@/lib/posthog-lazy';
 
 export interface MonthlyContributorRanking {
   id: string;
@@ -128,6 +130,38 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
           // Edge function failed, reset state before falling back
           setIsCalculating(false);
         } catch (err) {
+          // Track edge function errors to Sentry + PostHog
+          const errorMessage = err instanceof Error ? err.message : 'Unknown edge function error';
+
+          // Only track non-404 errors as actual errors (404 = repo not set up yet, expected)
+          const is404 = errorMessage.includes('not found') || errorMessage.includes('404');
+
+          if (!is404) {
+            captureException(new Error(`Monthly rankings edge function error: ${errorMessage}`), {
+              level: 'warning',
+              tags: {
+                type: 'edge_function_error',
+                function: 'calculate-monthly-rankings',
+              },
+              extra: {
+                owner,
+                repo,
+                targetMonth,
+                targetYear,
+              },
+            });
+          }
+
+          // Track to PostHog for monitoring (including 404s for visibility)
+          trackEvent('edge_function_error', {
+            function_name: 'calculate-monthly-rankings',
+            repository: `${owner}/${repo}`,
+            error_message: errorMessage,
+            is_expected_404: is404,
+            target_month: targetMonth,
+            target_year: targetYear,
+          });
+
           console.log('Edge function error:', err, 'Falling back to database query');
           // Reset state before fallback
           setIsCalculating(false);
