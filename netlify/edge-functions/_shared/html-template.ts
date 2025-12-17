@@ -86,13 +86,20 @@ const CRITICAL_CSS = `
   .font-bold{font-weight:700}.font-semibold{font-weight:600}
   .text-muted-foreground{color:hsl(var(--muted-foreground))}.text-primary{color:hsl(var(--primary))}
   .mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}
-  .p-4{padding:1rem}.p-6{padding:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.py-12{padding-top:3rem;padding-bottom:3rem}
-  .gap-4{gap:1rem}.gap-6{gap:1.5rem}
+  .p-4{padding:1rem}.p-6{padding:1.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1\\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.py-12{padding-top:3rem;padding-bottom:3rem}.pb-4{padding-bottom:1rem}.pt-0{padding-top:0}
+  .text-sm{font-size:0.875rem;line-height:1.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}
+  .bg-secondary{background-color:hsl(var(--secondary))}
+  .gap-2{gap:0.5rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.flex-wrap{flex-wrap:wrap}.inline-flex{display:inline-flex}
   .grid{display:grid}.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
   @media(min-width:768px){.md\\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
   .rounded-lg{border-radius:0.5rem}.rounded-full{border-radius:9999px}
   .border{border-width:1px;border-color:hsl(var(--border))}.bg-card{background-color:hsl(var(--card))}.shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05)}
-  .w-full{width:100%}.h-10{height:2.5rem}.h-12{height:3rem}.w-10{width:2.5rem}.w-12{width:3rem}
+  .w-full{width:100%}.h-10{height:2.5rem}.h-12{height:3rem}.w-10{width:2.5rem}.w-12{width:3rem}.max-w-2xl{max-width:42rem}
+  .space-y-6>:not([hidden])~:not([hidden]){margin-top:1.5rem}
+  input{font-family:inherit;font-size:100%;line-height:inherit;color:inherit;margin:0;padding:0}
+  button{font-family:inherit;font-size:100%;line-height:inherit;color:inherit;margin:0;padding:0;cursor:pointer}
+  .border-input{border-color:hsl(var(--input))}.ring-offset-background{--tw-ring-offset-color:hsl(var(--background))}.focus-visible\\:outline-none:focus-visible{outline:2px solid transparent;outline-offset:2px}.focus-visible\\:ring-2:focus-visible{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.focus-visible\\:ring-ring:focus-visible{--tw-ring-color:hsl(var(--ring))}.focus-visible\\:ring-offset-2:focus-visible{--tw-ring-offset-width:2px}
+  .bg-primary{background-color:hsl(var(--primary))}.text-primary-foreground{color:hsl(var(--primary-foreground))}.hover\\:bg-primary\\/90:hover{background-color:hsl(var(--primary) / 0.9)}
   .overflow-hidden{overflow:hidden}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .space-y-2>:not([hidden])~:not([hidden]){margin-top:0.5rem}.space-y-4>:not([hidden])~:not([hidden]){margin-top:1rem}
   a{color:inherit;text-decoration:inherit}
