@@ -131,4 +131,16 @@ export default defineConfig(() => ({
   css: {
     devSourcemap: true,
   },
+  ssr: {
+    // Externalize packages with native dependencies that don't work in serverless
+    // These should only be used in dedicated Netlify Functions, not SSR
+    external: [
+      '@xenova/transformers',
+      'sharp',
+      'onnxruntime-node',
+      'onnxruntime-web',
+    ],
+    // Don't bundle these - they'll cause errors in Netlify Functions SSR
+    noExternal: [],
+  },
 }));
