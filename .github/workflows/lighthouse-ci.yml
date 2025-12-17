@@ -35,10 +35,10 @@ jobs:
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli@0.14.x
 
-      # Rename dist folder to prevent LHCI auto-detection
+      # Rename build folder to prevent LHCI auto-detection
       # LHCI auto-detects ./dist and uses static file server instead of startServerCommand
       - name: Prevent LHCI staticDistDir auto-detection
-        run: mv dist .lighthouse-build
+        run: mv build/client .lighthouse-build
 
       - name: Run Lighthouse CI
         run: lhci autorun --config=.lighthouserc.json
