@@ -2,6 +2,10 @@
  * Feature flag monitoring and rollback capabilities
  */
 
+/* eslint-disable react-refresh/only-export-components */
+// This file exports both React components and utility classes/functions
+// which is the standard pattern for monitoring modules
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFeatureFlags } from './context';
 import { trackEvent } from '../posthog-lazy';
@@ -42,6 +46,11 @@ class FeatureFlagErrorMonitor {
   }
 
   private setupErrorHandlers() {
+    // Skip during SSR - no window available
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     // Listen for uncaught errors
     window.addEventListener('error', (event) => {
       this.recordError('global', event.error);

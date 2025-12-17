@@ -92,8 +92,14 @@ export function formatFeatureFlagName(flagName: FeatureFlagName): string {
  * Parse feature flag from URL query parameters (for testing)
  */
 export function parseFeatureFlagsFromUrl(): Map<FeatureFlagName, boolean> {
-  const params = new URLSearchParams(window.location.search);
   const flags = new Map<FeatureFlagName, boolean>();
+
+  // Skip during SSR - no window available
+  if (typeof window === 'undefined') {
+    return flags;
+  }
+
+  const params = new URLSearchParams(window.location.search);
 
   params.forEach((value, key) => {
     if (key.startsWith('ff_')) {
@@ -127,6 +133,11 @@ export function buildUrlWithFeatureFlags(
  * Create a feature flag override for testing
  */
 export function createFeatureFlagOverride(flags: Partial<Record<FeatureFlagName, boolean>>): void {
+  // SSR guard
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   if (process.env.NODE_ENV !== 'development') {
     console.warn('[FeatureFlags] Overrides only work in development mode');
     return;
@@ -140,6 +151,11 @@ export function createFeatureFlagOverride(flags: Partial<Record<FeatureFlagName,
  * Clear feature flag overrides
  */
 export function clearFeatureFlagOverrides(): void {
+  // SSR guard
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   localStorage.removeItem('feature_flag_overrides');
   console.log('[FeatureFlags] Overrides cleared');
 }
@@ -148,6 +164,11 @@ export function clearFeatureFlagOverrides(): void {
  * Get current feature flag overrides
  */
 export function getFeatureFlagOverrides(): Partial<Record<FeatureFlagName, boolean>> {
+  // SSR guard
+  if (typeof window === 'undefined') {
+    return {};
+  }
+
   const stored = localStorage.getItem('feature_flag_overrides');
   if (!stored) {
     return {};

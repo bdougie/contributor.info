@@ -388,6 +388,11 @@ export class PostHogFeatureFlagClient {
   }
 
   private getAnonymousId(): string {
+    // SSR guard - return a temporary ID that will be replaced on client
+    if (typeof window === 'undefined') {
+      return `ssr_anon_${Date.now()}`;
+    }
+
     let id = localStorage.getItem('contributor_info_anonymous_id');
     if (!id) {
       id = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

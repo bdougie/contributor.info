@@ -13,6 +13,11 @@ let sentryLoadPromise: Promise<typeof import('@sentry/react')> | null = null;
  * This runs asynchronously and won't block the main thread
  */
 export async function lazyInitSentry() {
+  // Skip during SSR - Sentry is browser-only
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   // Skip in local environment for production builds
   // Allow in development for testing
   const isLocal = import.meta.env.PROD && window.location.hostname === 'localhost';
@@ -206,6 +211,11 @@ export function initSentryAfterLoad() {
  * Set up global error handlers (lightweight, non-blocking)
  */
 export function setupGlobalErrorHandlers() {
+  // Skip during SSR - no window available
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   // Unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
     captureException(event.reason, {
