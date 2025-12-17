@@ -1,7 +1,6 @@
 [build]
   publish = "build/client"
-  # Show diagnostic info before build
-  command = "echo '=== Node/npm versions ===' && node -v && npm -v && echo '=== Checking react-router CLI ===' && npx react-router --version && echo '=== Running build ===' && npm run build"
+  command = "npm run build"
   
 [build.environment]
   NODE_VERSION = "20"
