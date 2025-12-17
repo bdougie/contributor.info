@@ -240,6 +240,16 @@ const supabase = createClient(
 
 ### HTML Template Structure
 ```typescript
+// HTML-safe JSON serialization to prevent XSS
+function serializeJSONForHTML(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')  // Escape < to prevent </script>
+    .replace(/>/g, '\\u003e')  // Escape > for consistency
+    .replace(/&/g, '\\u0026')  // Escape & to prevent HTML entities
+    .replace(/\u2028/g, '\\u2028')  // Escape Unicode line separator
+    .replace(/\u2029/g, '\\u2029'); // Escape Unicode paragraph separator
+}
+
 function renderHTML(content: string, data: unknown, meta: MetaTags) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -248,7 +258,7 @@ function renderHTML(content: string, data: unknown, meta: MetaTags) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   ${renderMetaTags(meta)}
   <link rel="stylesheet" href="/assets/index.css" />
-  <script>window.__SSR_DATA__ = ${JSON.stringify(data)};</script>
+  <script>window.__SSR_DATA__ = ${serializeJSONForHTML(data)};</script>
 </head>
 <body>
   <div id="root">${content}</div>

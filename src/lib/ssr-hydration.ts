@@ -102,8 +102,8 @@ export function shouldHydrate(): boolean {
   const root = document.getElementById('root');
   if (!root) return false;
 
-  // Check if there's actual content beyond whitespace
-  const hasContent = root.innerHTML.trim().length > 0;
+  // Check if there's actual content (O(1) operation vs expensive innerHTML serialization)
+  const hasContent = root.hasChildNodes();
 
   // Check if SSR data exists
   const hasSSRData = isSSRPage();
@@ -115,20 +115,22 @@ export function shouldHydrate(): boolean {
 }
 
 /**
- * Mark hydration as complete
- * Adds a marker that can be used to track successful hydration
+ * Mark hydration as started
+ * Adds a marker to indicate hydration has been initiated.
+ * Note: This is called synchronously after hydrateRoot(), which is asynchronous.
+ * React does not provide a callback for when hydration actually completes.
  */
-export function markHydrationComplete(): void {
+export function markHydrationStarted(): void {
   if (typeof window !== 'undefined') {
-    (window as { __SSR_HYDRATED__?: boolean }).__SSR_HYDRATED__ = true;
-    logger.debug('[SSR] Hydration complete');
+    (window as { __SSR_HYDRATION_STARTED__?: boolean }).__SSR_HYDRATION_STARTED__ = true;
+    logger.debug('[SSR] Hydration started');
   }
 }
 
 /**
- * Check if hydration has completed
+ * Check if hydration has been started
  */
-export function isHydrationComplete(): boolean {
+export function isHydrationStarted(): boolean {
   if (typeof window === 'undefined') return false;
-  return (window as { __SSR_HYDRATED__?: boolean }).__SSR_HYDRATED__ === true;
+  return (window as { __SSR_HYDRATION_STARTED__?: boolean }).__SSR_HYDRATION_STARTED__ === true;
 }

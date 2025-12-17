@@ -84,7 +84,7 @@
 [[edge_functions]]
   function = "ssr-repo"
   path = "/:owner/:repo"
-  excludedPath = ["/api/*", "/assets/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*"]
+  excludedPath = ["/api/*", "/assets/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/docs/*"]
 
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs

@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { logger } from './lib/logger';
 import { initSentryAfterLoad, setupGlobalErrorHandlers } from './lib/sentry-lazy';
 import { queryClient } from './lib/query-client';
-import { shouldHydrate, markHydrationComplete, isSSRPage } from './lib/ssr-hydration';
+import { shouldHydrate, markHydrationStarted, isSSRPage } from './lib/ssr-hydration';
 
 // Set up lightweight global error handlers (non-blocking)
 setupGlobalErrorHandlers();
@@ -90,9 +90,8 @@ if (shouldHydrate()) {
       logger.warn('[SSR] Hydration error (recovered):', error);
     },
   });
-  // Note: markHydrationComplete() indicates hydration initiated, not completed
-  // React 19's hydrateRoot handles async completion internally
-  markHydrationComplete();
+  // Mark that hydration has been initiated (React handles async completion internally)
+  markHydrationStarted();
 } else {
   // Standard SPA rendering
   if (isSSRPage()) {

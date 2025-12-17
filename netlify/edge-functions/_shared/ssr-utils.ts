@@ -6,6 +6,7 @@
  */
 
 import type { Context } from '@netlify/edge-functions';
+import { escapeHtml } from './html-template.ts';
 
 /**
  * User agents for crawlers that should receive SSR content
@@ -141,6 +142,9 @@ export function fallbackToSPA(context: Context): Promise<Response> {
  * Generate a 404 response with basic HTML
  */
 export function notFoundResponse(message = 'Page not found'): Response {
+  // Escape message to prevent XSS
+  const safeMessage = escapeHtml(message);
+  
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -159,7 +163,7 @@ export function notFoundResponse(message = 'Page not found'): Response {
 <body>
   <div class="container">
     <h1>404</h1>
-    <p>${message}</p>
+    <p>${safeMessage}</p>
     <a href="/">Go to homepage</a>
   </div>
 </body>
@@ -179,6 +183,11 @@ export function notFoundResponse(message = 'Page not found'): Response {
  */
 export function errorResponse(error: Error, isDev = false): Response {
   console.error('[ssr] Error:', error);
+
+  // Escape error output to prevent XSS, even in dev mode
+  const safeErrorOutput = isDev 
+    ? `<pre>${escapeHtml(error.stack || error.message)}</pre>` 
+    : '';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -200,7 +209,7 @@ export function errorResponse(error: Error, isDev = false): Response {
   <div class="container">
     <h1>Something went wrong</h1>
     <p>We're sorry, but something went wrong. Please try again later.</p>
-    ${isDev ? `<pre>${error.stack || error.message}</pre>` : ''}
+    ${safeErrorOutput}
     <a href="/">Go to homepage</a>
   </div>
 </body>

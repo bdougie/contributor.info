@@ -81,6 +81,22 @@ export function escapeHtml(text: string): string {
 }
 
 /**
+ * Safely serialize JSON for embedding in HTML <script> tags
+ * Escapes </script>, <!--, and other dangerous sequences that could break out of the script context
+ * 
+ * @param data - The data to serialize
+ * @returns HTML-safe JSON string
+ */
+function serializeJSONForHTML(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')  // Escape < to prevent </script>
+    .replace(/>/g, '\\u003e')  // Escape > for consistency
+    .replace(/&/g, '\\u0026')  // Escape & to prevent HTML entities
+    .replace(/\u2028/g, '\\u2028')  // Escape Unicode line separator
+    .replace(/\u2029/g, '\\u2029'); // Escape Unicode paragraph separator
+}
+
+/**
  * Generate meta tags HTML
  */
 function renderMetaTags(meta: MetaTags, url: string): string {
@@ -202,8 +218,8 @@ export function renderHTML(content: string, meta: MetaTags, ssrData: SSRData, ur
     <!-- Critical CSS -->
     <style>${CRITICAL_CSS}</style>
 
-    <!-- SSR Data for hydration - double-encoded to prevent XSS -->
-    <script>window.__SSR_DATA__ = JSON.parse(${JSON.stringify(JSON.stringify(ssrData))});</script>
+    <!-- SSR Data for hydration - HTML-safe serialization to prevent XSS -->
+    <script>window.__SSR_DATA__ = ${serializeJSONForHTML(ssrData)};</script>
   </head>
   <body>
     <div id="root">${content}</div>
