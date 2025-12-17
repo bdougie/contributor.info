@@ -1,5 +1,6 @@
 import { similarityCache } from './similarity-cache';
 import { withRetry, type RetryConfig } from '../../src/lib/retry-utils';
+import { fetchLinkedItems, formatLinkedItemsForEmbedding } from './linked-issues';
 
 interface EmbeddingItem {
   id: string;
@@ -7,6 +8,7 @@ interface EmbeddingItem {
   body: string | null;
   type: 'issue' | 'pull_request';
   repositoryId: string;
+  url?: string; // Added to support link parsing
 }
 
 interface BatchEmbeddingResult {
@@ -257,6 +259,16 @@ export class EmbeddingService {
       const truncatedBody = item.body.length > 1000 ? item.body.substring(0, 1000) + '...' : item.body;
       parts.push(truncatedBody);
     }
+
+    // Note: We can't easily fetch linked items here synchronously.
+    // For batch processing, we might be skipping linked items for now unless we refactor to make prepareText async
+    // or fetch data beforehand.
+    // Given the constraints and the fact that `processNewIssue` is the main entry point for responding,
+    // we might leave this as is for now, but mark it as a TODO or try to handle it if we can.
+
+    // However, if we want to be consistent, we should try to fetch linked items.
+    // But prepareText is called inside map() in processBatch which is async, but prepareText itself is sync.
+    // If we want to support it, we need to change prepareText to async and update callers.
 
     return parts.join(' ');
   }

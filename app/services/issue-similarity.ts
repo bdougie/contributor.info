@@ -1,6 +1,7 @@
 import { supabase } from '../../src/lib/supabase';
 import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
+import { fetchLinkedItems, formatLinkedItemsForEmbedding } from './linked-issues';
 
 // Configure Transformers.js to use local models
 env.allowLocalModels = true;
@@ -129,9 +130,38 @@ export async function processNewIssue(issue: {
   html_url?: string;
 }) {
   try {
-    // Generate embedding
-    const embedding = await generateIssueEmbedding(issue.title, issue.body);
-    const contentHash = calculateContentHash(issue.title, issue.body);
+    // Parse and fetch linked issues
+    let linkedContent = '';
+    if (issue.body) {
+      try {
+        // Need to get owner/repo for context.
+        // We can extract it from html_url or fetch from DB
+        let owner = '';
+        let repo = '';
+
+        if (issue.html_url) {
+          const match = issue.html_url.match(/github\.com\/([^/]+)\/([^/]+)/);
+          if (match) {
+            owner = match[1];
+            repo = match[2];
+          }
+        }
+
+        // If we couldn't parse it (e.g. local test or unexpected URL), we might skip or try DB
+        if (owner && repo) {
+          const linkedItems = await fetchLinkedItems(issue.body, owner, repo);
+          linkedContent = formatLinkedItemsForEmbedding(linkedItems);
+        }
+      } catch (error) {
+        console.warn('Failed to process linked items:', error);
+        // Continue without linked content
+      }
+    }
+
+    // Generate embedding with linked content
+    const fullBody = issue.body ? (linkedContent ? `${issue.body}\n\n${linkedContent}` : issue.body) : linkedContent;
+    const embedding = await generateIssueEmbedding(issue.title, fullBody);
+    const contentHash = calculateContentHash(issue.title, fullBody); // Update hash to include linked content
 
     // Store embedding
     await storeIssueEmbedding(issue.id, embedding, contentHash);
