@@ -1,7 +1,7 @@
 [build]
   publish = "build/client"
-  # Use npx to ensure react-router CLI is found in Netlify's environment
-  command = "npx react-router build && cp public/_headers build/client/_headers"
+  # Debug: Show versions and run build with verbose error handling
+  command = "node --version && npm --version && echo '--- Starting build ---' && npx react-router build 2>&1 || (echo '--- Build failed with exit code $? ---' && exit 1) && echo '--- Build complete, copying files ---' && cp public/_headers build/client/_headers"
   
 [build.environment]
   NODE_VERSION = "20"
