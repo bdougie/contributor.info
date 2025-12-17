@@ -1718,6 +1718,10 @@ const computeEmbeddings = inngest.createFunction(
       const { data: viewItems, error } = await baseQuery.limit(100);
 
       if (error) {
+        sentryCaptureException(error, {
+          tags: { view: 'items_needing_embeddings', operation: 'embedding-batch' },
+          extra: { repositoryId, code: error.code, details: error.details, hint: error.hint },
+        });
         console.error('Failed to fetch items needing embeddings:', error);
         return [];
       }
