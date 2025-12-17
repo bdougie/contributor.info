@@ -2,26 +2,16 @@ import path from 'path';
 import { reactRouter } from '@react-router/dev/vite';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
-import netlifyReactRouter from '@netlify/vite-plugin-react-router';
-import netlify from '@netlify/vite-plugin';
+import netlifyPlugin from '@netlify/vite-plugin-react-router';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
     // React Router v7 framework mode with SSR support
     reactRouter(),
-    // Netlify adapter for React Router SSR
-    netlifyReactRouter({
-      // Use edge functions for better performance (global edge network)
-      edge: true,
-      // Exclude existing API paths from the SSR handler
-      excludedPaths: [
-        '/api/*',
-        '/.netlify/functions/*',
-      ],
-    }),
-    // Core Netlify platform integration (required for proper deployment)
-    netlify(),
+    // Netlify adapter for React Router SSR (origin-based, edge not yet supported)
+    // See: https://developers.netlify.com/guides/how-to-deploy-a-react-router-7-site-to-netlify/
+    netlifyPlugin(),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization

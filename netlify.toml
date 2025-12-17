@@ -1,6 +1,6 @@
 [build]
   publish = "build/client"
-  command = "npm run build"
+  command = "react-router build"
   
 [build.environment]
   NODE_VERSION = "20"
