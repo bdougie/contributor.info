@@ -225,30 +225,49 @@ jobs:
 
       - name: Check bundle size
         run: |
-          # Get the size of the dist folder
-          if [ -d "dist" ]; then
-            DIST_SIZE=$(du -sb dist | cut -f1)
-            MAX_SIZE=$((6815744))  # 6.5MB limit (temporary - see issue #407)
-            
-            echo "Bundle size: $DIST_SIZE bytes"
-            echo "Max allowed: $MAX_SIZE bytes"
-            
-            # Create summary
-            echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Total Bundle Size:** $(echo "scale=2; $DIST_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
-            echo "**Maximum Allowed:** $(echo "scale=2; $MAX_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            if [ $DIST_SIZE -gt $MAX_SIZE ]; then
-              echo "❌ **Status:** Bundle size exceeds limit!" >> $GITHUB_STEP_SUMMARY
-              exit 1
-            else
-              echo "✅ **Status:** Bundle size is within limits" >> $GITHUB_STEP_SUMMARY
-            fi
+          # Get the size of the client bundle (for SSR frameworks with dual builds)
+          # or the entire dist folder (for traditional SPAs)
+          if [ -d "dist/client" ]; then
+            # TanStack Start, Remix, or other SSR frameworks with client/server split
+            BUNDLE_SIZE=$(du -sb dist/client | cut -f1)
+            BUNDLE_TYPE="Client Bundle (SSR)"
+            echo "Detected SSR framework with dual build"
+          elif [ -d "dist" ]; then
+            # Traditional SPA (React Router, etc.)
+            BUNDLE_SIZE=$(du -sb dist | cut -f1)
+            BUNDLE_TYPE="Total Bundle (SPA)"
+            echo "Detected traditional SPA build"
           else
             echo "❌ dist folder not found!" >> $GITHUB_STEP_SUMMARY
             exit 1
+          fi
+          
+          MAX_SIZE=$((6815744))  # 6.5MB limit (temporary - see issue #407)
+          
+          echo "Bundle size: $BUNDLE_SIZE bytes"
+          echo "Max allowed: $MAX_SIZE bytes"
+          
+          # Create summary
+          echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**${BUNDLE_TYPE}:** $(echo "scale=2; $BUNDLE_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
+          echo "**Maximum Allowed:** $(echo "scale=2; $MAX_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Show server bundle size if present (informational only)
+          if [ -d "dist/server" ]; then
+            SERVER_SIZE=$(du -sb dist/server | cut -f1)
+            echo "**Server Bundle (not counted):** $(echo "scale=2; $SERVER_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "_Note: Server bundles run on Netlify Edge and don't affect client performance._" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ **Status:** Bundle size exceeds limit!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "✅ **Status:** Bundle size is within limits" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Analyze JavaScript bundles
