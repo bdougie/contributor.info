@@ -1,15 +1,13 @@
 import type { Config } from '@react-router/dev/config';
 
 export default {
-  // Disable SSR for now - use client-side rendering only
-  // SSR requires additional Netlify function infrastructure that needs more setup
-  // TODO: Re-enable SSR once server function is properly configured
-  ssr: false,
+  // Enable SSR for better LCP performance
+  ssr: true,
 
-  // Pre-rendering disabled until SSR infrastructure is complete
-  // async prerender() {
-  //   return ['/', '/trending', '/privacy', '/terms', '/changelog'];
-  // },
+  // Pre-render static pages at build time for instant loading
+  async prerender() {
+    return ['/', '/trending', '/privacy', '/terms', '/changelog', '/login'];
+  },
 
   // App directory contains route files
   appDirectory: 'app',

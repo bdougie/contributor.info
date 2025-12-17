@@ -1,12 +1,24 @@
 import path from 'path';
-import react from '@vitejs/plugin-react-swc';
+import { reactRouter } from '@react-router/dev/vite';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import netlifyReactRouter from '@netlify/vite-plugin-react-router';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
-    react(),
+    // React Router v7 framework mode with SSR support
+    reactRouter(),
+    // Netlify adapter for React Router SSR
+    netlifyReactRouter({
+      // Use edge functions for better performance (global edge network)
+      edge: true,
+      // Exclude existing API paths from the SSR handler
+      excludedPaths: [
+        '/api/*',
+        '/.netlify/functions/*',
+      ],
+    }),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -53,8 +65,8 @@ export default defineConfig(() => ({
     // Warm up frequently used files for better dev performance
     warmup: {
       clientFiles: [
-        './src/main.tsx',
-        './src/App.tsx',
+        './app/root.tsx',
+        './app/routes/*.tsx',
         './src/components/ui/**/*',
         './src/lib/supabase.ts',
         './src/lib/github.ts',
@@ -99,11 +111,8 @@ export default defineConfig(() => ({
       '@xenova/transformers', // Exclude embeddings library
       'onnxruntime-web', // Exclude ONNX runtime
     ],
-    // Remove force: true to avoid aggressive re-optimization
   },
   build: {
-    // Output to dist for standard Vite SPA
-    outDir: 'dist',
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
     commonjsOptions: {
@@ -112,38 +121,7 @@ export default defineConfig(() => ({
       strictRequires: 'auto',
     },
     rollupOptions: {
-      // Conservative tree shaking optimization for better bundle size
-      treeshake: {
-        moduleSideEffects: false, // Safe optimization for better bundle size
-      },
       output: {
-        // Ensure proper module format
-        format: 'es',
-        // Use proper ES module syntax
-        generatedCode: {
-          constBindings: true,
-          objectShorthand: true,
-          arrowFunctions: true,
-        },
-        // Ensure proper file extensions for module recognition
-        entryFileNames: `assets/[name]-[hash].js`,
-        chunkFileNames: `assets/[name]-[hash].js`,
-        // Better asset organization
-        assetFileNames: (assetInfo) => {
-          const extType = assetInfo.name?.split('.').pop() || 'asset';
-          if (/png|jpe?g|svg|gif|webp|avif/i.test(extType)) {
-            return 'assets/images/[name]-[hash][extname]';
-          }
-          if (/css/i.test(extType)) {
-            return 'assets/css/[name]-[hash][extname]';
-          }
-          if (/woff2?|ttf|eot/i.test(extType)) {
-            return 'assets/fonts/[name]-[hash][extname]';
-          }
-          return 'assets/[name]-[hash][extname]';
-        },
-        // Allow hoisting for proper module loading
-        hoistTransitiveImports: true,
         // Optimized chunking strategy for better code splitting
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
@@ -213,42 +191,6 @@ export default defineConfig(() => ({
     chunkSizeWarningLimit: 1300, // Increased to accommodate vendor-react bundle
     // Enable compression reporting
     reportCompressedSize: true,
-    // Module preload optimization - load minimal React first
-    modulePreload: {
-      polyfill: true, // Enable polyfill for proper module loading
-      resolveDependencies: (_, deps) => {
-        // Preload only the absolute minimum for initial render
-        const sorted = deps.sort((a, b) => {
-          // First priority: Core React libraries
-          if (a.includes('vendor-react-core')) return -1;
-          if (b.includes('vendor-react-core')) return 1;
-          // Second priority: UI components (Radix UI)
-          if (a.includes('vendor-ui')) return -1;
-          if (b.includes('vendor-ui')) return 1;
-          // Third priority: Utils for classnames
-          if (a.includes('vendor-utils')) return -1;
-          if (b.includes('vendor-utils')) return 1;
-          // Fourth priority: Main app chunk
-          if (a.includes('index-')) return -1;
-          if (b.includes('index-')) return 1;
-          return 0;
-        });
-        // Preload only critical chunks for initial render
-        return sorted.filter(
-          (dep) =>
-            dep.includes('vendor-react-core') ||
-            dep.includes('vendor-ui') ||
-            dep.includes('vendor-utils') ||
-            dep.includes('index-')
-        );
-      },
-    },
-
-    // Remove console/debugger in production and strip legal comments
-    esbuild: {
-      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
-      legalComments: 'none',
-    },
   },
   css: {
     devSourcemap: true,
