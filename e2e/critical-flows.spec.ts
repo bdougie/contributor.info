@@ -19,11 +19,12 @@ test.describe('Critical User Flows', () => {
     // Check that page loads without errors
     await expect(page.locator('body')).toBeVisible({ timeout: 10000 });
 
-    // Wait for initial React render
+    // Wait for initial React render (SSR mode renders directly to body, no #root element)
     await page.waitForFunction(
       () => {
-        const root = document.getElementById('root');
-        return root && root.children.length > 0;
+        // In SSR mode with React Router v7, content is rendered directly to body
+        const body = document.body;
+        return body && body.children.length > 0;
       },
       { timeout: 10000 }
     );
