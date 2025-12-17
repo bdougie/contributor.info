@@ -1,6 +1,7 @@
 [build]
   publish = "build/client"
-  command = "npm run build"
+  # Direct react-router build for better Netlify compatibility
+  command = "react-router build && cp public/_headers build/client/_headers"
   
 [build.environment]
   NODE_VERSION = "20"
