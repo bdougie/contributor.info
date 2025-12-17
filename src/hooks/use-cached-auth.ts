@@ -39,7 +39,7 @@ async function fetchAuthUser(): Promise<AuthState> {
   const isTestMode =
     supabaseUrl.includes('localhost:54321') || import.meta.env.MODE === 'test' || isCI;
 
-  if (isTestMode && localStorage.getItem('test-auth-user')) {
+  if (isTestMode && typeof window !== 'undefined' && localStorage.getItem('test-auth-user')) {
     try {
       const testUser = JSON.parse(localStorage.getItem('test-auth-user') || '{}');
       return { user: testUser as User, isAuthenticated: true };

@@ -32,8 +32,8 @@ export function useGlobalStats(): GlobalStats {
   useEffect(() => {
     async function fetchGlobalStats() {
       try {
-        // Check for cached data
-        const cachedData = localStorage.getItem(CACHE_KEY);
+        // Check for cached data (only in browser)
+        const cachedData = typeof window !== 'undefined' ? localStorage.getItem(CACHE_KEY) : null;
         if (cachedData) {
           const parsed: CachedGlobalStats = JSON.parse(cachedData);
           const now = Date.now();
@@ -86,12 +86,14 @@ export function useGlobalStats(): GlobalStats {
         // Update state
         setStats(newStats);
 
-        // Cache the data with timestamp
-        const cacheData: CachedGlobalStats = {
-          ...newStats,
-          timestamp: Date.now(),
-        };
-        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        // Cache the data with timestamp (only in browser)
+        if (typeof window !== 'undefined') {
+          const cacheData: CachedGlobalStats = {
+            ...newStats,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        }
       } catch (error) {
         console.error('Error fetching global stats:', error);
         setStats((prev) => ({

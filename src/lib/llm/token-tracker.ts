@@ -115,7 +115,9 @@ class TokenTracker {
    * Reset usage tracking (for testing or manual reset)
    */
   resetUsage(): void {
-    localStorage.removeItem(this.storageKey);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(this.storageKey);
+    }
   }
 
   /**
@@ -164,6 +166,15 @@ class TokenTracker {
   private getTodayUsage(): DailyUsage {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
+    // Return default usage if not in browser
+    if (typeof window === 'undefined') {
+      return {
+        date: today,
+        primaryTokens: 0,
+        miniTokens: 0,
+      };
+    }
+
     try {
       const stored = localStorage.getItem(this.storageKey);
       if (stored) {
@@ -188,6 +199,9 @@ class TokenTracker {
    * Record token usage in localStorage
    */
   private recordUsage(tier: 'primary' | 'mini', tokens: number): void {
+    // Skip recording if not in browser
+    if (typeof window === 'undefined') return;
+
     const currentUsage = this.getTodayUsage();
 
     if (tier === 'primary') {

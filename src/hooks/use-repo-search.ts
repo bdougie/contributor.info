@@ -27,8 +27,10 @@ export function useRepoSearch({ isHomeView = false } = {}) {
 
       // On the repo view, always require login
       if (!isHomeView && !isLoggedIn) {
-        // Store intended destination to navigate after login
-        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        // Store intended destination to navigate after login (only in browser)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        }
         navigate('/login');
         return;
       }
@@ -54,8 +56,10 @@ export function useRepoSearch({ isHomeView = false } = {}) {
 
       // On the repo view, require login
       if (!isHomeView && !isLoggedIn) {
-        // Store intended destination to navigate after login
-        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        // Store intended destination to navigate after login (only in browser)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
+        }
         navigate('/login');
         return;
       }

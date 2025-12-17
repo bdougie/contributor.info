@@ -24,6 +24,9 @@ class AvatarCache {
       return this.memoryCache.get(orgName)!;
     }
 
+    // Skip localStorage on server
+    if (typeof window === 'undefined') return null;
+
     try {
       const key = `${CACHE_KEY_PREFIX}${orgName}`;
       const cached = localStorage.getItem(key);
@@ -55,6 +58,9 @@ class AvatarCache {
 
     // Store in memory cache
     this.memoryCache.set(orgName, url);
+
+    // Skip localStorage on server
+    if (typeof window === 'undefined') return;
 
     try {
       const key = `${CACHE_KEY_PREFIX}${orgName}`;
@@ -88,6 +94,9 @@ class AvatarCache {
    * Clean up old cache entries to prevent unbounded growth
    */
   private cleanup(): void {
+    // Skip cleanup on server
+    if (typeof window === 'undefined') return;
+
     try {
       const keys = Object.keys(localStorage).filter((key) => key.startsWith(CACHE_KEY_PREFIX));
 
@@ -119,6 +128,9 @@ class AvatarCache {
    */
   clearAll(): void {
     this.memoryCache.clear();
+
+    // Skip localStorage clearing on server
+    if (typeof window === 'undefined') return;
 
     try {
       const keys = Object.keys(localStorage).filter((key) => key.startsWith(CACHE_KEY_PREFIX));

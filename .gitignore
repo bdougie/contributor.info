@@ -92,3 +92,4 @@ supabase/functions/deno.lock
 /manual-*.js
 /get-*.js
 scan-results.md
+build/

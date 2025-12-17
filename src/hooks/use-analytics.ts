@@ -17,6 +17,9 @@ import {
  */
 export function useAnalytics() {
   const track = useCallback((eventName: string, properties?: Record<string, unknown>) => {
+    // Only track events in the browser
+    if (typeof window === 'undefined') return;
+
     trackEvent(eventName, {
       timestamp: new Date().toISOString(),
       page_path: window.location.pathname,
@@ -287,10 +290,13 @@ export function useAnalytics() {
    * Only fires once per session using sessionStorage check
    */
   const trackFirstPageView = useCallback(() => {
+    // Skip if not in browser
+    if (typeof window === 'undefined') return;
+
     if (hasTrackedFirstPageViewThisSession()) return;
 
     const utmParams = extractUTMParams(window.location.search);
-    const referrer = document.referrer;
+    const referrer = typeof document !== 'undefined' ? document.referrer : '';
 
     track('first_page_view', {
       landing_page: window.location.pathname,
