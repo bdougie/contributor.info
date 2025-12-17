@@ -89,6 +89,21 @@ export default function App() {
   );
 }
 
+/**
+ * HydrateFallback is pre-rendered into index.html at build time for SPA mode.
+ * It provides the initial loading UI while the JavaScript bundle loads.
+ */
+export function HydrateFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading contributor.info...</p>
+      </div>
+    </div>
+  );
+}
+
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let message = 'Oops!';
   let details = 'An unexpected error occurred.';

@@ -1,14 +1,12 @@
 import path from 'path';
-import { reactRouter } from '@react-router/dev/vite';
-import netlifyPlugin from '@netlify/vite-plugin-react-router';
+import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
 export default defineConfig(() => ({
   base: '/',
   plugins: [
-    reactRouter(),
-    netlifyPlugin(),
+    react(),
     imagetools({
       defaultDirectives: (url) => {
         // Process images for WebP optimization
@@ -44,7 +42,7 @@ export default defineConfig(() => ({
       '@': path.resolve(__dirname, './src'),
       react: path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
-      // React Router v7 migration compatibility - maps react-router-dom to react-router
+      // React Router v7 renamed package from react-router-dom to react-router
       'react-router-dom': path.resolve(__dirname, './node_modules/react-router'),
     },
     dedupe: ['react', 'react-dom'],
@@ -104,6 +102,8 @@ export default defineConfig(() => ({
     // Remove force: true to avoid aggressive re-optimization
   },
   build: {
+    // Output to dist for standard Vite SPA
+    outDir: 'dist',
     // Enable CSS code splitting for better performance
     cssCodeSplit: true,
     commonjsOptions: {
@@ -126,19 +126,19 @@ export default defineConfig(() => ({
           arrowFunctions: true,
         },
         // Ensure proper file extensions for module recognition
-        entryFileNames: `js/[name]-[hash].js`,
-        chunkFileNames: `js/[name]-[hash].js`,
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
         // Better asset organization
         assetFileNames: (assetInfo) => {
           const extType = assetInfo.name?.split('.').pop() || 'asset';
           if (/png|jpe?g|svg|gif|webp|avif/i.test(extType)) {
-            return 'images/[name]-[hash][extname]';
+            return 'assets/images/[name]-[hash][extname]';
           }
           if (/css/i.test(extType)) {
-            return 'css/[name]-[hash][extname]';
+            return 'assets/css/[name]-[hash][extname]';
           }
           if (/woff2?|ttf|eot/i.test(extType)) {
-            return 'fonts/[name]-[hash][extname]';
+            return 'assets/fonts/[name]-[hash][extname]';
           }
           return 'assets/[name]-[hash][extname]';
         },
@@ -181,10 +181,6 @@ export default defineConfig(() => ({
             ) {
               return 'vendor-utils';
             }
-            // NOTE: Markdown libraries (react-markdown, remark, rehype, etc.) are NOT manually chunked here.
-            // They are lazy loaded via React.lazy() in markdown.tsx, which creates natural code splitting.
-            // Manual chunking caused shared utilities to be bundled into vendor-markdown, creating
-            // dependencies from other chunks and forcing eager loading.
             // Analytics - lazy loaded
             if (id.includes('posthog-js')) {
               return 'vendor-analytics';
@@ -209,8 +205,6 @@ export default defineConfig(() => ({
     // Optimize CSS minification
     cssMinify: 'esbuild',
     // Disable sourcemaps in production to reduce bundle size
-    // Source maps add 15MB to the dist folder, causing CI failures
-    // If we need source maps for error tracking, we should upload them separately to PostHog/Sentry
     sourcemap: process.env.NODE_ENV === 'production' ? false : true,
     // Optimize minification and target for better compression
     minify: 'esbuild',
@@ -240,7 +234,6 @@ export default defineConfig(() => ({
           return 0;
         });
         // Preload only critical chunks for initial render
-        // Markdown, charts, and analytics will load on demand
         return sorted.filter(
           (dep) =>
             dep.includes('vendor-react-core') ||

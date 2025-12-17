@@ -60,8 +60,8 @@ jobs:
           echo "|-------|------|---------|" >> $GITHUB_STEP_SUMMARY
 
           # Parse build output for sizes
-          grep -E "build/client/assets/.*\.js" build.log | while read line; do
-            chunk=$(echo "$line" | awk '{print $1}' | sed 's/build\/client\/assets\///')
+          grep -E "dist/assets/.*\.js" build.log | while read line; do
+            chunk=$(echo "$line" | awk '{print $1}' | sed 's/dist\/assets\///')
             size=$(echo "$line" | awk '{print $2 " " $3}')
             gzip=$(echo "$line" | awk '{print $5 " " $6}')
             echo "| $chunk | $size | $gzip |" >> $GITHUB_STEP_SUMMARY
@@ -79,7 +79,7 @@ jobs:
           fi
 
           # Calculate total bundle size
-          total_size=$(grep "build/client/assets/.*\.js" build.log | awk '{print $2}' | sed 's/[^0-9.]//g' | paste -sd+ | bc)
+          total_size=$(grep "dist/assets/.*\.js" build.log | awk '{print $2}' | sed 's/[^0-9.]//g' | paste -sd+ | bc)
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Total Bundle Size:** ${total_size} KB" >> $GITHUB_STEP_SUMMARY
 
@@ -225,21 +225,21 @@ jobs:
 
       - name: Check bundle size
         run: |
-          # Get the size of the build/client folder (React Router v7 output)
-          if [ -d "build/client" ]; then
-            DIST_SIZE=$(du -sb build/client | cut -f1)
+          # Get the size of the dist folder
+          if [ -d "dist" ]; then
+            DIST_SIZE=$(du -sb dist | cut -f1)
             MAX_SIZE=$((6815744))  # 6.5MB limit (temporary - see issue #407)
-            
+
             echo "Bundle size: $DIST_SIZE bytes"
             echo "Max allowed: $MAX_SIZE bytes"
-            
+
             # Create summary
             echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Total Bundle Size:** $(echo "scale=2; $DIST_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
             echo "**Maximum Allowed:** $(echo "scale=2; $MAX_SIZE / 1024 / 1024" | bc) MB" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            
+
             if [ $DIST_SIZE -gt $MAX_SIZE ]; then
               echo "❌ **Status:** Bundle size exceeds limit!" >> $GITHUB_STEP_SUMMARY
               exit 1
@@ -247,7 +247,7 @@ jobs:
               echo "✅ **Status:** Bundle size is within limits" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "❌ build/client folder not found!" >> $GITHUB_STEP_SUMMARY
+            echo "❌ dist folder not found!" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
@@ -256,9 +256,9 @@ jobs:
           echo "### JavaScript Chunk Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Check individual chunk sizes (React Router v7 output)
+          # Check individual chunk sizes
           LARGE_CHUNKS=0
-          for file in build/client/assets/*.js; do
+          for file in dist/assets/*.js; do
             if [ -f "$file" ]; then
               SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
               MAX_CHUNK=$((200 * 1024))  # 200KB per chunk

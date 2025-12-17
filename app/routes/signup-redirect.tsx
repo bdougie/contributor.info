@@ -1,9 +1,16 @@
-import { redirect } from 'react-router';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router';
 
-export function loader() {
-  return redirect('/login');
-}
-
+/**
+ * Client-side redirect from /signup to /login
+ * SPA mode doesn't support server-side redirects
+ */
 export default function SignupRedirect() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/login', { replace: true });
+  }, [navigate]);
+
   return null;
 }

@@ -1,39 +1,16 @@
 import { Outlet } from 'react-router';
 import { Suspense, lazy } from 'react';
 import type { Route } from './+types/repo';
-import { fetchRepositoryBasics } from '@/lib/supabase-server';
 
 const RepoView = lazy(() => import('@/components/features/repository/repo-view'));
 
 /**
- * Server-side loader for repository data
- * Fetches basic repo info for SEO and initial render
+ * Meta function for SEO (SPA mode - no loader data available)
  */
-export async function loader({ params }: Route.LoaderArgs) {
-  const { owner, repo } = params;
-
-  if (!owner || !repo) {
-    return { repository: null };
-  }
-
-  try {
-    const { repository } = await fetchRepositoryBasics(owner, repo);
-    return { repository };
-  } catch (error) {
-    console.error('Failed to fetch repository data:', error);
-    return { repository: null };
-  }
-}
-
-/**
- * Meta function for SEO
- */
-export function meta({ params, data }: Route.MetaArgs) {
+export function meta({ params }: Route.MetaArgs) {
   const { owner, repo } = params;
   const title = `${owner}/${repo} - Contributor Analysis | contributor.info`;
-  const description = data?.repository?.description
-    ? `${data.repository.description} - Analyze contribution patterns, PR activity, and community impact.`
-    : `Analyze GitHub contributors for ${owner}/${repo}. View contribution patterns, pull request activity, and community impact metrics.`;
+  const description = `Analyze GitHub contributors for ${owner}/${repo}. View contribution patterns, pull request activity, and community impact metrics.`;
 
   return [
     { title },

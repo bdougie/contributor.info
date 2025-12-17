@@ -38,7 +38,7 @@ jobs:
       # Rename build folder to prevent LHCI auto-detection
       # LHCI auto-detects ./dist and uses static file server instead of startServerCommand
       - name: Prevent LHCI staticDistDir auto-detection
-        run: mv build/client .lighthouse-build
+        run: mv dist .lighthouse-build
 
       - name: Run Lighthouse CI
         run: lhci autorun --config=.lighthouserc.json

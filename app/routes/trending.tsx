@@ -1,32 +1,17 @@
 import { Suspense, lazy } from 'react';
 import type { Route } from './+types/trending';
-import { fetchTrendingRepositories } from '@/lib/supabase-server';
 
 const TrendingPageRoute = lazy(() =>
   import('@/pages/trending').then((m) => ({ default: m.TrendingPageRoute }))
 );
 
 /**
- * Server-side loader for trending repositories
- * Pre-fetches data for SEO and faster initial render
+ * Meta function for SEO (SPA mode - no loader data available)
  */
-export async function loader(_args: Route.LoaderArgs) {
-  try {
-    const { repositories } = await fetchTrendingRepositories(50);
-    return { repositories, error: null };
-  } catch (error) {
-    console.error('Failed to fetch trending repositories:', error);
-    return { repositories: [], error: 'Failed to load trending repositories' };
-  }
-}
-
-/**
- * Meta function for SEO
- */
-export function meta({ data }: Route.MetaArgs) {
-  const repoCount = data?.repositories?.length || 0;
+export function meta(_args: Route.MetaArgs) {
   const title = 'Trending Repositories - Contributor.info';
-  const description = `Discover ${repoCount > 0 ? repoCount : ''} trending repositories with significant recent activity and growth. Find the hottest GitHub projects based on stars, PRs, and contributor metrics.`;
+  const description =
+    'Discover trending repositories with significant recent activity and growth. Find the hottest GitHub projects based on stars, PRs, and contributor metrics.';
 
   return [
     { title },
