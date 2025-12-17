@@ -56,11 +56,11 @@ export function shouldSSR(request: Request): boolean {
     return true;
   }
 
-  // Check for client hints that indicate JS capability
-  const hasJsHint = request.headers.get('sec-fetch-dest') === 'document';
+  // Check if this is an initial document navigation
+  const isDocumentRequest = request.headers.get('sec-fetch-dest') === 'document';
 
   // SSR for document requests (initial page load)
-  if (hasJsHint) {
+  if (isDocumentRequest) {
     return true;
   }
 
@@ -86,6 +86,9 @@ export function formatNumber(num: number): string {
  */
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return 'Unknown date';
+  }
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -96,6 +99,35 @@ export function formatDate(dateString: string): string {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
   return `${Math.floor(diffDays / 365)} years ago`;
+}
+
+/**
+ * Validate and sanitize URL to prevent XSS via dangerous schemes
+ * Only allows https: and http: protocols
+ * 
+ * @param url - The URL to validate
+ * @param allowHttp - Whether to allow http: (default: false)
+ * @returns The validated URL or a safe placeholder
+ */
+export function sanitizeUrl(url: string, allowHttp = false): string {
+  const PLACEHOLDER_IMAGE = '/icons/icon-192x192.png';
+  
+  if (!url) return PLACEHOLDER_IMAGE;
+  
+  try {
+    const parsed = new URL(url);
+    const allowedProtocols = allowHttp ? ['https:', 'http:'] : ['https:'];
+    
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      console.warn('[ssr] Blocked URL with dangerous protocol: %s', parsed.protocol);
+      return PLACEHOLDER_IMAGE;
+    }
+    
+    return url;
+  } catch (error) {
+    console.warn('[ssr] Invalid URL format: %s', url);
+    return PLACEHOLDER_IMAGE;
+  }
 }
 
 /**

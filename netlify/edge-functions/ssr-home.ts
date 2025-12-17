@@ -182,7 +182,7 @@ async function handler(request: Request, context: Context) {
 
     return new Response(html, { headers });
   } catch (error) {
-    console.error('[ssr-home] Error:', error);
+    console.error('[ssr-home] Error: %o', error);
     addBreadcrumb({
       message: 'SSR home page error, falling back to SPA',
       category: 'ssr',

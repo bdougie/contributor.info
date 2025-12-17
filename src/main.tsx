@@ -90,6 +90,8 @@ if (shouldHydrate()) {
       logger.warn('[SSR] Hydration error (recovered):', error);
     },
   });
+  // Note: markHydrationComplete() indicates hydration initiated, not completed
+  // React 19's hydrateRoot handles async completion internally
   markHydrationComplete();
 } else {
   // Standard SPA rendering

@@ -19,7 +19,8 @@ Improve LCP from 5.6s to <2.5s for SEO-critical public pages using Netlify Edge 
 
 ## Implementation Summary
 
-**Status: All phases implemented, ready for testing on deploy preview**
+### Status
+All phases implemented, ready for testing on deploy preview.
 
 ### Files Created
 - `netlify/edge-functions/_shared/supabase.ts` - Supabase client for edge
@@ -57,7 +58,7 @@ Improve LCP from 5.6s to <2.5s for SEO-critical public pages using Netlify Edge 
 ## Architecture
 
 ### Request Flow
-```
+```text
 Request → Netlify Edge
            │
    Match route pattern?

@@ -15,11 +15,58 @@ export interface MetaTags {
   type?: string;
 }
 
-export interface SSRData {
-  route: string;
-  data: unknown;
-  timestamp: number;
+// Define specific types for each route's SSR data
+export interface HomeSSRData {
+  stats: {
+    totalRepos: number;
+    totalContributors: number;
+    totalPRs: number;
+  };
 }
+
+export interface TrendingSSRData {
+  repositories: Array<{
+    id: number;
+    owner: string;
+    name: string;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    primary_language: string | null;
+    topics: string[];
+    score: number;
+  }>;
+}
+
+export interface RepoSSRData {
+  owner: string;
+  repo: string;
+  repository: {
+    id: number;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    primary_language: string | null;
+    topics: string[];
+  };
+  contributors: Array<{
+    login: string;
+    avatar_url: string;
+    contributions: number;
+  }>;
+  stats: {
+    totalContributors: number;
+    totalPRs: number;
+  };
+}
+
+// Discriminated union for type-safe SSR data
+export type SSRData =
+  | { route: '/'; data: HomeSSRData; timestamp: number }
+  | { route: '/trending'; data: TrendingSSRData; timestamp: number }
+  | { route: string; data: RepoSSRData; timestamp: number };
 
 /**
  * Escape HTML special characters to prevent XSS
@@ -155,8 +202,8 @@ export function renderHTML(content: string, meta: MetaTags, ssrData: SSRData, ur
     <!-- Critical CSS -->
     <style>${CRITICAL_CSS}</style>
 
-    <!-- SSR Data for hydration -->
-    <script>window.__SSR_DATA__ = ${JSON.stringify(ssrData)};</script>
+    <!-- SSR Data for hydration - double-encoded to prevent XSS -->
+    <script>window.__SSR_DATA__ = JSON.parse(${JSON.stringify(JSON.stringify(ssrData))});</script>
   </head>
   <body>
     <div id="root">${content}</div>

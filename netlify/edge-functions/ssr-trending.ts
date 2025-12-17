@@ -16,27 +16,7 @@ import {
 } from './_shared/html-template.ts';
 import { fetchTrendingRepos, type TrendingRepo } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
-
-/**
- * Language colors for display
- */
-const LANGUAGE_COLORS: Record<string, string> = {
-  TypeScript: '#3178c6',
-  JavaScript: '#f1e05a',
-  Python: '#3572A5',
-  Go: '#00ADD8',
-  Rust: '#dea584',
-  Java: '#b07219',
-  'C++': '#f34b7d',
-  C: '#555555',
-  Ruby: '#701516',
-  PHP: '#4F5D95',
-  Swift: '#F05138',
-  Kotlin: '#A97BFF',
-  Scala: '#c22d40',
-  Dart: '#00B4AB',
-  Shell: '#89e051',
-};
+import { LANGUAGE_COLORS } from './_shared/constants.ts';
 
 /**
  * Render a single repository card
@@ -201,7 +181,7 @@ async function handler(request: Request, context: Context) {
 
     return new Response(html, { headers });
   } catch (error) {
-    console.error('[ssr-trending] Error:', error);
+    console.error('[ssr-trending] Error: %o', error);
     addBreadcrumb({
       message: 'SSR trending page error, falling back to SPA',
       category: 'ssr',

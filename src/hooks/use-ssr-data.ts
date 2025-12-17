@@ -5,7 +5,7 @@
  * Falls back to client-side data fetching when SSR data is unavailable.
  */
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getSSRDataForRoute, isSSRDataStale, clearSSRData } from '@/lib/ssr-hydration';
 import { logger } from '@/lib/logger';
@@ -71,6 +71,7 @@ export interface HomeSSRData {
 export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
   const location = useLocation();
   const consumedRef = useRef(false);
+  const cleanupScheduledRef = useRef(false);
 
   const ssrData = useMemo(() => {
     // Only consume SSR data once per component lifecycle
@@ -88,15 +89,20 @@ export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
     if (data) {
       logger.debug('[SSR] Using SSR data for %s', location.pathname);
       consumedRef.current = true;
-
-      // Schedule cleanup after next render
-      requestAnimationFrame(() => {
-        clearSSRData();
-      });
     }
 
     return data;
   }, [location.pathname, maxAgeSeconds]);
+
+  // Schedule cleanup in effect to avoid side-effects in render
+  useEffect(() => {
+    if (ssrData && !cleanupScheduledRef.current) {
+      cleanupScheduledRef.current = true;
+      requestAnimationFrame(() => {
+        clearSSRData();
+      });
+    }
+  }, [ssrData]);
 
   return ssrData;
 }

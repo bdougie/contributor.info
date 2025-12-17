@@ -15,30 +15,8 @@ import {
   type SSRData,
 } from './_shared/html-template.ts';
 import { fetchRepository, fetchRepoContributorStats, type RepoData } from './_shared/supabase.ts';
-import { formatNumber, shouldSSR, fallbackToSPA, parseRepoPath } from './_shared/ssr-utils.ts';
-
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
-
-/**
- * Language colors for display
- */
-const LANGUAGE_COLORS: Record<string, string> = {
-  TypeScript: '#3178c6',
-  JavaScript: '#f1e05a',
-  Python: '#3572A5',
-  Go: '#00ADD8',
-  Rust: '#dea584',
-  Java: '#b07219',
-  'C++': '#f34b7d',
-  C: '#555555',
-  Ruby: '#701516',
-  PHP: '#4F5D95',
-  Swift: '#F05138',
-  Kotlin: '#A97BFF',
-  Scala: '#c22d40',
-  Dart: '#00B4AB',
-  Shell: '#89e051',
-};
+import { formatNumber, shouldSSR, fallbackToSPA, parseRepoPath, sanitizeUrl } from './_shared/ssr-utils.ts';
+import { LANGUAGE_COLORS, SOCIAL_CARDS_BASE } from './_shared/constants.ts';
 
 /**
  * Render contributor avatars
@@ -58,7 +36,7 @@ function renderContributorAvatars(
           (c) => `
         <a href="https://github.com/${escapeHtml(c.login)}" target="_blank" rel="noopener" class="relative">
           <img
-            src="${escapeHtml(c.avatar_url)}&s=64"
+            src="${escapeHtml(sanitizeUrl(c.avatar_url, true))}&s=64"
             alt="${escapeHtml(c.login)}"
             class="w-8 h-8 rounded-full border-2 border-background"
             loading="lazy"
