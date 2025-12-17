@@ -10,6 +10,12 @@ import { imagetools } from 'vite-imagetools';
 
 export default defineConfig(() => ({
   base: '/',
+  // Explicitly disable SSR - this is a client-only SPA build
+  environments: {
+    client: {},
+    // Disable SSR environment to prevent automatic SSR detection
+    ssr: false,
+  },
   plugins: [
     // tanstackStart(), // Disabled - spike evaluation only
     // netlify(), // Disabled - spike evaluation only
