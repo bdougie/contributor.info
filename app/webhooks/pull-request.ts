@@ -17,6 +17,7 @@ import { webhookSimilarityService } from '../services/webhook/similarity-updater
 import { eventRouter } from './event-router';
 import { webhookMetricsService } from '../services/webhook-metrics';
 import { similarityMetricsService } from '../services/similarity-metrics';
+import { embeddingQueueService } from '../services/webhook/embedding-queue';
 
 /**
  * Update repository's last webhook event timestamp
@@ -197,6 +198,15 @@ async function handlePROpened(event: PullRequestEvent) {
       event.repository.full_name
     );
 
+    // Queue embedding generation immediately
+    const repoId = await webhookDataService.ensureRepository(event.repository);
+    if (repoId) {
+      const prId = await webhookDataService.storePR(event.pull_request, repoId);
+      if (prId) {
+        await embeddingQueueService.queuePREmbedding(prId, repoId, 'high');
+      }
+    }
+
     // Check if we should comment on this PR
     const shouldComment = await checkIfShouldComment(event);
     if (!shouldComment) {
@@ -297,7 +307,7 @@ async function handlePROpened(event: PullRequestEvent) {
     });
 
     // Trigger real-time similarity updates for repository
-    const repoId = await webhookDataService.ensureRepository(event.repository);
+    // Note: repoId is already fetched at the start of the function
     if (repoId) {
       await webhookSimilarityService.handlePREvent('opened', event.pull_request, event.repository);
     }
@@ -353,7 +363,12 @@ async function handlePRSimilarityUpdate(event: PullRequestEvent) {
     }
 
     // Update PR in database
-    await webhookDataService.storePR(event.pull_request, repoId);
+    const prId = await webhookDataService.storePR(event.pull_request, repoId);
+
+    if (prId) {
+      // Queue embedding generation
+      await embeddingQueueService.queuePREmbedding(prId, repoId, 'medium');
+    }
 
     // Trigger real-time similarity recalculation
     const updateStartTime = Date.now();

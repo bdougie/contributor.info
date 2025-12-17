@@ -257,46 +257,12 @@ export class EventRouter {
   /**
    * Process event based on priority
    */
-  private async processEvent(event: WebhookEvent, metadata: EventMetadata): Promise<void> {
-    const eventType = 'issue' in event ? 'issues' : 'pull_request';
-    const item = 'issue' in event ? event.issue : event.pull_request;
-
-    // Queue embedding generation with appropriate priority
-    if (metadata.action === 'opened' || metadata.action === 'edited') {
-      const embeddingPriority = this.mapToEmbeddingPriority(metadata.priority);
-
-      if (eventType === 'issues') {
-        // Issue needs repository ID - get it from database
-        const { data: repo } = await supabase
-          .from('repositories')
-          .select('id')
-          .eq('github_id', event.repository.id)
-          .maybeSingle();
-
-        if (repo) {
-          await embeddingQueueService.queueIssueEmbedding(
-            item.id.toString(),
-            repo.id,
-            embeddingPriority
-          );
-        }
-      } else {
-        // PR embedding
-        const { data: repo } = await supabase
-          .from('repositories')
-          .select('id')
-          .eq('github_id', event.repository.id)
-          .maybeSingle();
-
-        if (repo) {
-          await embeddingQueueService.queuePREmbedding(
-            item.id.toString(),
-            repo.id,
-            embeddingPriority
-          );
-        }
-      }
-    }
+  private async processEvent(_event: WebhookEvent, _metadata: EventMetadata): Promise<void> {
+    // Note: Embedding generation is now handled directly by webhook handlers
+    // (pull-request.ts and issues.ts) to ensure correct database IDs are used.
+    // EventRouter is currently only used for metrics/tracking/debouncing logic
+    // but doesn't trigger side effects itself anymore.
+    return Promise.resolve();
   }
 
   /**

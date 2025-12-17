@@ -110,6 +110,18 @@ export const computeEmbeddings = inngest.createFunction(
         baseQuery = baseQuery.eq('repository_id', repositoryId);
       }
 
+      // Filter by item types if specified (and not all types)
+      // Map plural types (issues, pull_requests) to singular (issue, pull_request) used in DB
+      if (itemTypes && itemTypes.length > 0 && itemTypes.length < 3) {
+        const singularTypes = itemTypes.map((t) => {
+          if (t === 'issues') return 'issue';
+          if (t === 'pull_requests') return 'pull_request';
+          if (t === 'discussions') return 'discussion';
+          return t;
+        });
+        baseQuery = baseQuery.in('type', singularTypes);
+      }
+
       // Get items from priority view (200 items max, prioritized by workspace and type)
       const { data: viewItems, error } = await baseQuery.limit(200);
 
