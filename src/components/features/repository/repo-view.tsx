@@ -35,6 +35,9 @@ import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
 
+// Repository path pattern for parsing owner/repo from various formats (e.g., "owner/repo" or "github.com/owner/repo")
+const REPO_PATH_PATTERN = /(?:github\.com\/)?([^/]+)\/([^/]+)/;
+
 /**
  * Reusable repository search section component
  * Handles search input, example repos, and login requirements
@@ -128,7 +131,7 @@ export default function RepoView() {
   };
 
   const handleSearchInput = (repositoryPath: string) => {
-    const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    const match = repositoryPath.match(REPO_PATH_PATTERN);
     if (match) {
       const [, newOwner, newRepo] = match;
       handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
@@ -140,7 +143,7 @@ export default function RepoView() {
   };
 
   const handleSelectExample = (repo: string) => {
-    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+    const match = repo.match(REPO_PATH_PATTERN);
     if (match) {
       const [, newOwner, newRepo] = match;
       handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
@@ -216,11 +219,13 @@ export default function RepoView() {
         <section className="grid gap-8">
           <Card>
             <CardContent className="p-8">
-              <div className="space-y-4 animate-pulse">
-                <div className="text-center text-muted-foreground">Loading repository data...</div>
+              <div className="space-y-4 animate-pulse" role="status" aria-live="polite">
+                <div className="text-center text-muted-foreground">
+                  Loading repository data...
+                </div>
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={i} className="p-4">
+                    <Card key={i} className="p-4" aria-hidden="true">
                       <div className="space-y-3">
                         <div className="h-4 bg-muted rounded w-3/4"></div>
                         <div className="h-3 bg-muted rounded w-1/2"></div>
