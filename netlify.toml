@@ -66,6 +66,26 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Edge Functions for SSR (Server-Side Rendering)
+# These run BEFORE the SPA redirect and provide pre-rendered HTML for SEO/LCP
+# Order matters: more specific paths are declared first
+
+# SSR for home page - pre-rendered landing page for better LCP
+[[edge_functions]]
+  function = "ssr-home"
+  path = "/"
+
+# SSR for trending page - pre-rendered trending repos list
+[[edge_functions]]
+  function = "ssr-trending"
+  path = "/trending"
+
+# SSR for repository pages - most important for SEO (frequently shared)
+[[edge_functions]]
+  function = "ssr-repo"
+  path = "/:owner/:repo"
+  excludedPath = ["/api/*", "/assets/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*"]
+
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs
 [[edge_functions]]
