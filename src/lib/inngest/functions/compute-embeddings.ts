@@ -1,6 +1,7 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
 import { NonRetriableError } from 'inngest';
+import { logError } from '@/lib/error-logging';
 
 interface EmbeddingJobData {
   repositoryId: string;
@@ -113,6 +114,10 @@ export const computeEmbeddings = inngest.createFunction(
       const { data: viewItems, error } = await baseQuery.limit(200);
 
       if (error) {
+        logError('Failed to fetch items from items_needing_embeddings_priority view', error, {
+          tags: { view: 'items_needing_embeddings_priority', operation: 'embedding-batch' },
+          extra: { repositoryId, code: error.code, details: error.details, hint: error.hint },
+        });
         console.error('[Embeddings] Failed to fetch items needing embeddings:', {
           error: error.message,
           code: error.code,
