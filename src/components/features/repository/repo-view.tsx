@@ -208,28 +208,11 @@ export default function RepoView() {
     return (
       <article className="py-2">
         <Breadcrumbs />
-        <section className="mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <GitHubSearchInput
-                placeholder="Search another repository (e.g., facebook/react)"
-                onSearch={(repositoryPath) => {
-                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-                  if (match) {
-                    const [, newOwner, newRepo] = match;
-                    navigate(`/${newOwner}/${newRepo}`);
-                  }
-                }}
-                onSelect={(repository: GitHubRepository) => {
-                  navigate(`/${repository.full_name}`);
-                }}
-              />
-              <aside>
-                <ExampleRepos onSelect={handleSelectExample} />
-              </aside>
-            </CardContent>
-          </Card>
-        </section>
+        <RepoSearchSection
+          onSearch={handleSearchInput}
+          onSelect={handleSelectRepository}
+          onExampleSelect={handleSelectExample}
+        />
         <section className="grid gap-8">
           <Card>
             <CardContent className="p-8">
