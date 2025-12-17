@@ -1,4 +1,3 @@
-
 import { getIssue } from './github-api';
 import { extractLinkedItems } from './link-parser';
 import { getSupabase } from '../../src/lib/supabase-lazy';
@@ -52,7 +51,7 @@ export async function fetchLinkedItems(
         .from('issues')
         .select('title, body, state')
         .eq('number', link.number)
-        .eq('repository_id', (await getRepositoryId(owner, repo, supabase)))
+        .eq('repository_id', await getRepositoryId(owner, repo, supabase))
         .maybeSingle();
 
       if (dbIssue) {
@@ -76,7 +75,7 @@ export async function fetchLinkedItems(
         html_url: issue.html_url,
       });
     } catch (error) {
-      console.warn(`Failed to fetch linked item ${key}:`, error);
+      console.warn('Failed to fetch linked item %s:', key, error);
       // Continue to next link even if one fails
     }
   }
@@ -103,9 +102,11 @@ export function formatLinkedItemsForEmbedding(items: LinkedItemDetails[]): strin
     return '';
   }
 
-  return items.map(item => {
-    // Truncate body to avoid hitting token limits
-    const bodyPreview = item.body ? item.body.substring(0, 200).replace(/\n/g, ' ') : '';
-    return `Related Issue #${item.number}: ${item.title} - ${bodyPreview}`;
-  }).join('\n');
+  return items
+    .map((item) => {
+      // Truncate body to avoid hitting token limits
+      const bodyPreview = item.body ? item.body.substring(0, 200).replace(/\n/g, ' ') : '';
+      return `Related Issue #${item.number}: ${item.title} - ${bodyPreview}`;
+    })
+    .join('\n');
 }

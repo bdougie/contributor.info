@@ -1,4 +1,3 @@
-
 /**
  * Extract issue/PR references from text.
  * Matches:
@@ -7,12 +6,15 @@
  * - https://github.com/owner/repo/issues/123
  * - https://github.com/owner/repo/pull/123
  */
-export function extractLinkedItems(text: string): { owner?: string; repo?: string; number: number }[] {
+export function extractLinkedItems(
+  text: string
+): { owner?: string; repo?: string; number: number }[] {
   const links: { owner?: string; repo?: string; number: number }[] = [];
 
   // Regex for owner/repo#123
-  // Support . and _ in repo names: [\w.-]+
-  const repoRefRegex = /([\w.-]+)\/([\w.-]+)#(\d+)/g;
+  // Use [a-zA-Z0-9][a-zA-Z0-9._-]* to avoid ReDoS - first char must be alphanumeric
+  // This matches GitHub's actual username/repo naming rules
+  const repoRefRegex = /([a-zA-Z0-9][a-zA-Z0-9._-]*)\/([a-zA-Z0-9][a-zA-Z0-9._-]*)#(\d+)/g;
   let match;
   while ((match = repoRefRegex.exec(text)) !== null) {
     links.push({ owner: match[1], repo: match[2], number: parseInt(match[3], 10) });
@@ -32,12 +34,12 @@ export function extractLinkedItems(text: string): { owner?: string; repo?: strin
   }
 
   // Deduplicate
-  const uniqueLinks = links.filter((link, index, self) =>
-    index === self.findIndex((l) => (
-      l.number === link.number &&
-      l.owner === link.owner &&
-      l.repo === link.repo
-    ))
+  const uniqueLinks = links.filter(
+    (link, index, self) =>
+      index ===
+      self.findIndex(
+        (l) => l.number === link.number && l.owner === link.owner && l.repo === link.repo
+      )
   );
 
   return uniqueLinks;
