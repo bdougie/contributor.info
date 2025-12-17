@@ -10,6 +10,9 @@ import type { CaptureResult } from 'posthog-js';
 const POSTHOG_DEV_ENABLED_KEY = 'enablePostHogDev';
 const POSTHOG_OPT_OUT_KEY = 'posthog_opt_out';
 
+// Check if we're in a browser environment (not SSR/edge runtime)
+const isBrowser = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+
 // Type definition for PostHog instance methods we use
 interface PostHogInstance {
   capture: (eventName: string, properties?: Record<string, unknown>) => void;
@@ -193,9 +196,11 @@ const POSTHOG_CONFIG = {
   },
   loaded: () => {
     // Callback when PostHog is loaded
-    console.log('[PostHog] Initialized successfully for', window.location.hostname);
-    if (window.location.hostname === 'localhost') {
-      console.log('[PostHog] Note: Events may not be sent in development mode');
+    if (isBrowser) {
+      console.log('[PostHog] Initialized successfully for', window.location.hostname);
+      if (window.location.hostname === 'localhost') {
+        console.log('[PostHog] Note: Events may not be sent in development mode');
+      }
     }
   },
 };
@@ -204,6 +209,11 @@ const POSTHOG_CONFIG = {
  * Check if PostHog should be enabled based on environment
  */
 function shouldEnablePostHog(): boolean {
+  // Never enable during SSR (no browser APIs available)
+  if (!isBrowser) {
+    return false;
+  }
+
   // Only enable if we have the required configuration
   if (!env.POSTHOG_KEY) {
     return false;
@@ -279,6 +289,10 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
  * Generate a stable distinct ID for the user (used in identifyUser)
  */
 function generateDistinctId(): string {
+  if (!isBrowser) {
+    return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   const stored = localStorage.getItem('contributor_info_distinct_id');
   if (stored) {
     return stored;
@@ -432,6 +446,7 @@ export async function batchTrackWebVitals(
  * Enable PostHog in development (for testing)
  */
 export function enablePostHogInDev(): void {
+  if (!isBrowser) return;
   localStorage.setItem(POSTHOG_DEV_ENABLED_KEY, 'true');
   console.log('PostHog enabled in development mode');
 }
@@ -440,6 +455,7 @@ export function enablePostHogInDev(): void {
  * Disable PostHog in development
  */
 export function disablePostHogInDev(): void {
+  if (!isBrowser) return;
   localStorage.removeItem(POSTHOG_DEV_ENABLED_KEY);
   console.log('PostHog disabled in development mode');
 }
@@ -448,6 +464,7 @@ export function disablePostHogInDev(): void {
  * Opt out of PostHog tracking
  */
 export async function optOutOfPostHog(): Promise<void> {
+  if (!isBrowser) return;
   localStorage.setItem(POSTHOG_OPT_OUT_KEY, 'true');
 
   // If PostHog is loaded, call its opt out method
@@ -460,6 +477,7 @@ export async function optOutOfPostHog(): Promise<void> {
  * Opt back into PostHog tracking
  */
 export async function optInToPostHog(): Promise<void> {
+  if (!isBrowser) return;
   localStorage.removeItem(POSTHOG_OPT_OUT_KEY);
 
   // If PostHog is loaded, call its opt in method
@@ -493,6 +511,11 @@ export function resetRateLimiter(): void {
  * Check if the current user is an internal user (should be filtered from analytics)
  */
 function isInternalUser(): boolean {
+  // Never consider internal during SSR (no browser APIs available)
+  if (!isBrowser) {
+    return false;
+  }
+
   // Filter bdougie account based on various indicators
   try {
     // Check for GitHub username in localStorage (if user is logged in)
@@ -799,12 +822,12 @@ export async function enableSessionRecording(): Promise<void> {
     }
   } catch (error) {
     sessionRecordingEnabled = false;
-    
+
     // Log the error in development for debugging
     if (env.DEV) {
       console.error('[PostHog] Failed to enable session recording:', error);
     }
-    
+
     // Track error using centralized error tracking (handles type conversion and PostHog reporting)
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await trackError(errorObj, {
