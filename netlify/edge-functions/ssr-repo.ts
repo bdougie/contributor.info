@@ -13,7 +13,7 @@ import {
   escapeHtml,
   getAssetReferences,
   type MetaTags,
-  type SSRData,
+  type RepoPageData,
 } from './_shared/html-template.ts';
 import { fetchRepository, fetchRepoContributorStats, type RepoData } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA, parseRepoPath } from './_shared/ssr-utils.ts';
@@ -267,6 +267,12 @@ async function handler(request: Request, context: Context) {
       getAssetReferences(baseUrl),
     ]);
 
+    // Fall back to SPA if assets couldn't be loaded
+    if (assets.fallbackToSPA) {
+      console.warn('[ssr-repo] Asset loading failed, falling back to SPA');
+      return fallbackToSPA(context);
+    }
+
     // If repo not found, return 404
     if (!repoData) {
       addBreadcrumb({
@@ -292,9 +298,25 @@ async function handler(request: Request, context: Context) {
       image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
     };
 
-    const ssrData: SSRData = {
+    const ssrData: { route: string; data: RepoPageData; timestamp: number } = {
       route: `/${owner}/${repo}`,
-      data: { repository: repoData, contributorStats },
+      data: {
+        owner,
+        repo,
+        repository: {
+          id: repoData.id,
+          owner: repoData.owner,
+          name: repoData.name,
+          full_name: repoData.full_name,
+          description: repoData.description,
+          stargazer_count: repoData.stargazer_count,
+          fork_count: repoData.fork_count,
+          language: repoData.language,
+          topics: repoData.topics,
+          updated_at: repoData.updated_at,
+        },
+        contributorStats,
+      },
       timestamp: Date.now(),
     };
 
@@ -303,7 +325,7 @@ async function handler(request: Request, context: Context) {
 
     return new Response(html, { headers });
   } catch (error) {
-    console.error('[ssr-repo] Error:', error);
+    console.error('[ssr-repo] Error: %o', error);
     addBreadcrumb({
       message: 'SSR repo page error, falling back to SPA',
       category: 'ssr',

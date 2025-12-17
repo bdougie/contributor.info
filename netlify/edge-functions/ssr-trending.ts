@@ -13,7 +13,7 @@ import {
   escapeHtml,
   getAssetReferences,
   type MetaTags,
-  type SSRData,
+  type TrendingPageData,
 } from './_shared/html-template.ts';
 import { fetchTrendingRepos, type TrendingRepo } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
@@ -185,6 +185,12 @@ async function handler(request: Request, context: Context) {
       getAssetReferences(baseUrl),
     ]);
 
+    // Fall back to SPA if assets couldn't be loaded
+    if (assets.fallbackToSPA) {
+      console.warn('[ssr-trending] Asset loading failed, falling back to SPA');
+      return fallbackToSPA(context);
+    }
+
     // Generate the page content
     const content = renderTrendingContent(repos);
 
@@ -195,9 +201,22 @@ async function handler(request: Request, context: Context) {
       image: 'https://contributor-info-social-cards.fly.dev/social-cards/trending',
     };
 
-    const ssrData: SSRData = {
-      route: '/trending',
-      data: { repositories: repos },
+    const ssrData: { route: 'trending'; data: TrendingPageData; timestamp: number } = {
+      route: 'trending',
+      data: {
+        repos: repos.map((r) => ({
+          id: r.id,
+          owner: r.owner,
+          name: r.name,
+          full_name: r.full_name,
+          description: r.description,
+          stargazer_count: r.stargazer_count,
+          fork_count: r.fork_count,
+          language: r.language,
+          topics: r.topics,
+          score: r.score,
+        })),
+      },
       timestamp: Date.now(),
     };
 
@@ -206,7 +225,7 @@ async function handler(request: Request, context: Context) {
 
     return new Response(html, { headers });
   } catch (error) {
-    console.error('[ssr-trending] Error:', error);
+    console.error('[ssr-trending] Error: %o', error);
     addBreadcrumb({
       message: 'SSR trending page error, falling back to SPA',
       category: 'ssr',

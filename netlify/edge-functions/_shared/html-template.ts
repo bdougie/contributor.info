@@ -15,16 +15,69 @@ export interface MetaTags {
   type?: string;
 }
 
-export interface SSRData {
-  route: string;
-  data: unknown;
-  timestamp: number;
+/**
+ * Type-safe SSR data structures for each route
+ */
+export interface HomePageData {
+  totalRepos: number;
+  totalContributors: number;
+  totalPRs: number;
 }
+
+export interface TrendingPageData {
+  repos: Array<{
+    id: number;
+    owner: string;
+    name: string;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    language: string | null;
+    topics: string[] | null;
+    score: number;
+  }>;
+}
+
+export interface RepoPageData {
+  owner: string;
+  repo: string;
+  repository: {
+    id: number;
+    owner: string;
+    name: string;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    language: string | null;
+    topics: string[] | null;
+    updated_at: string;
+  };
+  contributorStats: {
+    count: number;
+    topContributors: Array<{
+      login: string;
+      avatar_url: string;
+      contributions: number;
+    }>;
+  };
+}
+
+/**
+ * Discriminated union for type-safe SSR data
+ */
+export type SSRData =
+  | { route: 'home'; data: HomePageData; timestamp: number }
+  | { route: 'trending'; data: TrendingPageData; timestamp: number }
+  | { route: string; data: RepoPageData; timestamp: number };
 
 export interface AssetReferences {
   scripts: string[];
   modulePreloads: string[];
   stylesheets: string[];
+  /** When true, asset fetching failed and page should fall back to SPA */
+  fallbackToSPA: boolean;
 }
 
 // Cache for asset references (lives for the duration of the edge function instance)
@@ -83,22 +136,30 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
       }
     }
 
-    cachedAssets = { scripts, modulePreloads, stylesheets };
+    // Warn if no scripts were found (likely parsing failure)
+    if (scripts.length === 0) {
+      console.warn('[SSR] No scripts found in index.html - parsing may have failed');
+      return getSPAFallback();
+    }
+
+    cachedAssets = { scripts, modulePreloads, stylesheets, fallbackToSPA: false };
     return cachedAssets;
   } catch (error) {
-    console.error('[SSR] Error fetching index.html:', error);
-    return getDefaultAssets();
+    console.error('[SSR] Error fetching index.html: %o', error);
+    return getSPAFallback();
   }
 }
 
 /**
- * Default assets fallback (should rarely be used)
+ * SPA fallback when asset fetching fails
+ * Signals that the page should fall back to standard SPA rendering
  */
-function getDefaultAssets(): AssetReferences {
+function getSPAFallback(): AssetReferences {
   return {
     scripts: [],
     modulePreloads: [],
     stylesheets: [],
+    fallbackToSPA: true,
   };
 }
 
@@ -265,8 +326,8 @@ export function renderHTML(
     <!-- Critical CSS -->
     <style>${CRITICAL_CSS}</style>
 
-    <!-- SSR Data for hydration -->
-    <script>window.__SSR_DATA__ = ${JSON.stringify(ssrData)};</script>
+    <!-- SSR Data for hydration (double-stringify prevents XSS via script injection) -->
+    <script>window.__SSR_DATA__ = JSON.parse(${JSON.stringify(JSON.stringify(ssrData))});</script>
 
     <!-- Modulepreload for critical chunks -->
     ${modulePreloads}

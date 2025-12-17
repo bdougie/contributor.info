@@ -8,13 +8,62 @@
 import { logger } from './logger';
 
 /**
- * SSR Data structure injected by edge functions
+ * Type-safe SSR data structures for each route
  */
-export interface SSRData {
-  route: string;
-  data: unknown;
-  timestamp: number;
+export interface HomePageData {
+  totalRepos: number;
+  totalContributors: number;
+  totalPRs: number;
 }
+
+export interface TrendingPageData {
+  repos: Array<{
+    id: number;
+    owner: string;
+    name: string;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    language: string | null;
+    topics: string[] | null;
+    score: number;
+  }>;
+}
+
+export interface RepoPageData {
+  owner: string;
+  repo: string;
+  repository: {
+    id: number;
+    owner: string;
+    name: string;
+    full_name: string;
+    description: string | null;
+    stargazer_count: number;
+    fork_count: number;
+    language: string | null;
+    topics: string[] | null;
+    updated_at: string;
+  };
+  contributorStats: {
+    count: number;
+    topContributors: Array<{
+      login: string;
+      avatar_url: string;
+      contributions: number;
+    }>;
+  };
+}
+
+/**
+ * SSR Data structure injected by edge functions
+ * Using discriminated union for type safety
+ */
+export type SSRData =
+  | { route: 'home'; data: HomePageData; timestamp: number }
+  | { route: 'trending'; data: TrendingPageData; timestamp: number }
+  | { route: string; data: RepoPageData; timestamp: number };
 
 /**
  * Type guard for SSR data

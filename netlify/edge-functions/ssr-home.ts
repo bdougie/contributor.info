@@ -13,7 +13,7 @@ import {
   escapeHtml,
   getAssetReferences,
   type MetaTags,
-  type SSRData,
+  type HomePageData,
 } from './_shared/html-template.ts';
 import { fetchHomeStats } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
@@ -163,6 +163,12 @@ async function handler(request: Request, context: Context) {
     const baseUrl = `${url.protocol}//${url.host}`;
     const [stats, assets] = await Promise.all([fetchHomeStats(), getAssetReferences(baseUrl)]);
 
+    // Fall back to SPA if assets couldn't be loaded
+    if (assets.fallbackToSPA) {
+      console.warn('[ssr-home] Asset loading failed, falling back to SPA');
+      return fallbackToSPA(context);
+    }
+
     // Generate the page content
     const content = renderHomeContent(stats);
 
@@ -173,9 +179,9 @@ async function handler(request: Request, context: Context) {
       image: 'https://contributor-info-social-cards.fly.dev/social-cards/home',
     };
 
-    const ssrData: SSRData = {
-      route: '/',
-      data: { stats },
+    const ssrData: { route: 'home'; data: HomePageData; timestamp: number } = {
+      route: 'home',
+      data: stats,
       timestamp: Date.now(),
     };
 
@@ -184,7 +190,7 @@ async function handler(request: Request, context: Context) {
 
     return new Response(html, { headers });
   } catch (error) {
-    console.error('[ssr-home] Error:', error);
+    console.error('[ssr-home] Error: %o', error);
     addBreadcrumb({
       message: 'SSR home page error, falling back to SPA',
       category: 'ssr',
