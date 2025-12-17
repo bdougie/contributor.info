@@ -6,8 +6,8 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
   NODE_OPTIONS = "--max-old-space-size=4096"
-  # Prevent treating warnings as errors (CI=true causes exit code 2)
-  CI = "false"
+  # Prevent treating warnings as errors (empty CI value)
+  CI = ""
 
 # Enable standard Netlify processing
 [build.processing]
