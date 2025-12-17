@@ -17,7 +17,6 @@ import { ContributorOfMonthWrapper } from '../contributor';
 import { ExampleRepos } from './example-repos';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { InsightsSidebar } from '@/components/insights/insights-sidebar';
-import { RepoViewSkeleton } from '@/components/skeletons';
 import { SocialMetaTags } from '@/components/common/layout';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
 import RepoNotFound from './repo-not-found';
@@ -44,7 +43,6 @@ export default function RepoView() {
   const [includeBots, setIncludeBots] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
-  const [showSkeleton, setShowSkeleton] = useState(true);
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
   const { trackRepositoryPageViewed, trackRepositoryTabSwitch } = useAnalytics();
@@ -116,19 +114,6 @@ export default function RepoView() {
     }
   }, [owner, repo, trackRepositoryPageViewed]);
 
-  // Show skeleton immediately on navigation and hide when data is ready
-  useEffect(() => {
-    setShowSkeleton(true);
-
-    // Hide skeleton when we have data or after timeout
-    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial_data' || stats.error) {
-      setShowSkeleton(false);
-    } else {
-      const timeout = setTimeout(() => setShowSkeleton(false), 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [owner, repo, dataStatus?.status, stats.error]);
-
   // Handle share button click - create oss.fyi short link
   const handleShare = async () => {
     setIsGeneratingUrl(true);
@@ -169,13 +154,60 @@ export default function RepoView() {
     }
   };
 
-  // Show skeleton during initial load or navigation
-  if (showSkeleton && dataStatus?.status === 'pending') {
-    return <RepoViewSkeleton />;
+  // Show header + search + skeleton while checking tracking status
+  // This keeps the UI stable while we determine if the repo is tracked
+  if (trackingState.status === 'checking') {
+    return (
+      <article className="py-2">
+        <Breadcrumbs />
+        <section className="mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <GitHubSearchInput
+                placeholder="Search another repository (e.g., facebook/react)"
+                onSearch={(repositoryPath) => {
+                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+                  if (match) {
+                    const [, newOwner, newRepo] = match;
+                    navigate(`/${newOwner}/${newRepo}`);
+                  }
+                }}
+                onSelect={(repository: GitHubRepository) => {
+                  navigate(`/${repository.full_name}`);
+                }}
+              />
+              <aside>
+                <ExampleRepos onSelect={handleSelectExample} />
+              </aside>
+            </CardContent>
+          </Card>
+        </section>
+        <section className="grid gap-8">
+          <Card>
+            <CardContent className="p-8">
+              <div className="space-y-4 animate-pulse">
+                <div className="text-center text-muted-foreground">Loading repository data...</div>
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="p-4">
+                      <div className="space-y-3">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                        <div className="h-3 bg-muted rounded w-5/6"></div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </article>
+    );
   }
 
   // Check if repository needs tracking (show tracking card instead of error)
-  if (trackingState.status === 'not_tracked' && !showSkeleton) {
+  if (trackingState.status === 'not_tracked') {
     return (
       <article className="py-2">
         <Breadcrumbs />
