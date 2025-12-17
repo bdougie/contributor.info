@@ -1,7 +1,6 @@
 [build]
   publish = "build/client"
-  # Debug: Show versions and run build with verbose error handling
-  command = "node --version && npm --version && echo '--- Starting build ---' && npx react-router build 2>&1 || (echo '--- Build failed with exit code $? ---' && exit 1) && echo '--- Build complete, copying files ---' && cp public/_headers build/client/_headers"
+  command = "npm run build"
   
 [build.environment]
   NODE_VERSION = "20"
