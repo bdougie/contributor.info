@@ -204,6 +204,7 @@
     "@iarna/toml": "^2.2.5",
     "@iconify/json": "^2.2.367",
     "@mdx-js/react": "^2.3.0",
+    "@netlify/vite-plugin": "^2.7.17",
     "@netlify/vite-plugin-react-router": "^2.1.2",
     "@playwright/test": "^1.56.1",
     "@react-router/dev": "^7.10.1",
