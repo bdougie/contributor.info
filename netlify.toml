@@ -1,7 +1,7 @@
 [build]
   publish = "build/client"
-  # Run react-router build directly to isolate the issue
-  command = "react-router build"
+  # Force clean install and rebuild to bypass potential cache issues
+  command = "rm -rf node_modules/.cache && npm ci && react-router build"
   
 [build.environment]
   NODE_VERSION = "20"
