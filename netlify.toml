@@ -1,6 +1,7 @@
 [build]
   publish = "build/client"
-  command = "npm run build"
+  # Run react-router build directly to isolate the issue
+  command = "react-router build"
   
 [build.environment]
   NODE_VERSION = "20"
