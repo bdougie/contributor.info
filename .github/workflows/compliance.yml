@@ -188,28 +188,35 @@ jobs:
           echo "## Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Get bundle sizes
-          if [ -d "dist" ]; then
+          # Get bundle sizes - check build/client (React Router v7 SSR) or dist (legacy)
+          BUILD_DIR=""
+          if [ -d "build/client" ]; then
+            BUILD_DIR="build/client"
+          elif [ -d "dist" ]; then
+            BUILD_DIR="dist"
+          fi
+
+          if [ -n "$BUILD_DIR" ]; then
             echo "### JavaScript Bundles:" >> $GITHUB_STEP_SUMMARY
-            find dist -name "*.js" -not -name "*.map" -exec du -h {} \; | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
-            
+            find $BUILD_DIR -name "*.js" -not -name "*.map" -exec du -h {} \; | sort -hr | head -10 >> $GITHUB_STEP_SUMMARY
+
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### CSS Bundles:" >> $GITHUB_STEP_SUMMARY
-            find dist -name "*.css" -exec du -h {} \; | sort -hr >> $GITHUB_STEP_SUMMARY
-            
+            find $BUILD_DIR -name "*.css" -exec du -h {} \; | sort -hr >> $GITHUB_STEP_SUMMARY
+
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### Total Size:" >> $GITHUB_STEP_SUMMARY
-            du -sh dist >> $GITHUB_STEP_SUMMARY
-            
+            du -sh $BUILD_DIR >> $GITHUB_STEP_SUMMARY
+
             # Check if bundle sizes are reasonable (warn if JS > 2MB)
-            total_js_size=$(find dist -name "*.js" -not -name "*.map" -exec stat -c%s {} \; | awk '{sum+=$1} END {print sum}')
+            total_js_size=$(find $BUILD_DIR -name "*.js" -not -name "*.map" -exec stat -c%s {} \; | awk '{sum+=$1} END {print sum}')
             if [ "$total_js_size" -gt 2097152 ]; then
               echo "⚠️ **Warning**: Total JavaScript bundle size is $(( total_js_size / 1024 / 1024 ))MB" >> $GITHUB_STEP_SUMMARY
             else
               echo "✅ Bundle size looks good!" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "❌ No dist folder found" >> $GITHUB_STEP_SUMMARY
+            echo "❌ No build folder found (checked build/client and dist)" >> $GITHUB_STEP_SUMMARY
           fi
 
   file-validation:

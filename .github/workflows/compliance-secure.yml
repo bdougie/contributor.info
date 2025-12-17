@@ -94,11 +94,18 @@ jobs:
         run: |
           npm run build
 
-          # Calculate bundle sizes
-          if [ -d "dist" ]; then
-            total_js_size=$(find dist -name "*.js" -not -name "*.map" -exec stat -c%s {} \; 2>/dev/null | awk '{sum+=$1} END {print sum}')
-            total_css_size=$(find dist -name "*.css" -exec stat -c%s {} \; 2>/dev/null | awk '{sum+=$1} END {print sum}')
-            
+          # Calculate bundle sizes - check build/client (React Router v7 SSR) or dist (legacy)
+          BUILD_DIR=""
+          if [ -d "build/client" ]; then
+            BUILD_DIR="build/client"
+          elif [ -d "dist" ]; then
+            BUILD_DIR="dist"
+          fi
+
+          if [ -n "$BUILD_DIR" ]; then
+            total_js_size=$(find $BUILD_DIR -name "*.js" -not -name "*.map" -exec stat -c%s {} \; 2>/dev/null | awk '{sum+=$1} END {print sum}')
+            total_css_size=$(find $BUILD_DIR -name "*.css" -exec stat -c%s {} \; 2>/dev/null | awk '{sum+=$1} END {print sum}')
+
             # Store details for reporting
             {
               echo "details<<EOF"
@@ -106,7 +113,7 @@ jobs:
               echo "CSS Size: $(( total_css_size / 1024 ))KB"
               echo "EOF"
             } >> $GITHUB_OUTPUT
-            
+
             if [ "$total_js_size" -gt 2097152 ]; then
               echo "result=warning" >> $GITHUB_OUTPUT
             else
@@ -114,7 +121,7 @@ jobs:
             fi
           else
             echo "result=failure" >> $GITHUB_OUTPUT
-            echo "details=Build failed" >> $GITHUB_OUTPUT
+            echo "details=Build failed - no build folder found" >> $GITHUB_OUTPUT
           fi
         continue-on-error: true
 
