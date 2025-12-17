@@ -17,8 +17,13 @@ CREATE POLICY public_read_github_events_cache_2025_10
 CREATE POLICY service_role_manage_github_events_2025_10
   ON public.github_events_cache_2025_10
   FOR ALL
-  TO public
-  USING ((SELECT auth.role()) = 'service_role');
+  TO service_role
+  USING (
+    (SELECT auth.role()) = 'service_role'
+  )
+  WITH CHECK (
+    (SELECT auth.role()) = 'service_role'
+  );
 
 -- 2. contributor_analytics (workspace-scoped analytics)
 -- Pattern: workspace members can read, service_role manages
@@ -50,8 +55,13 @@ CREATE POLICY workspace_read_contributor_analytics
 CREATE POLICY service_role_manage_contributor_analytics
   ON public.contributor_analytics
   FOR ALL
-  TO public
-  USING ((SELECT auth.role()) = 'service_role');
+  TO service_role
+  USING (
+    (SELECT auth.role()) = 'service_role'
+  )
+  WITH CHECK (
+    (SELECT auth.role()) = 'service_role'
+  );
 
 COMMENT ON TABLE public.github_events_cache_2025_10 IS 'October 2025 GitHub events cache partition - RLS enabled';
 COMMENT ON TABLE public.contributor_analytics IS 'Contributor analytics and enrichment data - workspace-scoped RLS';
