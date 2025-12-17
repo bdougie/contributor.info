@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { isSSRPage } from '@/lib/ssr-hydration';
 
 interface SocialMeta {
   title?: string;
@@ -55,6 +56,12 @@ export function SocialMetaTags({
   twitterCard = 'summary_large_image',
   siteName = 'contributor.info',
 }: SocialMetaTagsProps) {
+  // Skip rendering if SSR has already provided meta tags to avoid duplicates
+  // SSR pages have all necessary meta tags pre-rendered in the HTML head
+  if (isSSRPage()) {
+    return null;
+  }
+
   const currentUrl =
     url || (typeof window !== 'undefined' ? window.location.href : 'https://contributor.info');
 
