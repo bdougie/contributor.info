@@ -137,11 +137,15 @@ async function triggerWorkspaceBackfill(
 
 // Helper function to map Polar product IDs to our tier names
 function mapProductToTier(productId: string): string {
-  // Map your actual Polar product IDs to tier names
-  const productTierMap: Record<string, string> = {
-    [process.env.POLAR_PRODUCT_ID_PRO || '']: 'pro',
-    [process.env.POLAR_PRODUCT_ID_TEAM || '']: 'team',
-  };
+  // Build map only from defined environment variables to prevent empty key collisions
+  const productTierMap: Record<string, string> = {};
+  
+  if (process.env.POLAR_PRODUCT_ID_PRO) {
+    productTierMap[process.env.POLAR_PRODUCT_ID_PRO] = 'pro';
+  }
+  if (process.env.POLAR_PRODUCT_ID_TEAM) {
+    productTierMap[process.env.POLAR_PRODUCT_ID_TEAM] = 'team';
+  }
 
   const tier = productTierMap[productId];
 
@@ -486,7 +490,7 @@ export const handler: Handler = async (event) => {
         console.log('Subscription canceled:', subscription.id);
 
         // Mark subscription as canceled
-        await supabase
+        const { error: cancelError } = await supabase
           .from('subscriptions')
           .update({
             status: 'canceled',
@@ -494,6 +498,16 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (cancelError) {
+          console.error('❌ Failed to cancel subscription:', cancelError);
+          await captureServerException(new Error(cancelError.message), {
+            level: 'error',
+            tags: { type: 'subscription_cancel_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw cancelError;
+        }
 
         const userId = subscription.metadata?.user_id as string;
         if (userId) {
@@ -513,7 +527,7 @@ export const handler: Handler = async (event) => {
         console.log('Subscription revoked:', subscription.id);
 
         // Immediately downgrade to free tier
-        await supabase
+        const { error: revokeError } = await supabase
           .from('subscriptions')
           .update({
             status: 'inactive',
@@ -522,6 +536,16 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (revokeError) {
+          console.error('❌ Failed to revoke subscription:', revokeError);
+          await captureServerException(new Error(revokeError.message), {
+            level: 'error',
+            tags: { type: 'subscription_revoke_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw revokeError;
+        }
       },
 
       onCustomerCreated: async (payload) => {
@@ -536,7 +560,7 @@ export const handler: Handler = async (event) => {
         }
 
         // Create or update subscription record with customer ID
-        await supabase.from('subscriptions').upsert(
+        const { error: customerCreateError } = await supabase.from('subscriptions').upsert(
           {
             user_id: userId,
             polar_customer_id: customer.id,
@@ -549,6 +573,16 @@ export const handler: Handler = async (event) => {
             onConflict: 'user_id',
           }
         );
+
+        if (customerCreateError) {
+          console.error('❌ Failed to create customer record:', customerCreateError);
+          await captureServerException(new Error(customerCreateError.message), {
+            level: 'error',
+            tags: { type: 'customer_create_db_failed' },
+            extra: { customer_id: customer.id, user_id: userId },
+          });
+          throw customerCreateError;
+        }
       },
 
       onCustomerUpdated: async (payload) => {
@@ -556,12 +590,22 @@ export const handler: Handler = async (event) => {
         console.log('Customer updated:', customer.id);
 
         // Update customer information if needed
-        await supabase
+        const { error: customerUpdateError } = await supabase
           .from('subscriptions')
           .update({
             updated_at: new Date().toISOString(),
           })
           .eq('polar_customer_id', customer.id);
+
+        if (customerUpdateError) {
+          console.error('❌ Failed to update customer record:', customerUpdateError);
+          await captureServerException(new Error(customerUpdateError.message), {
+            level: 'error',
+            tags: { type: 'customer_update_db_failed' },
+            extra: { customer_id: customer.id },
+          });
+          throw customerUpdateError;
+        }
       },
 
       onOrderCreated: async (payload) => {
