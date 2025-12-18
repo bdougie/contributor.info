@@ -28,6 +28,8 @@ interface TrendingInsights {
     events: number;
   } | null;
   languageBreakdown: Record<string, number>;
+  isLimitedData: boolean;
+  eventsFetched: number;
 }
 
 export function TrendingEventsInsights({
@@ -67,15 +69,20 @@ export function TrendingEventsInsights({
           .join(',');
 
         const supabase = await getSupabase();
+        const FETCH_LIMIT = 10000;
         const { data: eventData, error: eventError } = await supabase
           .from('github_events_cache')
           .select('repository_owner, repository_name, event_type, actor_login, created_at')
           .or(repoConditions)
           .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .lte('created_at', endDate.toISOString())
+          .limit(FETCH_LIMIT);
 
         if (eventError) throw eventError;
+
+        const isLimitedData = eventData?.length === FETCH_LIMIT;
+        const eventsFetched = eventData?.length || 0;
 
         if (!eventData?.length) {
           setInsights({
@@ -86,6 +93,8 @@ export function TrendingEventsInsights({
             avgVelocity: 0,
             mostActiveRepo: null,
             languageBreakdown: {},
+            isLimitedData: false,
+            eventsFetched: 0,
           });
           return;
         }
@@ -139,6 +148,8 @@ export function TrendingEventsInsights({
           avgVelocity: Math.round(avgVelocity * 100) / 100,
           mostActiveRepo,
           languageBreakdown,
+          isLimitedData,
+          eventsFetched,
         });
       } catch (err) {
         console.error('Error fetching trending insights:', err);
@@ -210,9 +221,16 @@ export function TrendingEventsInsights({
           <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           📊 Trending Insights
         </CardTitle>
-        <CardDescription>
-          Real-time activity metrics from GitHub events across {repositories.length} trending
-          repositories
+        <CardDescription className="flex items-center gap-2 flex-wrap">
+          <span>
+            Real-time activity metrics from GitHub events across {repositories.length} trending
+            repositories
+          </span>
+          {insights.isLimitedData && (
+            <Badge variant="outline" className="text-xs bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+              Based on sample of {insights.eventsFetched.toLocaleString()} events
+            </Badge>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
