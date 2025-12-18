@@ -7,15 +7,20 @@
  * This component hydrates the SSR-rendered content from ssr-workspaces edge function.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
-import type { User } from '@supabase/supabase-js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Folder, Users, GitFork, Star } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { getAppUserId } from '@/lib/auth-helpers';
+import {
+  getSSRDataForRoute,
+  isSSRDataStale,
+  clearSSRData,
+  type WorkspacesPageData,
+} from '@/lib/ssr-hydration';
 
 interface WorkspacePreview {
   id: string;
@@ -320,13 +325,37 @@ function WorkspacesSkeleton() {
 }
 
 export default function WorkspacesPage() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
-  const [workspaces, setWorkspaces] = useState<WorkspacePreview[]>([]);
-  const [stats, setStats] = useState<DemoStats>({ totalWorkspaces: 0, totalRepositories: 0 });
+  // Get SSR data if available (prevents flash during hydration)
+  const ssrData = useMemo(() => getSSRDataForRoute<WorkspacesPageData>('workspaces'), []);
+
+  // Initialize state from SSR data to prevent hydration flash
+  const [loading, setLoading] = useState(!ssrData);
+  const [isAuthenticated, setIsAuthenticated] = useState(ssrData?.authenticated ?? false);
+  const [workspaces, setWorkspaces] = useState<WorkspacePreview[]>(
+    ssrData?.workspaces?.map((w) => ({
+      ...w,
+      tier: 'free', // Default tier, will be updated on client
+    })) ?? []
+  );
+  const [stats, setStats] = useState<DemoStats>(
+    ssrData?.stats ?? { totalWorkspaces: 0, totalRepositories: 0 }
+  );
 
   useEffect(() => {
+    // Clear SSR data after initial render to prevent memory leaks
+    const hasSSRData = !!ssrData;
+    if (hasSSRData) {
+      clearSSRData();
+    }
+
     async function loadData() {
+      // Skip fetch if SSR data is fresh (not stale)
+      if (hasSSRData && !isSSRDataStale(60)) {
+        logger.debug('[workspaces-page] Using fresh SSR data, skipping fetch');
+        setLoading(false);
+        return;
+      }
+
       try {
         const supabase = await getSupabase();
 
@@ -334,7 +363,7 @@ export default function WorkspacesPage() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        setUser(user);
+        setIsAuthenticated(!!user);
 
         if (user) {
           // Authenticated - fetch user's workspaces
@@ -471,13 +500,13 @@ export default function WorkspacesPage() {
     }
 
     loadData();
-  }, []);
+  }, [ssrData]);
 
   if (loading) {
     return <WorkspacesSkeleton />;
   }
 
-  if (user) {
+  if (isAuthenticated) {
     return <AuthenticatedWorkspaces workspaces={workspaces} />;
   }
 
