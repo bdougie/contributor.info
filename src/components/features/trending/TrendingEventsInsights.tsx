@@ -80,15 +80,8 @@ export function TrendingEventsInsights({
         if (eventError) throw eventError;
 
         if (!eventData?.length) {
-          setInsights({
-            totalStars: 0,
-            totalForks: 0,
-            totalActivity: 0,
-            uniqueContributors: 0,
-            avgVelocity: 0,
-            mostActiveRepo: null,
-            languageBreakdown: {},
-          });
+          // No event data available - set null to hide the component
+          setInsights(null);
           return;
         }
 
@@ -177,7 +170,13 @@ export function TrendingEventsInsights({
     );
   }
 
-  if (error || !insights) {
+  // Hide component entirely when no data is available
+  // Only show error card if there's an actual API error
+  if (!insights) {
+    return null;
+  }
+
+  if (error) {
     return (
       <Card>
         <CardHeader>
@@ -189,9 +188,7 @@ export function TrendingEventsInsights({
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {error || 'No event data available for trending analysis'}
-            </p>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         </CardContent>
       </Card>
