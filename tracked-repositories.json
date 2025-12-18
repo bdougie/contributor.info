@@ -24,6 +24,18 @@
     "name": "argo-cd"
   },
   {
+    "owner": "ArshadMahalkari",
+    "name": "StockApp"
+  },
+  {
+    "owner": "atuinsh",
+    "name": "atuin"
+  },
+  {
+    "owner": "atuinsh",
+    "name": "desktop"
+  },
+  {
     "owner": "axios",
     "name": "axios"
   },
@@ -38,6 +50,10 @@
   {
     "owner": "BlueMatthew",
     "name": "WechatExporter"
+  },
+  {
+    "owner": "CGCookie",
+    "name": "retopoflow"
   },
   {
     "owner": "clickhouse",
@@ -68,6 +84,10 @@
     "name": "duckdb"
   },
   {
+    "owner": "envoyproxy",
+    "name": "ai-gateway"
+  },
+  {
     "owner": "etcd-io",
     "name": "etcd"
   },
@@ -92,6 +112,22 @@
     "name": "fastapi"
   },
   {
+    "owner": "fastify",
+    "name": "fastify"
+  },
+  {
+    "owner": "FZJ-IEK3-VSA",
+    "name": "FINE"
+  },
+  {
+    "owner": "GalsenDev221",
+    "name": "first.contributions"
+  },
+  {
+    "owner": "GalsenDev221",
+    "name": "made.in.senegal"
+  },
+  {
     "owner": "github",
     "name": "docs"
   },
@@ -102,6 +138,10 @@
   {
     "owner": "grafana",
     "name": "grafana"
+  },
+  {
+    "owner": "grenzbotin",
+    "name": "strapi-llm-translator"
   },
   {
     "owner": "huggingface",
@@ -132,6 +172,10 @@
     "name": "lodash"
   },
   {
+    "owner": "Mail-0",
+    "name": "Zero"
+  },
+  {
     "owner": "microsoft",
     "name": "TypeScript"
   },
@@ -146,6 +190,10 @@
   {
     "owner": "nestjs",
     "name": "nest"
+  },
+  {
+    "owner": "ohmyzsh",
+    "name": "ohmyzsh"
   },
   {
     "owner": "ollama",
@@ -172,8 +220,16 @@
     "name": "awesome-mcp-servers"
   },
   {
+    "owner": "PyPSA",
+    "name": "PyPSA"
+  },
+  {
     "owner": "pytorch",
     "name": "pytorch"
+  },
+  {
+    "owner": "rexdivakar",
+    "name": "HippocampAI"
   },
   {
     "owner": "rexdivakar",
@@ -196,12 +252,32 @@
     "name": "ui"
   },
   {
+    "owner": "sujithq",
+    "name": "myenergy"
+  },
+  {
+    "owner": "sujithq",
+    "name": "sujithq"
+  },
+  {
+    "owner": "sujithq",
+    "name": "sujithq.github.io"
+  },
+  {
+    "owner": "supabase",
+    "name": "realtime"
+  },
+  {
     "owner": "supabase",
     "name": "supabase"
   },
   {
     "owner": "Supabase",
     "name": "supabase"
+  },
+  {
+    "owner": "TanStack",
+    "name": "table"
   },
   {
     "owner": "tensorflow",
