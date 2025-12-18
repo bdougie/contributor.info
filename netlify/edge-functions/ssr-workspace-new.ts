@@ -197,8 +197,12 @@ async function handler(request: Request, context: Context) {
     };
 
     const htmlContent = renderHTML(content, meta, ssrData, request.url, assets);
-    // Short cache since this is a form page
-    return new Response(htmlContent, { headers: getSSRHeaders(60, 300) });
+    // Use private cache for authenticated users to prevent cross-user caching
+    // For unauthenticated users (login prompt), use shorter public cache
+    const cacheHeaders = isAuthenticated
+      ? getSSRHeaders(60, 0, true) // Private cache for authenticated form skeleton
+      : getSSRHeaders(60, 300, false); // Short public cache for login prompt
+    return new Response(htmlContent, { headers: cacheHeaders });
   } catch (error) {
     console.error('[ssr-workspace-new] Error: %o', error);
     addBreadcrumb({
