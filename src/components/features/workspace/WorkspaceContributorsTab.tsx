@@ -2,7 +2,7 @@
  * Contributors tab component for workspace page
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
@@ -38,9 +38,35 @@ import { getOrgAvatarUrl } from '@/lib/utils/avatar';
 import type { Repository } from '@/components/features/workspace';
 import { ContributorsList, type Contributor } from './ContributorsList';
 import { ContributorsTable } from './ContributorsTable';
-import { ContributorGroupManager } from './ContributorGroupManager';
-import { ContributorNotesDialog } from './ContributorNotesDialog';
-import { ContributorProfileModal } from './ContributorProfileModal';
+
+// Lazy load modal components to reduce initial bundle size
+// These modals are only shown on user interaction, so deferring their load is safe
+const ContributorGroupManager = lazy(() =>
+  import('./ContributorGroupManager').then((m) => ({ default: m.ContributorGroupManager }))
+);
+
+const ContributorNotesDialog = lazy(() =>
+  import('./ContributorNotesDialog').then((m) => ({ default: m.ContributorNotesDialog }))
+);
+
+const ContributorProfileModal = lazy(() =>
+  import('./ContributorProfileModal').then((m) => ({ default: m.ContributorProfileModal }))
+);
+
+// Minimal modal skeleton for Suspense fallback
+function ModalSkeleton() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-1/3 rounded bg-muted" />
+          <div className="h-4 w-2/3 rounded bg-muted" />
+          <div className="h-32 rounded bg-muted" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export interface ActivityItem {
   id: string;
@@ -864,64 +890,76 @@ export function WorkspaceContributorsTab({
         </div>
       )}
 
-      <ContributorGroupManager
-        open={showGroupManager}
-        onOpenChange={(open) => {
-          setShowGroupManager(open);
-          if (!open) {
-            setSelectedContributorsForGroups(new Set());
-          }
-        }}
-        groups={groups}
-        contributors={contributors}
-        contributorGroups={contributorGroups}
-        selectedContributorId={selectedContributor?.id}
-        selectedContributorIds={selectedContributorsForGroups}
-        onCreateGroup={handleCreateGroup}
-        onUpdateGroup={handleUpdateGroup}
-        onDeleteGroup={handleDeleteGroup}
-        onAddContributorToGroup={handleAddContributorToGroup}
-        onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
-        userRole={userRole}
-        workspaceTier={workspaceTier}
-        isLoggedIn={isLoggedIn}
-      />
+      {showGroupManager && (
+        <Suspense fallback={<ModalSkeleton />}>
+          <ContributorGroupManager
+            open={showGroupManager}
+            onOpenChange={(open) => {
+              setShowGroupManager(open);
+              if (!open) {
+                setSelectedContributorsForGroups(new Set());
+              }
+            }}
+            groups={groups}
+            contributors={contributors}
+            contributorGroups={contributorGroups}
+            selectedContributorId={selectedContributor?.id}
+            selectedContributorIds={selectedContributorsForGroups}
+            onCreateGroup={handleCreateGroup}
+            onUpdateGroup={handleUpdateGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onAddContributorToGroup={handleAddContributorToGroup}
+            onRemoveContributorFromGroup={handleRemoveContributorFromGroup}
+            userRole={userRole}
+            workspaceTier={workspaceTier}
+            isLoggedIn={isLoggedIn}
+          />
+        </Suspense>
+      )}
 
-      <ContributorNotesDialog
-        open={showNotesDialog}
-        onOpenChange={setShowNotesDialog}
-        contributor={selectedContributor}
-        notes={transformedNotes}
-        loading={false}
-        currentUserId={currentUser?.id}
-        onAddNote={handleAddNoteToContributor}
-        onUpdateNote={handleUpdateNote}
-        onDeleteNote={handleDeleteNote}
-      />
+      {showNotesDialog && (
+        <Suspense fallback={<ModalSkeleton />}>
+          <ContributorNotesDialog
+            open={showNotesDialog}
+            onOpenChange={setShowNotesDialog}
+            contributor={selectedContributor}
+            notes={transformedNotes}
+            loading={false}
+            currentUserId={currentUser?.id}
+            onAddNote={handleAddNoteToContributor}
+            onUpdateNote={handleUpdateNote}
+            onDeleteNote={handleDeleteNote}
+          />
+        </Suspense>
+      )}
 
-      <ContributorProfileModal
-        open={showProfileModal}
-        onOpenChange={setShowProfileModal}
-        contributor={selectedContributor}
-        groups={groups}
-        contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
-        notes={transformedNotes}
-        workspaceId={workspaceId}
-        onManageGroups={() => {
-          setShowProfileModal(false);
-          if (selectedContributor) {
-            setSelectedContributorsForGroups(new Set([selectedContributor.id]));
-          }
-          setShowGroupManager(true);
-        }}
-        onAddNote={() => {
-          setShowProfileModal(false);
-          setShowNotesDialog(true);
-        }}
-        userRole={userRole}
-        workspaceTier={workspaceTier}
-        isLoggedIn={isLoggedIn}
-      />
+      {showProfileModal && (
+        <Suspense fallback={<ModalSkeleton />}>
+          <ContributorProfileModal
+            open={showProfileModal}
+            onOpenChange={setShowProfileModal}
+            contributor={selectedContributor}
+            groups={groups}
+            contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
+            notes={transformedNotes}
+            workspaceId={workspaceId}
+            onManageGroups={() => {
+              setShowProfileModal(false);
+              if (selectedContributor) {
+                setSelectedContributorsForGroups(new Set([selectedContributor.id]));
+              }
+              setShowGroupManager(true);
+            }}
+            onAddNote={() => {
+              setShowProfileModal(false);
+              setShowNotesDialog(true);
+            }}
+            userRole={userRole}
+            workspaceTier={workspaceTier}
+            isLoggedIn={isLoggedIn}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }
