@@ -37,13 +37,12 @@ export interface TrendingRepositoryCardProps {
 }
 
 interface MetricChangeProps {
-  label: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
   formatValue?: (value: number) => string;
 }
 
-function MetricChange({ label: _label, value, icon: Icon, formatValue }: MetricChangeProps) {
+function MetricChange({ value, icon: Icon, formatValue }: MetricChangeProps) {
   // Show metric even if value is 0 for consistent display
   const isPositive = value > 0;
   const isNeutral = value === 0;
@@ -134,19 +133,16 @@ export function TrendingRepositoryCard({
           {/* Mobile: Metrics on top row - aligned left */}
           <div className="flex items-center justify-start gap-2 sm:hidden">
             <MetricChange
-              label="stars"
               value={repository.star_change}
               icon={Star}
               formatValue={formatPercentage}
             />
             <MetricChange
-              label="PRs"
               value={repository.pr_change}
               icon={GitPullRequest}
               formatValue={formatPercentage}
             />
             <MetricChange
-              label="contributors"
               value={repository.contributor_change}
               icon={Users}
               formatValue={formatPercentage}
@@ -170,19 +166,16 @@ export function TrendingRepositoryCard({
           <div className="hidden sm:flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <MetricChange
-                label="stars"
                 value={repository.star_change}
                 icon={Star}
                 formatValue={formatPercentage}
               />
               <MetricChange
-                label="PRs"
                 value={repository.pr_change}
                 icon={GitPullRequest}
                 formatValue={formatPercentage}
               />
               <MetricChange
-                label="contributors"
                 value={repository.contributor_change}
                 icon={Users}
                 formatValue={formatPercentage}
