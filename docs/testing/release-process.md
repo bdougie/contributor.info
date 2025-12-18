@@ -23,46 +23,24 @@ We use **Semantic Versioning** and **Conventional Commits** for automated releas
 **Note**: Conventional commit format is recommended but not strictly enforced. Non-conventional commits will show warnings but won't block PR merging.
 
 ### Types
+- `fix`: Bug fix (patch version bump)
 - `feat`: New feature (minor version bump)
-- `fix`: Bug fix (patch version bump)  
-- `docs`: Documentation changes
-- `style`: Code formatting (no logic changes)
-- `refactor`: Code refactoring (no feature changes)
-- `test`: Adding or updating tests
-- `chore`: Build process, dependency updates
-- `perf`: Performance improvements
-- `ci`: CI/CD configuration changes
+- `perf`: Performance improvements (minor version bump)
+- `refactor`: Code refactoring (minor version bump)
+- `docs`: Documentation changes (no release)
+- `style`: Code formatting (no release)
+- `test`: Adding or updating tests (no release)
+- `chore`: Build process, dependency updates (no release)
+- `ci`: CI/CD configuration changes (no release)
 
 ### Breaking Changes
-Add `BREAKING CHANGE:` in the footer or `!` after type for major version bumps:
-```
-feat!: redesign user interface
-feat(api)!: change response format
-
-BREAKING CHANGE: API endpoints now return different data structure
-```
+Major version bumps are **only triggered via manual GitHub Actions workflow**. This prevents accidental major releases and ensures intentional version control.
 
 ## Major Release Triggers
 
-### Method 1: Breaking Change Commits (Recommended)
-Use conventional commits with breaking change indicators (see [Breaking Changes](#breaking-changes) section above for syntax details):
+Major releases require explicit manual action to prevent accidental breaking version bumps.
 
-```bash
-# Option A: Add ! after commit type
-git commit -m "feat!: redesign dashboard with new component architecture"
-
-# Option B: Include BREAKING CHANGE in commit footer
-git commit -m "feat: redesign dashboard layout
-
-BREAKING CHANGE: Dashboard components now require different props structure"
-
-# Option C: Any commit type with breaking change
-git commit -m "refactor!: restructure API response format
-
-BREAKING CHANGE: All API endpoints now return data in new schema format"
-```
-
-### Method 2: Manual GitHub Actions Trigger
+### Manual GitHub Actions Trigger (Only Method)
 Force a major release via GitHub Actions:
 
 1. Navigate to **Actions** tab in GitHub repository
@@ -72,17 +50,7 @@ Force a major release via GitHub Actions:
 5. Choose **Release type**: `major`
 6. Click **Run workflow** to execute
 
-### Method 3: Git Tag (Emergency Releases)
-For urgent major releases:
-
-```bash
-# Create and push major version tag
-git tag v2.0.0
-git push origin v2.0.0
-
-# Verify tag was created
-git tag --list "v*" | tail -5
-```
+This creates an empty commit with a `BREAKING CHANGE` footer that triggers semantic-release to bump the major version.
 
 ### Major Release Verification
 After triggering a major release, verify:
@@ -107,16 +75,16 @@ curl -I https://contributor.info
 
 ### Examples
 ```bash
-# Patch release (1.0.0 � 1.0.1)
+# Patch release (1.0.0 → 1.0.1)
 git commit -m "fix: resolve login redirect issue"
 
-# Minor release (1.0.0 � 1.1.0)  
+# Minor release (1.0.0 → 1.1.0)
 git commit -m "feat: add repository health insights"
+git commit -m "perf: optimize database queries"
+git commit -m "refactor: restructure authentication module"
 
-# Major release (1.0.0 � 2.0.0)
-git commit -m "feat!: redesign dashboard layout
-
-BREAKING CHANGE: Dashboard components require new props"
+# Major release (1.0.0 → 2.0.0)
+# Use GitHub Actions manual workflow trigger only
 ```
 
 ### Local Commit Validation
@@ -196,8 +164,8 @@ gh release list --limit 1
 ### Version Bumping
 Versions are automatically calculated by semantic-release based on:
 - **Patch** (x.x.1): `fix:` commits
-- **Minor** (x.1.x): `feat:` commits  
-- **Major** (1.x.x): `BREAKING CHANGE:` or `feat!:` commits
+- **Minor** (x.1.x): `feat:`, `perf:`, `refactor:` commits
+- **Major** (1.x.x): Manual GitHub Actions trigger only
 
 ## Changelog
 
@@ -296,10 +264,9 @@ After each release:
 - Verify GitHub token permissions
 
 **Major Release Issues**
-- **No major version bump**: Ensure `BREAKING CHANGE:` or `!` syntax is correct
-- **Release workflow not triggered**: Verify push is to `main` branch
+- **No major version bump**: Major releases require manual GitHub Actions trigger
 - **Manual trigger failed**: Check repository permissions and workflow dispatch settings
-- **Tag creation failed**: Ensure no duplicate tags exist and push permissions are granted
+- **Release workflow not triggered**: Verify push is to `main` branch for automatic releases
 
 ### Emergency Contacts
 - **Infrastructure**: Netlify support

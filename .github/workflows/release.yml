@@ -1,17 +1,18 @@
 name: Release Automation
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Type of release'
+        description: 'Type of release (major only available via manual trigger)'
         required: true
         default: 'auto'
         type: choice
         options:
           - auto
-          - patch
-          - minor
           - major
 
 concurrency:
@@ -77,6 +78,17 @@ jobs:
           if [ -f CHANGELOG.md ]; then
             cp CHANGELOG.md mintlify-docs/changelog.mdx
           fi
+
+      - name: Force major release (manual trigger only)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'major'
+        run: |
+          echo "🚀 Forcing major version release..."
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: trigger major release
+
+          BREAKING CHANGE: Manual major version release triggered via GitHub Actions"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
 
       - name: Create Release
         id: release
