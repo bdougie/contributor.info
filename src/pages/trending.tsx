@@ -66,7 +66,11 @@ export function TrendingPageRoute() {
           </div>
         )}
 
-        <TrendingPage repositories={repositories} loading={loading} />
+        <TrendingPage
+          repositories={repositories}
+          loading={loading}
+          onRepositoryClick={() => trackTrendingPageInteraction('repository_clicked')}
+        />
       </div>
     </>
   );
