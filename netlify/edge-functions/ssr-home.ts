@@ -148,9 +148,11 @@ function renderHomeContent(): string {
 
 async function handler(request: Request, context: Context) {
   const url = new URL(request.url);
+  console.log(`[ssr-home] Handling request for ${url.pathname}`);
 
   // Only handle exact root path
   if (url.pathname !== '/') {
+    console.log(`[ssr-home] Ignoring non-root path: ${url.pathname}`);
     return fallbackToSPA(context);
   }
 

@@ -82,6 +82,98 @@ function renderContributorAvatars(
 }
 
 /**
+ * Render a skeleton loader for the repository page
+ * Used when data fetching fails or during loading
+ */
+function renderRepoSkeleton(owner: string, repo: string): string {
+  const safeOwner = escapeHtml(owner);
+  const safeRepo = escapeHtml(repo);
+
+  return `
+    <div class="min-h-screen bg-background">
+      <div class="container mx-auto px-4 py-6">
+        <!-- Breadcrumbs -->
+        <nav class="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <a href="/" class="hover:text-foreground">Home</a>
+          <span>/</span>
+          <a href="/${safeOwner}" class="hover:text-foreground">${safeOwner}</a>
+          <span>/</span>
+          <span class="text-foreground font-medium">${safeRepo}</span>
+        </nav>
+
+        <!-- Header Card Skeleton -->
+        <div class="rounded-lg border bg-card shadow-sm mb-6">
+          <div class="p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div class="min-w-0 w-full max-w-2xl">
+                <div class="h-8 bg-muted animate-pulse rounded w-3/4 mb-2"></div>
+                <div class="h-5 bg-muted animate-pulse rounded w-full mb-1"></div>
+                <div class="h-5 bg-muted animate-pulse rounded w-2/3"></div>
+              </div>
+              <div class="h-9 w-20 bg-muted animate-pulse rounded"></div>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+              <div class="h-6 w-20 bg-muted animate-pulse rounded-full"></div>
+              <div class="h-6 w-24 bg-muted animate-pulse rounded-full"></div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="h-5 w-24 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-24 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-32 bg-muted animate-pulse rounded"></div>
+            </div>
+          </div>
+
+          <div class="border-t px-6 py-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="h-5 w-32 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-16 bg-muted animate-pulse rounded"></div>
+            </div>
+            <div class="flex -space-x-2">
+              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
+              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
+              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
+              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Navigation Skeleton -->
+        <div class="mb-6">
+          <div class="inline-flex h-10 items-center rounded-md bg-muted p-1">
+             <div class="h-8 w-24 bg-background rounded-sm shadow-sm"></div>
+             <div class="h-8 w-24"></div>
+             <div class="h-8 w-24"></div>
+             <div class="h-8 w-24"></div>
+          </div>
+        </div>
+
+        <!-- Content Placeholder -->
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div class="lg:col-span-2 space-y-6">
+            <div class="rounded-lg border bg-card p-6">
+              <div class="animate-pulse space-y-4">
+                <div class="h-6 bg-muted rounded w-1/3"></div>
+                <div class="h-64 bg-muted rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-6">
+            <div class="rounded-lg border bg-card p-6">
+              <div class="animate-pulse space-y-4">
+                <div class="h-5 bg-muted rounded w-1/2"></div>
+                <div class="h-32 bg-muted rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Render the repository page HTML content
  */
 function renderRepoContent(
@@ -238,9 +330,12 @@ function renderRepoContent(
 async function handler(request: Request, context: Context) {
   const url = new URL(request.url);
 
+  console.log(`[ssr-repo] Handling request for ${url.pathname}`);
+
   // Parse owner/repo from path
   const parsed = parseRepoPath(url.pathname);
   if (!parsed) {
+    console.log('[ssr-repo] Failed to parse repo path, falling back to SPA');
     return fallbackToSPA(context);
   }
 
@@ -259,35 +354,60 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch repository data, contributor stats, and asset references in parallel
+    // Fetch asset references first
     const baseUrl = `${url.protocol}//${url.host}`;
-    const [repoData, contributorStats, assets] = await Promise.all([
-      fetchRepository(owner, repo),
-      fetchRepoContributorStats(owner, repo),
-      getAssetReferences(baseUrl),
-    ]);
+    const assets = await getAssetReferences(baseUrl);
 
-    // Fall back to SPA if assets couldn't be loaded
+    // Fall back to SPA if assets couldn't be loaded (critical for hydration)
     if (assets.fallbackToSPA) {
       console.warn('[ssr-repo] Asset loading failed, falling back to SPA');
       return fallbackToSPA(context);
     }
 
-    // If repo not found, return 404
+    // Return the skeleton immediately if we want to show it while loading
+    // But since this is SSR, we usually want to wait for data.
+    // However, if data fetch fails, we should return the skeleton instead of falling back to SPA
+    // to prevent the "Unstyled Landing Page" flash if the SPA falls back to Home.
+
+    // Fetch repository data and contributor stats in parallel
+    const [repoData, contributorStats] = await Promise.all([
+      fetchRepository(owner, repo),
+      fetchRepoContributorStats(owner, repo),
+    ]);
+
+    // If repo not found or error, render the skeleton as a fallback
+    // This ensures the user sees the Repo structure while the client-side tries to fetch/handle 404
     if (!repoData) {
+      console.warn(`[ssr-repo] Repository ${owner}/${repo} not found or error, rendering skeleton`);
       addBreadcrumb({
-        message: 'Repository not found',
+        message: 'Repository not found or error, rendering skeleton',
         category: 'ssr',
         level: 'warning',
         data: { owner, repo },
       });
 
-      // For SEO, we want to return a proper 404, but we'll let the SPA handle it
-      // so users can track new repos
-      return fallbackToSPA(context);
+      // Render skeleton with empty data for hydration
+      const content = renderRepoSkeleton(owner, repo);
+      const meta: MetaTags = {
+        title: `${owner}/${repo} - contributor.info`,
+        description: `Analyze contributors for ${owner}/${repo}`,
+        image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+      };
+
+      // Pass null data to force client-side fetch
+      const ssrData: any = {
+        route: `/${owner}/${repo}`,
+        data: null,
+        timestamp: Date.now(),
+      };
+
+      const html = renderHTML(content, meta, ssrData, request.url, assets);
+      // Short cache for error states
+      const headers = getSSRHeaders(10, 60);
+      return new Response(html, { headers });
     }
 
-    // Generate the page content
+    // Success path - generate the full page content
     const content = renderRepoContent(repoData, contributorStats);
 
     const meta: MetaTags = {
@@ -327,14 +447,36 @@ async function handler(request: Request, context: Context) {
   } catch (error) {
     console.error('[ssr-repo] Error: %o', error);
     addBreadcrumb({
-      message: 'SSR repo page error, falling back to SPA',
+      message: 'SSR repo page error, rendering skeleton',
       category: 'ssr',
       level: 'error',
       data: { owner, repo, error: String(error) },
     });
 
-    // Fall back to SPA on error
-    return fallbackToSPA(context);
+    // On critical error, still try to render skeleton if we have assets
+    try {
+      const baseUrl = `${url.protocol}//${url.host}`;
+      const assets = await getAssetReferences(baseUrl);
+
+      const content = renderRepoSkeleton(owner, repo);
+      const meta: MetaTags = {
+        title: `${owner}/${repo} - contributor.info`,
+        description: `Analyze contributors for ${owner}/${repo}`,
+      };
+
+      const ssrData: any = {
+        route: `/${owner}/${repo}`,
+        data: null,
+        timestamp: Date.now(),
+      };
+
+      const html = renderHTML(content, meta, ssrData, request.url, assets);
+      return new Response(html, { headers: getSSRHeaders(0, 0) });
+    } catch (e) {
+      console.error('[ssr-repo] Critical error during fallback: %o', e);
+      // Ultimate fallback to SPA
+      return fallbackToSPA(context);
+    }
   }
 }
 
