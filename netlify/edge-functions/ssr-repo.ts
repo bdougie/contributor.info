@@ -10,8 +10,9 @@ import { withSentry, addBreadcrumb } from './_shared/sentry.ts';
 import {
   renderHTML,
   getSSRHeaders,
-  escapeHtml,
   getAssetReferences,
+  html,
+  type SafeHTML,
   type MetaTags,
   type RepoPageData,
 } from './_shared/html-template.ts';
@@ -46,59 +47,52 @@ const LANGUAGE_COLORS: Record<string, string> = {
  */
 function renderContributorAvatars(
   contributors: Array<{ login: string; avatar_url: string; contributions: number }>
-): string {
+): SafeHTML {
   if (contributors.length === 0) {
-    return '<p class="text-sm text-muted-foreground">Loading contributors...</p>';
+    return html`<p class="text-sm text-muted-foreground">Loading contributors...</p>`;
   }
 
-  return `
+  return html`
     <div class="flex -space-x-2">
-      ${contributors
-        .slice(0, 8)
-        .map(
-          (c) => `
-        <a href="https://github.com/${escapeHtml(c.login)}" target="_blank" rel="noopener" class="relative">
-          <img
-            src="${escapeHtml(c.avatar_url)}&s=64"
-            alt="${escapeHtml(c.login)}"
-            class="w-8 h-8 rounded-full border-2 border-background"
-            loading="lazy"
-          />
-        </a>
-      `
-        )
-        .join('')}
-      ${
-        contributors.length > 8
-          ? `
-        <div class="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium">
-          +${contributors.length - 8}
-        </div>
-      `
-          : ''
-      }
+      ${contributors.slice(0, 8).map(
+        (c) => html`
+          <a href="https://github.com/${c.login}" target="_blank" rel="noopener" class="relative">
+            <img
+              src="${c.avatar_url}&s=64"
+              alt="${c.login}"
+              class="w-8 h-8 rounded-full border-2 border-background"
+              loading="lazy"
+            />
+          </a>
+        `
+      )}
+      ${contributors.length > 8
+        ? html`
+            <div
+              class="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium"
+            >
+              +${contributors.length - 8}
+            </div>
+          `
+        : ''}
     </div>
   `;
 }
 
 /**
- * Render a skeleton loader for the repository page
- * Used when data fetching fails or during loading
+ * Render skeleton loading state
  */
-function renderRepoSkeleton(owner: string, repo: string): string {
-  const safeOwner = escapeHtml(owner);
-  const safeRepo = escapeHtml(repo);
-
-  return `
+function renderRepoSkeleton(owner: string, repo: string): SafeHTML {
+  return html`
     <div class="min-h-screen bg-background">
       <div class="container mx-auto px-4 py-6">
         <!-- Breadcrumbs -->
         <nav class="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <a href="/" class="hover:text-foreground">Home</a>
           <span>/</span>
-          <a href="/${safeOwner}" class="hover:text-foreground">${safeOwner}</a>
+          <a href="/${owner}" class="hover:text-foreground">${owner}</a>
           <span>/</span>
-          <span class="text-foreground font-medium">${safeRepo}</span>
+          <span class="text-foreground font-medium">${repo}</span>
         </nav>
 
         <!-- Header Card Skeleton -->
@@ -131,10 +125,18 @@ function renderRepoSkeleton(owner: string, repo: string): string {
               <div class="h-5 w-16 bg-muted animate-pulse rounded"></div>
             </div>
             <div class="flex -space-x-2">
-              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
-              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
-              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
-              <div class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
             </div>
           </div>
         </div>
@@ -142,10 +144,10 @@ function renderRepoSkeleton(owner: string, repo: string): string {
         <!-- Tab Navigation Skeleton -->
         <div class="mb-6">
           <div class="inline-flex h-10 items-center rounded-md bg-muted p-1">
-             <div class="h-8 w-24 bg-background rounded-sm shadow-sm"></div>
-             <div class="h-8 w-24"></div>
-             <div class="h-8 w-24"></div>
-             <div class="h-8 w-24"></div>
+            <div class="h-8 w-24 bg-background rounded-sm shadow-sm"></div>
+            <div class="h-8 w-24"></div>
+            <div class="h-8 w-24"></div>
+            <div class="h-8 w-24"></div>
           </div>
         </div>
 
@@ -182,22 +184,22 @@ function renderRepoContent(
     count: number;
     topContributors: Array<{ login: string; avatar_url: string; contributions: number }>;
   }
-): string {
+): SafeHTML {
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || '#858585' : null;
-  const description = repo.description ? escapeHtml(repo.description) : 'No description available';
+  const description = repo.description ? repo.description : 'No description available';
 
   const topics = (repo.topics || []).slice(0, 5);
 
-  return `
+  return html`
     <div class="min-h-screen bg-background">
       <div class="container mx-auto px-4 py-6">
         <!-- Breadcrumbs -->
         <nav class="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <a href="/" class="hover:text-foreground">Home</a>
           <span>/</span>
-          <a href="/${escapeHtml(repo.owner)}" class="hover:text-foreground">${escapeHtml(repo.owner)}</a>
+          <a href="/${repo.owner}" class="hover:text-foreground">${repo.owner}</a>
           <span>/</span>
-          <span class="text-foreground font-medium">${escapeHtml(repo.name)}</span>
+          <span class="text-foreground font-medium">${repo.name}</span>
         </nav>
 
         <!-- Header Card -->
@@ -207,8 +209,13 @@ function renderRepoContent(
             <div class="flex items-start justify-between gap-4 mb-4">
               <div class="min-w-0">
                 <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
-                  <a href="https://github.com/${escapeHtml(repo.full_name)}" target="_blank" rel="noopener" class="hover:underline">
-                    <span class="text-muted-foreground">${escapeHtml(repo.owner)}/</span>${escapeHtml(repo.name)}
+                  <a
+                    href="https://github.com/${repo.full_name}"
+                    target="_blank"
+                    rel="noopener"
+                    class="hover:underline"
+                  >
+                    <span class="text-muted-foreground">${repo.owner}/</span>${repo.name}
                   </a>
                 </h1>
                 <p class="text-muted-foreground">${description}</p>
@@ -219,50 +226,76 @@ function renderRepoContent(
                 id="ssr-share-button"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
                 </svg>
                 Share
               </button>
             </div>
 
             <!-- Topics -->
-            ${
-              topics.length > 0
-                ? `
-              <div class="flex flex-wrap gap-2 mb-4">
-                ${topics.map((topic) => `<span class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">${escapeHtml(topic)}</span>`).join('')}
-              </div>
-            `
-                : ''
-            }
+            ${topics.length > 0
+              ? html`
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    ${topics.map(
+                      (topic) =>
+                        html`<span
+                          class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                          >${topic}</span
+                        >`
+                    )}
+                  </div>
+                `
+              : ''}
 
             <!-- Stats Row -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
-              ${
-                languageColor
-                  ? `
-                <span class="flex items-center gap-1.5">
-                  <span class="w-3 h-3 rounded-full" style="background-color: ${languageColor}"></span>
-                  ${escapeHtml(repo.language!)}
-                </span>
-              `
-                  : ''
-              }
-              <a href="https://github.com/${escapeHtml(repo.full_name)}/stargazers" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-primary">
+              ${languageColor
+                ? html`
+                    <span class="flex items-center gap-1.5">
+                      <span
+                        class="w-3 h-3 rounded-full"
+                        style="background-color: ${languageColor}"
+                      ></span>
+                      ${repo.language!}
+                    </span>
+                  `
+                : ''}
+              <a
+                href="https://github.com/${repo.full_name}/stargazers"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-1 hover:text-primary"
+              >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+                  <path
+                    d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"
+                  />
                 </svg>
                 ${formatNumber(repo.stargazer_count)} stars
               </a>
-              <a href="https://github.com/${escapeHtml(repo.full_name)}/forks" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-primary">
+              <a
+                href="https://github.com/${repo.full_name}/forks"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-1 hover:text-primary"
+              >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/>
+                  <path
+                    d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"
+                  />
                 </svg>
                 ${formatNumber(repo.fork_count)} forks
               </a>
               <span class="flex items-center gap-1">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"/>
+                  <path
+                    d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"
+                  />
                 </svg>
                 ${formatNumber(contributorStats.count)} contributors
               </span>
@@ -273,29 +306,46 @@ function renderRepoContent(
           <div class="border-t px-6 py-4">
             <div class="flex items-center justify-between">
               <h2 class="text-sm font-medium">Top Contributors</h2>
-              <a href="https://github.com/${escapeHtml(repo.full_name)}/graphs/contributors" target="_blank" rel="noopener" class="text-sm text-muted-foreground hover:text-primary">
+              <a
+                href="https://github.com/${repo.full_name}/graphs/contributors"
+                target="_blank"
+                rel="noopener"
+                class="text-sm text-muted-foreground hover:text-primary"
+              >
                 View all →
               </a>
             </div>
-            <div class="mt-3">
-              ${renderContributorAvatars(contributorStats.topContributors)}
-            </div>
+            <div class="mt-3">${renderContributorAvatars(contributorStats.topContributors)}</div>
           </div>
         </div>
 
         <!-- Tab Navigation -->
         <div class="mb-6">
-          <div class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-            <a href="/${escapeHtml(repo.full_name)}" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all bg-background text-foreground shadow-sm">
+          <div
+            class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground"
+          >
+            <a
+              href="/${repo.full_name}"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all bg-background text-foreground shadow-sm"
+            >
               Contributions
             </a>
-            <a href="/${escapeHtml(repo.full_name)}/health" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/health"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Health
             </a>
-            <a href="/${escapeHtml(repo.full_name)}/distribution" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/distribution"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Distribution
             </a>
-            <a href="/${escapeHtml(repo.full_name)}/feed" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/feed"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Feed
             </a>
           </div>
