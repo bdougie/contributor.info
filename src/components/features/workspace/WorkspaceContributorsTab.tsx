@@ -53,19 +53,10 @@ const ContributorProfileModal = lazy(() =>
   import('./ContributorProfileModal').then((m) => ({ default: m.ContributorProfileModal }))
 );
 
-// Minimal modal skeleton for Suspense fallback
-function ModalSkeleton() {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 w-1/3 rounded bg-muted" />
-          <div className="h-4 w-2/3 rounded bg-muted" />
-          <div className="h-32 rounded bg-muted" />
-        </div>
-      </div>
-    </div>
-  );
+// Minimal fallback - null prevents layout shift during lazy load
+// The modal's own loading state handles UX better than a skeleton overlay
+function ModalFallback() {
+  return null;
 }
 
 export interface ActivityItem {
@@ -891,7 +882,7 @@ export function WorkspaceContributorsTab({
       )}
 
       {showGroupManager && (
-        <Suspense fallback={<ModalSkeleton />}>
+        <Suspense fallback={<ModalFallback />}>
           <ContributorGroupManager
             open={showGroupManager}
             onOpenChange={(open) => {
@@ -918,7 +909,7 @@ export function WorkspaceContributorsTab({
       )}
 
       {showNotesDialog && (
-        <Suspense fallback={<ModalSkeleton />}>
+        <Suspense fallback={<ModalFallback />}>
           <ContributorNotesDialog
             open={showNotesDialog}
             onOpenChange={setShowNotesDialog}
@@ -934,7 +925,7 @@ export function WorkspaceContributorsTab({
       )}
 
       {showProfileModal && (
-        <Suspense fallback={<ModalSkeleton />}>
+        <Suspense fallback={<ModalFallback />}>
           <ContributorProfileModal
             open={showProfileModal}
             onOpenChange={setShowProfileModal}
