@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { Share2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -116,39 +116,52 @@ export default function RepoView() {
   /**
    * Handle repository search/selection with login requirements
    * Requires login after the first search for non-authenticated users
+   * Memoized to prevent unnecessary re-renders of child components
    */
-  const handleRepositoryNavigation = (repositoryPath: string) => {
-    // Check if login is required (second search while not logged in)
-    if (hasSearchedOnce && !isLoggedIn) {
-      localStorage.setItem('redirectAfterLogin', repositoryPath);
-      navigate('/login');
-      return;
-    }
+  const handleRepositoryNavigation = useCallback(
+    (repositoryPath: string) => {
+      // Check if login is required (second search while not logged in)
+      if (hasSearchedOnce && !isLoggedIn) {
+        localStorage.setItem('redirectAfterLogin', repositoryPath);
+        navigate('/login');
+        return;
+      }
 
-    // Mark that a search has been performed
-    setHasSearchedOnce(true);
-    navigate(repositoryPath);
-  };
+      // Mark that a search has been performed
+      setHasSearchedOnce(true);
+      navigate(repositoryPath);
+    },
+    [hasSearchedOnce, isLoggedIn, navigate]
+  );
 
-  const handleSearchInput = (repositoryPath: string) => {
-    const match = repositoryPath.match(REPO_PATH_PATTERN);
-    if (match) {
-      const [, newOwner, newRepo] = match;
-      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
-    }
-  };
+  const handleSearchInput = useCallback(
+    (repositoryPath: string) => {
+      const match = repositoryPath.match(REPO_PATH_PATTERN);
+      if (match) {
+        const [, newOwner, newRepo] = match;
+        handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
+      }
+    },
+    [handleRepositoryNavigation]
+  );
 
-  const handleSelectRepository = (repository: GitHubRepository) => {
-    handleRepositoryNavigation(`/${repository.full_name}`);
-  };
+  const handleSelectRepository = useCallback(
+    (repository: GitHubRepository) => {
+      handleRepositoryNavigation(`/${repository.full_name}`);
+    },
+    [handleRepositoryNavigation]
+  );
 
-  const handleSelectExample = (repo: string) => {
-    const match = repo.match(REPO_PATH_PATTERN);
-    if (match) {
-      const [, newOwner, newRepo] = match;
-      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
-    }
-  };
+  const handleSelectExample = useCallback(
+    (repo: string) => {
+      const match = repo.match(REPO_PATH_PATTERN);
+      if (match) {
+        const [, newOwner, newRepo] = match;
+        handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
+      }
+    },
+    [handleRepositoryNavigation]
+  );
 
   // Update document title when owner/repo changes
   useEffect(() => {
