@@ -184,6 +184,36 @@ const InvitationAcceptancePage = lazy(() =>
 );
 
 /**
+ * Check if the current URL matches a repo route pattern (/:owner/:repo)
+ */
+function isRepoRoute(): boolean {
+  const path = window.location.pathname;
+  // Match /:owner/:repo pattern but exclude known routes
+  const excludedPaths = [
+    '/login',
+    '/settings',
+    '/admin',
+    '/dev',
+    '/i/',
+    '/workspaces',
+    '/trending',
+    '/widgets',
+    '/changelog',
+    '/privacy',
+    '/terms',
+    '/billing',
+    '/invitation',
+    '/signup',
+  ];
+  if (excludedPaths.some((p) => path.startsWith(p))) {
+    return false;
+  }
+  // Check for owner/repo pattern (two path segments)
+  const segments = path.split('/').filter(Boolean);
+  return segments.length >= 2;
+}
+
+/**
  * Hydration-aware loading fallback
  *
  * During SSR hydration: Returns null to preserve SSR content (prevents flash)
@@ -201,6 +231,12 @@ const PageSkeleton = () => {
   // During SSR hydration (SSR page and hydration not yet complete), return null
   // This preserves the SSR-rendered content instead of replacing it with skeleton
   if (isSSR && !hydrationDone) {
+    return null;
+  }
+
+  // For repo routes with SSR content, preserve the SSR skeleton during lazy loading
+  // This prevents the landing page skeleton from flashing on repo pages
+  if (isSSR && isRepoRoute()) {
     return null;
   }
 

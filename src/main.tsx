@@ -90,7 +90,13 @@ if (shouldHydrate()) {
       logger.warn('[SSR] Hydration error (recovered):', error);
     },
   });
-  markHydrationComplete();
+  // Mark hydration complete after React has finished initial render
+  // Using requestIdleCallback to ensure React's async work completes first
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => markHydrationComplete());
+  } else {
+    setTimeout(() => markHydrationComplete(), 100);
+  }
 } else {
   // Standard SPA rendering
   if (isSSRPage()) {
