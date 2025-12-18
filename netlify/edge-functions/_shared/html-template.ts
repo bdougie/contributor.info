@@ -106,7 +106,7 @@ export interface WorkspaceDetailPageData {
     tier: string;
     owner_id: string;
     created_at: string;
-    is_public: boolean;
+    visibility: 'public' | 'private';
     repository_count: number;
     member_count: number;
     contributor_count: number;

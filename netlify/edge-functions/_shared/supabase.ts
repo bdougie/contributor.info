@@ -486,7 +486,7 @@ export interface WorkspaceDetailData {
   tier: string;
   owner_id: string;
   created_at: string;
-  is_public: boolean;
+  visibility: 'public' | 'private';
   repository_count: number;
   member_count: number;
   contributor_count: number;
@@ -525,6 +525,7 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
       tier,
       owner_id,
       created_at,
+      visibility,
       is_active
     `
     )
@@ -611,7 +612,7 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
     tier: workspace.tier,
     owner_id: workspace.owner_id,
     created_at: workspace.created_at,
-    is_public: true, // Will be dynamic when public/private is implemented
+    visibility: (workspace as { visibility?: string }).visibility as 'public' | 'private' || 'private',
     repository_count: repoCountResult.count || 0,
     member_count: memberCountResult.count || 0,
     contributor_count: contributorCount,
