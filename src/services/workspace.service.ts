@@ -1882,8 +1882,18 @@ export class WorkspaceService {
 
       if (!result || !result.success) {
         let statusCode = 500;
-        if (result?.error_message?.includes('not found')) statusCode = 404;
-        else if (result?.error_message?.includes('already been')) statusCode = 409;
+
+        // Use error_code if available, fall back to message matching
+        if (result?.error_code === 'NOT_FOUND' || result?.error_message?.includes('not found')) {
+          statusCode = 404;
+        } else if (result?.error_code === 'EXPIRED' || result?.error_message?.includes('expired')) {
+          statusCode = 410; // Gone - invitation is no longer available
+        } else if (
+          result?.error_code === 'ALREADY_PROCESSED' ||
+          result?.error_message?.includes('already been')
+        ) {
+          statusCode = 409; // Conflict - already accepted/declined
+        }
 
         return {
           success: false,

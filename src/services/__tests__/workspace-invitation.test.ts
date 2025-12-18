@@ -48,7 +48,7 @@ describe('WorkspaceService - Invitation Flow', () => {
           name: 'Test Workspace',
           slug: 'test-workspace',
           description: 'Test Description',
-        }
+        },
       };
 
       // Mock RPC response
@@ -117,11 +117,11 @@ describe('WorkspaceService - Invitation Flow', () => {
 
       // Mock update for expired status
       const updateMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ error: null }),
+        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
       });
       vi.mocked(supabase.from).mockReturnValue({
         update: updateMock,
-      } as any);
+      } as unknown as ReturnType<typeof supabase.from>);
 
       // Execute
       const result = await WorkspaceService.validateInvitation(mockToken);
@@ -177,7 +177,7 @@ describe('WorkspaceService - Invitation Flow', () => {
     it('should handle RPC logic error (e.g., invitation not found)', async () => {
       // Mock RPC response with success: false
       vi.mocked(supabase.rpc).mockResolvedValue({
-        data: [{ success: false, error_message: 'Invitation not found' }],
+        data: [{ success: false, error_message: 'Invitation not found', error_code: 'NOT_FOUND' }],
         error: null,
       } as MockSupabaseResponse);
 
@@ -188,6 +188,44 @@ describe('WorkspaceService - Invitation Flow', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('Invitation not found');
       expect(result.statusCode).toBe(404);
+    });
+
+    it('should return 410 when invitation is expired', async () => {
+      // Mock RPC response with expired error
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [{ success: false, error_message: 'Invitation has expired', error_code: 'EXPIRED' }],
+        error: null,
+      } as MockSupabaseResponse);
+
+      // Execute
+      const result = await WorkspaceService.declineInvitation(mockToken);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invitation has expired');
+      expect(result.statusCode).toBe(410);
+    });
+
+    it('should return 409 when invitation is already processed', async () => {
+      // Mock RPC response with already processed error
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: [
+          {
+            success: false,
+            error_message: 'Invitation has already been accepted',
+            error_code: 'ALREADY_PROCESSED',
+          },
+        ],
+        error: null,
+      } as MockSupabaseResponse);
+
+      // Execute
+      const result = await WorkspaceService.declineInvitation(mockToken);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invitation has already been accepted');
+      expect(result.statusCode).toBe(409);
     });
   });
 });
