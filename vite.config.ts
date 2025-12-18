@@ -8,8 +8,7 @@ import { imagetools } from 'vite-imagetools';
 // If you need bundle analysis, temporarily uncomment the import and usage below,
 // or use an alternative tool like vite-bundle-visualizer.
 // import { visualizer } from 'rollup-plugin-visualizer';
-
-const isAnalyze = process.env.ANALYZE === 'true';
+// const isAnalyze = process.env.ANALYZE === 'true';
 
 export default defineConfig(() => ({
   base: '/',
