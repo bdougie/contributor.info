@@ -75,11 +75,12 @@ export interface RepoPageData {
 
 /**
  * Discriminated union for type-safe SSR data
+ * Note: RepoPageData can be null when data fetch fails (shows skeleton)
  */
 export type SSRData =
   | { route: 'home'; data: HomePageData; timestamp: number }
   | { route: 'trending'; data: TrendingPageData; timestamp: number }
-  | { route: string; data: RepoPageData; timestamp: number };
+  | { route: string; data: RepoPageData | null; timestamp: number };
 
 export interface AssetReferences {
   scripts: string[];
@@ -113,7 +114,7 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
 
     if (!response.ok) {
       console.error('[SSR] Failed to fetch index.html:', response.status);
-      return getDefaultAssets();
+      return getSPAFallback();
     }
 
     const htmlContent = await response.text();
@@ -161,13 +162,6 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
     console.error('[SSR] Error fetching index.html: %o', error);
     return getSPAFallback();
   }
-}
-
-/**
- * Default fallback assets when fetch fails
- */
-function getDefaultAssets(): AssetReferences {
-  return getSPAFallback();
 }
 
 /**
