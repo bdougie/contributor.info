@@ -162,6 +162,13 @@ export default defineConfig(() => ({
         // Optimized chunking strategy for better code splitting
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            // IMPORTANT: Sentry must be checked BEFORE react because @sentry/react contains 'react/'
+            // Sentry is fully lazy-loaded via dynamic imports in src/lib/sentry-lazy.ts
+            // Do NOT assign it to any manual chunk - let Vite's code splitting handle it
+            // See: https://github.com/bdougie/contributor.info/issues/1400
+            if (id.includes('@sentry')) {
+              return; // Return undefined to let Vite handle chunking naturally
+            }
             // Core React libraries - loaded immediately
             if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
               return 'vendor-react-core';
@@ -170,10 +177,9 @@ export default defineConfig(() => ({
             if (id.includes('@radix-ui')) {
               return 'vendor-ui';
             }
-            // Chart libraries - can be split for lazy loading
-            if (id.includes('@nivo')) {
-              return 'vendor-nivo';
-            }
+            // NOTE: Nivo is NOT manually chunked - it's lazy-loaded via React.lazy() in
+            // src/components/features/activity/contributions.tsx. Manual chunking would
+            // pull it into the initial bundle. See: https://github.com/bdougie/contributor.info/issues/1400
             if (id.includes('recharts')) {
               return 'vendor-recharts';
             }
@@ -207,10 +213,6 @@ export default defineConfig(() => ({
             // Web vitals - small, keep separate
             if (id.includes('web-vitals')) {
               return 'vendor-vitals';
-            }
-            // Monitoring
-            if (id.includes('@sentry')) {
-              return 'vendor-monitoring';
             }
             // Exclude heavy ML libraries
             if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
