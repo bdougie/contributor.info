@@ -281,3 +281,59 @@ function categorizeError(message: string): string {
 
   return 'UNKNOWN_ERROR';
 }
+
+/**
+ * Track repository tracking failures with proper context for alerting
+ * This mirrors the client-side trackTrackingFailure function
+ */
+export async function trackTrackingFailure(context: {
+  owner: string;
+  repo: string;
+  errorType: 'api_error' | 'database_error' | 'inngest_failure' | 'validation_error' | 'unknown';
+  errorMessage: string;
+  durationMs?: number;
+  statusCode?: number;
+}): Promise<void> {
+  const repository = `${context.owner}/${context.repo}`;
+
+  // Send to Sentry
+  await captureServerException(
+    new Error(`Repository Tracking Failed: ${repository} - ${context.errorMessage}`),
+    {
+      level: 'error',
+      tags: {
+        type: 'tracking_failed',
+        error_type: context.errorType,
+        alert_category: 'repository_tracking',
+        repository,
+      },
+      extra: {
+        owner: context.owner,
+        repo: context.repo,
+        duration_ms: context.durationMs,
+        status_code: context.statusCode,
+        timestamp: new Date().toISOString(),
+      },
+    }
+  );
+
+  // Send to PostHog for success rate calculation
+  await trackServerEvent('repository_tracking_failed', {
+    repository,
+    owner: context.owner,
+    repo: context.repo,
+    error_type: context.errorType,
+    error_message: context.errorMessage,
+    duration_ms: context.durationMs,
+    status_code: context.statusCode,
+    success: false,
+    timestamp: new Date().toISOString(),
+  });
+
+  console.error(
+    '[Tracking] Repository tracking failed for %s: %s (%s)',
+    repository,
+    context.errorMessage,
+    context.errorType
+  );
+}

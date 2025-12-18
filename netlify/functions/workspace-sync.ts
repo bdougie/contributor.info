@@ -110,8 +110,9 @@ async function verifyWorkspaceAccess(
     return { authorized: false, error: 'Missing authorization token' };
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  // Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return { authorized: false, error: 'Supabase configuration missing' };
