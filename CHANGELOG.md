@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0](https://github.com/bdougie/contributor.info/compare/v4.1.0...v4.2.0) (2025-12-18)
+
+
+### 🚀 Features
+
+* add Edge SSR for workspace pages ([#1416](https://github.com/bdougie/contributor.info/issues/1416)) ([f4d0cf6](https://github.com/bdougie/contributor.info/commit/f4d0cf68687f892684a286d9e8c39f8f4eadf788)), closes [#1409](https://github.com/bdougie/contributor.info/issues/1409)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([01cb5b9](https://github.com/bdougie/contributor.info/commit/01cb5b9910eed48d64bd4c471bbc847fa96c2d38))
+
 ## [4.1.0](https://github.com/bdougie/contributor.info/compare/v4.0.1...v4.1.0) (2025-12-18)
 
 
