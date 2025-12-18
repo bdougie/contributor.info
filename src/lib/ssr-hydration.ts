@@ -56,6 +56,64 @@ export interface RepoPageData {
   };
 }
 
+export interface WorkspacesPageData {
+  authenticated: boolean;
+  workspaces?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    repository_count: number;
+    member_count: number;
+    repositories: Array<{
+      id: string;
+      full_name: string;
+      name: string;
+      owner: string;
+      language: string | null;
+      stargazer_count: number;
+    }>;
+  }>;
+  stats?: {
+    totalWorkspaces: number;
+    totalRepositories: number;
+  };
+}
+
+export interface WorkspaceDetailPageData {
+  workspace: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    tier: string;
+    owner_id: string;
+    created_at: string;
+    is_public: boolean;
+    repository_count: number;
+    member_count: number;
+    contributor_count: number;
+    repositories: Array<{
+      id: string;
+      full_name: string;
+      name: string;
+      owner: string;
+      description: string | null;
+      language: string | null;
+      stargazer_count: number;
+    }>;
+    owner: {
+      id: string;
+      github_username: string | null;
+      avatar_url: string | null;
+    } | null;
+  } | null;
+}
+
+export interface WorkspaceNewPageData {
+  authenticated: boolean;
+}
+
 /**
  * SSR Data structure injected by edge functions
  * Using discriminated union for type safety
@@ -63,6 +121,9 @@ export interface RepoPageData {
 export type SSRData =
   | { route: 'home'; data: HomePageData; timestamp: number }
   | { route: 'trending'; data: TrendingPageData; timestamp: number }
+  | { route: 'workspaces'; data: WorkspacesPageData; timestamp: number }
+  | { route: 'workspaces/new'; data: WorkspaceNewPageData; timestamp: number }
+  | { route: 'workspace-detail'; data: WorkspaceDetailPageData; timestamp: number }
   | { route: string; data: RepoPageData; timestamp: number };
 
 /**

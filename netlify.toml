@@ -80,6 +80,21 @@
   function = "ssr-trending"
   path = "/trending"
 
+# SSR for workspaces page - pre-rendered workspaces list (auth-aware)
+[[edge_functions]]
+  function = "ssr-workspaces"
+  path = "/workspaces"
+
+# SSR for workspace creation page
+[[edge_functions]]
+  function = "ssr-workspace-new"
+  path = "/workspaces/new"
+
+# SSR for individual workspace pages - pre-rendered for sharing/SEO
+[[edge_functions]]
+  function = "ssr-workspace-detail"
+  path = "/i/*"
+
 # SSR for repository pages - most important for SEO (frequently shared)
 [[edge_functions]]
   function = "ssr-repo"
