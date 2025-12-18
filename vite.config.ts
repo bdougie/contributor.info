@@ -2,6 +2,9 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { visualizer } from 'rollup-plugin-visualizer';
+
+const isAnalyze = process.env.ANALYZE === 'true';
 
 export default defineConfig(() => ({
   base: '/',
@@ -36,6 +39,17 @@ export default defineConfig(() => ({
     }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
+    // Bundle analyzer - run with ANALYZE=true npm run build
+    ...(isAnalyze
+      ? [
+          visualizer({
+            filename: 'dist/stats.html',
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
   ],
   resolve: {
     alias: {
