@@ -1,6 +1,6 @@
 // Wrapper component to conditionally load contributions chart
 import { lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
 

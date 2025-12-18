@@ -1,7 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { LogIn } from '@/components/ui/icon';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { User } from '@supabase/supabase-js';
 
 export interface WorkspaceCreationDisabledProps {

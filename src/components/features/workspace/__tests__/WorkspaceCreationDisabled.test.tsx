@@ -4,8 +4,8 @@ import type { User } from '@supabase/supabase-js';
 import { WorkspaceCreationDisabled } from '../WorkspaceCreationDisabled';
 import React from 'react';
 
-// Mock react-router-dom
-vi.mock('react-router-dom', () => ({
+// Mock react-router
+vi.mock('react-router', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement('a', { href: to }, children),
 }));

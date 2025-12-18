@@ -93,8 +93,8 @@ vi.mock('@/components/ui/github-search-input', () => ({
   ),
 }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useParams: vi.fn(() => ({ owner: 'testowner', repo: 'testrepo' })),

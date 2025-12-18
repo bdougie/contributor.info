@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { analyzePullRequests } from '@/lib/insights/pullRequests';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { logError } from '@/lib/error-logging';
 
 // Lazy load ReactMarkdown

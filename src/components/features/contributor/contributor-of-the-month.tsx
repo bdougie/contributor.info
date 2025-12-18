@@ -13,7 +13,7 @@ import { AddToWorkspaceModal } from '../workspace/AddToWorkspaceModal';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
 interface ContributorOfTheMonthProps {

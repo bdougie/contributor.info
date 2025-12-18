@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
 
 interface PRAnalysisResult {

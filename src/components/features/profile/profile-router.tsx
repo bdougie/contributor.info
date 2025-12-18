@@ -1,11 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Octokit } from '@octokit/rest';
 import { env } from '@/lib/env';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 
 // Lazy load views to reduce bundle size
 const UserView = lazy(() => import('@/pages/user-view'));

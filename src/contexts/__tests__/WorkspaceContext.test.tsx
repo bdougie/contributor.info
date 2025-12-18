@@ -3,13 +3,13 @@
 // Async patterns are necessary here to properly test URL sync and state updates
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { vi, describe, test, beforeEach, afterEach, expect } from 'vitest';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router';
 import { ReactNode } from 'react';
 import { WorkspaceProvider, useWorkspaceContext } from '../WorkspaceContext';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 
-// Mock react-router-dom
-vi.mock('react-router-dom', () => ({
+// Mock react-router
+vi.mock('react-router', () => ({
   useParams: vi.fn(),
   useLocation: vi.fn(),
   useNavigate: vi.fn(),

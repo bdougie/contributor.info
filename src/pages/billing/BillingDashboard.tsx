@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
 import { trackEvent, trackError } from '@/lib/posthog-lazy';

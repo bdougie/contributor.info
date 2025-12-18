@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Loader2 } from '@/components/ui/icon';
 import type { ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 
 interface ProtectedRouteProps {

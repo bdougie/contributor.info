@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import { markAuthRedirectStart, getAuthRedirectDuration } from '@/lib/plg-tracking-utils';
 import type { User } from '@supabase/supabase-js';

@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { WorkspaceExportService } from '@/services/workspace-export.service';
 
 // Lazy load the heavy analytics dashboard

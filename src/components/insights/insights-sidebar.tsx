@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { getCriticalPrCount } from '@/lib/insights/pr-attention';
 

@@ -8,7 +8,7 @@ import {
   GitPullRequest,
   Percent,
 } from '@/components/ui/icon';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

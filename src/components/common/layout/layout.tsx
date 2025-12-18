@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useRef } from 'react';
-import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, Link, useLocation } from 'react-router';
 import { ModeToggle } from '../theming';
 import { AuthButton } from '../../features/auth';
 import {

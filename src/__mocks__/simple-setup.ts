@@ -229,7 +229,7 @@ vi.mock('@/components/ui/badge', async () => {
 });
 
 // Mock React Router globally to prevent conflicts
-vi.mock('react-router-dom', async () => {
+vi.mock('react-router', async () => {
   const React = (await import('react')).default;
   return {
     BrowserRouter: ({ children }: any) => React.createElement('div', null, children),

@@ -81,7 +81,7 @@ export default defineConfig(() => ({
     include: [
       'react',
       'react-dom',
-      'react-router-dom',
+      'react-router',
       '@radix-ui/react-slot',
       '@radix-ui/react-avatar',
       '@radix-ui/react-dropdown-menu',

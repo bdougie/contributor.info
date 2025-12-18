@@ -10,7 +10,7 @@ import { TestRouter } from '../../../__tests__/test-utils';
 
 // Mock the navigation hook with a test implementation
 const mockNavigate = vi.fn();
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   BrowserRouter: ({ children }: { children: React.ReactNode }) => children,
   MemoryRouter: ({ children }: { children: React.ReactNode }) => children,
   useNavigate: () => mockNavigate,

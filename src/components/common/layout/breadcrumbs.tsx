@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft } from '@/components/ui/icon';
-import { useLocation, useParams, Link } from 'react-router-dom';
+import { useLocation, useParams, Link } from 'react-router';
 import { Helmet } from 'react-helmet-async';
 import {
   Breadcrumb,

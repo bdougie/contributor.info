@@ -2,7 +2,7 @@ import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExampleRepos } from '@/components/features/repository/example-repos';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { SocialMetaTags } from './meta-tags-provider';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import { WorkspaceListFallback } from '@/components/ui/workspace-list-fallback';

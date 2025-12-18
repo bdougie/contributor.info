@@ -10,7 +10,7 @@ import {
   Loader2,
   CheckCircle,
 } from '@/components/ui/icon';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
