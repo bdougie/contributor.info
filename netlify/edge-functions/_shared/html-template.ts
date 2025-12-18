@@ -128,6 +128,13 @@ export interface WorkspaceDetailPageData {
 }
 
 /**
+ * Workspace creation page data
+ */
+export interface WorkspaceNewPageData {
+  authenticated: boolean;
+}
+
+/**
  * Discriminated union for type-safe SSR data
  * Note: RepoPageData can be null when data fetch fails (shows skeleton)
  */
@@ -136,6 +143,7 @@ export type SSRData =
   | { route: 'trending'; data: TrendingPageData; timestamp: number }
   | { route: 'workspaces'; data: WorkspacesPageData; timestamp: number }
   | { route: 'workspace-detail'; data: WorkspaceDetailPageData; timestamp: number }
+  | { route: 'workspaces/new'; data: WorkspaceNewPageData; timestamp: number }
   | { route: string; data: RepoPageData | null; timestamp: number };
 
 export interface AssetReferences {

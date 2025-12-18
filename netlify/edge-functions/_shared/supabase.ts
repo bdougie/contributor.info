@@ -368,6 +368,12 @@ export async function fetchUserWorkspaces(
     }
 
     // Transform and filter active workspaces
+    // TODO: Optimize N+1 query pattern by batching repository/member counts
+    // Current approach makes 3 queries per workspace (repo count, member count, top repos)
+    // Optimization: Create RPC functions to batch these queries:
+    //   1. get_workspace_counts(workspace_ids[]) -> returns {workspace_id, repo_count, member_count}[]
+    //   2. get_workspace_top_repos(workspace_ids[], limit) -> returns repos grouped by workspace_id
+    // This would reduce ~30+ queries (for 10 workspaces) to just 2-3 queries total
     const workspaces: WorkspacePreview[] = [];
 
     for (const member of memberWorkspaces || []) {
@@ -569,8 +575,17 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
       .maybeSingle(),
   ]);
 
-  // Contributor count: skip for SSR to avoid complex query, client will fetch
-  // TODO: Add RPC function get_workspace_contributor_count for accurate count
+  // Contributor count: hardcoded to 0 for SSR to avoid complex query
+  // TODO: Implement RPC function get_workspace_contributor_count(workspace_id UUID)
+  //       This function should:
+  //       1. Join workspace_repositories with repository_contributors
+  //       2. Count DISTINCT contributor_id across all workspace repositories  
+  //       3. Return scalar integer count
+  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id) 
+  //            FROM workspace_repositories wr
+  //            JOIN repository_contributors rc ON wr.repository_id = rc.repository_id
+  //            WHERE wr.workspace_id = $1
+  // For now, client-side will fetch this via a separate query after SSR hydration
   const contributorCount = 0;
 
   const repositories = (reposResult.data || [])
