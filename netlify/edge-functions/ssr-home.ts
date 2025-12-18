@@ -174,7 +174,7 @@ function renderHomeContent(): SafeHTML {
 
     <!-- Inline script for basic interactivity before hydration -->
     <script>
-      ${scriptContent};
+      ${scriptContent}
     </script>
   `;
 }
