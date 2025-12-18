@@ -112,6 +112,7 @@ const TermsPage = lazy(() =>
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
+const WorkspacesPage = lazy(() => import('@/pages/workspaces-page'));
 const DemoWorkspacePage = lazy(() => import('@/pages/demo-workspace-page'));
 const WorkspaceRoutesWrapper = lazy(() =>
   import('@/components/features/workspace/WorkspaceRoutesWrapper').then((m) => ({
@@ -432,6 +433,8 @@ function App() {
                     {/* Invitation acceptance route - must come before workspace routes to avoid conflicts */}
                     <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
                     {/* Workspace routes - protected by feature flag */}
+                    {/* Workspaces list page */}
+                    <Route path="/workspaces" element={<WorkspacesPage />} />
                     {/* Dynamic configuration to support both /i/ and /workspaces/ paths */}
                     {['/i', '/workspaces'].map((basePath) => (
                       <React.Fragment key={basePath}>
