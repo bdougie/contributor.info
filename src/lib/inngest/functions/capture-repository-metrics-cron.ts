@@ -10,8 +10,7 @@ import { supabase } from '../supabase-server';
  * 3. Stores them in repository_metrics_history table
  * 4. The database trigger automatically marks significant changes
  *
- * Runs every 6 hours to capture metrics frequently enough for trending detection
- * while not overwhelming the database with too many entries.
+ * Runs daily at midnight UTC to capture metrics for trending detection.
  */
 
 interface RepositoryMetrics {
@@ -44,7 +43,7 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       limit: 1, // Only one instance at a time
     },
   },
-  { cron: '0 */6 * * *' }, // Run every 6 hours
+  { cron: '0 0 * * *' }, // Run daily at midnight UTC
   async ({ step }) => {
     console.log('[Metrics Cron] Starting repository metrics capture');
 

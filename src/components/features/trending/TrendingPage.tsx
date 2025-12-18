@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -12,21 +13,49 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingRepositoryCard } from './TrendingRepositoryCard';
 import type { TrendingRepositoryData } from './TrendingRepositoryCard';
 import { TrendingEventsInsights } from './TrendingEventsInsights';
-import { TrendingUp, Zap, Sparkles, Calendar } from '@/components/ui/icon';
+import { TrendingUp, Zap, Sparkles, Calendar, Search } from '@/components/ui/icon';
+import { GitHubSearchInput } from '@/components/ui/github-search-input';
+import type { GitHubRepository } from '@/lib/github';
 
 export interface TrendingPageProps {
   repositories: TrendingRepositoryData[];
   loading?: boolean;
   className?: string;
+  /** Called when a repository card is clicked for analytics */
+  onRepositoryClick?: () => void;
 }
 
 type TimePeriod = '24h' | '7d' | '30d';
 type SortOption = 'trending_score' | 'star_change' | 'pr_change' | 'contributor_change';
 
-export function TrendingPage({ repositories, loading = false, className }: TrendingPageProps) {
+export function TrendingPage({
+  repositories,
+  loading = false,
+  className,
+  onRepositoryClick,
+}: TrendingPageProps) {
+  const navigate = useNavigate();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
   const [sortBy, setSortBy] = useState<SortOption>('trending_score');
   const [languageFilter, setLanguageFilter] = useState<string>('all');
+
+  // Handle repository search/select for tracking CTA
+  const handleSearch = useCallback(
+    (repository: string) => {
+      // Parse owner/repo format
+      if (repository.includes('/')) {
+        navigate(`/${repository}`);
+      }
+    },
+    [navigate]
+  );
+
+  const handleSelectRepository = useCallback(
+    (repository: GitHubRepository) => {
+      navigate(`/${repository.full_name}`);
+    },
+    [navigate]
+  );
 
   // Get unique languages for filter
   const availableLanguages = useMemo(() => {
@@ -214,14 +243,31 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
               )}
 
               {filteredRepos.length === 0 ? (
-                <Card>
-                  <CardContent className="flex items-center justify-center py-12">
-                    <div className="text-center">
-                      <Zap className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No trending repositories found</h3>
-                      <p className="text-muted-foreground">
-                        Try adjusting your filters or check back later for new trending content.
+                <Card className="border-dashed">
+                  <CardContent className="flex items-center justify-center py-16">
+                    <div className="text-center max-w-md">
+                      <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full w-fit mx-auto mb-4">
+                        <TrendingUp className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">No trending repositories yet</h3>
+                      <p className="text-muted-foreground mb-6">
+                        {languageFilter !== 'all'
+                          ? `No ${languageFilter} repositories are trending right now. Try a different language or be the first to track one!`
+                          : 'Be the first to track a repository and help populate our trending data.'}
                       </p>
+                      <div className="space-y-4">
+                        <GitHubSearchInput
+                          placeholder="Search for a repository to track..."
+                          onSearch={handleSearch}
+                          onSelect={handleSelectRepository}
+                          searchLocation="trending"
+                          buttonText="Track"
+                          className="max-w-sm mx-auto"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Try: facebook/react, microsoft/vscode, or vercel/next.js
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -229,7 +275,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                 <>
                   {/* Top trending highlight */}
                   {filteredRepos.length > 0 && (
-                    <Card className="mb-6 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
+                    <Card className="mb-8 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -243,6 +289,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                         <TrendingRepositoryCard
                           repository={filteredRepos[0]}
                           showDataFreshness={true}
+                          onClick={onRepositoryClick}
                         />
                       </CardContent>
                     </Card>
@@ -255,6 +302,7 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
                         key={repo.id}
                         repository={repo}
                         showDataFreshness={true}
+                        onClick={onRepositoryClick}
                       />
                     ))}
                   </div>
@@ -263,6 +311,30 @@ export function TrendingPage({ repositories, loading = false, className }: Trend
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Track a Repository CTA */}
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Search className="w-5 h-5 text-muted-foreground" />
+              Don't see your repository?
+            </CardTitle>
+            <CardDescription>
+              Track any GitHub repository to add it to our trending data and get contributor
+              insights
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GitHubSearchInput
+              placeholder="Search for a repository to track (e.g., facebook/react)"
+              onSearch={handleSearch}
+              onSelect={handleSelectRepository}
+              searchLocation="trending"
+              buttonText="Track"
+              className="max-w-xl"
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

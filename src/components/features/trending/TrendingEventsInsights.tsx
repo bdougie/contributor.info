@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Star, GitFork, TrendingUp, Activity, Users, BarChart3, Zap } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { getSupabase } from '@/lib/supabase-lazy';
@@ -62,8 +61,9 @@ export function TrendingEventsInsights({
         startDate.setDate(endDate.getDate() - days);
 
         // Get event data for trending repositories
+        // Build proper PostgREST OR query with AND for compound conditions
         const repoConditions = repositories
-          .map((repo) => `(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
+          .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
           .join(',');
 
         const supabase = await getSupabase();
@@ -73,20 +73,14 @@ export function TrendingEventsInsights({
           .or(repoConditions)
           .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .lte('created_at', endDate.toISOString())
+          .limit(1000);
 
         if (eventError) throw eventError;
 
         if (!eventData?.length) {
-          setInsights({
-            totalStars: 0,
-            totalForks: 0,
-            totalActivity: 0,
-            uniqueContributors: 0,
-            avgVelocity: 0,
-            mostActiveRepo: null,
-            languageBreakdown: {},
-          });
+          // No event data available - set null to hide the component
+          setInsights(null);
           return;
         }
 
@@ -151,49 +145,10 @@ export function TrendingEventsInsights({
     fetchTrendingInsights();
   }, [repositories, timeRange]);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Trending Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-6 w-12" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error || !insights) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Trending Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {error || 'No event data available for trending analysis'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  // Hide component entirely when loading, error, or no data
+  // This provides cleaner UX until event data is available
+  if (loading || error || !insights) {
+    return null;
   }
 
   const getTopLanguages = () => {
@@ -204,7 +159,7 @@ export function TrendingEventsInsights({
   };
 
   return (
-    <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/10">
+    <Card className="mb-8 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
