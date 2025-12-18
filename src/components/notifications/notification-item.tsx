@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { CheckCircle, XCircle, AlertCircle, Clock, Trash2 } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import type { Notification } from '@/lib/notifications';
+import { formatDistanceToNow } from 'date-fns';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -23,19 +24,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }: Notif
         return <AlertCircle className="h-5 w-5 text-orange-500" />;
       default:
         return <Clock className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
-  const getOperationLabel = () => {
-    switch (notification.operation_type) {
-      case 'repository_tracking':
-        return 'Repository Tracking';
-      case 'backfill':
-        return 'Data Backfill';
-      case 'sync':
-        return 'Data Sync';
-      default:
-        return 'Operation';
     }
   };
 
@@ -72,7 +60,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }: Notif
             <p className={cn('text-sm font-medium', !notification.read && 'font-semibold')}>
               {notification.title}
             </p>
-            <p className="text-xs text-muted-foreground">{getOperationLabel()}</p>
           </div>
           {!notification.read && (
             <div className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0" aria-label="Unread" />
@@ -81,12 +68,6 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }: Notif
 
         {notification.message && (
           <p className="text-sm text-muted-foreground">{notification.message}</p>
-        )}
-
-        {notification.repository && (
-          <p className="text-xs text-muted-foreground">
-            Repository: <span className="font-mono">{notification.repository}</span>
-          </p>
         )}
 
         {/* Metadata */}
@@ -104,7 +85,7 @@ export function NotificationItem({ notification, onMarkAsRead, onDelete }: Notif
 
         {/* Timestamp */}
         <p className="text-xs text-muted-foreground">
-          {new Date(notification.created_at).toLocaleString()}
+          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
         </p>
       </div>
 

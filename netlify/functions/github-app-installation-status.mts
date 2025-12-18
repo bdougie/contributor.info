@@ -1,8 +1,9 @@
 import type { Context } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+// Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export default async (req: Request, _context: Context) => {
   // CORS headers

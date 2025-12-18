@@ -13,7 +13,7 @@ export interface MockSupabaseResponse<T = unknown> {
 export interface MockQueryBuilder<T = unknown> {
   select: (query?: string) => MockQueryBuilder<T>;
   insert: (data: unknown) => MockQueryBuilder<T>;
-  update: (data: unknown) => MockQueryBuilder<T>;
+  update: (data: unknown) => MockUpdateBuilder<T>;
   delete: () => MockQueryBuilder<T>;
   eq: (column: string, value: unknown) => MockQueryBuilder<T> | Promise<MockSupabaseResponse<T>>;
   neq: (column: string, value: unknown) => MockQueryBuilder<T>;
@@ -26,6 +26,11 @@ export interface MockQueryBuilder<T = unknown> {
   limit: (count: number) => MockQueryBuilder<T>;
   range: (from: number, to: number) => MockQueryBuilder<T> | Promise<MockSupabaseResponse<T>>;
   order: (column: string, options?: { ascending?: boolean }) => MockQueryBuilder<T>;
+}
+
+// Define mock update builder for update().eq() chain
+export interface MockUpdateBuilder<T = unknown> {
+  eq: (column: string, value: unknown) => Promise<MockSupabaseResponse<T>>;
 }
 
 // Thenable version of the mock query builder

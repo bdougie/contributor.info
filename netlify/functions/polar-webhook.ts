@@ -1,6 +1,7 @@
 import { Handler } from '@netlify/functions';
 import { Webhooks } from '@polar-sh/nextjs';
 import { createClient } from '@supabase/supabase-js';
+import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 import type { Database } from '../../src/types/supabase';
 import { WorkspaceBackfillService } from '../../src/services/workspace-backfill.service';
 
@@ -164,18 +165,6 @@ export const handler: Handler = async (event, context) => {
   const webhookHandler = Webhooks({
     webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
 
-    // Add signature verification error handler
-    onError: async (error) => {
-      console.error('Webhook error:', error);
-      // Log potential signature verification failures
-      if (error.message?.includes('signature') || error.message?.includes('verification')) {
-        console.error('Webhook signature verification failed - potential security issue');
-      }
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Webhook processing failed' }),
-      };
-    },
     onSubscriptionCreated: async (subscription) => {
       console.log('Subscription created:', subscription.id);
 
@@ -183,7 +172,13 @@ export const handler: Handler = async (event, context) => {
       const userId = subscription.metadata?.user_id as string;
       if (!userId) {
         console.error('❌ No user_id in subscription metadata:', subscription.id);
-        throw new Error('Missing user_id in subscription metadata');
+        const error = new Error('Missing user_id in subscription metadata');
+        await captureServerException(error, {
+          level: 'error',
+          tags: { type: 'subscription_creation_failed' },
+          extra: { subscription_id: subscription.id },
+        });
+        throw error;
       }
 
       // Map tier and validate
@@ -245,8 +240,24 @@ export const handler: Handler = async (event, context) => {
       // Check for errors
       if (error) {
         console.error('❌ Failed to create subscription:', error);
+        await captureServerException(new Error(error.message), {
+          level: 'error',
+          tags: { type: 'subscription_creation_db_failed' },
+          extra: { subscription_id: subscription.id, user_id: userId },
+        });
         throw error; // Return error to Polar for retry
       }
+
+      await trackServerEvent(
+        'subscription_created',
+        {
+          subscription_id: subscription.id,
+          tier,
+          status: subscription.status,
+          billing_cycle: billingCycle,
+        },
+        userId
+      );
 
       console.log(
         '✅ Subscription created: { user_id: %s, tier: %s, status: %s }',
@@ -362,7 +373,26 @@ export const handler: Handler = async (event, context) => {
 
       if (updateError) {
         console.error('❌ Failed to update subscription:', updateError);
+        await captureServerException(new Error(updateError.message), {
+          level: 'error',
+          tags: { type: 'subscription_update_db_failed' },
+          extra: { subscription_id: subscription.id },
+        });
         throw updateError;
+      }
+
+      const userId = subscription.metadata?.user_id as string;
+      if (userId) {
+        await trackServerEvent(
+          'subscription_updated',
+          {
+            subscription_id: subscription.id,
+            tier,
+            status: subscription.status,
+            billing_cycle: billingCycle,
+          },
+          userId
+        );
       }
 
       console.log(
@@ -385,6 +415,18 @@ export const handler: Handler = async (event, context) => {
           updated_at: new Date().toISOString(),
         })
         .eq('polar_subscription_id', subscription.id);
+
+      const userId = subscription.metadata?.user_id as string;
+      if (userId) {
+        await trackServerEvent(
+          'subscription_canceled',
+          {
+            subscription_id: subscription.id,
+            status: 'canceled',
+          },
+          userId
+        );
+      }
     },
 
     onSubscriptionRevoked: async (subscription) => {
@@ -457,7 +499,37 @@ export const handler: Handler = async (event, context) => {
   });
 
   // Execute the webhook handler
-  return webhookHandler(event, context);
+  try {
+    // @ts-ignore - Adapter mismatch between Next.js and Netlify Functions
+    const response = await webhookHandler(event, context);
+
+    // Convert Web Response to Netlify Function Response
+    if (response && typeof response.text === 'function') {
+      const body = await response.text();
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+
+      return {
+        statusCode: response.status,
+        body,
+        headers,
+      };
+    }
+
+    return response as any;
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    await captureServerException(error instanceof Error ? error : new Error(String(error)), {
+      level: 'error',
+      tags: { type: 'webhook_execution_failed' },
+    });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  }
 };
 
 // Helper function to map Polar product IDs to our tier names
