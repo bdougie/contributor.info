@@ -17,7 +17,6 @@ import { ContributorOfMonthWrapper } from '../contributor';
 import { ExampleRepos } from './example-repos';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { InsightsSidebar } from '@/components/insights/insights-sidebar';
-import { RepoViewSkeleton } from '@/components/skeletons';
 import { SocialMetaTags } from '@/components/common/layout';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
 import RepoNotFound from './repo-not-found';
@@ -36,6 +35,38 @@ import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
 
+// Repository path pattern for parsing owner/repo from various formats (e.g., "owner/repo" or "github.com/owner/repo")
+const REPO_PATH_PATTERN = /(?:github\.com\/)?([^/]+)\/([^/]+)/;
+
+/**
+ * Reusable repository search section component
+ * Handles search input, example repos, and login requirements
+ */
+interface RepoSearchSectionProps {
+  onSearch: (repositoryPath: string) => void;
+  onSelect: (repository: GitHubRepository) => void;
+  onExampleSelect: (repo: string) => void;
+}
+
+function RepoSearchSection({ onSearch, onSelect, onExampleSelect }: RepoSearchSectionProps) {
+  return (
+    <section className="mb-8">
+      <Card>
+        <CardContent className="pt-6">
+          <GitHubSearchInput
+            placeholder="Search another repository (e.g., facebook/react)"
+            onSearch={onSearch}
+            onSelect={onSelect}
+          />
+          <aside>
+            <ExampleRepos onSelect={onExampleSelect} />
+          </aside>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
 export default function RepoView() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
@@ -44,7 +75,6 @@ export default function RepoView() {
   const [includeBots, setIncludeBots] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);
-  const [showSkeleton, setShowSkeleton] = useState(true);
   const dubConfig = getDubConfig();
   const { isLoggedIn } = useGitHubAuth();
   const { trackRepositoryPageViewed, trackRepositoryTabSwitch } = useAnalytics();
@@ -83,21 +113,40 @@ export default function RepoView() {
     autoUpdate: true,
   });
 
-  const handleSelectExample = (repo: string) => {
-    const match = repo.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
+  /**
+   * Handle repository search/selection with login requirements
+   * Requires login after the first search for non-authenticated users
+   */
+  const handleRepositoryNavigation = (repositoryPath: string) => {
+    // Check if login is required (second search while not logged in)
+    if (hasSearchedOnce && !isLoggedIn) {
+      localStorage.setItem('redirectAfterLogin', repositoryPath);
+      navigate('/login');
+      return;
+    }
+
+    // Mark that a search has been performed
+    setHasSearchedOnce(true);
+    navigate(repositoryPath);
+  };
+
+  const handleSearchInput = (repositoryPath: string) => {
+    const match = repositoryPath.match(REPO_PATH_PATTERN);
     if (match) {
       const [, newOwner, newRepo] = match;
+      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
+    }
+  };
 
-      // Check if login is required (second search while not logged in)
-      if (hasSearchedOnce && !isLoggedIn) {
-        localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-        navigate('/login');
-        return;
-      }
+  const handleSelectRepository = (repository: GitHubRepository) => {
+    handleRepositoryNavigation(`/${repository.full_name}`);
+  };
 
-      // Mark that a search has been performed
-      setHasSearchedOnce(true);
-      navigate(`/${newOwner}/${newRepo}`);
+  const handleSelectExample = (repo: string) => {
+    const match = repo.match(REPO_PATH_PATTERN);
+    if (match) {
+      const [, newOwner, newRepo] = match;
+      handleRepositoryNavigation(`/${newOwner}/${newRepo}`);
     }
   };
 
@@ -115,19 +164,6 @@ export default function RepoView() {
       trackRepositoryPageViewed('public');
     }
   }, [owner, repo, trackRepositoryPageViewed]);
-
-  // Show skeleton immediately on navigation and hide when data is ready
-  useEffect(() => {
-    setShowSkeleton(true);
-
-    // Hide skeleton when we have data or after timeout
-    if (dataStatus?.status === 'success' || dataStatus?.status === 'partial_data' || stats.error) {
-      setShowSkeleton(false);
-    } else {
-      const timeout = setTimeout(() => setShowSkeleton(false), 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [owner, repo, dataStatus?.status, stats.error]);
 
   // Handle share button click - create oss.fyi short link
   const handleShare = async () => {
@@ -169,38 +205,53 @@ export default function RepoView() {
     }
   };
 
-  // Show skeleton during initial load or navigation
-  if (showSkeleton && dataStatus?.status === 'pending') {
-    return <RepoViewSkeleton />;
-  }
-
-  // Check if repository needs tracking (show tracking card instead of error)
-  if (trackingState.status === 'not_tracked' && !showSkeleton) {
+  // Show header + search + skeleton while checking tracking status
+  // This keeps the UI stable while we determine if the repo is tracked
+  if (trackingState.status === 'checking') {
     return (
       <article className="py-2">
         <Breadcrumbs />
-        <section className="mb-8">
+        <RepoSearchSection
+          onSearch={handleSearchInput}
+          onSelect={handleSelectRepository}
+          onExampleSelect={handleSelectExample}
+        />
+        <section className="grid gap-8">
           <Card>
-            <CardContent className="pt-6">
-              <GitHubSearchInput
-                placeholder="Search another repository (e.g., facebook/react)"
-                onSearch={(repositoryPath) => {
-                  const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-                  if (match) {
-                    const [, newOwner, newRepo] = match;
-                    navigate(`/${newOwner}/${newRepo}`);
-                  }
-                }}
-                onSelect={(repository: GitHubRepository) => {
-                  navigate(`/${repository.full_name}`);
-                }}
-              />
-              <aside>
-                <ExampleRepos onSelect={handleSelectExample} />
-              </aside>
+            <CardContent className="p-8">
+              <div className="space-y-4 animate-pulse" role="status" aria-live="polite">
+                <div className="text-center text-muted-foreground">
+                  Loading repository data...
+                </div>
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Card key={i} className="p-4" aria-hidden="true">
+                      <div className="space-y-3">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                        <div className="h-3 bg-muted rounded w-5/6"></div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </section>
+      </article>
+    );
+  }
+
+  // Check if repository needs tracking (show tracking card instead of error)
+  if (trackingState.status === 'not_tracked') {
+    return (
+      <article className="py-2">
+        <Breadcrumbs />
+        <RepoSearchSection
+          onSearch={handleSearchInput}
+          onSelect={handleSelectRepository}
+          onExampleSelect={handleSelectExample}
+        />
         <section className="grid gap-8">
           <RepositoryTrackingCard
             owner={owner || ''}
@@ -257,47 +308,11 @@ export default function RepoView() {
         image="social-cards/repo"
       />
       <Breadcrumbs />
-      <section className="mb-8">
-        <Card>
-          <CardContent className="pt-6">
-            <GitHubSearchInput
-              placeholder="Search another repository (e.g., facebook/react)"
-              onSearch={(repositoryPath) => {
-                const match = repositoryPath.match(/(?:github\.com\/)?([^/]+)\/([^/]+)/);
-                if (match) {
-                  const [, newOwner, newRepo] = match;
-
-                  // Check if login is required (second search while not logged in)
-                  if (hasSearchedOnce && !isLoggedIn) {
-                    localStorage.setItem('redirectAfterLogin', `/${newOwner}/${newRepo}`);
-                    navigate('/login');
-                    return;
-                  }
-
-                  // Mark that a search has been performed
-                  setHasSearchedOnce(true);
-                  navigate(`/${newOwner}/${newRepo}`);
-                }
-              }}
-              onSelect={(repository: GitHubRepository) => {
-                // Check if login is required (second search while not logged in)
-                if (hasSearchedOnce && !isLoggedIn) {
-                  localStorage.setItem('redirectAfterLogin', `/${repository.full_name}`);
-                  navigate('/login');
-                  return;
-                }
-
-                // Mark that a search has been performed
-                setHasSearchedOnce(true);
-                navigate(`/${repository.full_name}`);
-              }}
-            />
-            <aside>
-              <ExampleRepos onSelect={handleSelectExample} />
-            </aside>
-          </CardContent>
-        </Card>
-      </section>
+      <RepoSearchSection
+        onSearch={handleSearchInput}
+        onSelect={handleSelectRepository}
+        onExampleSelect={handleSelectExample}
+      />
 
       <section className="grid gap-8">
         <Card>
