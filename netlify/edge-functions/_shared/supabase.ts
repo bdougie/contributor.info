@@ -532,25 +532,22 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
   }
 
   // Fetch related data in parallel
-  const [repoCountResult, memberCountResult, contributorCountResult, reposResult, ownerResult] =
-    await Promise.all([
-      // Repository count
-      supabase
-        .from('workspace_repositories')
-        .select('id', { count: 'exact', head: true })
-        .eq('workspace_id', workspace.id),
-      // Member count
-      supabase
-        .from('workspace_members')
-        .select('id', { count: 'exact', head: true })
-        .eq('workspace_id', workspace.id),
-      // Contributor count (unique contributors across all repos)
-      supabase.rpc('get_workspace_contributor_count', { p_workspace_id: workspace.id }),
-      // Top repositories (limit 6 for preview)
-      supabase
-        .from('workspace_repositories')
-        .select(
-          `
+  const [repoCountResult, memberCountResult, reposResult, ownerResult] = await Promise.all([
+    // Repository count
+    supabase
+      .from('workspace_repositories')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', workspace.id),
+    // Member count
+    supabase
+      .from('workspace_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', workspace.id),
+    // Top repositories (limit 6 for preview)
+    supabase
+      .from('workspace_repositories')
+      .select(
+        `
           repositories(
             id,
             full_name,
@@ -561,16 +558,20 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
             stargazer_count
           )
         `
-        )
-        .eq('workspace_id', workspace.id)
-        .limit(6),
-      // Owner info
-      supabase
-        .from('app_users')
-        .select('id, github_username, avatar_url')
-        .eq('id', workspace.owner_id)
-        .maybeSingle(),
-    ]);
+      )
+      .eq('workspace_id', workspace.id)
+      .limit(6),
+    // Owner info
+    supabase
+      .from('app_users')
+      .select('id, github_username, avatar_url')
+      .eq('id', workspace.owner_id)
+      .maybeSingle(),
+  ]);
+
+  // Contributor count: skip for SSR to avoid complex query, client will fetch
+  // TODO: Add RPC function get_workspace_contributor_count for accurate count
+  const contributorCount = 0;
 
   const repositories = (reposResult.data || [])
     .filter((r) => r.repositories)
@@ -598,7 +599,7 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
     is_public: true, // Will be dynamic when public/private is implemented
     repository_count: repoCountResult.count || 0,
     member_count: memberCountResult.count || 0,
-    contributor_count: (contributorCountResult.data as number) || 0,
+    contributor_count: contributorCount,
     repositories,
     owner: ownerResult.data,
   };

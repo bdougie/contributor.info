@@ -39,6 +39,9 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Kotlin: '#A97BFF',
 };
 
+// Valid slug pattern: alphanumeric, hyphens, underscores only
+const VALID_SLUG_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
 /**
  * Extract workspace slug from URL path
  */
@@ -49,8 +52,14 @@ function parseWorkspaceSlug(pathname: string): string | null {
 
   const slug = match[1];
 
-  // Basic validation
+  // Length validation
   if (!slug || slug.length < 1 || slug.length > 100) {
+    return null;
+  }
+
+  // Character validation: only allow safe characters
+  if (!VALID_SLUG_PATTERN.test(slug)) {
+    console.warn('[ssr-workspace-detail] Invalid slug characters: %s', slug);
     return null;
   }
 
