@@ -1,6 +1,7 @@
 import type { Handler } from '@netlify/functions';
 import { Inngest } from 'inngest';
 import { createClient } from '@supabase/supabase-js';
+import { trackServerEvent } from './lib/server-tracking.mts';
 
 // Initialize Inngest client with fallback to prevent empty eventKey
 function createInngestClient() {
@@ -226,11 +227,15 @@ export const handler: Handler = async (event) => {
     const rateLimitInfo = checkRateLimit(workspaceId);
 
     if (!rateLimitInfo.allowed) {
-      // TODO: Add PostHog tracking for rate limit hit
-      // posthog.capture('workspace_sync_rate_limited', {
-      //   workspaceId,
-      //   resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
-      // });
+      // Add PostHog tracking for rate limit hit
+      await trackServerEvent(
+        'workspace_sync_rate_limited',
+        {
+          workspaceId,
+          resetTime: new Date(rateLimitInfo.resetTime).toISOString(),
+        },
+        authResult.userId
+      );
 
       return {
         statusCode: 429,
@@ -343,13 +348,17 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // TODO: Add PostHog tracking for successful sync
-    // posthog.capture('workspace_sync_initiated', {
-    //   workspaceId,
-    //   repositoryCount: repositoryIds.length,
-    //   successCount,
-    //   failureCount,
-    // });
+    // Add PostHog tracking for successful sync
+    await trackServerEvent(
+      'workspace_sync_initiated',
+      {
+        workspaceId,
+        repositoryCount: repositoryIds.length,
+        successCount,
+        failureCount,
+      },
+      authResult.userId
+    );
 
     // Build response with rate limit headers if applicable
     const response: {
