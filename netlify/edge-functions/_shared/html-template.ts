@@ -66,11 +66,12 @@ export interface RepoPageData {
 
 /**
  * Discriminated union for type-safe SSR data
+ * Note: RepoPageData can be null when data fetch fails (shows skeleton)
  */
 export type SSRData =
   | { route: 'home'; data: HomePageData; timestamp: number }
   | { route: 'trending'; data: TrendingPageData; timestamp: number }
-  | { route: string; data: RepoPageData; timestamp: number };
+  | { route: string; data: RepoPageData | null; timestamp: number };
 
 export interface AssetReferences {
   scripts: string[];
@@ -219,8 +220,8 @@ const CRITICAL_CSS = `
   body{margin:0;line-height:inherit;font-display:swap}
   :root{--background:210 20% 98%;--foreground:215 25% 27%;--card:0 0% 100%;--card-foreground:215 25% 27%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:210 20% 94%;--secondary-foreground:215 25% 27%;--muted:210 20% 94%;--muted-foreground:215 16% 47%;--border:220 13% 91%;--input:210 20% 96%;--ring:14 100% 50%;--radius:0.5rem}
   .dark{--background:0 0% 3.9%;--foreground:0 0% 98%;--card:0 0% 3.9%;--card-foreground:0 0% 98%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:0 0% 14.9%;--secondary-foreground:0 0% 98%;--muted:0 0% 14.9%;--muted-foreground:0 0% 63.9%;--border:0 0% 14.9%;--input:0 0% 14.9%;--ring:14 100% 50%}
-  .dark .dark\:bg-black{background-color:#000}
-  .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.bg-muted\/50{background-color:hsl(var(--muted) / 0.5)}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+  .dark .dark\\:bg-black{background-color:#000}
+  .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.bg-muted\\/50{background-color:hsl(var(--muted) / 0.5)}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
   body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
   #root{min-height:100vh;background-color:hsl(var(--background))}

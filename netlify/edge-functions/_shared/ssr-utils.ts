@@ -203,7 +203,7 @@ export function parseRepoPath(pathname: string): { owner: string; repo: string }
     return null;
   }
 
-  // Exclude reserved paths
+  // Exclude reserved paths and static asset directories
   const reservedPaths = [
     'api',
     'login',
@@ -222,9 +222,22 @@ export function parseRepoPath(pathname: string): { owner: string; repo: string }
     'i',
     'billing',
     'invitation',
+    // Static asset directories - safety net in case excludedPath doesn't catch them
+    'js',
+    'css',
+    'assets',
+    'icons',
+    'fonts',
+    'images',
   ];
 
   if (reservedPaths.includes(owner.toLowerCase())) {
+    return null;
+  }
+
+  // Reject paths that look like static files (have file extensions)
+  const fileExtensionPattern = /\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|map)$/i;
+  if (fileExtensionPattern.test(repo)) {
     return null;
   }
 
