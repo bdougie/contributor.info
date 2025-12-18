@@ -142,7 +142,6 @@ describe('Polar Webhook Handler', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    capturedHandlers = null;
 
     // Reset modules to get fresh handler
     vi.resetModules();
