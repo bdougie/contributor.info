@@ -62,8 +62,9 @@ export function TrendingEventsInsights({
         startDate.setDate(endDate.getDate() - days);
 
         // Get event data for trending repositories
+        // Build proper PostgREST OR query with AND for compound conditions
         const repoConditions = repositories
-          .map((repo) => `(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
+          .map((repo) => `and(repository_owner.eq.${repo.owner},repository_name.eq.${repo.name})`)
           .join(',');
 
         const supabase = await getSupabase();
@@ -73,7 +74,8 @@ export function TrendingEventsInsights({
           .or(repoConditions)
           .in('event_type', ['WatchEvent', 'ForkEvent', 'PullRequestEvent', 'IssuesEvent'])
           .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+          .lte('created_at', endDate.toISOString())
+          .limit(1000);
 
         if (eventError) throw eventError;
 
