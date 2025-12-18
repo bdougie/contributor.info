@@ -184,25 +184,100 @@ const InvitationAcceptancePage = lazy(() =>
   }))
 );
 
+const EXAMPLE_REPOS = [
+  'continuedev/continue',
+  'argoproj/argo-cd',
+  'TanStack/table',
+  'vitejs/vite',
+  'etcd-io/etcd',
+  'better-auth/better-auth',
+];
+
 // Minimal loading fallback for fast FCP - simplified to reduce JS execution time
 const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
-    {/* Minimal header */}
+  <div
+    className="min-h-screen bg-background flex flex-col"
+    role="status"
+    aria-label="Loading content"
+  >
+    {/* Header matching Layout.tsx */}
     <header className="border-b">
-      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
-        <div className="text-xl font-bold">contributor.info</div>
-        <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
+      <div className="container flex h-16 items-center px-4">
+        {/* Hamburger placeholder */}
+        <div className="flex items-center space-x-4">
+          <div className="h-6 w-6" />
+          <div className="text-xl font-bold">contributor.info</div>
+        </div>
+        {/* Auth/Workspace placeholder */}
+        <div className="ml-auto flex items-center gap-2">
+          <div className="h-9 w-20 bg-muted animate-pulse rounded-md" />
+        </div>
       </div>
     </header>
-    {/* Minimal content skeleton */}
-    <main className="flex-1 flex items-center justify-center">
-      <div className="w-full max-w-2xl px-4 space-y-4">
-        <div className="h-8 bg-muted animate-pulse rounded w-3/4 mx-auto" />
-        <div className="h-10 bg-muted animate-pulse rounded" />
-        <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto" />
+
+    {/* Content matching Home.tsx / ssr-home.ts */}
+    <main className="flex-1 bg-muted/50 dark:bg-black">
+      <div className="container px-4 py-6">
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <div className="w-full max-w-2xl space-y-6">
+            {/* Hero Card */}
+            <div className="rounded-lg border bg-card shadow-sm text-card-foreground">
+              <div className="flex flex-col space-y-1.5 p-6">
+                <h1 className="text-3xl font-bold text-center">
+                  Analyze GitHub Repository Contributors
+                </h1>
+                <p className="text-center text-lg mt-2 text-muted-foreground">
+                  Enter a GitHub repository URL or owner/repo to visualize contribution patterns
+                </p>
+              </div>
+              <div className="p-6 pt-0">
+                <section>
+                  <div className="relative">
+                    <div className="flex gap-4">
+                      <div className="flex-1 relative">
+                        <div className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm text-muted-foreground items-center">
+                          Search repositories (e.g., facebook/react)
+                        </div>
+                      </div>
+                      <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors h-9 px-4 py-2 bg-white text-black border border-gray-300 shadow-sm opacity-50">
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="mr-2 h-4 w-4"
+                        >
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        Analyze
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <aside className="mt-4 w-full">
+                  <div className="text-sm text-muted-foreground mb-2">Popular examples:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {EXAMPLE_REPOS.map((repo) => (
+                      <div
+                        key={repo}
+                        className="inline-flex items-center justify-center whitespace-nowrap font-medium border border-input bg-background shadow-sm h-8 rounded-md px-3 text-xs sm:text-sm text-foreground"
+                      >
+                        {repo}
+                      </div>
+                    ))}
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
-    <span className="sr-only">Loading content, please wait...</span>
   </div>
 );
 
