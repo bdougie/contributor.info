@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1](https://github.com/bdougie/contributor.info/compare/v4.0.0...v4.0.1) (2025-12-18)
+
+
+### 🐛 Bug Fixes
+
+* enable automatic releases on push to main ([f3799ea](https://github.com/bdougie/contributor.info/commit/f3799ea58a57f31aa42093c5e3cc97671e171ff2)), closes [#1413](https://github.com/bdougie/contributor.info/issues/1413)
+* refactor polar-webhook to use @polar-sh/sdk directly ([#1412](https://github.com/bdougie/contributor.info/issues/1412)) ([809a794](https://github.com/bdougie/contributor.info/commit/809a7940974e2b1e0e6e6f39435ef30f224bb08c))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([f2d0e76](https://github.com/bdougie/contributor.info/commit/f2d0e76776242a5d367729ec14e6e30e8e18094f))
+
 ## [4.0.0](https://github.com/bdougie/contributor.info/compare/v3.0.0...v4.0.0) (2025-12-18)
 
 
