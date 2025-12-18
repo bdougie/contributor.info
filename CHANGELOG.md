@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0](https://github.com/bdougie/contributor.info/compare/v4.0.1...v4.1.0) (2025-12-18)
+
+
+### 🚀 Features
+
+* upgrade to React Router v7 ([#1414](https://github.com/bdougie/contributor.info/issues/1414)) ([6aea651](https://github.com/bdougie/contributor.info/commit/6aea651d06375c293f4bfc9c53f35eb66b1b30d0)), closes [#1379](https://github.com/bdougie/contributor.info/issues/1379) [#1410](https://github.com/bdougie/contributor.info/issues/1410)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([f93da1d](https://github.com/bdougie/contributor.info/commit/f93da1d5fb52eb3a85855e2c418ce6aa57202493))
+
 ## [4.0.1](https://github.com/bdougie/contributor.info/compare/v4.0.0...v4.0.1) (2025-12-18)
 
 
