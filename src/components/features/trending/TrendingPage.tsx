@@ -275,7 +275,7 @@ export function TrendingPage({
                 <>
                   {/* Top trending highlight */}
                   {filteredRepos.length > 0 && (
-                    <Card className="mb-6 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
+                    <Card className="mb-8 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
