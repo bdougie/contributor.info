@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
-import { Webhooks } from '@polar-sh/nextjs';
+import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
+import { handleWebhookPayload } from '@polar-sh/adapter-utils';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 import type { Database } from '../../src/types/supabase';
@@ -134,404 +135,6 @@ async function triggerWorkspaceBackfill(
   }
 }
 
-// Define webhook handler with signature verification
-export const handler: Handler = async (event, context) => {
-  // Validate environment variables at runtime
-  if (!process.env.POLAR_WEBHOOK_SECRET) {
-    console.error('POLAR_WEBHOOK_SECRET is not configured');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Webhook configuration error' }),
-    };
-  }
-
-  if (!process.env.SUPABASE_URL) {
-    console.error('SUPABASE_URL is not configured');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Database configuration error' }),
-    };
-  }
-
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('SUPABASE_SERVICE_ROLE_KEY is not configured');
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Database configuration error' }),
-    };
-  }
-
-  // Call the Webhooks handler with proper configuration
-  const webhookHandler = Webhooks({
-    webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
-
-    onSubscriptionCreated: async (subscription) => {
-      console.log('Subscription created:', subscription.id);
-
-      // Validate user ID
-      const userId = subscription.metadata?.user_id as string;
-      if (!userId) {
-        console.error('❌ No user_id in subscription metadata:', subscription.id);
-        const error = new Error('Missing user_id in subscription metadata');
-        await captureServerException(error, {
-          level: 'error',
-          tags: { type: 'subscription_creation_failed' },
-          extra: { subscription_id: subscription.id },
-        });
-        throw error;
-      }
-
-      // Map tier and validate
-      const tier = mapProductToTier(subscription.product_id);
-      if (tier === 'free' && subscription.product_id) {
-        console.error(
-          '⚠️ Product ID mismatch! Product: %s, Expected Pro: %s, Expected Team: %s',
-          subscription.product_id,
-          process.env.POLAR_PRODUCT_ID_PRO,
-          process.env.POLAR_PRODUCT_ID_TEAM
-        );
-      }
-
-      // Get tier limits
-      const limits = getTierLimits(tier);
-
-      // Determine billing cycle
-      let billingCycle: string | null = null;
-      if (subscription.recurring_interval === 'year') {
-        billingCycle = 'yearly';
-      } else if (subscription.recurring_interval === 'month') {
-        billingCycle = 'monthly';
-      }
-
-      console.log(
-        'Creating subscription for user %s with tier %s (workspaces: %d, repos: %d)',
-        userId,
-        tier,
-        limits.max_workspaces,
-        limits.max_repos_per_workspace
-      );
-
-      // Database operation with error checking
-      const { error } = await supabase.from('subscriptions').upsert(
-        {
-          user_id: userId,
-          polar_customer_id: subscription.customer_id,
-          polar_subscription_id: subscription.id,
-          status: subscription.status as
-            | 'active'
-            | 'canceled'
-            | 'past_due'
-            | 'trialing'
-            | 'inactive',
-          tier,
-          max_workspaces: limits.max_workspaces,
-          max_repos_per_workspace: limits.max_repos_per_workspace,
-          billing_cycle: billingCycle,
-          current_period_start: subscription.current_period_start,
-          current_period_end: subscription.current_period_end,
-          created_at: subscription.created_at,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id',
-        }
-      );
-
-      // Check for errors
-      if (error) {
-        console.error('❌ Failed to create subscription:', error);
-        await captureServerException(new Error(error.message), {
-          level: 'error',
-          tags: { type: 'subscription_creation_db_failed' },
-          extra: { subscription_id: subscription.id, user_id: userId },
-        });
-        throw error; // Return error to Polar for retry
-      }
-
-      await trackServerEvent(
-        'subscription_created',
-        {
-          subscription_id: subscription.id,
-          tier,
-          status: subscription.status,
-          billing_cycle: billingCycle,
-        },
-        userId
-      );
-
-      console.log(
-        '✅ Subscription created: { user_id: %s, tier: %s, status: %s }',
-        userId,
-        tier,
-        subscription.status
-      );
-    },
-
-    onSubscriptionUpdated: async (subscription) => {
-      console.log('Subscription updated:', subscription.id);
-
-      // Check if this update includes an addon purchase
-      // Note: Polar subscriptions can have multiple products/addons
-      const isExtendedRetentionAddon =
-        subscription.product_id === POLAR_ADDON_PRODUCT_IDS.EXTENDED_DATA_RETENTION;
-
-      if (isExtendedRetentionAddon && subscription.status === 'active') {
-        console.log('Extended Data Retention addon detected for subscription: %s', subscription.id);
-
-        // Get user ID from subscription metadata
-        const userId = subscription.metadata?.user_id as string;
-        if (!userId) {
-          console.error('No user_id in subscription metadata for addon purchase');
-          return;
-        }
-
-        // Get internal subscription ID using Polar subscription ID
-        const { data: sub, error: subError } = await supabase
-          .from('subscriptions')
-          .select('id')
-          .eq('polar_subscription_id', subscription.id)
-          .maybeSingle();
-
-        if (subError) {
-          console.error('Error fetching subscription for addon: %s', subError.message);
-          return;
-        }
-
-        if (!sub) {
-          console.error('No subscription found for polar_subscription_id: %s', subscription.id);
-          return;
-        }
-
-        // Create addon record with error handling
-        const { error: addonError } = await supabase.from('subscription_addons').upsert(
-          {
-            subscription_id: sub.id,
-            addon_type: 'extended_data_retention',
-            addon_product_id: subscription.product_id,
-            retention_days: 365,
-            status: 'active',
-            purchased_at: new Date().toISOString(),
-            activated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'subscription_id,addon_type',
-          }
-        );
-
-        if (addonError) {
-          console.error('Error creating addon record: %s', addonError.message);
-          return;
-        }
-
-        console.log('Addon record created successfully for subscription: %s', sub.id);
-
-        // Trigger workspace backfill
-        await triggerWorkspaceBackfill(userId, sub.id, subscription.product_id, 365);
-      }
-
-      // Map tier and validate
-      const tier = mapProductToTier(subscription.product_id);
-      if (tier === 'free' && subscription.product_id) {
-        console.error(
-          '⚠️ Product ID mismatch on update! Product: %s, Expected Pro: %s, Expected Team: %s',
-          subscription.product_id,
-          process.env.POLAR_PRODUCT_ID_PRO,
-          process.env.POLAR_PRODUCT_ID_TEAM
-        );
-      }
-
-      // Get tier limits
-      const limits = getTierLimits(tier);
-
-      // Determine billing cycle
-      let billingCycle: string | null = null;
-      if (subscription.recurring_interval === 'year') {
-        billingCycle = 'yearly';
-      } else if (subscription.recurring_interval === 'month') {
-        billingCycle = 'monthly';
-      }
-
-      // Update subscription status in database with error checking
-      const { error: updateError } = await supabase
-        .from('subscriptions')
-        .update({
-          status: subscription.status as
-            | 'active'
-            | 'canceled'
-            | 'past_due'
-            | 'trialing'
-            | 'inactive',
-          tier,
-          max_workspaces: limits.max_workspaces,
-          max_repos_per_workspace: limits.max_repos_per_workspace,
-          billing_cycle: billingCycle,
-          current_period_start: subscription.current_period_start,
-          current_period_end: subscription.current_period_end,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('polar_subscription_id', subscription.id);
-
-      if (updateError) {
-        console.error('❌ Failed to update subscription:', updateError);
-        await captureServerException(new Error(updateError.message), {
-          level: 'error',
-          tags: { type: 'subscription_update_db_failed' },
-          extra: { subscription_id: subscription.id },
-        });
-        throw updateError;
-      }
-
-      const userId = subscription.metadata?.user_id as string;
-      if (userId) {
-        await trackServerEvent(
-          'subscription_updated',
-          {
-            subscription_id: subscription.id,
-            tier,
-            status: subscription.status,
-            billing_cycle: billingCycle,
-          },
-          userId
-        );
-      }
-
-      console.log(
-        '✅ Subscription updated: %s (tier: %s, status: %s)',
-        subscription.id,
-        tier,
-        subscription.status
-      );
-    },
-
-    onSubscriptionCanceled: async (subscription) => {
-      console.log('Subscription canceled:', subscription.id);
-
-      // Mark subscription as canceled
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'canceled',
-          cancel_at_period_end: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('polar_subscription_id', subscription.id);
-
-      const userId = subscription.metadata?.user_id as string;
-      if (userId) {
-        await trackServerEvent(
-          'subscription_canceled',
-          {
-            subscription_id: subscription.id,
-            status: 'canceled',
-          },
-          userId
-        );
-      }
-    },
-
-    onSubscriptionRevoked: async (subscription) => {
-      console.log('Subscription revoked:', subscription.id);
-
-      // Immediately downgrade to free tier
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'inactive',
-          tier: 'free',
-          cancel_at_period_end: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('polar_subscription_id', subscription.id);
-    },
-
-    onCustomerCreated: async (customer) => {
-      console.log('Customer created:', customer.id);
-
-      // Get user ID from metadata
-      const userId = customer.metadata?.user_id as string;
-      if (!userId) {
-        console.error('No user_id in customer metadata');
-        return;
-      }
-
-      // Create or update subscription record with customer ID
-      await supabase.from('subscriptions').upsert(
-        {
-          user_id: userId,
-          polar_customer_id: customer.id,
-          tier: 'free',
-          status: 'inactive',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id',
-        }
-      );
-    },
-
-    onCustomerUpdated: async (customer) => {
-      console.log('Customer updated:', customer.id);
-
-      // Update customer information if needed
-      await supabase
-        .from('subscriptions')
-        .update({
-          updated_at: new Date().toISOString(),
-        })
-        .eq('polar_customer_id', customer.id);
-    },
-
-    onOrderCreated: async (order) => {
-      console.log('Order created:', order.id);
-
-      // Log order for analytics
-      const userId = order.metadata?.user_id as string;
-      if (userId) {
-        console.log('User %s completed order %s for $%d', userId, order.id, order.amount / 100);
-      }
-    },
-
-    onPayload: async (payload) => {
-      // Handle any other webhook events
-      console.log('Received webhook event:', payload.type);
-    },
-  });
-
-  // Execute the webhook handler
-  try {
-    // @ts-ignore - Adapter mismatch between Next.js and Netlify Functions
-    const response = await webhookHandler(event, context);
-
-    // Convert Web Response to Netlify Function Response
-    if (response && typeof response.text === 'function') {
-      const body = await response.text();
-      const headers: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        headers[key] = value;
-      });
-
-      return {
-        statusCode: response.status,
-        body,
-        headers,
-      };
-    }
-
-    return response as any;
-  } catch (error) {
-    console.error('Webhook processing error:', error);
-    await captureServerException(error instanceof Error ? error : new Error(String(error)), {
-      level: 'error',
-      tags: { type: 'webhook_execution_failed' },
-    });
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal Server Error' }),
-    };
-  }
-};
-
 // Helper function to map Polar product IDs to our tier names
 function mapProductToTier(productId: string): string {
   // Map your actual Polar product IDs to tier names
@@ -569,3 +172,433 @@ function getTierLimits(tier: string): {
 
   return tierLimits[tier] || tierLimits.free;
 }
+
+// Define webhook handler with signature verification
+export const handler: Handler = async (event) => {
+  // Validate environment variables at runtime
+  if (!process.env.POLAR_WEBHOOK_SECRET) {
+    console.error('POLAR_WEBHOOK_SECRET is not configured');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Webhook configuration error' }),
+    };
+  }
+
+  if (!process.env.SUPABASE_URL) {
+    console.error('SUPABASE_URL is not configured');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Database configuration error' }),
+    };
+  }
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Database configuration error' }),
+    };
+  }
+
+  // Validate request body
+  if (!event.body) {
+    console.error('No request body received');
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'No request body' }),
+    };
+  }
+
+  // Extract webhook headers (Standard Webhooks format)
+  const webhookHeaders = {
+    'webhook-id': event.headers['webhook-id'] || '',
+    'webhook-timestamp': event.headers['webhook-timestamp'] || '',
+    'webhook-signature': event.headers['webhook-signature'] || '',
+  };
+
+  // Validate webhook signature and parse payload
+  let webhookPayload;
+  try {
+    webhookPayload = validateEvent(event.body, webhookHeaders, process.env.POLAR_WEBHOOK_SECRET);
+  } catch (error) {
+    if (error instanceof WebhookVerificationError) {
+      console.error('Webhook signature verification failed:', error.message);
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ received: false, error: 'Invalid signature' }),
+      };
+    }
+    throw error;
+  }
+
+  console.log('Received webhook event: %s', webhookPayload.type);
+
+  // Process the webhook payload with event handlers
+  try {
+    await handleWebhookPayload(webhookPayload, {
+      webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
+
+      onSubscriptionCreated: async (payload) => {
+        const subscription = payload.data;
+        console.log('Subscription created:', subscription.id);
+
+        // Validate user ID
+        const userId = subscription.metadata?.user_id as string;
+        if (!userId) {
+          console.error('❌ No user_id in subscription metadata:', subscription.id);
+          const error = new Error('Missing user_id in subscription metadata');
+          await captureServerException(error, {
+            level: 'error',
+            tags: { type: 'subscription_creation_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw error;
+        }
+
+        // Map tier and validate
+        const tier = mapProductToTier(subscription.productId);
+        if (tier === 'free' && subscription.productId) {
+          console.error(
+            '⚠️ Product ID mismatch! Product: %s, Expected Pro: %s, Expected Team: %s',
+            subscription.productId,
+            process.env.POLAR_PRODUCT_ID_PRO,
+            process.env.POLAR_PRODUCT_ID_TEAM
+          );
+        }
+
+        // Get tier limits
+        const limits = getTierLimits(tier);
+
+        // Determine billing cycle
+        let billingCycle: string | null = null;
+        if (subscription.recurringInterval === 'year') {
+          billingCycle = 'yearly';
+        } else if (subscription.recurringInterval === 'month') {
+          billingCycle = 'monthly';
+        }
+
+        console.log(
+          'Creating subscription for user %s with tier %s (workspaces: %d, repos: %d)',
+          userId,
+          tier,
+          limits.max_workspaces,
+          limits.max_repos_per_workspace
+        );
+
+        // Database operation with error checking
+        const { error } = await supabase.from('subscriptions').upsert(
+          {
+            user_id: userId,
+            polar_customer_id: subscription.customerId,
+            polar_subscription_id: subscription.id,
+            status: subscription.status as
+              | 'active'
+              | 'canceled'
+              | 'past_due'
+              | 'trialing'
+              | 'inactive',
+            tier,
+            max_workspaces: limits.max_workspaces,
+            max_repos_per_workspace: limits.max_repos_per_workspace,
+            billing_cycle: billingCycle,
+            current_period_start: subscription.currentPeriodStart,
+            current_period_end: subscription.currentPeriodEnd,
+            created_at: subscription.createdAt,
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'user_id',
+          }
+        );
+
+        // Check for errors
+        if (error) {
+          console.error('❌ Failed to create subscription:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'subscription_creation_db_failed' },
+            extra: { subscription_id: subscription.id, user_id: userId },
+          });
+          throw error; // Return error to Polar for retry
+        }
+
+        await trackServerEvent(
+          'subscription_created',
+          {
+            subscription_id: subscription.id,
+            tier,
+            status: subscription.status,
+            billing_cycle: billingCycle,
+          },
+          userId
+        );
+
+        console.log(
+          '✅ Subscription created: { user_id: %s, tier: %s, status: %s }',
+          userId,
+          tier,
+          subscription.status
+        );
+      },
+
+      onSubscriptionUpdated: async (payload) => {
+        const subscription = payload.data;
+        console.log('Subscription updated:', subscription.id);
+
+        // Check if this update includes an addon purchase
+        // Note: Polar subscriptions can have multiple products/addons
+        const isExtendedRetentionAddon =
+          subscription.productId === POLAR_ADDON_PRODUCT_IDS.EXTENDED_DATA_RETENTION;
+
+        if (isExtendedRetentionAddon && subscription.status === 'active') {
+          console.log(
+            'Extended Data Retention addon detected for subscription: %s',
+            subscription.id
+          );
+
+          // Get user ID from subscription metadata
+          const userId = subscription.metadata?.user_id as string;
+          if (!userId) {
+            console.error('No user_id in subscription metadata for addon purchase');
+            return;
+          }
+
+          // Get internal subscription ID using Polar subscription ID
+          const { data: sub, error: subError } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('polar_subscription_id', subscription.id)
+            .maybeSingle();
+
+          if (subError) {
+            console.error('Error fetching subscription for addon: %s', subError.message);
+            return;
+          }
+
+          if (!sub) {
+            console.error('No subscription found for polar_subscription_id: %s', subscription.id);
+            return;
+          }
+
+          // Create addon record with error handling
+          const { error: addonError } = await supabase.from('subscription_addons').upsert(
+            {
+              subscription_id: sub.id,
+              addon_type: 'extended_data_retention',
+              addon_product_id: subscription.productId,
+              retention_days: 365,
+              status: 'active',
+              purchased_at: new Date().toISOString(),
+              activated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'subscription_id,addon_type',
+            }
+          );
+
+          if (addonError) {
+            console.error('Error creating addon record: %s', addonError.message);
+            return;
+          }
+
+          console.log('Addon record created successfully for subscription: %s', sub.id);
+
+          // Trigger workspace backfill
+          await triggerWorkspaceBackfill(userId, sub.id, subscription.productId, 365);
+        }
+
+        // Map tier and validate
+        const tier = mapProductToTier(subscription.productId);
+        if (tier === 'free' && subscription.productId) {
+          console.error(
+            '⚠️ Product ID mismatch on update! Product: %s, Expected Pro: %s, Expected Team: %s',
+            subscription.productId,
+            process.env.POLAR_PRODUCT_ID_PRO,
+            process.env.POLAR_PRODUCT_ID_TEAM
+          );
+        }
+
+        // Get tier limits
+        const limits = getTierLimits(tier);
+
+        // Determine billing cycle
+        let billingCycle: string | null = null;
+        if (subscription.recurringInterval === 'year') {
+          billingCycle = 'yearly';
+        } else if (subscription.recurringInterval === 'month') {
+          billingCycle = 'monthly';
+        }
+
+        // Update subscription status in database with error checking
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: subscription.status as
+              | 'active'
+              | 'canceled'
+              | 'past_due'
+              | 'trialing'
+              | 'inactive',
+            tier,
+            max_workspaces: limits.max_workspaces,
+            max_repos_per_workspace: limits.max_repos_per_workspace,
+            billing_cycle: billingCycle,
+            current_period_start: subscription.currentPeriodStart,
+            current_period_end: subscription.currentPeriodEnd,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('polar_subscription_id', subscription.id);
+
+        if (updateError) {
+          console.error('❌ Failed to update subscription:', updateError);
+          await captureServerException(new Error(updateError.message), {
+            level: 'error',
+            tags: { type: 'subscription_update_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw updateError;
+        }
+
+        const userId = subscription.metadata?.user_id as string;
+        if (userId) {
+          await trackServerEvent(
+            'subscription_updated',
+            {
+              subscription_id: subscription.id,
+              tier,
+              status: subscription.status,
+              billing_cycle: billingCycle,
+            },
+            userId
+          );
+        }
+
+        console.log(
+          '✅ Subscription updated: %s (tier: %s, status: %s)',
+          subscription.id,
+          tier,
+          subscription.status
+        );
+      },
+
+      onSubscriptionCanceled: async (payload) => {
+        const subscription = payload.data;
+        console.log('Subscription canceled:', subscription.id);
+
+        // Mark subscription as canceled
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            cancel_at_period_end: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('polar_subscription_id', subscription.id);
+
+        const userId = subscription.metadata?.user_id as string;
+        if (userId) {
+          await trackServerEvent(
+            'subscription_canceled',
+            {
+              subscription_id: subscription.id,
+              status: 'canceled',
+            },
+            userId
+          );
+        }
+      },
+
+      onSubscriptionRevoked: async (payload) => {
+        const subscription = payload.data;
+        console.log('Subscription revoked:', subscription.id);
+
+        // Immediately downgrade to free tier
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'inactive',
+            tier: 'free',
+            cancel_at_period_end: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('polar_subscription_id', subscription.id);
+      },
+
+      onCustomerCreated: async (payload) => {
+        const customer = payload.data;
+        console.log('Customer created:', customer.id);
+
+        // Get user ID from metadata
+        const userId = customer.metadata?.user_id as string;
+        if (!userId) {
+          console.error('No user_id in customer metadata');
+          return;
+        }
+
+        // Create or update subscription record with customer ID
+        await supabase.from('subscriptions').upsert(
+          {
+            user_id: userId,
+            polar_customer_id: customer.id,
+            tier: 'free',
+            status: 'inactive',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'user_id',
+          }
+        );
+      },
+
+      onCustomerUpdated: async (payload) => {
+        const customer = payload.data;
+        console.log('Customer updated:', customer.id);
+
+        // Update customer information if needed
+        await supabase
+          .from('subscriptions')
+          .update({
+            updated_at: new Date().toISOString(),
+          })
+          .eq('polar_customer_id', customer.id);
+      },
+
+      onOrderCreated: async (payload) => {
+        const order = payload.data;
+        console.log('Order created:', order.id);
+
+        // Log order for analytics
+        const userId = order.metadata?.user_id as string;
+        if (userId) {
+          console.log(
+            'User %s completed order %s for $%d',
+            userId,
+            order.id,
+            order.totalAmount / 100
+          );
+        }
+      },
+
+      onPayload: async (payload) => {
+        // Handle any other webhook events
+        console.log('Received webhook event:', payload.type);
+      },
+    });
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ received: true }),
+    };
+  } catch (error) {
+    console.error('Webhook processing error:', error);
+    await captureServerException(error instanceof Error ? error : new Error(String(error)), {
+      level: 'error',
+      tags: { type: 'webhook_execution_failed' },
+    });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Internal Server Error' }),
+    };
+  }
+};
