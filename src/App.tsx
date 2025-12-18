@@ -9,11 +9,9 @@ import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 import { logger } from '@/lib/logger';
-// Lazy load core components to reduce initial bundle
-const Layout = lazy(() =>
-  import('@/components/common/layout').then((m) => ({ default: m.Layout }))
-);
-const Home = lazy(() => import('@/components/common/layout').then((m) => ({ default: m.Home })));
+// Eagerly load core layout components to prevent hydration flash
+import { Layout, Home } from '@/components/common/layout';
+
 const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
 );
