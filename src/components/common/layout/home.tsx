@@ -5,9 +5,6 @@ import { ExampleRepos } from '@/components/features/repository/example-repos';
 import { useNavigate } from 'react-router-dom';
 import { SocialMetaTags } from './meta-tags-provider';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
-import { WorkspacePreviewCard } from '@/components/features/workspace/WorkspacePreviewCard';
-import { WorkspaceOnboarding } from '@/components/features/workspace/WorkspaceOnboarding';
-import { WorkspaceCreateModal } from '@/components/features/workspace/WorkspaceCreateModal';
 import { WorkspaceListFallback } from '@/components/ui/workspace-list-fallback';
 import { useAuth } from '@/hooks/use-auth';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
@@ -16,7 +13,23 @@ import type { GitHubRepository } from '@/lib/github';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 
+// Lazy load components that are only shown for logged-in users or on interaction
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
+const WorkspacePreviewCard = lazy(() =>
+  import('@/components/features/workspace/WorkspacePreviewCard').then((m) => ({
+    default: m.WorkspacePreviewCard,
+  }))
+);
+const WorkspaceOnboarding = lazy(() =>
+  import('@/components/features/workspace/WorkspaceOnboarding').then((m) => ({
+    default: m.WorkspaceOnboarding,
+  }))
+);
+const WorkspaceCreateModal = lazy(() =>
+  import('@/components/features/workspace/WorkspaceCreateModal').then((m) => ({
+    default: m.WorkspaceCreateModal,
+  }))
+);
 
 export default function Home() {
   const navigate = useNavigate();
@@ -108,7 +121,13 @@ export default function Home() {
         </Card>
 
         {isLoggedIn && !authLoading && (
-          <>
+          <Suspense
+            fallback={
+              <div className="flex gap-4 overflow-x-auto pb-2">
+                <WorkspaceListFallback workspaces={[]} />
+              </div>
+            }
+          >
             {(() => {
               if (workspaceLoading) {
                 return (
@@ -159,16 +178,20 @@ export default function Home() {
                 </Suspense>
               );
             })()}
-          </>
+          </Suspense>
         )}
       </div>
 
-      {/* Workspace Creation Modal */}
-      <WorkspaceCreateModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        onSuccess={handleCreateWorkspaceSuccess}
-      />
+      {/* Workspace Creation Modal - only render when opened to defer loading */}
+      {createModalOpen && (
+        <Suspense fallback={null}>
+          <WorkspaceCreateModal
+            open={createModalOpen}
+            onOpenChange={setCreateModalOpen}
+            onSuccess={handleCreateWorkspaceSuccess}
+          />
+        </Suspense>
+      )}
     </article>
   );
 }
