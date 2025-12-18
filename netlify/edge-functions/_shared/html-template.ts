@@ -104,7 +104,7 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
 
     if (!response.ok) {
       console.error('[SSR] Failed to fetch index.html:', response.status);
-      return getDefaultAssets();
+      return getSPAFallback();
     }
 
     const html = await response.text();
@@ -219,7 +219,8 @@ const CRITICAL_CSS = `
   body{margin:0;line-height:inherit;font-display:swap}
   :root{--background:210 20% 98%;--foreground:215 25% 27%;--card:0 0% 100%;--card-foreground:215 25% 27%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:210 20% 94%;--secondary-foreground:215 25% 27%;--muted:210 20% 94%;--muted-foreground:215 16% 47%;--border:220 13% 91%;--input:210 20% 96%;--ring:14 100% 50%;--radius:0.5rem}
   .dark{--background:0 0% 3.9%;--foreground:0 0% 98%;--card:0 0% 3.9%;--card-foreground:0 0% 98%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:0 0% 14.9%;--secondary-foreground:0 0% 98%;--muted:0 0% 14.9%;--muted-foreground:0 0% 63.9%;--border:0 0% 14.9%;--input:0 0% 14.9%;--ring:14 100% 50%}
-  .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+  .dark .dark\:bg-black{background-color:#000}
+  .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.bg-muted\/50{background-color:hsl(var(--muted) / 0.5)}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
   body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
   #root{min-height:100vh;background-color:hsl(var(--background))}
@@ -227,8 +228,8 @@ const CRITICAL_CSS = `
   .text-center{text-align:center}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}
   .font-bold{font-weight:700}.font-semibold{font-weight:600}
   .text-muted-foreground{color:hsl(var(--muted-foreground))}.text-primary{color:hsl(var(--primary))}
-  .mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}
-  .p-4{padding:1rem}.p-6{padding:1.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1\\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.py-12{padding-top:3rem;padding-bottom:3rem}.pb-4{padding-bottom:1rem}.pt-0{padding-top:0}
+  .mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}.mr-2{margin-right:0.5rem}
+  .p-2{padding:0.5rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1\\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.py-8{padding-top:2rem;padding-bottom:2rem}.py-12{padding-top:3rem;padding-bottom:3rem}.pb-4{padding-bottom:1rem}.pt-0{padding-top:0}
   .text-sm{font-size:0.875rem;line-height:1.25rem}.text-lg{font-size:1.125rem;line-height:1.75rem}
   .bg-secondary{background-color:hsl(var(--secondary))}
   .gap-2{gap:0.5rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.flex-wrap{flex-wrap:wrap}.inline-flex{display:inline-flex}
@@ -236,8 +237,8 @@ const CRITICAL_CSS = `
   @media(min-width:768px){.md\\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.md\\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
   .rounded-lg{border-radius:0.5rem}.rounded-full{border-radius:9999px}
   .border{border-width:1px;border-color:hsl(var(--border))}.bg-card{background-color:hsl(var(--card))}.shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05)}
-  .w-full{width:100%}.h-10{height:2.5rem}.h-12{height:3rem}.w-10{width:2.5rem}.w-12{width:3rem}.max-w-2xl{max-width:42rem}
-  .space-y-6>:not([hidden])~:not([hidden]){margin-top:1.5rem}
+  .w-full{width:100%}.h-4{height:1rem}.w-4{width:1rem}.h-5{height:1.25rem}.w-5{width:1.25rem}.h-8{height:2rem}.w-8{width:2rem}.h-9{height:2.25rem}.h-10{height:2.5rem}.h-12{height:3rem}.w-10{width:2.5rem}.w-12{width:3rem}.max-w-2xl{max-width:42rem}
+  .space-y-6>:not([hidden])~:not([hidden]){margin-top:1.5rem}.space-x-4>:not([hidden])~:not([hidden]){margin-left:1rem}
   input{font-family:inherit;font-size:100%;line-height:inherit;color:inherit;margin:0;padding:0}
   button{font-family:inherit;font-size:100%;line-height:inherit;color:inherit;margin:0;padding:0;cursor:pointer}
   .border-input{border-color:hsl(var(--input))}.ring-offset-background{--tw-ring-offset-color:hsl(var(--background))}.focus-visible\\:outline-none:focus-visible{outline:2px solid transparent;outline-offset:2px}.focus-visible\\:ring-2:focus-visible{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.focus-visible\\:ring-ring:focus-visible{--tw-ring-color:hsl(var(--ring))}.focus-visible\\:ring-offset-2:focus-visible{--tw-ring-offset-width:2px}
@@ -246,6 +247,8 @@ const CRITICAL_CSS = `
   .space-y-2>:not([hidden])~:not([hidden]){margin-top:0.5rem}.space-y-4>:not([hidden])~:not([hidden]){margin-top:1rem}
   a{color:inherit;text-decoration:inherit}
   .hover\\:underline:hover{text-decoration-line:underline}
+  .hidden{display:none}.bg-white{background-color:#fff}.text-black{color:#000}
+  @media(min-width:640px){.sm\\:inline{display:inline}.sm\\:inline-block{display:inline-block}.sm\\:hidden{display:none}}
 `;
 
 /**
