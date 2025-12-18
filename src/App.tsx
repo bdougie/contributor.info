@@ -330,11 +330,12 @@ function App() {
             analytics.setProviders(['supabase', 'posthog']);
           });
 
-          // Enable session recording after 10 seconds (deferred for LCP improvement)
-          // This delays loading the heavy rrweb library until after LCP
+          // Enable session recording after 30 seconds (deferred for LCP improvement)
+          // This delays loading the heavy rrweb library (~80KB) until well after LCP
+          // See: https://github.com/bdougie/contributor.info/issues/1400
           sessionRecordingTimer = setTimeout(() => {
             enableSessionRecording();
-          }, 10000);
+          }, 30000);
         });
       });
 
