@@ -404,26 +404,22 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch asset references first
+    // Start fetching asset references immediately
     const baseUrl = `${url.protocol}//${url.host}`;
-    const assets = await getAssetReferences(baseUrl);
+    const assetsPromise = getAssetReferences(baseUrl);
+
+    // Fetch repository data and contributor stats in parallel with assets
+    const [assets, repoData, contributorStats] = await Promise.all([
+      assetsPromise,
+      fetchRepository(owner, repo),
+      fetchRepoContributorStats(owner, repo),
+    ]);
 
     // Fall back to SPA if assets couldn't be loaded (critical for hydration)
     if (assets.fallbackToSPA) {
       console.warn('[ssr-repo] Asset loading failed, falling back to SPA');
       return fallbackToSPA(context);
     }
-
-    // Return the skeleton immediately if we want to show it while loading
-    // But since this is SSR, we usually want to wait for data.
-    // However, if data fetch fails, we should return the skeleton instead of falling back to SPA
-    // to prevent the "Unstyled Landing Page" flash if the SPA falls back to Home.
-
-    // Fetch repository data and contributor stats in parallel
-    const [repoData, contributorStats] = await Promise.all([
-      fetchRepository(owner, repo),
-      fetchRepoContributorStats(owner, repo),
-    ]);
 
     // If repo not found or error, render the skeleton as a fallback
     // This ensures the user sees the Repo structure while the client-side tries to fetch/handle 404

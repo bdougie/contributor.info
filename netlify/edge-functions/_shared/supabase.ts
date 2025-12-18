@@ -194,29 +194,19 @@ export async function fetchRepoContributorStats(
 }> {
   const supabase = getSupabaseClient();
 
-  // First get the repository ID
-  const { data: repoData } = await supabase
-    .from('repositories')
-    .select('id')
-    .eq('owner', owner)
-    .eq('name', repo)
-    .maybeSingle();
-
-  if (!repoData) {
-    return { count: 0, topContributors: [] };
-  }
-
-  // Get contributor count and top contributors
+  // Get contributor count and top contributors in a single query by joining repositories
   const { data: contributors, count } = await supabase
     .from('repository_contributors')
     .select(
       `
       contributions,
-      contributors!inner(login, avatar_url)
+      contributors!inner(login, avatar_url),
+      repositories!inner(owner, name)
     `,
       { count: 'exact' }
     )
-    .eq('repository_id', repoData.id)
+    .eq('repositories.owner', owner)
+    .eq('repositories.name', repo)
     .order('contributions', { ascending: false })
     .limit(10);
 
