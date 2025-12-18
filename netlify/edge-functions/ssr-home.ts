@@ -10,10 +10,12 @@ import { withSentry, addBreadcrumb } from './_shared/sentry.ts';
 import {
   renderHTML,
   getSSRHeaders,
-  escapeHtml,
   getAssetReferences,
+  html,
+  type SafeHTML,
   type MetaTags,
   type HomePageData,
+  unsafe
 } from './_shared/html-template.ts';
 import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
 
@@ -34,26 +36,48 @@ const EXAMPLE_REPOS = [
 /**
  * Render the home page HTML content
  */
-function renderHomeContent(): string {
+function renderHomeContent(): SafeHTML {
   // Button styles matching variant="outline" size="sm"
   const buttonClass = "inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs sm:text-sm";
-
-  const exampleReposHtml = EXAMPLE_REPOS.map(
-    (repo) => `
-      <button
-        type="button"
-        class="${buttonClass}"
-        onclick="window.location.href='/${escapeHtml(repo)}'"
-      >
-        ${escapeHtml(repo)}
-      </button>
-    `
-  ).join('');
 
   // Search button styles matching the client-side override (white button)
   const searchButtonClass = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-100";
 
-  return `
+  // Use unsafe for script content since it's trusted code, but use html`` for the rest
+  const scriptContent = unsafe(`
+      (function() {
+        var input = document.getElementById('ssr-search-input');
+        var button = document.getElementById('ssr-search-button');
+        if (input && button) {
+          function handleSearch() {
+            var value = input.value.trim();
+            if (value) {
+              var match = value.match(/(?:github\\.com\\/)?([^/]+)\\/([^/]+)/);
+              if (match) {
+                window.location.href = '/' + match[1] + '/' + match[2];
+              } else {
+                // Just navigate to the value if it looks like owner/repo
+                if (value.includes('/')) {
+                   window.location.href = '/' + value;
+                }
+              }
+            }
+          }
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            handleSearch();
+          });
+          input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSearch();
+            }
+          });
+        }
+      })();
+  `);
+
+  return html`
     <article class="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <div class="w-full max-w-2xl space-y-6 px-4">
         <!-- Hero Card -->
@@ -99,7 +123,15 @@ function renderHomeContent(): string {
             <aside class="mt-4 w-full">
               <div class="text-sm text-muted-foreground mb-2">Popular examples:</div>
               <div class="flex flex-wrap gap-2">
-                ${exampleReposHtml}
+                ${EXAMPLE_REPOS.map(repo => html`
+                  <button
+                    type="button"
+                    class="${buttonClass}"
+                    onclick="window.location.href='/${repo}'"
+                  >
+                    ${repo}
+                  </button>
+                `)}
               </div>
             </aside>
           </div>
@@ -112,36 +144,7 @@ function renderHomeContent(): string {
 
     <!-- Inline script for basic interactivity before hydration -->
     <script>
-      (function() {
-        var input = document.getElementById('ssr-search-input');
-        var button = document.getElementById('ssr-search-button');
-        if (input && button) {
-          function handleSearch() {
-            var value = input.value.trim();
-            if (value) {
-              var match = value.match(/(?:github\\.com\\/)?([^/]+)\\/([^/]+)/);
-              if (match) {
-                window.location.href = '/' + match[1] + '/' + match[2];
-              } else {
-                // Just navigate to the value if it looks like owner/repo
-                if (value.includes('/')) {
-                   window.location.href = '/' + value;
-                }
-              }
-            }
-          }
-          button.addEventListener('click', function(e) {
-            e.preventDefault();
-            handleSearch();
-          });
-          input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              handleSearch();
-            }
-          });
-        }
-      })();
+      ${scriptContent}
     </script>
   `;
 }

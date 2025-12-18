@@ -10,10 +10,12 @@ import { withSentry, addBreadcrumb } from './_shared/sentry.ts';
 import {
   renderHTML,
   getSSRHeaders,
-  escapeHtml,
   getAssetReferences,
+  html,
+  type SafeHTML,
   type MetaTags,
   type TrendingPageData,
+  unsafe
 } from './_shared/html-template.ts';
 import { fetchTrendingRepos, type TrendingRepo } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
@@ -42,20 +44,20 @@ const LANGUAGE_COLORS: Record<string, string> = {
 /**
  * Render a single repository card
  */
-function renderRepoCard(repo: TrendingRepo, isHottest = false): string {
+function renderRepoCard(repo: TrendingRepo, isHottest = false): SafeHTML {
   const languageColor = repo.language ? LANGUAGE_COLORS[repo.language] || '#858585' : '#858585';
   const description = repo.description
-    ? escapeHtml(repo.description.slice(0, 150)) + (repo.description.length > 150 ? '...' : '')
+    ? (repo.description.slice(0, 150) + (repo.description.length > 150 ? '...' : ''))
     : 'No description available';
 
-  return `
-    <a href="/${escapeHtml(repo.owner)}/${escapeHtml(repo.name)}" class="block">
+  return html`
+    <a href="/${repo.owner}/${repo.name}" class="block">
       <div class="rounded-lg border bg-card p-4 hover:shadow-md transition-shadow ${isHottest ? 'border-orange-200 dark:border-orange-800' : ''}">
         <div class="flex items-start justify-between gap-2 mb-2">
           <h3 class="font-semibold text-lg truncate">
-            <span class="text-muted-foreground">${escapeHtml(repo.owner)}/</span>${escapeHtml(repo.name)}
+            <span class="text-muted-foreground">${repo.owner}/</span>${repo.name}
           </h3>
-          ${isHottest ? '<span class="text-orange-500">🔥</span>' : ''}
+          ${isHottest ? unsafe('<span class="text-orange-500">🔥</span>') : ''}
         </div>
         <p class="text-sm text-muted-foreground mb-3 line-clamp-2">
           ${description}
@@ -63,10 +65,10 @@ function renderRepoCard(repo: TrendingRepo, isHottest = false): string {
         <div class="flex items-center gap-4 text-sm">
           ${
             repo.language
-              ? `
+              ? html`
             <span class="flex items-center gap-1">
               <span class="w-3 h-3 rounded-full" style="background-color: ${languageColor}"></span>
-              ${escapeHtml(repo.language)}
+              ${repo.language}
             </span>
           `
               : ''
@@ -92,9 +94,9 @@ function renderRepoCard(repo: TrendingRepo, isHottest = false): string {
 /**
  * Render the trending page HTML content
  */
-function renderTrendingContent(repos: TrendingRepo[]): string {
+function renderTrendingContent(repos: TrendingRepo[]): SafeHTML {
   if (repos.length === 0) {
-    return `
+    return html`
       <div class="container mx-auto px-4 py-8">
         <div class="text-center py-12">
           <svg class="w-12 h-12 text-muted-foreground mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +111,7 @@ function renderTrendingContent(repos: TrendingRepo[]): string {
 
   const [hottest, ...rest] = repos;
 
-  return `
+  return html`
     <div class="container mx-auto px-4 py-8">
       <!-- Header -->
       <div class="mb-6 sm:mb-8">
@@ -148,7 +150,7 @@ function renderTrendingContent(repos: TrendingRepo[]): string {
 
       <!-- Repository Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        ${rest.map((repo) => renderRepoCard(repo)).join('')}
+        ${rest.map((repo) => renderRepoCard(repo))}
       </div>
 
       <!-- Filters placeholder (hydrated on client) -->
