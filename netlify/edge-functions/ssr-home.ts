@@ -15,47 +15,50 @@ import {
   type MetaTags,
   type HomePageData,
 } from './_shared/html-template.ts';
-import { fetchHomeStats } from './_shared/supabase.ts';
-import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
+import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
 
 /**
  * Example repositories to show on the home page
  * These are rendered server-side for immediate visibility
+ * Must match src/components/features/repository/example-repos.tsx
  */
 const EXAMPLE_REPOS = [
-  { name: 'facebook/react', label: 'React' },
-  { name: 'vercel/next.js', label: 'Next.js' },
-  { name: 'microsoft/vscode', label: 'VS Code' },
-  { name: 'denoland/deno', label: 'Deno' },
-  { name: 'sveltejs/svelte', label: 'Svelte' },
-  { name: 'tailwindlabs/tailwindcss', label: 'Tailwind' },
+  'continuedev/continue',
+  'argoproj/argo-cd',
+  'TanStack/table',
+  'vitejs/vite',
+  'etcd-io/etcd',
+  'better-auth/better-auth',
 ];
 
 /**
  * Render the home page HTML content
  */
-function renderHomeContent(stats: {
-  totalRepos: number;
-  totalContributors: number;
-  totalPRs: number;
-}): string {
+function renderHomeContent(): string {
+  // Button styles matching variant="outline" size="sm"
+  const buttonClass = "inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs sm:text-sm";
+
   const exampleReposHtml = EXAMPLE_REPOS.map(
     (repo) => `
-      <a
-        href="/${escapeHtml(repo.name)}"
-        class="inline-flex items-center px-3 py-1.5 rounded-full text-sm bg-secondary hover:bg-secondary/80 transition-colors"
+      <button
+        type="button"
+        class="${buttonClass}"
+        onclick="window.location.href='/${escapeHtml(repo)}'"
       >
-        ${escapeHtml(repo.label)}
-      </a>
+        ${escapeHtml(repo)}
+      </button>
     `
   ).join('');
+
+  // Search button styles matching the client-side override (white button)
+  const searchButtonClass = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-100";
 
   return `
     <article class="flex items-center justify-center min-h-[calc(100vh-8rem)]">
       <div class="w-full max-w-2xl space-y-6 px-4">
         <!-- Hero Card -->
-        <div class="rounded-lg border bg-card shadow-sm">
-          <div class="p-6 pb-4">
+        <div class="rounded-lg border bg-card shadow-sm text-card-foreground">
+          <div class="flex flex-col space-y-1.5 p-6">
             <h1 class="text-3xl font-bold text-center">
               Analyze GitHub Repository Contributors
             </h1>
@@ -66,45 +69,39 @@ function renderHomeContent(stats: {
           <div class="p-6 pt-0">
             <!-- Search Input (will be hydrated by client) -->
             <section>
-              <div class="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Search repositories (e.g., facebook/react)"
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  id="ssr-search-input"
-                />
-                <button
-                  type="button"
-                  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-                  id="ssr-search-button"
-                >
-                  Analyze
-                </button>
+              <div class="relative">
+                <form class="flex gap-4" onsubmit="event.preventDefault();">
+                  <div class="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="Search repositories (e.g., facebook/react)"
+                      class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full pr-8"
+                      id="ssr-search-input"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    class="${searchButtonClass}"
+                    id="ssr-search-button"
+                    aria-label="Analyze"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Analyze
+                  </button>
+                </form>
               </div>
             </section>
             <!-- Example Repos -->
-            <aside class="mt-4">
-              <p class="text-sm text-muted-foreground mb-2">Try these popular repositories:</p>
+            <aside class="mt-4 w-full">
+              <div class="text-sm text-muted-foreground mb-2">Popular examples:</div>
               <div class="flex flex-wrap gap-2">
                 ${exampleReposHtml}
               </div>
             </aside>
-          </div>
-        </div>
-
-        <!-- Stats Section (shows what the platform tracks) -->
-        <div class="grid grid-cols-3 gap-4 text-center">
-          <div class="rounded-lg border bg-card p-4">
-            <div class="text-2xl font-bold text-primary">${formatNumber(stats.totalRepos)}</div>
-            <div class="text-sm text-muted-foreground">Repositories</div>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <div class="text-2xl font-bold text-primary">${formatNumber(stats.totalContributors)}</div>
-            <div class="text-sm text-muted-foreground">Contributors</div>
-          </div>
-          <div class="rounded-lg border bg-card p-4">
-            <div class="text-2xl font-bold text-primary">${formatNumber(stats.totalPRs)}</div>
-            <div class="text-sm text-muted-foreground">Pull Requests</div>
           </div>
         </div>
 
@@ -125,12 +122,23 @@ function renderHomeContent(stats: {
               var match = value.match(/(?:github\\.com\\/)?([^/]+)\\/([^/]+)/);
               if (match) {
                 window.location.href = '/' + match[1] + '/' + match[2];
+              } else {
+                // Just navigate to the value if it looks like owner/repo
+                if (value.includes('/')) {
+                   window.location.href = '/' + value;
+                }
               }
             }
           }
-          button.addEventListener('click', handleSearch);
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            handleSearch();
+          });
           input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') handleSearch();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSearch();
+            }
           });
         }
       })();
@@ -159,9 +167,9 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch stats and asset references in parallel
+    // Fetch asset references
     const baseUrl = `${url.protocol}//${url.host}`;
-    const [stats, assets] = await Promise.all([fetchHomeStats(), getAssetReferences(baseUrl)]);
+    const assets = await getAssetReferences(baseUrl);
 
     // Fall back to SPA if assets couldn't be loaded
     if (assets.fallbackToSPA) {
@@ -170,13 +178,20 @@ async function handler(request: Request, context: Context) {
     }
 
     // Generate the page content
-    const content = renderHomeContent(stats);
+    const content = renderHomeContent();
 
     const meta: MetaTags = {
       title: 'contributor.info - Visualizing Open Source Contributions',
       description:
         'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
       image: 'https://contributor-info-social-cards.fly.dev/social-cards/home',
+    };
+
+    // Default empty stats for hydration compatibility (since we removed stats fetch)
+    const stats: HomePageData = {
+      totalRepos: 0,
+      totalContributors: 0,
+      totalPRs: 0
     };
 
     const ssrData: { route: 'home'; data: HomePageData; timestamp: number } = {
