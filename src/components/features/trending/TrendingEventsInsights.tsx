@@ -186,7 +186,8 @@ export function TrendingEventsInsights({
     );
   }
 
-  if (error || !insights) {
+  // Check for errors first to ensure error messages are displayed
+  if (error) {
     return (
       <Card>
         <CardHeader>
@@ -198,13 +199,16 @@ export function TrendingEventsInsights({
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {error || 'No event data available for trending analysis'}
-            </p>
+            <p className="text-sm text-muted-foreground">{error}</p>
           </div>
         </CardContent>
       </Card>
     );
+  }
+
+  // Hide component entirely when no repositories or no data
+  if (!insights) {
+    return null;
   }
 
   const getTopLanguages = () => {
