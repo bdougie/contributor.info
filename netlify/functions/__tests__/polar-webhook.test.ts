@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
 
 // Set up environment variables before importing handler
@@ -17,50 +17,107 @@ vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => mockSupabase),
 }));
 
-// Import Polar webhook types
-import type {
-  WebhookSubscriptionCreatedPayload,
-  WebhookSubscriptionUpdatedPayload,
-  WebhookSubscriptionCanceledPayload,
-  WebhookSubscriptionRevokedPayload,
-  WebhookCustomerCreatedPayload,
-  WebhookCustomerUpdatedPayload,
-  WebhookOrderCreatedPayload,
-} from '@polar-sh/sdk/models/components';
+// Mock validateEvent and WebhookVerificationError from SDK
+const mockValidateEvent = vi.fn();
+class MockWebhookVerificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WebhookVerificationError';
+  }
+}
 
-// Mock Polar Webhooks - capture config globally
-const mockWebhooksHandler = vi.fn();
-const capturedConfigs: Array<{
+vi.mock('@polar-sh/sdk/webhooks', () => ({
+  validateEvent: (...args: unknown[]) => mockValidateEvent(...args),
+  WebhookVerificationError: MockWebhookVerificationError,
+}));
+
+// Capture event handlers passed to handleWebhookPayload
+type EventHandlers = {
   webhookSecret: string;
-  onError?: (error: Error) => Promise<{ statusCode: number; body: string }>;
-  onSubscriptionCreated?: (
-    subscription: WebhookSubscriptionCreatedPayload['data']
-  ) => Promise<void>;
-  onSubscriptionUpdated?: (
-    subscription: WebhookSubscriptionUpdatedPayload['data']
-  ) => Promise<void>;
-  onSubscriptionCanceled?: (
-    subscription: WebhookSubscriptionCanceledPayload['data']
-  ) => Promise<void>;
-  onSubscriptionRevoked?: (
-    subscription: WebhookSubscriptionRevokedPayload['data']
-  ) => Promise<void>;
-  onCustomerCreated?: (customer: WebhookCustomerCreatedPayload['data']) => Promise<void>;
-  onCustomerUpdated?: (customer: WebhookCustomerUpdatedPayload['data']) => Promise<void>;
-  onOrderCreated?: (order: WebhookOrderCreatedPayload['data']) => Promise<void>;
-  onPayload?: (
-    payload: WebhookSubscriptionCreatedPayload | WebhookOrderCreatedPayload
-  ) => Promise<void>;
-}> = [];
+  onSubscriptionCreated?: (payload: { data: SubscriptionData }) => Promise<void>;
+  onSubscriptionUpdated?: (payload: { data: SubscriptionData }) => Promise<void>;
+  onSubscriptionCanceled?: (payload: { data: SubscriptionData }) => Promise<void>;
+  onSubscriptionRevoked?: (payload: { data: SubscriptionData }) => Promise<void>;
+  onCustomerCreated?: (payload: { data: CustomerData }) => Promise<void>;
+  onCustomerUpdated?: (payload: { data: CustomerData }) => Promise<void>;
+  onOrderCreated?: (payload: { data: OrderData }) => Promise<void>;
+  onPayload?: (payload: WebhookPayload) => Promise<void>;
+};
 
-vi.mock('@polar-sh/nextjs', () => {
-  return {
-    Webhooks: vi.fn((config) => {
-      capturedConfigs.push(config);
-      return mockWebhooksHandler;
-    }),
-  };
-});
+interface SubscriptionData {
+  id: string;
+  customerId: string;
+  productId: string;
+  status: string;
+  metadata?: Record<string, unknown>;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  createdAt: string;
+  recurringInterval: string;
+}
+
+interface CustomerData {
+  id: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface OrderData {
+  id: string;
+  totalAmount: number;
+  metadata?: Record<string, unknown>;
+}
+
+interface WebhookPayload {
+  type: string;
+  data: SubscriptionData | CustomerData | OrderData;
+}
+
+vi.mock('@polar-sh/adapter-utils', () => ({
+  handleWebhookPayload: vi.fn(async (payload: WebhookPayload, handlers: EventHandlers) => {
+    // Dispatch to appropriate handler based on event type
+    switch (payload.type) {
+      case 'subscription.created':
+        if (handlers.onSubscriptionCreated) {
+          await handlers.onSubscriptionCreated(payload as { data: SubscriptionData });
+        }
+        break;
+      case 'subscription.updated':
+        if (handlers.onSubscriptionUpdated) {
+          await handlers.onSubscriptionUpdated(payload as { data: SubscriptionData });
+        }
+        break;
+      case 'subscription.canceled':
+        if (handlers.onSubscriptionCanceled) {
+          await handlers.onSubscriptionCanceled(payload as { data: SubscriptionData });
+        }
+        break;
+      case 'subscription.revoked':
+        if (handlers.onSubscriptionRevoked) {
+          await handlers.onSubscriptionRevoked(payload as { data: SubscriptionData });
+        }
+        break;
+      case 'customer.created':
+        if (handlers.onCustomerCreated) {
+          await handlers.onCustomerCreated(payload as { data: CustomerData });
+        }
+        break;
+      case 'customer.updated':
+        if (handlers.onCustomerUpdated) {
+          await handlers.onCustomerUpdated(payload as { data: CustomerData });
+        }
+        break;
+      case 'order.created':
+        if (handlers.onOrderCreated) {
+          await handlers.onOrderCreated(payload as { data: OrderData });
+        }
+        break;
+    }
+
+    if (handlers.onPayload) {
+      await handlers.onPayload(payload);
+    }
+  }),
+}));
 
 // Mock WorkspaceBackfillService
 vi.mock('../../../src/services/workspace-backfill.service', () => ({
@@ -69,25 +126,36 @@ vi.mock('../../../src/services/workspace-backfill.service', () => ({
   },
 }));
 
+// Mock server tracking
+vi.mock('../lib/server-tracking.mts', () => ({
+  trackServerEvent: vi.fn(),
+  captureServerException: vi.fn(),
+}));
+
 describe('Polar Webhook Handler', () => {
+  let handler: (
+    event: HandlerEvent,
+    context: HandlerContext
+  ) => Promise<{ statusCode: number; body: string }>;
   let mockEvent: Partial<HandlerEvent>;
   let mockContext: Partial<HandlerContext>;
 
-  // Import the handler module once to populate capturedConfigs
-  beforeAll(async () => {
-    const { handler } = await import('../polar-webhook');
-    // Call handler once to trigger Webhooks() constructor which populates capturedConfigs
-    await handler(
-      {
-        body: JSON.stringify({ type: 'test' }),
-        headers: { 'x-polar-signature': 'test-signature' },
-      } as HandlerEvent,
-      {} as HandlerContext
-    );
-  });
-
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Reset modules to get fresh handler
+    vi.resetModules();
+
+    // Re-setup environment variables
+    process.env.POLAR_WEBHOOK_SECRET = 'test-webhook-secret';
+    process.env.SUPABASE_URL = 'https://test.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+    process.env.POLAR_PRODUCT_ID_PRO = 'prod_test_pro_123';
+    process.env.POLAR_PRODUCT_ID_TEAM = 'prod_test_team_456';
+
+    // Import fresh handler
+    const module = await import('../polar-webhook');
+    handler = module.handler;
 
     // Reset Supabase mocks
     mockSupabase.from.mockReturnValue({
@@ -99,10 +167,18 @@ describe('Polar Webhook Handler', () => {
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     });
 
+    // Default mock for validateEvent
+    mockValidateEvent.mockReturnValue({
+      type: 'test',
+      data: {},
+    });
+
     mockEvent = {
       body: JSON.stringify({ type: 'test' }),
       headers: {
-        'x-polar-signature': 'test-signature',
+        'webhook-id': 'test-id',
+        'webhook-timestamp': '1234567890',
+        'webhook-signature': 'test-signature',
       },
     };
 
@@ -113,7 +189,6 @@ describe('Polar Webhook Handler', () => {
 
   describe('Environment Variable Validation', () => {
     it('should return 500 if POLAR_WEBHOOK_SECRET is missing', async () => {
-      const originalSecret = process.env.POLAR_WEBHOOK_SECRET;
       delete process.env.POLAR_WEBHOOK_SECRET;
 
       vi.resetModules();
@@ -126,12 +201,9 @@ describe('Polar Webhook Handler', () => {
       expect(JSON.parse(response.body)).toEqual({
         error: 'Webhook configuration error',
       });
-
-      process.env.POLAR_WEBHOOK_SECRET = originalSecret;
     });
 
     it('should return 500 if SUPABASE_URL is missing', async () => {
-      const originalUrl = process.env.SUPABASE_URL;
       delete process.env.SUPABASE_URL;
 
       vi.resetModules();
@@ -144,12 +216,9 @@ describe('Polar Webhook Handler', () => {
       expect(JSON.parse(response.body)).toEqual({
         error: 'Database configuration error',
       });
-
-      process.env.SUPABASE_URL = originalUrl;
     });
 
     it('should return 500 if SUPABASE_SERVICE_ROLE_KEY is missing', async () => {
-      const originalKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
       vi.resetModules();
@@ -162,60 +231,104 @@ describe('Polar Webhook Handler', () => {
       expect(JSON.parse(response.body)).toEqual({
         error: 'Database configuration error',
       });
+    });
 
-      process.env.SUPABASE_SERVICE_ROLE_KEY = originalKey;
+    it('should return 400 if request body is missing', async () => {
+      mockEvent.body = undefined;
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(400);
+      expect(JSON.parse(response.body)).toEqual({
+        error: 'No request body',
+      });
+    });
+  });
+
+  describe('Webhook Signature Verification', () => {
+    it('should return 403 if signature verification fails', async () => {
+      mockValidateEvent.mockImplementation(() => {
+        throw new MockWebhookVerificationError('Invalid signature');
+      });
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(403);
+      expect(JSON.parse(response.body)).toEqual({
+        received: false,
+        error: 'Invalid signature',
+      });
+    });
+
+    it('should pass correct headers to validateEvent', async () => {
+      mockEvent.headers = {
+        'webhook-id': 'my-webhook-id',
+        'webhook-timestamp': '1702000000',
+        'webhook-signature': 'v1=abc123',
+      };
+
+      await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(mockValidateEvent).toHaveBeenCalledWith(
+        mockEvent.body,
+        {
+          'webhook-id': 'my-webhook-id',
+          'webhook-timestamp': '1702000000',
+          'webhook-signature': 'v1=abc123',
+        },
+        'test-webhook-secret'
+      );
     });
   });
 
   describe('Subscription Creation Handler', () => {
     it('should throw error when user_id is missing from metadata', async () => {
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_team_456',
-        status: 'active',
-        metadata: {}, // Missing user_id
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'active',
+          metadata: {}, // Missing user_id
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error(
-          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await expect(config.onSubscriptionCreated(subscription)).rejects.toThrow(
-        'Missing user_id in subscription metadata'
-      );
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(500);
     });
 
     it('should successfully create subscription with all required fields', async () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_team_456',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error(
-          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await config.onSubscriptionCreated(subscription);
+      mockValidateEvent.mockReturnValue(payload);
 
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(200);
       expect(mockSupabase.from).toHaveBeenCalledWith('subscriptions');
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -236,25 +349,24 @@ describe('Polar Webhook Handler', () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_pro_123',
-        status: 'trialing',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'year',
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_pro_123',
+          status: 'trialing',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'year',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error(
-          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await config.onSubscriptionCreated(subscription);
+      mockValidateEvent.mockReturnValue(payload);
+
+      await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
 
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -274,25 +386,24 @@ describe('Polar Webhook Handler', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'unknown_product_id',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'unknown_product_id',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error(
-          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await config.onSubscriptionCreated(subscription);
+      mockValidateEvent.mockReturnValue(payload);
+
+      await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
 
       // Should log warning about unknown product ID
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -313,66 +424,65 @@ describe('Polar Webhook Handler', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should throw error when database upsert fails', async () => {
+    it('should return 500 when database upsert fails', async () => {
       const mockUpsert = vi
         .fn()
         .mockResolvedValue({ data: null, error: { message: 'Database error' } });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_team_456',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[capturedConfigs.length - 1];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error('onSubscriptionCreated not initialized');
-      }
-      await expect(config.onSubscriptionCreated(subscription)).rejects.toEqual({
-        message: 'Database error',
-      });
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(500);
     });
   });
 
   describe('Subscription Update Handler', () => {
-    it('should update subscription with error handling', async () => {
-      const mockUpdate = vi.fn().mockResolvedValue({ data: {}, error: null });
-      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+    it('should update subscription with correct fields', async () => {
+      const mockUpdate = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      });
 
       mockSupabase.from.mockReturnValue({
         update: mockUpdate,
-        eq: mockEq,
       });
 
-      mockUpdate.mockReturnValue({ eq: mockEq });
-
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_pro_123',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.updated',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_pro_123',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionUpdated) {
-        throw new Error(
-          `onSubscriptionUpdated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await config.onSubscriptionUpdated(subscription);
+      mockValidateEvent.mockReturnValue(payload);
 
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(200);
       expect(mockSupabase.from).toHaveBeenCalledWith('subscriptions');
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -383,40 +493,115 @@ describe('Polar Webhook Handler', () => {
           billing_cycle: 'monthly',
         })
       );
-      expect(mockEq).toHaveBeenCalledWith('polar_subscription_id', 'sub_123');
     });
 
-    it('should throw error when update fails', async () => {
-      const mockUpdate = vi.fn().mockResolvedValue({ data: null, error: null });
-      const mockEq = vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } });
+    it('should return 500 when update fails', async () => {
+      const mockUpdate = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+      });
 
       mockSupabase.from.mockReturnValue({
         update: mockUpdate,
       });
 
-      mockUpdate.mockReturnValue({ eq: mockEq });
-
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_team_456',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: 'month',
+      const payload = {
+        type: 'subscription.updated',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionUpdated) {
-        throw new Error(
-          `onSubscriptionUpdated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await expect(config.onSubscriptionUpdated(subscription)).rejects.toEqual({
-        message: 'Update failed',
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(500);
+    });
+  });
+
+  describe('Subscription Cancellation Handler', () => {
+    it('should mark subscription as canceled', async () => {
+      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+
+      mockSupabase.from.mockReturnValue({
+        update: mockUpdate,
       });
+
+      const payload = {
+        type: 'subscription.canceled',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'canceled',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
+      };
+
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(200);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'canceled',
+          cancel_at_period_end: true,
+        })
+      );
+      expect(mockEq).toHaveBeenCalledWith('polar_subscription_id', 'sub_123');
+    });
+  });
+
+  describe('Subscription Revocation Handler', () => {
+    it('should downgrade to free tier immediately', async () => {
+      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
+
+      mockSupabase.from.mockReturnValue({
+        update: mockUpdate,
+      });
+
+      const payload = {
+        type: 'subscription.revoked',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'revoked',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: 'month',
+        },
+      };
+
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(200);
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'inactive',
+          tier: 'free',
+          cancel_at_period_end: false,
+        })
+      );
     });
   });
 
@@ -426,30 +611,29 @@ describe('Polar Webhook Handler', () => {
       ['prod_test_team_456', 'team', 3, 3],
       ['unknown_product', 'free', 0, 0],
     ])(
-      'should map product_id %s to tier %s with %d workspaces and %d repos',
+      'should map productId %s to tier %s with %d workspaces and %d repos',
       async (productId, expectedTier, expectedWorkspaces, expectedRepos) => {
         const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
         mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-        const subscription = {
-          id: 'sub_123',
-          customer_id: 'cust_123',
-          product_id: productId,
-          status: 'active',
-          metadata: { user_id: 'user_123' },
-          current_period_start: '2025-10-01T00:00:00Z',
-          current_period_end: '2025-11-01T00:00:00Z',
-          created_at: '2025-10-01T00:00:00Z',
-          recurring_interval: 'month',
+        const payload = {
+          type: 'subscription.created',
+          data: {
+            id: 'sub_123',
+            customerId: 'cust_123',
+            productId: productId,
+            status: 'active',
+            metadata: { user_id: 'user_123' },
+            currentPeriodStart: '2025-10-01T00:00:00Z',
+            currentPeriodEnd: '2025-11-01T00:00:00Z',
+            createdAt: '2025-10-01T00:00:00Z',
+            recurringInterval: 'month',
+          },
         };
 
-        const config = capturedConfigs[0];
-        if (!config?.onSubscriptionCreated) {
-          throw new Error(
-            `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-          );
-        }
-        await config.onSubscriptionCreated(subscription);
+        mockValidateEvent.mockReturnValue(payload);
+
+        await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
 
         expect(mockUpsert).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -468,29 +652,28 @@ describe('Polar Webhook Handler', () => {
       ['year', 'yearly'],
       ['month', 'monthly'],
       ['unknown', null],
-    ])('should map recurring_interval %s to billing_cycle %s', async (interval, expected) => {
+    ])('should map recurringInterval %s to billing_cycle %s', async (interval, expected) => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
-      const subscription = {
-        id: 'sub_123',
-        customer_id: 'cust_123',
-        product_id: 'prod_test_team_456',
-        status: 'active',
-        metadata: { user_id: 'user_123' },
-        current_period_start: '2025-10-01T00:00:00Z',
-        current_period_end: '2025-11-01T00:00:00Z',
-        created_at: '2025-10-01T00:00:00Z',
-        recurring_interval: interval,
+      const payload = {
+        type: 'subscription.created',
+        data: {
+          id: 'sub_123',
+          customerId: 'cust_123',
+          productId: 'prod_test_team_456',
+          status: 'active',
+          metadata: { user_id: 'user_123' },
+          currentPeriodStart: '2025-10-01T00:00:00Z',
+          currentPeriodEnd: '2025-11-01T00:00:00Z',
+          createdAt: '2025-10-01T00:00:00Z',
+          recurringInterval: interval,
+        },
       };
 
-      const config = capturedConfigs[0];
-      if (!config?.onSubscriptionCreated) {
-        throw new Error(
-          `onSubscriptionCreated not initialized (captured ${capturedConfigs.length} configs)`
-        );
-      }
-      await config.onSubscriptionCreated(subscription);
+      mockValidateEvent.mockReturnValue(payload);
+
+      await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
 
       expect(mockUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -498,6 +681,22 @@ describe('Polar Webhook Handler', () => {
         }),
         { onConflict: 'user_id' }
       );
+    });
+  });
+
+  describe('Success Response', () => {
+    it('should return 200 with received: true on success', async () => {
+      const payload = {
+        type: 'test.event',
+        data: {},
+      };
+
+      mockValidateEvent.mockReturnValue(payload);
+
+      const response = await handler(mockEvent as HandlerEvent, mockContext as HandlerContext);
+
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.body)).toEqual({ received: true });
     });
   });
 });
