@@ -6,7 +6,7 @@
  */
 
 import { useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { getSSRDataForRoute, isSSRDataStale, clearSSRData } from '@/lib/ssr-hydration';
 import { logger } from '@/lib/logger';
 

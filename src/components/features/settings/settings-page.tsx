@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowLeft, Key } from '@/components/ui/icon';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';

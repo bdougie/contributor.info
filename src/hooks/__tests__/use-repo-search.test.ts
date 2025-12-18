@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRepoSearch } from '../use-repo-search';
 import { useGitHubAuth } from '../use-github-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 
 // Mock the hooks we depend on
-vi.mock('react-router-dom', () => ({
+vi.mock('react-router', () => ({
   useNavigate: vi.fn(),
 }));
 

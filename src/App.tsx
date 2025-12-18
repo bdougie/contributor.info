@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router';
 import React, { Suspense, lazy, useEffect } from 'react';
 import { ThemeProvider } from '@/components/common/theming';
 import { Toaster } from '@/components/ui/sonner';
@@ -415,12 +415,7 @@ function App() {
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
         <FeatureFlagsProvider>
           <SVGSpriteInliner />
-          <Router
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
+          <Router>
             <WorkspaceProvider>
               <OfflineNotification />
               <Suspense fallback={<PageSkeleton />}>

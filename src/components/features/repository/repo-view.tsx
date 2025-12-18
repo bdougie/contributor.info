@@ -1,6 +1,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { Share2 } from 'lucide-react';
-import { useParams, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Outlet } from 'react-router';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';

@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Crown, LogIn, Users, Shield, Settings, Database, BarChart3 } from '@/components/ui/icon';
 type IconComponent = (props: React.SVGProps<SVGSVGElement>) => React.JSX.Element;
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import type { UpgradeMessage } from '@/lib/copy/upgrade-messages';
 

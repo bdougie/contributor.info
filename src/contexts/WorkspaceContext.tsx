@@ -8,7 +8,7 @@ import {
   ReactNode,
   useRef,
 } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import { generateWorkspaceSlug, getWorkspaceUrl } from '@/lib/workspace-utils';

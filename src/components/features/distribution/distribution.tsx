@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect, Suspense, useMemo } from 'react';
 import { PieChart, BarChart3, TreePine } from '@/components/ui/icon';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router';
 import { CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';

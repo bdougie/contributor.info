@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { useState, useEffect } from 'react';
 import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
 import RepoSocialCard from './repo-card';

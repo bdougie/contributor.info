@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { RepoStats } from '@/lib/types';
 import { MetaTagsProvider } from '../common/layout';

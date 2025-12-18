@@ -1,7 +1,7 @@
 import { ContributorOfTheMonth } from './contributor-of-the-month';
 import { useMonthlyContributorRankings } from '@/hooks/use-monthly-contributor-rankings';
 import { ContributorRanking, MonthlyContributor } from '@/lib/types';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, BarChart3 } from 'lucide-react';

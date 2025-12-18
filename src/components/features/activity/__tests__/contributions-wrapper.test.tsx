@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, vi, expect } from 'vitest';
 import ContributionsWrapper from '../contributions-wrapper';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router';
 
 // Mock ShareableCard
 vi.mock('@/components/features/sharing/shareable-card', () => ({

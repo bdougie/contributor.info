@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { GitPullRequest, Users } from '@/components/ui/icon';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTimeRangeStore } from '@/lib/time-range-store';

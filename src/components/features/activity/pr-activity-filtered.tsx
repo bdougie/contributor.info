@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Database } from '@/components/ui/icon';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';

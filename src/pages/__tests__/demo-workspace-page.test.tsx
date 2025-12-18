@@ -195,12 +195,12 @@ vi.mock('@/components/features/workspace/ContributorLeaderboard', () => ({
   ),
 }));
 
-// Mock react-router-dom hooks
+// Mock react-router hooks
 const mockNavigate = vi.fn();
 const mockUseParams = vi.fn(() => ({ workspaceId: 'demo', tab: undefined }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: vi.fn(() => mockNavigate),

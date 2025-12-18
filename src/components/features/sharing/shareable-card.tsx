@@ -3,7 +3,7 @@ import { Download, Share2, Copy } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useLocation as useRouterLocation } from 'react-router-dom';
+import { useLocation as useRouterLocation } from 'react-router';
 import { createChartShareUrl, getDubConfig } from '@/lib/dub';
 import { trackShareEvent as trackAnalytics } from '@/lib/analytics';
 import { SnapDOMCaptureService } from '@/lib/snapdom-capture';

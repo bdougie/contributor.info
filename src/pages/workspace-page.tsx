@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router';
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';

@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
 
 // Define proper types for workspace tiers

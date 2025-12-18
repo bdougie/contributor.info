@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import {

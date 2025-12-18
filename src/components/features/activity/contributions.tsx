@@ -13,7 +13,7 @@ import {
   type ContributionDataPoint,
 } from '@/lib/utils/contribution-visualization';
 import { detectBot } from '@/lib/utils/bot-detection';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { YoloIcon } from '@/components/icons/YoloIcon';
 import { ArrowRight } from '@/components/ui/icon';
 
@@ -43,7 +43,7 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import type { PullRequest } from '@/lib/types';
 import { PrHoverCard } from '../contributor/pr-hover-card';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { maintainerRolesCache } from '@/lib/maintainer-roles-cache';
 
 interface ContributionsChartProps {

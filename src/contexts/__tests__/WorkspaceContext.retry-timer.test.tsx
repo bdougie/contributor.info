@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import { WorkspaceProvider, useWorkspaceContext } from '../WorkspaceContext';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 
 // Mock dependencies
 vi.mock('@/hooks/use-user-workspaces', () => ({
@@ -20,8 +20,8 @@ vi.mock('@/lib/error-logging', () => ({
   logWarning: vi.fn(),
 }));
 
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual('react-router');
   return {
     ...actual,
     useNavigate: () => vi.fn(),

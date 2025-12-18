@@ -29,8 +29,8 @@ vi.mock('@/hooks/use-analytics', () => ({
   }),
 }));
 
-// Mock react-router-dom with all necessary exports
-vi.mock('react-router-dom', () => ({
+// Mock react-router with all necessary exports
+vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
   Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
     React.createElement('a', { href: to }, children),

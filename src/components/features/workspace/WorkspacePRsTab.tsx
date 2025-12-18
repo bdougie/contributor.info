@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { Sparkles } from '@/components/ui/icon';
