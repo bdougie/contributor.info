@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { usePrimaryWorkspace } from '@/hooks/use-user-workspaces';
+import { trackEvent, trackError } from '@/lib/posthog-lazy';
 import { SubscriptionService, SUBSCRIPTION_TIERS } from '@/services/polar/subscription.service';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +48,10 @@ export function BillingDashboard() {
   useEffect(() => {
     const success = searchParams.get('success');
     if (success === 'true' && primaryWorkspace) {
+      trackEvent('checkout_success', {
+        workspace_id: primaryWorkspace.id,
+      });
+
       // Redirect to workspace after successful payment
       const redirectTimer = setTimeout(() => {
         navigate(getWorkspaceRoute(primaryWorkspace));
@@ -56,6 +61,8 @@ export function BillingDashboard() {
   }, [searchParams, primaryWorkspace, navigate]);
 
   useEffect(() => {
+    trackEvent('billing_dashboard_viewed');
+
     const loadUsageStats = async () => {
       if (!user?.id) {
         setLoading(false);
@@ -85,6 +92,7 @@ export function BillingDashboard() {
 
     try {
       setCreatingCheckout(true);
+      trackEvent('checkout_initiated', { tier: tierId });
 
       // Get the product ID for the selected tier
       const productId =
@@ -114,18 +122,26 @@ export function BillingDashboard() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        const errorMessage = errorData.error || 'Failed to create checkout';
         console.error('Checkout error details:', errorData);
-        throw new Error(errorData.error || 'Failed to create checkout');
+        trackError(new Error(errorMessage), {
+          metadata: { context: 'create_checkout', tier: tierId },
+        });
+        throw new Error(errorMessage);
       }
 
       const session = await response.json();
 
       // Redirect to Polar checkout
       if (session.url) {
+        trackEvent('checkout_redirected', { tier: tierId, url: session.url });
         window.location.href = session.url;
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      trackError(error instanceof Error ? error : new Error(String(error)), {
+        metadata: { context: 'create_checkout_exception', tier: tierId },
+      });
     } finally {
       setCreatingCheckout(false);
     }
@@ -134,13 +150,26 @@ export function BillingDashboard() {
   const handleCancelSubscription = async () => {
     if (!usageStats?.subscription?.polar_subscription_id || !user?.id) return;
 
+    trackEvent('subscription_cancel_initiated', {
+      subscription_id: usageStats.subscription.polar_subscription_id,
+    });
+
     try {
       await SubscriptionService.cancelSubscription(usageStats.subscription.polar_subscription_id);
+      trackEvent('subscription_cancel_success', {
+        subscription_id: usageStats.subscription.polar_subscription_id,
+      });
       // Reload usage stats
       const stats = await SubscriptionService.getUsageStats(user.id);
       setUsageStats(stats);
     } catch (error) {
       console.error('Error canceling subscription:', error);
+      trackError(error instanceof Error ? error : new Error(String(error)), {
+        metadata: {
+          context: 'cancel_subscription',
+          subscription_id: usageStats.subscription.polar_subscription_id,
+        },
+      });
     }
   };
 

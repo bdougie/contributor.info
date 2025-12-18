@@ -1,5 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { Polar } from '@polar-sh/sdk';
+import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 
 // Initialize Polar client
 // Note: Netlify functions need non-VITE prefixed env vars
@@ -57,10 +58,21 @@ export const handler: Handler = async (event) => {
     const checkout = await polar.checkouts.create({
       products: [productPriceId],
       successUrl: `${baseUrl}/billing?success=true`,
-      cancelUrl: `${baseUrl}/billing?canceled=true`,
+      // @ts-ignore - Polar SDK type mismatch for cancelUrl/returnUrl
+      returnUrl: `${baseUrl}/billing?canceled=true`,
       customerEmail,
       metadata,
     });
+
+    await trackServerEvent(
+      'checkout_session_created',
+      {
+        product_price_id: productPriceId,
+        customer_email: customerEmail,
+        ...metadata,
+      },
+      metadata?.user_id
+    );
 
     return {
       statusCode: 200,
@@ -72,6 +84,12 @@ export const handler: Handler = async (event) => {
     };
   } catch (error) {
     console.error('Error creating checkout:', error);
+
+    await captureServerException(error instanceof Error ? error : new Error(String(error)), {
+      level: 'error',
+      tags: { type: 'checkout_creation_failed' },
+    });
+
     return {
       statusCode: 500,
       headers,

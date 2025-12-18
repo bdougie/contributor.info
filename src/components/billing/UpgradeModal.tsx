@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Check, Loader2 } from '@/components/ui/icon';
 import { SUBSCRIPTION_TIERS } from '@/services/polar/subscription.service';
 import { useCurrentUser } from '@/hooks/use-current-user';
+import { trackEvent, trackError } from '@/lib/posthog-lazy';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -28,11 +29,22 @@ export function UpgradeModal({
   const [loading, setLoading] = useState(false);
   const [selectedTier, setSelectedTier] = useState<'pro' | 'team'>('pro');
 
+  useEffect(() => {
+    if (isOpen) {
+      trackEvent('upgrade_modal_viewed', { feature, currentTier });
+    }
+  }, [isOpen, feature, currentTier]);
+
   const handleUpgrade = async () => {
     if (!user?.id || !user?.email) return;
 
     try {
       setLoading(true);
+      trackEvent('checkout_initiated', {
+        tier: selectedTier,
+        source: 'upgrade_modal',
+        feature,
+      });
 
       // Get the product ID for the selected tier
       const productId =
@@ -62,12 +74,29 @@ export function UpgradeModal({
 
       const session = await response.json();
 
+      if (!response.ok) {
+        const errorMessage = session.error || 'Failed to create checkout';
+        console.error('Checkout error details:', session);
+        trackError(new Error(errorMessage), {
+          metadata: { context: 'create_checkout_modal', tier: selectedTier },
+        });
+        throw new Error(errorMessage);
+      }
+
       // Redirect to Polar checkout
       if (session.url) {
+        trackEvent('checkout_redirected', {
+          tier: selectedTier,
+          url: session.url,
+          source: 'upgrade_modal',
+        });
         window.location.href = session.url;
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      trackError(error instanceof Error ? error : new Error(String(error)), {
+        metadata: { context: 'create_checkout_modal_exception', tier: selectedTier },
+      });
     } finally {
       setLoading(false);
     }
