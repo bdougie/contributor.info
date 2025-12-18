@@ -2,6 +2,9 @@ import path from 'path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
+import { visualizer } from 'rollup-plugin-visualizer';
+
+const isAnalyze = process.env.ANALYZE === 'true';
 
 export default defineConfig(() => ({
   base: '/',
@@ -36,6 +39,17 @@ export default defineConfig(() => ({
     }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
+    // Bundle analyzer - run with ANALYZE=true npm run build
+    ...(isAnalyze
+      ? [
+          visualizer({
+            filename: 'dist/stats.html',
+            open: true,
+            gzipSize: true,
+            brotliSize: true,
+          }),
+        ]
+      : []),
   ],
   resolve: {
     alias: {
@@ -147,9 +161,26 @@ export default defineConfig(() => ({
             if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
               return 'vendor-react-core';
             }
-            // UI components that are used everywhere
+            // Core UI components - used on most pages, preloaded
+            if (
+              id.includes('@radix-ui/react-dialog') ||
+              id.includes('@radix-ui/react-dropdown-menu') ||
+              id.includes('@radix-ui/react-tooltip') ||
+              id.includes('@radix-ui/react-avatar') ||
+              id.includes('@radix-ui/react-select') ||
+              id.includes('@radix-ui/react-tabs') ||
+              id.includes('@radix-ui/react-toast') ||
+              id.includes('@radix-ui/react-slot') ||
+              id.includes('@radix-ui/react-label') ||
+              id.includes('@radix-ui/react-separator') ||
+              id.includes('@radix-ui/react-scroll-area') ||
+              id.includes('@radix-ui/react-progress')
+            ) {
+              return 'vendor-ui-core';
+            }
+            // Extended UI components - lazy loaded with workspace/admin routes
             if (id.includes('@radix-ui')) {
-              return 'vendor-ui';
+              return 'vendor-ui-extended';
             }
             // Chart libraries - can be split for lazy loading
             if (id.includes('@nivo')) {
@@ -224,9 +255,9 @@ export default defineConfig(() => ({
           // First priority: Core React libraries
           if (a.includes('vendor-react-core')) return -1;
           if (b.includes('vendor-react-core')) return 1;
-          // Second priority: UI components (Radix UI)
-          if (a.includes('vendor-ui')) return -1;
-          if (b.includes('vendor-ui')) return 1;
+          // Second priority: Core UI components (Radix UI essentials)
+          if (a.includes('vendor-ui-core')) return -1;
+          if (b.includes('vendor-ui-core')) return 1;
           // Third priority: Utils for classnames
           if (a.includes('vendor-utils')) return -1;
           if (b.includes('vendor-utils')) return 1;
@@ -236,11 +267,11 @@ export default defineConfig(() => ({
           return 0;
         });
         // Preload only critical chunks for initial render
-        // Markdown, charts, and analytics will load on demand
+        // Markdown, charts, analytics, and extended UI will load on demand
         return sorted.filter(
           (dep) =>
             dep.includes('vendor-react-core') ||
-            dep.includes('vendor-ui') ||
+            dep.includes('vendor-ui-core') ||
             dep.includes('vendor-utils') ||
             dep.includes('index-')
         );

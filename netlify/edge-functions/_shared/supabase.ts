@@ -137,13 +137,30 @@ export async function fetchTrendingRepos(limit = 20): Promise<TrendingRepo[]> {
 }
 
 /**
- * Fetch home page stats
+ * Cache for home page stats to reduce database queries and improve TTFB
+ */
+interface StatsCache {
+  data: { totalRepos: number; totalContributors: number; totalPRs: number };
+  timestamp: number;
+}
+
+let statsCache: StatsCache | null = null;
+const STATS_CACHE_TTL_MS = 60 * 1000; // 60 seconds cache TTL
+
+/**
+ * Fetch home page stats with in-memory caching
+ * Stats don't need real-time accuracy, so we cache for 60s
  */
 export async function fetchHomeStats(): Promise<{
   totalRepos: number;
   totalContributors: number;
   totalPRs: number;
 }> {
+  // Return cached stats if still valid
+  if (statsCache && Date.now() - statsCache.timestamp < STATS_CACHE_TTL_MS) {
+    return statsCache.data;
+  }
+
   const supabase = getSupabaseClient();
 
   // Fetch counts in parallel
@@ -153,11 +170,16 @@ export async function fetchHomeStats(): Promise<{
     supabase.from('pull_requests').select('id', { count: 'exact', head: true }),
   ]);
 
-  return {
+  const data = {
     totalRepos: reposResult.count || 0,
     totalContributors: contributorsResult.count || 0,
     totalPRs: prsResult.count || 0,
   };
+
+  // Update cache
+  statsCache = { data, timestamp: Date.now() };
+
+  return data;
 }
 
 /**
