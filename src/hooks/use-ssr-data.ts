@@ -7,7 +7,14 @@
 
 import { useMemo, useRef } from 'react';
 import { useLocation } from 'react-router';
-import { getSSRDataForRoute, isSSRDataStale, clearSSRData } from '@/lib/ssr-hydration';
+import {
+  getSSRDataForRoute,
+  isSSRDataStale,
+  clearSSRData,
+  type WorkspacesPageData,
+  type WorkspaceDetailPageData,
+  type WorkspaceNewPageData,
+} from '@/lib/ssr-hydration';
 import { logger } from '@/lib/logger';
 
 /**
@@ -120,4 +127,25 @@ export function useTrendingSSRData(): TrendingSSRData | null {
  */
 export function useHomeSSRData(): HomeSSRData | null {
   return useSSRData<HomeSSRData>();
+}
+
+/**
+ * Hook for workspaces page SSR data
+ */
+export function useWorkspacesSSRData(): WorkspacesPageData | null {
+  return useSSRData<WorkspacesPageData>();
+}
+
+/**
+ * Hook for workspace detail page SSR data
+ */
+export function useWorkspaceDetailSSRData(): WorkspaceDetailPageData | null {
+  return useSSRData<WorkspaceDetailPageData>();
+}
+
+/**
+ * Hook for workspace creation page SSR data
+ */
+export function useWorkspaceNewSSRData(): WorkspaceNewPageData | null {
+  return useSSRData<WorkspaceNewPageData>();
 }

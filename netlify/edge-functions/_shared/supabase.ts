@@ -255,3 +255,368 @@ export async function fetchRepoContributorStats(
     topContributors,
   };
 }
+
+/**
+ * Workspace data structure for SSR
+ */
+export interface WorkspaceData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  tier: string;
+  owner_id: string;
+  created_at: string;
+  repository_count: number;
+  member_count: number;
+}
+
+/**
+ * Workspace preview with repositories for SSR
+ */
+export interface WorkspacePreview extends WorkspaceData {
+  repositories: Array<{
+    id: string;
+    full_name: string;
+    name: string;
+    owner: string;
+    language: string | null;
+    stargazer_count: number;
+  }>;
+}
+
+/**
+ * Fetch user's workspaces by auth token from cookie
+ * Returns null if not authenticated or token is invalid
+ */
+export async function fetchUserWorkspaces(
+  authToken: string | null
+): Promise<WorkspacePreview[] | null> {
+  if (!authToken) {
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey =
+    Deno.env.get('VITE_SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[ssr] Missing Supabase environment variables');
+    return null;
+  }
+
+  // Create a client with the user's auth token
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    },
+  });
+
+  try {
+    // First get the user to verify auth
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(authToken);
+
+    if (userError || !user) {
+      console.log('[ssr] Auth token invalid or expired');
+      return null;
+    }
+
+    // Get the app_user_id for this auth user
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (appUserError || !appUser) {
+      console.log('[ssr] No app_user found for auth user');
+      return null;
+    }
+
+    // Fetch workspaces the user owns or is a member of
+    const { data: memberWorkspaces, error: memberError } = await supabase
+      .from('workspace_members')
+      .select(
+        `
+        workspace_id,
+        workspaces!inner(
+          id,
+          name,
+          slug,
+          description,
+          tier,
+          owner_id,
+          created_at,
+          is_active
+        )
+      `
+      )
+      .eq('user_id', appUser.id);
+
+    if (memberError) {
+      console.error('[ssr] Error fetching workspace memberships: %o', memberError);
+      return null;
+    }
+
+    // Transform and filter active workspaces
+    // TODO: Optimize N+1 query pattern by batching repository/member counts
+    // Current approach makes 3 queries per workspace (repo count, member count, top repos)
+    // Optimization: Create RPC functions to batch these queries:
+    //   1. get_workspace_counts(workspace_ids[]) -> returns {workspace_id, repo_count, member_count}[]
+    //   2. get_workspace_top_repos(workspace_ids[], limit) -> returns repos grouped by workspace_id
+    // This would reduce ~30+ queries (for 10 workspaces) to just 2-3 queries total
+    const workspaces: WorkspacePreview[] = [];
+
+    for (const member of memberWorkspaces || []) {
+      const ws = member.workspaces as {
+        id: string;
+        name: string;
+        slug: string;
+        description: string | null;
+        tier: string;
+        owner_id: string;
+        created_at: string;
+        is_active: boolean;
+      };
+
+      if (!ws.is_active) continue;
+
+      // Get repository count for this workspace
+      const { count: repoCount } = await supabase
+        .from('workspace_repositories')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', ws.id);
+
+      // Get member count
+      const { count: memberCount } = await supabase
+        .from('workspace_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', ws.id);
+
+      // Get top 3 repositories for preview
+      const { data: repos } = await supabase
+        .from('workspace_repositories')
+        .select(
+          `
+          repositories(
+            id,
+            full_name,
+            name,
+            owner,
+            language,
+            stargazer_count
+          )
+        `
+        )
+        .eq('workspace_id', ws.id)
+        .limit(3);
+
+      const repositories = (repos || [])
+        .filter((r) => r.repositories)
+        .map((r) => {
+          const repo = r.repositories as {
+            id: string;
+            full_name: string;
+            name: string;
+            owner: string;
+            language: string | null;
+            stargazer_count: number;
+          };
+          return repo;
+        });
+
+      workspaces.push({
+        id: ws.id,
+        name: ws.name,
+        slug: ws.slug,
+        description: ws.description,
+        tier: ws.tier,
+        owner_id: ws.owner_id,
+        created_at: ws.created_at,
+        repository_count: repoCount || 0,
+        member_count: memberCount || 0,
+        repositories,
+      });
+    }
+
+    return workspaces;
+  } catch (error) {
+    console.error('[ssr] Error fetching user workspaces: %o', error);
+    return null;
+  }
+}
+
+/**
+ * Fetch demo/public workspace data for unauthenticated users
+ */
+export async function fetchDemoWorkspaceStats(): Promise<{
+  totalWorkspaces: number;
+  totalRepositories: number;
+}> {
+  const supabase = getSupabaseClient();
+
+  const [workspacesResult, reposResult] = await Promise.all([
+    supabase.from('workspaces').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    supabase.from('workspace_repositories').select('id', { count: 'exact', head: true }),
+  ]);
+
+  return {
+    totalWorkspaces: workspacesResult.count || 0,
+    totalRepositories: reposResult.count || 0,
+  };
+}
+
+/**
+ * Workspace detail data for SSR
+ */
+export interface WorkspaceDetailData {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  tier: string;
+  owner_id: string;
+  created_at: string;
+  visibility: 'public' | 'private';
+  repository_count: number;
+  member_count: number;
+  contributor_count: number;
+  repositories: Array<{
+    id: string;
+    full_name: string;
+    name: string;
+    owner: string;
+    description: string | null;
+    language: string | null;
+    stargazer_count: number;
+  }>;
+  owner: {
+    id: string;
+    github_username: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
+/**
+ * Fetch a workspace by slug for public viewing
+ * Returns null if workspace doesn't exist or isn't accessible
+ */
+export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetailData | null> {
+  const supabase = getSupabaseClient();
+
+  // First fetch the workspace
+  const { data: workspace, error: wsError } = await supabase
+    .from('workspaces')
+    .select(
+      `
+      id,
+      name,
+      slug,
+      description,
+      tier,
+      owner_id,
+      created_at,
+      visibility,
+      is_active
+    `
+    )
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (wsError || !workspace) {
+    console.error('[ssr] Workspace not found: %s', slug);
+    return null;
+  }
+
+  // Fetch related data in parallel
+  const [repoCountResult, memberCountResult, reposResult, ownerResult] = await Promise.all([
+    // Repository count
+    supabase
+      .from('workspace_repositories')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', workspace.id),
+    // Member count
+    supabase
+      .from('workspace_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', workspace.id),
+    // Top repositories (limit 6 for preview)
+    supabase
+      .from('workspace_repositories')
+      .select(
+        `
+          repositories(
+            id,
+            full_name,
+            name,
+            owner,
+            description,
+            language,
+            stargazer_count
+          )
+        `
+      )
+      .eq('workspace_id', workspace.id)
+      .limit(6),
+    // Owner info
+    supabase
+      .from('app_users')
+      .select('id, github_username, avatar_url')
+      .eq('id', workspace.owner_id)
+      .maybeSingle(),
+  ]);
+
+  // Contributor count: hardcoded to 0 for SSR to avoid complex query
+  // TODO: Implement RPC function get_workspace_contributor_count(workspace_id UUID)
+  //       This function should:
+  //       1. Join workspace_repositories with repository_contributors
+  //       2. Count DISTINCT contributor_id across all workspace repositories  
+  //       3. Return scalar integer count
+  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id) 
+  //            FROM workspace_repositories wr
+  //            JOIN repository_contributors rc ON wr.repository_id = rc.repository_id
+  //            WHERE wr.workspace_id = $1
+  // For now, client-side will fetch this via a separate query after SSR hydration
+  const contributorCount = 0;
+
+  const repositories = (reposResult.data || [])
+    .filter((r) => r.repositories)
+    .map((r) => {
+      const repo = r.repositories as {
+        id: string;
+        full_name: string;
+        name: string;
+        owner: string;
+        description: string | null;
+        language: string | null;
+        stargazer_count: number;
+      };
+      return repo;
+    });
+
+  return {
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    description: workspace.description,
+    tier: workspace.tier,
+    owner_id: workspace.owner_id,
+    created_at: workspace.created_at,
+    visibility: (workspace as { visibility?: string }).visibility as 'public' | 'private' || 'private',
+    repository_count: repoCountResult.count || 0,
+    member_count: memberCountResult.count || 0,
+    contributor_count: contributorCount,
+    repositories,
+    owner: ownerResult.data,
+  };
+}
