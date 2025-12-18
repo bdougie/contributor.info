@@ -86,6 +86,14 @@
   path = "/:owner/:repo"
   excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico"]
 
+# SSR for profile pages (user/org)
+# Must come after ssr-repo to avoid intercepting repo routes (though pattern differs)
+# Matches single segment paths (e.g. /bdougie)
+[[edge_functions]]
+  function = "ssr-profile"
+  path = "/:username"
+  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/signup", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico", "/*.txt", "/*.xml"]
+
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs
 [[edge_functions]]
