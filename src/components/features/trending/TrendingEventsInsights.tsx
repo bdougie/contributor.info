@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Star, GitFork, TrendingUp, Activity, Users, BarChart3, Zap } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { getSupabase } from '@/lib/supabase-lazy';
@@ -146,53 +145,10 @@ export function TrendingEventsInsights({
     fetchTrendingInsights();
   }, [repositories, timeRange]);
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Trending Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="space-y-2">
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-6 w-12" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Hide component entirely when no data is available
-  // Only show error card if there's an actual API error
-  if (!insights) {
+  // Hide component entirely when loading, error, or no data
+  // This provides cleaner UX until event data is available
+  if (loading || error || !insights) {
     return null;
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Trending Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Activity className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">{error}</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
   }
 
   const getTopLanguages = () => {
