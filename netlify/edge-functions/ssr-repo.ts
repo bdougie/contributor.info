@@ -395,7 +395,7 @@ async function handler(request: Request, context: Context) {
       };
 
       // Pass null data to force client-side fetch
-      const ssrData: any = {
+      const ssrData: { route: string; data: null; timestamp: number } = {
         route: `/${owner}/${repo}`,
         data: null,
         timestamp: Date.now(),
@@ -464,7 +464,7 @@ async function handler(request: Request, context: Context) {
         description: `Analyze contributors for ${owner}/${repo}`,
       };
 
-      const ssrData: any = {
+      const ssrData: { route: string; data: null; timestamp: number } = {
         route: `/${owner}/${repo}`,
         data: null,
         timestamp: Date.now(),
@@ -487,6 +487,9 @@ export const config = {
   excludedPath: [
     '/api/*',
     '/assets/*',
+    '/js/*',
+    '/css/*',
+    '/icons/*',
     '/login',
     '/settings',
     '/admin/*',
@@ -500,5 +503,11 @@ export const config = {
     '/terms',
     '/billing',
     '/invitation/*',
+    '/*.js',
+    '/*.css',
+    '/*.json',
+    '/*.png',
+    '/*.svg',
+    '/*.ico',
   ],
 };
