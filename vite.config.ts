@@ -161,26 +161,9 @@ export default defineConfig(() => ({
             if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
               return 'vendor-react-core';
             }
-            // Core UI components - used on most pages, preloaded
-            if (
-              id.includes('@radix-ui/react-dialog') ||
-              id.includes('@radix-ui/react-dropdown-menu') ||
-              id.includes('@radix-ui/react-tooltip') ||
-              id.includes('@radix-ui/react-avatar') ||
-              id.includes('@radix-ui/react-select') ||
-              id.includes('@radix-ui/react-tabs') ||
-              id.includes('@radix-ui/react-toast') ||
-              id.includes('@radix-ui/react-slot') ||
-              id.includes('@radix-ui/react-label') ||
-              id.includes('@radix-ui/react-separator') ||
-              id.includes('@radix-ui/react-scroll-area') ||
-              id.includes('@radix-ui/react-progress')
-            ) {
-              return 'vendor-ui-core';
-            }
-            // Extended UI components - lazy loaded with workspace/admin routes
+            // UI components that are used everywhere
             if (id.includes('@radix-ui')) {
-              return 'vendor-ui-extended';
+              return 'vendor-ui';
             }
             // Chart libraries - can be split for lazy loading
             if (id.includes('@nivo')) {
@@ -255,9 +238,9 @@ export default defineConfig(() => ({
           // First priority: Core React libraries
           if (a.includes('vendor-react-core')) return -1;
           if (b.includes('vendor-react-core')) return 1;
-          // Second priority: Core UI components (Radix UI essentials)
-          if (a.includes('vendor-ui-core')) return -1;
-          if (b.includes('vendor-ui-core')) return 1;
+          // Second priority: UI components (Radix UI)
+          if (a.includes('vendor-ui')) return -1;
+          if (b.includes('vendor-ui')) return 1;
           // Third priority: Utils for classnames
           if (a.includes('vendor-utils')) return -1;
           if (b.includes('vendor-utils')) return 1;
@@ -267,11 +250,11 @@ export default defineConfig(() => ({
           return 0;
         });
         // Preload only critical chunks for initial render
-        // Markdown, charts, analytics, and extended UI will load on demand
+        // Markdown, charts, and analytics will load on demand
         return sorted.filter(
           (dep) =>
             dep.includes('vendor-react-core') ||
-            dep.includes('vendor-ui-core') ||
+            dep.includes('vendor-ui') ||
             dep.includes('vendor-utils') ||
             dep.includes('index-')
         );
