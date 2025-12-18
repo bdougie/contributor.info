@@ -515,8 +515,8 @@ async function handler(request: Request, context: Context) {
       };
 
       const htmlContent = renderHTML(content, meta, ssrData, request.url, assets);
-      // Shorter cache for authenticated pages
-      return new Response(htmlContent, { headers: getSSRHeaders(30, 120) });
+      // Private cache for authenticated pages to prevent user data leakage
+      return new Response(htmlContent, { headers: getSSRHeaders(30, 0, true) });
     } else {
       // Unauthenticated - fetch demo stats
       const [assets, demoStats] = await Promise.all([assetsPromise, fetchDemoWorkspaceStats()]);

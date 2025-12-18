@@ -18,6 +18,9 @@ import {
 } from './_shared/html-template.ts';
 import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
 
+// Pattern to match Supabase auth cookie: sb-<project-ref>-auth-token
+const SUPABASE_AUTH_COOKIE_PATTERN = /sb-[a-z0-9]+-auth-token=/;
+
 /**
  * Check if user has auth token in cookies
  */
@@ -25,8 +28,8 @@ function hasAuthToken(request: Request): boolean {
   const cookieHeader = request.headers.get('cookie');
   if (!cookieHeader) return false;
 
-  // Check for Supabase auth cookie presence
-  return cookieHeader.includes('sb-') && cookieHeader.includes('-auth-token=');
+  // Use regex to ensure both 'sb-' and '-auth-token=' are in the same cookie name
+  return SUPABASE_AUTH_COOKIE_PATTERN.test(cookieHeader);
 }
 
 /**

@@ -383,12 +383,30 @@ export function renderHTML(
 
 /**
  * Generate response headers for SSR pages
+ * @param cacheMaxAge - Max age for CDN cache in seconds
+ * @param staleWhileRevalidate - Stale-while-revalidate window in seconds
+ * @param isPrivate - If true, use private cache (for authenticated content)
  */
-export function getSSRHeaders(cacheMaxAge = 60, staleWhileRevalidate = 300): Headers {
-  return new Headers({
+export function getSSRHeaders(
+  cacheMaxAge = 60,
+  staleWhileRevalidate = 300,
+  isPrivate = false
+): Headers {
+  const cacheControl = isPrivate
+    ? `private, max-age=${cacheMaxAge}`
+    : `public, s-maxage=${cacheMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
+
+  const headers = new Headers({
     'Content-Type': 'text/html; charset=utf-8',
-    'Cache-Control': `public, s-maxage=${cacheMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+    'Cache-Control': cacheControl,
     'X-SSR-Rendered': 'true',
     'X-Robots-Tag': 'index, follow',
   });
+
+  // Add Vary header for authenticated content to prevent cache poisoning
+  if (isPrivate) {
+    headers.set('Vary', 'Cookie');
+  }
+
+  return headers;
 }
