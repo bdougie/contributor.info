@@ -3,9 +3,15 @@ import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
+// Note: rollup-plugin-visualizer is not imported here to avoid build failures
+// when dev dependencies are pruned in production (e.g., Netlify builds).
+// If you need bundle analysis, temporarily uncomment the import and usage below,
+// or use an alternative tool like vite-bundle-visualizer.
+// import { visualizer } from 'rollup-plugin-visualizer';
+
 const isAnalyze = process.env.ANALYZE === 'true';
 
-export default defineConfig(async () => ({
+export default defineConfig(() => ({
   base: '/',
   plugins: [
     react(),
@@ -35,21 +41,9 @@ export default defineConfig(async () => ({
         }
         return new URLSearchParams();
       },
-    }),
+        }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
-    // Bundle analyzer - run with ANALYZE=true npm run build
-    // Dynamic import to avoid loading the plugin in production builds
-    ...(isAnalyze
-      ? [
-          (await import('rollup-plugin-visualizer')).visualizer({
-            filename: 'dist/stats.html',
-            open: true,
-            gzipSize: true,
-            brotliSize: true,
-          }),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
@@ -122,6 +116,18 @@ export default defineConfig(async () => ({
       strictRequires: 'auto',
     },
     rollupOptions: {
+      // Bundle analyzer plugin - temporarily disabled to fix production builds
+      // Uncomment when visualizer import is restored above
+      // plugins: isAnalyze
+      //   ? [
+      //       visualizer({
+      //         filename: 'dist/stats.html',
+      //         open: true,
+      //         gzipSize: true,
+      //         brotliSize: true,
+      //       }),
+      //     ]
+      //   : [],
       // Conservative tree shaking optimization for better bundle size
       treeshake: {
         moduleSideEffects: false, // Safe optimization for better bundle size
