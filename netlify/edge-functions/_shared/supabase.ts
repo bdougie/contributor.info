@@ -97,6 +97,40 @@ export async function fetchRepository(owner: string, repo: string): Promise<Repo
 }
 
 /**
+ * Fetch repositories by owner (for profile pages)
+ */
+export async function fetchRepositoriesByOwner(owner: string, limit = 25): Promise<RepoData[]> {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase
+    .from('repositories')
+    .select(
+      `
+      id,
+      owner,
+      name,
+      full_name,
+      description,
+      stargazer_count,
+      fork_count,
+      language,
+      topics,
+      updated_at
+    `
+    )
+    .eq('owner', owner)
+    .order('stargazer_count', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('[ssr] Failed to fetch repositories for owner %s: %o', owner, error);
+    return [];
+  }
+
+  return (data || []) as RepoData[];
+}
+
+/**
  * Fetch trending repositories
  */
 export async function fetchTrendingRepos(limit = 20): Promise<TrendingRepo[]> {

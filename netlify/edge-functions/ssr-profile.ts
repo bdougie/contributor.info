@@ -49,18 +49,18 @@ function renderProfileSkeleton(username: string): SafeHTML {
     <div class="min-h-screen bg-background">
       <div class="max-w-6xl mx-auto p-6 space-y-6">
         <!-- Breadcrumbs -->
-        <div class="flex items-center gap-2 text-sm text-muted-foreground">
-          <div class="h-4 w-12 bg-muted animate-pulse rounded"></div>
+        <nav class="flex items-center gap-2 text-sm text-muted-foreground">
+          <a href="/" class="hover:text-foreground transition-colors">Home</a>
           <span>/</span>
-          <div class="h-4 w-20 bg-muted animate-pulse rounded"></div>
-        </div>
+          <span class="text-foreground font-medium">${username}</span>
+        </nav>
 
         <!-- Header -->
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-full bg-muted animate-pulse"></div>
           <div>
-            <div class="h-8 w-32 mb-2 bg-muted animate-pulse rounded"></div>
-            <div class="h-4 w-48 bg-muted animate-pulse rounded"></div>
+            <h1 class="text-3xl font-bold tracking-tight">${username}</h1>
+            <div class="h-4 w-48 bg-muted animate-pulse rounded mt-2"></div>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ function renderActivityBadge(updatedAt: string): SafeHTML {
  * Render the profile page HTML content
  */
 function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
-  const avatarUrl = \`https://github.com/\${username}.png\`;
+  const avatarUrl = `https://github.com/${username}.png`;
 
   return html`
     <div class="min-h-screen bg-background">
@@ -137,20 +137,20 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
         <nav class="flex items-center gap-2 text-sm text-muted-foreground">
           <a href="/" class="hover:text-foreground transition-colors">Home</a>
           <span>/</span>
-          <span class="text-foreground font-medium">\${username}</span>
+          <span class="text-foreground font-medium">${username}</span>
         </nav>
 
         <!-- Header -->
         <div class="space-y-4">
           <div class="flex items-center gap-3">
             <img
-              src="\${avatarUrl}"
-              alt="\${username}"
+              src="${avatarUrl}"
+              alt="${username}"
               class="w-12 h-12 rounded-full border-2 border-background"
               loading="lazy"
             />
             <div>
-              <h1 class="text-3xl font-bold tracking-tight">\${username}</h1>
+              <h1 class="text-3xl font-bold tracking-tight">${username}</h1>
               <p class="text-muted-foreground">Collaborative projects from this GitHub profile</p>
             </div>
           </div>
@@ -179,7 +179,7 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
               <div
                 class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 ml-auto"
               >
-                \${repos.length} tracked
+                ${repos.length} tracked
               </div>
             </h3>
           </div>
@@ -218,7 +218,7 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                   </tr>
                 </thead>
                 <tbody class="[&_tr:last-child]:border-0">
-                  \${repos
+                  ${repos
                     .map(
                       (repo) => html`
                         <tr
@@ -227,10 +227,10 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                           <td class="p-4 align-middle [&:has([role=checkbox])]:pr-0 font-medium">
                             <div class="flex flex-col">
                               <a
-                                href="/\${repo.owner}/\${repo.name}"
+                                href="/${repo.owner}/${repo.name}"
                                 class="text-blue-600 hover:text-blue-800 font-medium"
                               >
-                                \${repo.name}
+                                ${repo.name}
                               </a>
                               <div
                                 class="flex items-center gap-2 mt-1 text-xs text-muted-foreground"
@@ -250,7 +250,7 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                                       points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                                     />
                                   </svg>
-                                  \${formatNumber(repo.stargazer_count)}
+                                  ${formatNumber(repo.stargazer_count)}
                                 </span>
                                 <span class="flex items-center gap-1">
                                   <svg
@@ -269,29 +269,29 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                                     <path d="M6 9v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9" />
                                     <path d="M12 12v3" />
                                   </svg>
-                                  \${formatNumber(repo.fork_count)}
+                                  ${formatNumber(repo.fork_count)}
                                 </span>
                               </div>
                             </div>
                           </td>
                           <td class="p-4 align-middle [&:has([role=checkbox])]:pr-0 max-w-md">
                             <p class="text-sm text-muted-foreground truncate">
-                              \${repo.description || 'No description available'}
+                              ${repo.description || 'No description available'}
                             </p>
                           </td>
                           <td class="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-                            \${renderActivityBadge(repo.updated_at)}
+                            ${renderActivityBadge(repo.updated_at)}
                           </td>
                           <td class="p-4 align-middle [&:has([role=checkbox])]:pr-0">
-                            \${repo.language
+                            ${repo.language
                               ? html`
                                   <div class="flex items-center gap-2">
                                     <div
                                       class="w-3 h-3 rounded-full"
-                                      style="background-color: \${LANGUAGE_COLORS[repo.language] ||
+                                      style="background-color: ${LANGUAGE_COLORS[repo.language] ||
                                       '#6b7280'}"
                                     ></div>
-                                    <span class="text-sm">\${repo.language}</span>
+                                    <span class="text-sm">${repo.language}</span>
                                   </div>
                                 `
                               : ''}
@@ -336,7 +336,7 @@ async function handler(request: Request, context: Context) {
   // Extract username from path (first segment)
   const username = url.pathname.split('/').filter(Boolean)[0];
 
-  console.log(\`[ssr-profile] Handling request for \${url.pathname} (username: \${username})\`);
+  console.log('[ssr-profile] Handling request for %s (username: %s)', url.pathname, username);
 
   if (!username) {
     return fallbackToSPA(context);
@@ -356,7 +356,7 @@ async function handler(request: Request, context: Context) {
 
   try {
     // Start fetching asset references immediately
-    const baseUrl = \`\${url.protocol}//\${url.host}\`;
+    const baseUrl = `${url.protocol}//${url.host}`;
     const assetsPromise = getAssetReferences(baseUrl);
 
     // Fetch repositories from Supabase (only tracked ones)
@@ -375,19 +375,20 @@ async function handler(request: Request, context: Context) {
     // Render skeleton and let client-side try to fetch from GitHub
     if (!repos || repos.length === 0) {
       console.log(
-        \`[ssr-profile] No tracked repos found for \${username}, rendering skeleton for client fetch\`
+        '[ssr-profile] No tracked repos found for %s, rendering skeleton for client fetch',
+        username
       );
 
       const content = renderProfileSkeleton(username);
       const meta: MetaTags = {
-        title: \`\${username} - contributor.info\`,
-        description: \`View \${username}'s contribution history and open source project insights.\`,
-        image: \`\${SOCIAL_CARDS_BASE}/social-cards/user?username=\${encodeURIComponent(username)}\`,
+        title: `${username} - contributor.info`,
+        description: `View ${username}'s contribution history and open source project insights.`,
+        image: `${SOCIAL_CARDS_BASE}/social-cards/user?username=${encodeURIComponent(username)}`,
       };
 
       // Pass null data to force client-side fetch
       const ssrData = {
-        route: \`/\${username}\`,
+        route: `/${username}`,
         data: null,
         timestamp: Date.now(),
       };
@@ -400,9 +401,9 @@ async function handler(request: Request, context: Context) {
     const content = renderProfileContent(username, repos);
 
     const meta: MetaTags = {
-      title: \`\${username} - Open Source Contributor\`,
-      description: \`View \${username}'s contribution history and open source project insights. Discover their collaborative repositories.\`,
-      image: \`\${SOCIAL_CARDS_BASE}/social-cards/user?username=\${encodeURIComponent(username)}\`,
+      title: `${username} - Open Source Contributor`,
+      description: `View ${username}'s contribution history and open source project insights. Discover their collaborative repositories.`,
+      image: `${SOCIAL_CARDS_BASE}/social-cards/user?username=${encodeURIComponent(username)}`,
     };
 
     // We can pass the initial data to client if we want, but client fetches from GitHub
@@ -410,7 +411,7 @@ async function handler(request: Request, context: Context) {
     // OR we pass what we have and client enhances it.
     // For now, let's pass null to force client consistency with GitHub data
     const ssrData = {
-      route: \`/\${username}\`,
+      route: `/${username}`,
       data: null, // Let client fetch full data including untracked repos
       timestamp: Date.now(),
     };
@@ -429,15 +430,21 @@ async function handler(request: Request, context: Context) {
     });
 
     try {
-      const baseUrl = \`\${url.protocol}//\${url.host}\`;
+      const baseUrl = `${url.protocol}//${url.host}`;
       const assets = await getAssetReferences(baseUrl);
 
       const content = renderProfileSkeleton(username);
       const meta: MetaTags = {
-        title: \`\${username} - contributor.info\`,
+        title: `${username} - contributor.info`,
       };
 
-      const html = renderHTML(content, meta, { route: \`/\${username}\`, data: null }, request.url, assets);
+      const html = renderHTML(
+        content,
+        meta,
+        { route: `/${username}`, data: null },
+        request.url,
+        assets
+      );
       return new Response(html, { headers: getSSRHeaders(0, 0) });
     } catch {
       return fallbackToSPA(context);
