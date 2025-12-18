@@ -1687,36 +1687,26 @@ export class WorkspaceService {
         };
       }
 
-      // Query the invitation from the database
-      const { data: invitation, error: invitationError } = await supabase
-        .from('workspace_invitations')
-        .select(
-          `
-          id,
-          workspace_id,
-          email,
-          role,
-          invited_by,
-          invited_at,
-          expires_at,
-          status,
-          workspaces!inner (
-            id,
-            name,
-            description,
-            created_at,
-            status,
-            member_count,
-            repository_count,
-            owner_id
-          )
-        `
-        )
-        .eq('invitation_token', token)
-        .maybeSingle();
+      // Query the invitation from the database using secure RPC to bypass RLS
+      // This is necessary because the user might be logged in with a different email
+      // than the one invited, and RLS policies restrict access by email.
+      const { data: invitation, error: invitationError } = await supabase.rpc(
+        'get_workspace_invitation_by_token',
+        {
+          p_invitation_token: token,
+        }
+      );
 
-      if (invitationError || !invitation) {
+      if (invitationError) {
         console.error('Invitation lookup error:', invitationError);
+        return {
+          success: false,
+          error: 'Failed to validate invitation',
+          statusCode: 500,
+        };
+      }
+
+      if (!invitation) {
         return {
           success: false,
           error: 'Invitation not found',
@@ -1762,13 +1752,8 @@ export class WorkspaceService {
       // We'll just show the inviter ID for now
 
       // Format the response
-      // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-      let workspace: WorkspaceWithDetails;
-      if (Array.isArray(invitation.workspaces)) {
-        workspace = invitation.workspaces[0] as WorkspaceWithDetails;
-      } else {
-        workspace = invitation.workspaces as WorkspaceWithDetails;
-      }
+      // The RPC returns 'workspace' as a nested object
+      const workspace = invitation.workspace as WorkspaceWithDetails;
 
       const invitationDetails = {
         id: invitation.id,
@@ -1879,50 +1864,33 @@ export class WorkspaceService {
         };
       }
 
-      // Get the invitation
-      const { data: invitation, error: invitationError } = await supabase
-        .from('workspace_invitations')
-        .select('id, workspace_id, status')
-        .eq('invitation_token', token)
-        .maybeSingle();
-
-      if (invitationError || !invitation) {
-        return {
-          success: false,
-          error: 'Invalid invitation',
-          statusCode: 404,
-        };
-      }
-
-      // Check if already processed
-      if (invitation.status !== 'pending') {
-        return {
-          success: false,
-          error: `Invitation has already been ${invitation.status}`,
-          statusCode: 409,
-        };
-      }
-
-      // Update invitation status
-      const { error: updateError } = await supabase
-        .from('workspace_invitations')
-        .update({
-          status: 'declined',
-          rejected_at: new Date().toISOString(),
-        })
-        .eq('id', invitation.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Log activity (anonymous since user may not be authenticated)
-      await supabase.from('workspace_activity_log').insert({
-        workspace_id: invitation.workspace_id,
-        user_id: null,
-        action: 'invitation_declined',
-        details: { invitation_id: invitation.id },
+      // Use RPC to decline invitation (bypasses RLS)
+      const { data, error } = await supabase.rpc('decline_workspace_invitation', {
+        p_invitation_token: token,
       });
+
+      if (error) {
+        console.error('Decline invitation RPC error:', error);
+        return {
+          success: false,
+          error: 'Failed to decline invitation',
+          statusCode: 500,
+        };
+      }
+
+      const result = data?.[0];
+
+      if (!result || !result.success) {
+        let statusCode = 500;
+        if (result?.error_message?.includes('not found')) statusCode = 404;
+        else if (result?.error_message?.includes('already been')) statusCode = 409;
+
+        return {
+          success: false,
+          error: result?.error_message || 'Failed to decline invitation',
+          statusCode,
+        };
+      }
 
       return {
         success: true,
