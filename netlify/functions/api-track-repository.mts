@@ -305,9 +305,10 @@ export default async (req: Request, context: Context) => {
       const { createClient } = await import('@supabase/supabase-js');
 
       // Get Supabase credentials
-      const supabaseUrl = process.env.VITE_SUPABASE_URL;
+      // Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
       // Use service key if available, otherwise use anon key (for local dev)
       const supabaseKey = supabaseServiceKey || supabaseAnonKey;
