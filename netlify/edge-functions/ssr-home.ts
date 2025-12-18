@@ -15,7 +15,7 @@ import {
   type SafeHTML,
   type MetaTags,
   type HomePageData,
-  unsafe
+  unsafe,
 } from './_shared/html-template.ts';
 import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
 
@@ -38,10 +38,12 @@ const EXAMPLE_REPOS = [
  */
 function renderHomeContent(): SafeHTML {
   // Button styles matching variant="outline" size="sm"
-  const buttonClass = "inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs sm:text-sm";
+  const buttonClass =
+    'inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 rounded-md px-3 text-xs sm:text-sm';
 
   // Search button styles matching the client-side override (white button)
-  const searchButtonClass = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-100";
+  const searchButtonClass =
+    'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-100';
 
   // Use unsafe for script content since it's trusted code, but use html`` for the rest
   const scriptContent = unsafe(`
@@ -78,82 +80,112 @@ function renderHomeContent(): SafeHTML {
   `);
 
   return html`
-    <article class="flex items-center justify-center min-h-[calc(100vh-8rem)]">
-      <div class="w-full max-w-2xl space-y-6 px-4">
-        <!-- Hero Card -->
-        <div class="rounded-lg border bg-card shadow-sm text-card-foreground">
-          <div class="flex flex-col space-y-1.5 p-6">
-            <h1 class="text-3xl font-bold text-center">
-              Analyze GitHub Repository Contributors
-            </h1>
-            <p class="text-center text-lg mt-2 text-muted-foreground">
-              Enter a GitHub repository URL or owner/repo to visualize contribution patterns
-            </p>
-          </div>
-          <div class="p-6 pt-0">
-            <!-- Search Input (will be hydrated by client) -->
-            <section>
-              <div class="relative">
-                <form class="flex gap-4" onsubmit="event.preventDefault();">
-                  <div class="flex-1 relative">
-                    <input
-                      type="text"
-                      placeholder="Search repositories (e.g., facebook/react)"
-                      class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full pr-8"
-                      id="ssr-search-input"
-                      autocomplete="off"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    class="${searchButtonClass}"
-                    id="ssr-search-button"
-                    aria-label="Analyze"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2 h-4 w-4">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    Analyze
-                  </button>
-                </form>
+    <div class="flex flex-col min-h-screen">
+      <main class="flex-1">
+        <div class="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <article class="flex items-center justify-center w-full">
+            <div class="w-full max-w-2xl space-y-6 px-4">
+              <!-- Hero Card -->
+              <div class="rounded-lg border bg-card shadow-sm text-card-foreground">
+                <div class="flex flex-col space-y-1.5 p-6">
+                  <h1 class="text-3xl font-bold text-center">
+                    Analyze GitHub Repository Contributors
+                  </h1>
+                  <p class="text-center text-lg mt-2 text-muted-foreground">
+                    Enter a GitHub repository URL or owner/repo to visualize contribution patterns
+                  </p>
+                </div>
+                <div class="p-6 pt-0">
+                  <!-- Search Input (will be hydrated by client) -->
+                  <section>
+                    <div class="relative">
+                      <form class="flex gap-4" onsubmit="event.preventDefault();">
+                        <div class="flex-1 relative">
+                          <input
+                            type="text"
+                            placeholder="Search repositories (e.g., facebook/react)"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full pr-8"
+                            id="ssr-search-input"
+                            autocomplete="off"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          class="${searchButtonClass}"
+                          id="ssr-search-button"
+                          aria-label="Analyze"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="mr-2 h-4 w-4"
+                          >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                          </svg>
+                          Analyze
+                        </button>
+                      </form>
+                    </div>
+                  </section>
+                  <!-- Example Repos -->
+                  <aside class="mt-4 w-full">
+                    <div class="text-sm text-muted-foreground mb-2">Popular examples:</div>
+                    <div class="flex flex-wrap gap-2">
+                      ${EXAMPLE_REPOS.map(
+                        (repo) => html`
+                          <button
+                            type="button"
+                            class="${buttonClass}"
+                            onclick="window.location.href='/${repo}'"
+                          >
+                            ${repo}
+                          </button>
+                        `
+                      )}
+                    </div>
+                  </aside>
+                </div>
               </div>
-            </section>
-            <!-- Example Repos -->
-            <aside class="mt-4 w-full">
-              <div class="text-sm text-muted-foreground mb-2">Popular examples:</div>
-              <div class="flex flex-wrap gap-2">
-                ${EXAMPLE_REPOS.map(repo => html`
-                  <button
-                    type="button"
-                    class="${buttonClass}"
-                    onclick="window.location.href='/${repo}'"
-                  >
-                    ${repo}
-                  </button>
-                `)}
-              </div>
-            </aside>
-          </div>
+            </div>
+          </article>
         </div>
+      </main>
 
-        <!-- Login prompt placeholder (hydrated on client) -->
-        <div id="ssr-auth-section"></div>
-      </div>
-    </article>
+      <footer class="border-t py-4">
+        <div class="container px-4 text-center text-sm text-muted-foreground">
+          Made with ❤️ by
+          <a
+            href="https://github.com/bdougie"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:text-primary transition-colors"
+            >bdougie</a
+          >
+        </div>
+      </footer>
+    </div>
 
     <!-- Inline script for basic interactivity before hydration -->
     <script>
-      ${scriptContent}
+      ${scriptContent};
     </script>
   `;
 }
 
 async function handler(request: Request, context: Context) {
   const url = new URL(request.url);
+  console.log(`[ssr-home] Handling request for ${url.pathname}`);
 
   // Only handle exact root path
   if (url.pathname !== '/') {
+    console.log(`[ssr-home] Ignoring non-root path: ${url.pathname}`);
     return fallbackToSPA(context);
   }
 
@@ -194,7 +226,7 @@ async function handler(request: Request, context: Context) {
     const stats: HomePageData = {
       totalRepos: 0,
       totalContributors: 0,
-      totalPRs: 0
+      totalPRs: 0,
     };
 
     const ssrData: { route: 'home'; data: HomePageData; timestamp: number } = {

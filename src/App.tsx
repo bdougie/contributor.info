@@ -9,11 +9,10 @@ import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 import { logger } from '@/lib/logger';
-// Lazy load core components to reduce initial bundle
-const Layout = lazy(() =>
-  import('@/components/common/layout').then((m) => ({ default: m.Layout }))
-);
-const Home = lazy(() => import('@/components/common/layout').then((m) => ({ default: m.Home })));
+import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
+// Eagerly load core layout components to prevent hydration flash
+import { Layout, Home } from '@/components/common/layout';
+
 const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
 );
@@ -184,27 +183,52 @@ const InvitationAcceptancePage = lazy(() =>
   }))
 );
 
-// Minimal loading fallback for fast FCP - simplified to reduce JS execution time
-const PageSkeleton = () => (
-  <div className="min-h-screen bg-background flex flex-col" role="status" aria-label="Loading content">
-    {/* Minimal header */}
-    <header className="border-b">
-      <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
-        <div className="text-xl font-bold">contributor.info</div>
-        <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
-      </div>
-    </header>
-    {/* Minimal content skeleton */}
-    <main className="flex-1 flex items-center justify-center">
-      <div className="w-full max-w-2xl px-4 space-y-4">
-        <div className="h-8 bg-muted animate-pulse rounded w-3/4 mx-auto" />
-        <div className="h-10 bg-muted animate-pulse rounded" />
-        <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto" />
-      </div>
-    </main>
-    <span className="sr-only">Loading content, please wait...</span>
-  </div>
-);
+/**
+ * Hydration-aware loading fallback
+ *
+ * During SSR hydration: Returns null to preserve SSR content (prevents flash)
+ * During SPA navigation: Shows skeleton for visual feedback
+ *
+ * This prevents the skeleton from flashing when React hydrates SSR content,
+ * as the SSR HTML is already visible and doesn't need a loading placeholder.
+ */
+const PageSkeleton = () => {
+  // Check synchronously on first render to avoid flash
+  // Show skeleton if: not an SSR page (SPA navigation) OR hydration is complete (subsequent Suspense)
+  const isSSR = isSSRPage();
+  const hydrationDone = isHydrationComplete();
+
+  // During SSR hydration (SSR page and hydration not yet complete), return null
+  // This preserves the SSR-rendered content instead of replacing it with skeleton
+  if (isSSR && !hydrationDone) {
+    return null;
+  }
+
+  return (
+    <div
+      className="min-h-screen bg-background flex flex-col"
+      role="status"
+      aria-label="Loading content"
+    >
+      {/* Minimal header */}
+      <header className="border-b">
+        <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
+          <div className="text-xl font-bold">contributor.info</div>
+          <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
+        </div>
+      </header>
+      {/* Minimal content skeleton */}
+      <main className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-2xl px-4 space-y-4">
+          <div className="h-8 bg-muted animate-pulse rounded w-3/4 mx-auto" />
+          <div className="h-10 bg-muted animate-pulse rounded" />
+          <div className="h-4 bg-muted animate-pulse rounded w-1/2 mx-auto" />
+        </div>
+      </main>
+      <span className="sr-only">Loading content, please wait...</span>
+    </div>
+  );
+};
 
 function App() {
   // Sync subscription status on app load

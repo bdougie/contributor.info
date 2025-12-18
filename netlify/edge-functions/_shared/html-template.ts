@@ -128,7 +128,9 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
     }
 
     // Extract modulepreload links
-    const preloadMatches = htmlContent.matchAll(/<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"[^>]*>/g);
+    const preloadMatches = htmlContent.matchAll(
+      /<link[^>]+rel="modulepreload"[^>]+href="([^"]+)"[^>]*>/g
+    );
     const modulePreloads: string[] = [];
     for (const match of preloadMatches) {
       if (match[1]) {
@@ -137,7 +139,9 @@ export async function getAssetReferences(baseUrl: string): Promise<AssetReferenc
     }
 
     // Extract stylesheet links
-    const styleMatches = htmlContent.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>/g);
+    const styleMatches = htmlContent.matchAll(
+      /<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"[^>]*>/g
+    );
     const stylesheets: string[] = [];
     for (const match of styleMatches) {
       if (match[1]) {
@@ -243,19 +247,20 @@ export function renderHTML(
   assets: AssetReferences
 ): string {
   // Generate modulepreload links
-  const modulePreloads = assets.modulePreloads
-    .map((href) => html`<link rel="modulepreload" crossorigin href="${href}">`)
-    // We can join SafeHTML arrays with html`` or just join them since html tag handles arrays
-    // But since map returns SafeHTML[], we can use them in html tag
-    ;
-
+  const modulePreloads = assets.modulePreloads.map(
+    (href) => html`<link rel="modulepreload" crossorigin href="${href}" />`
+  );
+  // We can join SafeHTML arrays with html`` or just join them since html tag handles arrays
+  // But since map returns SafeHTML[], we can use them in html tag
   // Generate stylesheet links
-  const stylesheets = assets.stylesheets
-    .map((href) => html`<link rel="stylesheet" crossorigin href="${href}">`);
+  const stylesheets = assets.stylesheets.map(
+    (href) => html`<link rel="stylesheet" crossorigin href="${href}" />`
+  );
 
   // Generate script tags
-  const scripts = assets.scripts
-    .map((src) => html`<script type="module" crossorigin src="${src}"></script>`);
+  const scripts = assets.scripts.map(
+    (src) => html`<script type="module" crossorigin src="${src}"></script>`
+  );
 
   // Allow content to be SafeHTML or string (if string, it's assumed to be already safe or will be wrapped)
   // But wait, if content is string, we should assume it's pre-rendered HTML (unsafe to escape, but needs to be marked safe)
@@ -274,50 +279,56 @@ export function renderHTML(
   const quotedSafeJson = JSON.stringify(safeJson);
 
   return html`<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    ${renderMetaTags(meta, url)}
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        ${renderMetaTags(meta, url)}
 
-    <!-- PWA Configuration -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Contributors" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+        <!-- PWA Configuration -->
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Contributors" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
 
-    <!-- SEO -->
-    <meta name="robots" content="index, follow" />
-    <meta name="author" content="Brian Douglas" />
-    <link rel="canonical" href="${url}" />
+        <!-- SEO -->
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="Brian Douglas" />
+        <link rel="canonical" href="${url}" />
 
-    <!-- Performance -->
-    <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
-    <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
+        <!-- Performance -->
+        <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
+        <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co" />
 
-    <!-- Theme detection - prevent FOUC -->
-    <script>${unsafe(THEME_SCRIPT)}</script>
+        <!-- Theme detection - prevent FOUC -->
+        <script>
+          ${unsafe(THEME_SCRIPT)};
+        </script>
 
-    <!-- Critical CSS -->
-    <style>${unsafe(CRITICAL_CSS)}</style>
+        <!-- Critical CSS -->
+        <style>
+          ${unsafe(CRITICAL_CSS)}
+        </style>
 
-    <!-- SSR Data for hydration (double-stringify prevents XSS via script injection) -->
-    <script>window.__SSR_DATA__ = JSON.parse(${unsafe(quotedSafeJson)});</script>
+        <!-- SSR Data for hydration (double-stringify prevents XSS via script injection) -->
+        <script>
+          window.__SSR_DATA__ = JSON.parse(${unsafe(quotedSafeJson)});
+        </script>
 
-    <!-- Modulepreload for critical chunks -->
-    ${modulePreloads}
+        <!-- Modulepreload for critical chunks -->
+        ${modulePreloads}
 
-    <!-- Stylesheets -->
-    ${stylesheets}
-  </head>
-  <body>
-    <div id="root">${safeContent}</div>
-    ${scripts}
-  </body>
-</html>`.content;
+        <!-- Stylesheets -->
+        ${stylesheets}
+      </head>
+      <body>
+        <div id="root">${safeContent}</div>
+        ${scripts}
+      </body>
+    </html>`.content;
 }
 
 /**

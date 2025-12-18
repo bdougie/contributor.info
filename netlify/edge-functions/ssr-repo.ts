@@ -54,29 +54,123 @@ function renderContributorAvatars(
 
   return html`
     <div class="flex -space-x-2">
-      ${contributors
-        .slice(0, 8)
-        .map(
-          (c) => html`
-        <a href="https://github.com/${c.login}" target="_blank" rel="noopener" class="relative">
-          <img
-            src="${c.avatar_url}&s=64"
-            alt="${c.login}"
-            class="w-8 h-8 rounded-full border-2 border-background"
-            loading="lazy"
-          />
-        </a>
-      `
-        )}
-      ${
-        contributors.length > 8
-          ? html`
-        <div class="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium">
-          +${contributors.length - 8}
+      ${contributors.slice(0, 8).map(
+        (c) => html`
+          <a href="https://github.com/${c.login}" target="_blank" rel="noopener" class="relative">
+            <img
+              src="${c.avatar_url}&s=64"
+              alt="${c.login}"
+              class="w-8 h-8 rounded-full border-2 border-background"
+              loading="lazy"
+            />
+          </a>
+        `
+      )}
+      ${contributors.length > 8
+        ? html`
+            <div
+              class="w-8 h-8 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium"
+            >
+              +${contributors.length - 8}
+            </div>
+          `
+        : ''}
+    </div>
+  `;
+}
+
+/**
+ * Render skeleton loading state
+ */
+function renderRepoSkeleton(owner: string, repo: string): SafeHTML {
+  return html`
+    <div class="min-h-screen bg-background">
+      <div class="container mx-auto px-4 py-6">
+        <!-- Breadcrumbs -->
+        <nav class="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <a href="/" class="hover:text-foreground">Home</a>
+          <span>/</span>
+          <a href="/${owner}" class="hover:text-foreground">${owner}</a>
+          <span>/</span>
+          <span class="text-foreground font-medium">${repo}</span>
+        </nav>
+
+        <!-- Header Card Skeleton -->
+        <div class="rounded-lg border bg-card shadow-sm mb-6">
+          <div class="p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div class="min-w-0 w-full max-w-2xl">
+                <div class="h-8 bg-muted animate-pulse rounded w-3/4 mb-2"></div>
+                <div class="h-5 bg-muted animate-pulse rounded w-full mb-1"></div>
+                <div class="h-5 bg-muted animate-pulse rounded w-2/3"></div>
+              </div>
+              <div class="h-9 w-20 bg-muted animate-pulse rounded"></div>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+              <div class="h-6 w-20 bg-muted animate-pulse rounded-full"></div>
+              <div class="h-6 w-24 bg-muted animate-pulse rounded-full"></div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-4">
+              <div class="h-5 w-24 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-24 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-32 bg-muted animate-pulse rounded"></div>
+            </div>
+          </div>
+
+          <div class="border-t px-6 py-4">
+            <div class="flex items-center justify-between mb-3">
+              <div class="h-5 w-32 bg-muted animate-pulse rounded"></div>
+              <div class="h-5 w-16 bg-muted animate-pulse rounded"></div>
+            </div>
+            <div class="flex -space-x-2">
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+              <div
+                class="w-8 h-8 rounded-full border-2 border-background bg-muted animate-pulse"
+              ></div>
+            </div>
+          </div>
         </div>
-      `
-          : ''
-      }
+
+        <!-- Tab Navigation Skeleton -->
+        <div class="mb-6">
+          <div class="inline-flex h-10 items-center rounded-md bg-muted p-1">
+            <div class="h-8 w-24 bg-background rounded-sm shadow-sm"></div>
+            <div class="h-8 w-24"></div>
+            <div class="h-8 w-24"></div>
+            <div class="h-8 w-24"></div>
+          </div>
+        </div>
+
+        <!-- Content Placeholder -->
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div class="lg:col-span-2 space-y-6">
+            <div class="rounded-lg border bg-card p-6">
+              <div class="animate-pulse space-y-4">
+                <div class="h-6 bg-muted rounded w-1/3"></div>
+                <div class="h-64 bg-muted rounded"></div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-6">
+            <div class="rounded-lg border bg-card p-6">
+              <div class="animate-pulse space-y-4">
+                <div class="h-5 bg-muted rounded w-1/2"></div>
+                <div class="h-32 bg-muted rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -115,7 +209,12 @@ function renderRepoContent(
             <div class="flex items-start justify-between gap-4 mb-4">
               <div class="min-w-0">
                 <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
-                  <a href="https://github.com/${repo.full_name}" target="_blank" rel="noopener" class="hover:underline">
+                  <a
+                    href="https://github.com/${repo.full_name}"
+                    target="_blank"
+                    rel="noopener"
+                    class="hover:underline"
+                  >
                     <span class="text-muted-foreground">${repo.owner}/</span>${repo.name}
                   </a>
                 </h1>
@@ -127,50 +226,76 @@ function renderRepoContent(
                 id="ssr-share-button"
               >
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
                 </svg>
                 Share
               </button>
             </div>
 
             <!-- Topics -->
-            ${
-              topics.length > 0
-                ? html`
-              <div class="flex flex-wrap gap-2 mb-4">
-                ${topics.map((topic) => html`<span class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">${topic}</span>`)}
-              </div>
-            `
-                : ''
-            }
+            ${topics.length > 0
+              ? html`
+                  <div class="flex flex-wrap gap-2 mb-4">
+                    ${topics.map(
+                      (topic) =>
+                        html`<span
+                          class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                          >${topic}</span
+                        >`
+                    )}
+                  </div>
+                `
+              : ''}
 
             <!-- Stats Row -->
             <div class="flex flex-wrap items-center gap-4 text-sm">
-              ${
-                languageColor
-                  ? html`
-                <span class="flex items-center gap-1.5">
-                  <span class="w-3 h-3 rounded-full" style="background-color: ${languageColor}"></span>
-                  ${repo.language!}
-                </span>
-              `
-                  : ''
-              }
-              <a href="https://github.com/${repo.full_name}/stargazers" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-primary">
+              ${languageColor
+                ? html`
+                    <span class="flex items-center gap-1.5">
+                      <span
+                        class="w-3 h-3 rounded-full"
+                        style="background-color: ${languageColor}"
+                      ></span>
+                      ${repo.language!}
+                    </span>
+                  `
+                : ''}
+              <a
+                href="https://github.com/${repo.full_name}/stargazers"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-1 hover:text-primary"
+              >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+                  <path
+                    d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"
+                  />
                 </svg>
                 ${formatNumber(repo.stargazer_count)} stars
               </a>
-              <a href="https://github.com/${repo.full_name}/forks" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-primary">
+              <a
+                href="https://github.com/${repo.full_name}/forks"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-1 hover:text-primary"
+              >
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/>
+                  <path
+                    d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"
+                  />
                 </svg>
                 ${formatNumber(repo.fork_count)} forks
               </a>
               <span class="flex items-center gap-1">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"/>
+                  <path
+                    d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"
+                  />
                 </svg>
                 ${formatNumber(contributorStats.count)} contributors
               </span>
@@ -181,29 +306,46 @@ function renderRepoContent(
           <div class="border-t px-6 py-4">
             <div class="flex items-center justify-between">
               <h2 class="text-sm font-medium">Top Contributors</h2>
-              <a href="https://github.com/${repo.full_name}/graphs/contributors" target="_blank" rel="noopener" class="text-sm text-muted-foreground hover:text-primary">
+              <a
+                href="https://github.com/${repo.full_name}/graphs/contributors"
+                target="_blank"
+                rel="noopener"
+                class="text-sm text-muted-foreground hover:text-primary"
+              >
                 View all →
               </a>
             </div>
-            <div class="mt-3">
-              ${renderContributorAvatars(contributorStats.topContributors)}
-            </div>
+            <div class="mt-3">${renderContributorAvatars(contributorStats.topContributors)}</div>
           </div>
         </div>
 
         <!-- Tab Navigation -->
         <div class="mb-6">
-          <div class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
-            <a href="/${repo.full_name}" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all bg-background text-foreground shadow-sm">
+          <div
+            class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground"
+          >
+            <a
+              href="/${repo.full_name}"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all bg-background text-foreground shadow-sm"
+            >
               Contributions
             </a>
-            <a href="/${repo.full_name}/health" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/health"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Health
             </a>
-            <a href="/${repo.full_name}/distribution" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/distribution"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Distribution
             </a>
-            <a href="/${repo.full_name}/feed" class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground">
+            <a
+              href="/${repo.full_name}/feed"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all hover:text-foreground"
+            >
               Feed
             </a>
           </div>
@@ -238,9 +380,12 @@ function renderRepoContent(
 async function handler(request: Request, context: Context) {
   const url = new URL(request.url);
 
+  console.log(`[ssr-repo] Handling request for ${url.pathname}`);
+
   // Parse owner/repo from path
   const parsed = parseRepoPath(url.pathname);
   if (!parsed) {
+    console.log('[ssr-repo] Failed to parse repo path, falling back to SPA');
     return fallbackToSPA(context);
   }
 
@@ -259,35 +404,60 @@ async function handler(request: Request, context: Context) {
   }
 
   try {
-    // Fetch repository data, contributor stats, and asset references in parallel
+    // Fetch asset references first
     const baseUrl = `${url.protocol}//${url.host}`;
-    const [repoData, contributorStats, assets] = await Promise.all([
-      fetchRepository(owner, repo),
-      fetchRepoContributorStats(owner, repo),
-      getAssetReferences(baseUrl),
-    ]);
+    const assets = await getAssetReferences(baseUrl);
 
-    // Fall back to SPA if assets couldn't be loaded
+    // Fall back to SPA if assets couldn't be loaded (critical for hydration)
     if (assets.fallbackToSPA) {
       console.warn('[ssr-repo] Asset loading failed, falling back to SPA');
       return fallbackToSPA(context);
     }
 
-    // If repo not found, return 404
+    // Return the skeleton immediately if we want to show it while loading
+    // But since this is SSR, we usually want to wait for data.
+    // However, if data fetch fails, we should return the skeleton instead of falling back to SPA
+    // to prevent the "Unstyled Landing Page" flash if the SPA falls back to Home.
+
+    // Fetch repository data and contributor stats in parallel
+    const [repoData, contributorStats] = await Promise.all([
+      fetchRepository(owner, repo),
+      fetchRepoContributorStats(owner, repo),
+    ]);
+
+    // If repo not found or error, render the skeleton as a fallback
+    // This ensures the user sees the Repo structure while the client-side tries to fetch/handle 404
     if (!repoData) {
+      console.warn(`[ssr-repo] Repository ${owner}/${repo} not found or error, rendering skeleton`);
       addBreadcrumb({
-        message: 'Repository not found',
+        message: 'Repository not found or error, rendering skeleton',
         category: 'ssr',
         level: 'warning',
         data: { owner, repo },
       });
 
-      // For SEO, we want to return a proper 404, but we'll let the SPA handle it
-      // so users can track new repos
-      return fallbackToSPA(context);
+      // Render skeleton with empty data for hydration
+      const content = renderRepoSkeleton(owner, repo);
+      const meta: MetaTags = {
+        title: `${owner}/${repo} - contributor.info`,
+        description: `Analyze contributors for ${owner}/${repo}`,
+        image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+      };
+
+      // Pass null data to force client-side fetch
+      const ssrData: { route: string; data: null; timestamp: number } = {
+        route: `/${owner}/${repo}`,
+        data: null,
+        timestamp: Date.now(),
+      };
+
+      const html = renderHTML(content, meta, ssrData, request.url, assets);
+      // Short cache for error states
+      const headers = getSSRHeaders(10, 60);
+      return new Response(html, { headers });
     }
 
-    // Generate the page content
+    // Success path - generate the full page content
     const content = renderRepoContent(repoData, contributorStats);
 
     const meta: MetaTags = {
@@ -327,14 +497,36 @@ async function handler(request: Request, context: Context) {
   } catch (error) {
     console.error('[ssr-repo] Error: %o', error);
     addBreadcrumb({
-      message: 'SSR repo page error, falling back to SPA',
+      message: 'SSR repo page error, rendering skeleton',
       category: 'ssr',
       level: 'error',
       data: { owner, repo, error: String(error) },
     });
 
-    // Fall back to SPA on error
-    return fallbackToSPA(context);
+    // On critical error, still try to render skeleton if we have assets
+    try {
+      const baseUrl = `${url.protocol}//${url.host}`;
+      const assets = await getAssetReferences(baseUrl);
+
+      const content = renderRepoSkeleton(owner, repo);
+      const meta: MetaTags = {
+        title: `${owner}/${repo} - contributor.info`,
+        description: `Analyze contributors for ${owner}/${repo}`,
+      };
+
+      const ssrData: { route: string; data: null; timestamp: number } = {
+        route: `/${owner}/${repo}`,
+        data: null,
+        timestamp: Date.now(),
+      };
+
+      const html = renderHTML(content, meta, ssrData, request.url, assets);
+      return new Response(html, { headers: getSSRHeaders(0, 0) });
+    } catch (e) {
+      console.error('[ssr-repo] Critical error during fallback: %o', e);
+      // Ultimate fallback to SPA
+      return fallbackToSPA(context);
+    }
   }
 }
 
@@ -345,6 +537,9 @@ export const config = {
   excludedPath: [
     '/api/*',
     '/assets/*',
+    '/js/*',
+    '/css/*',
+    '/icons/*',
     '/login',
     '/settings',
     '/admin/*',
@@ -358,5 +553,11 @@ export const config = {
     '/terms',
     '/billing',
     '/invitation/*',
+    '/*.js',
+    '/*.css',
+    '/*.json',
+    '/*.png',
+    '/*.svg',
+    '/*.ico',
   ],
 };

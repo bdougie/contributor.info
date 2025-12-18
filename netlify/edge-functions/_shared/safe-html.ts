@@ -33,7 +33,7 @@ export function escapeHtml(text: string): string {
  * Automatically escapes all values unless they are instances of SafeHTML.
  * Arrays are joined and their elements processed recursively.
  */
-export function html(strings: TemplateStringsArray, ...values: any[]): SafeHTML {
+export function html(strings: TemplateStringsArray, ...values: unknown[]): SafeHTML {
   let result = strings[0];
 
   for (let i = 0; i < values.length; i++) {
@@ -42,12 +42,14 @@ export function html(strings: TemplateStringsArray, ...values: any[]): SafeHTML 
     if (value instanceof SafeHTML) {
       result += value.content;
     } else if (Array.isArray(value)) {
-      result += value.map(v => {
-        if (v instanceof SafeHTML) {
-          return v.content;
-        }
-        return escapeHtml(String(v ?? ''));
-      }).join('');
+      result += value
+        .map((v) => {
+          if (v instanceof SafeHTML) {
+            return v.content;
+          }
+          return escapeHtml(String(v ?? ''));
+        })
+        .join('');
     } else {
       // Handle null/undefined as empty string
       result += escapeHtml(String(value ?? ''));
