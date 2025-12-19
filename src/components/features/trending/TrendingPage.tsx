@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -13,9 +14,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingRepositoryCard } from './TrendingRepositoryCard';
 import type { TrendingRepositoryData } from './TrendingRepositoryCard';
 import { TrendingEventsInsights } from './TrendingEventsInsights';
-import { TrendingUp, Zap, Sparkles, Calendar, Search } from '@/components/ui/icon';
+import {
+  TrendingUp,
+  Zap,
+  Sparkles,
+  Calendar,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+} from '@/components/ui/icon';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import type { GitHubRepository } from '@/lib/github';
+
+const REPOS_PER_PAGE = 12;
 
 export interface TrendingPageProps {
   repositories: TrendingRepositoryData[];
@@ -38,6 +49,7 @@ export function TrendingPage({
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('7d');
   const [sortBy, setSortBy] = useState<SortOption>('trending_score');
   const [languageFilter, setLanguageFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Handle repository search/select for tracking CTA
   const handleSearch = useCallback(
@@ -93,6 +105,31 @@ export function TrendingPage({
 
     return filtered;
   }, [repositories, languageFilter, sortBy]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [languageFilter, sortBy, timePeriod]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(Math.max(0, filteredRepos.length - 1) / REPOS_PER_PAGE);
+
+  // Get repos for the current page (excluding the first "hottest" repo which is always shown)
+  const paginatedRepos = useMemo(() => {
+    if (filteredRepos.length <= 1) return [];
+    const reposWithoutHottest = filteredRepos.slice(1);
+    const startIndex = (currentPage - 1) * REPOS_PER_PAGE;
+    const endIndex = startIndex + REPOS_PER_PAGE;
+    return reposWithoutHottest.slice(startIndex, endIndex);
+  }, [filteredRepos, currentPage]);
+
+  const handlePreviousPage = useCallback(() => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
 
   const getSortLabel = (option: SortOption) => {
     switch (option) {
@@ -350,16 +387,53 @@ export function TrendingPage({
                       )}
 
                       {/* Repository grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredRepos.slice(1).map((repo) => (
-                          <TrendingRepositoryCard
-                            key={repo.id}
-                            repository={repo}
-                            showDataFreshness={true}
-                            onClick={onRepositoryClick}
-                          />
-                        ))}
-                      </div>
+                      {paginatedRepos.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {paginatedRepos.map((repo) => (
+                            <TrendingRepositoryCard
+                              key={repo.id}
+                              repository={repo}
+                              showDataFreshness={true}
+                              onClick={onRepositoryClick}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Pagination controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-4 mt-8">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePreviousPage}
+                            disabled={currentPage === 1}
+                            className="gap-1"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            <span className="hidden sm:inline">Previous</span>
+                          </Button>
+
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>Page</span>
+                            <Badge variant="secondary" className="px-2">
+                              {currentPage}
+                            </Badge>
+                            <span>of {totalPages}</span>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                            className="gap-1"
+                          >
+                            <span className="hidden sm:inline">Next</span>
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </>
                   )}
                 </>
