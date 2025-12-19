@@ -98,9 +98,13 @@ BEGIN
         v_importance := LEAST(100, ABS(NEW.change_percentage)::INTEGER * 2);
 
       WHEN 'contributors' THEN
-        v_changelog_title := NEW.change_amount || ' new contributors joined';
+        v_changelog_title :=
+          CASE
+            WHEN NEW.change_amount > 0 THEN NEW.change_amount || ' new contributors joined'
+            ELSE ABS(NEW.change_amount) || ' contributors left'
+          END;
         v_change_type := 'contributor_surge';
-        v_importance := LEAST(100, NEW.change_amount * 10);
+        v_importance := LEAST(100, ABS(NEW.change_amount) * 10);
 
       WHEN 'pull_requests' THEN
         v_changelog_title := 'PR activity ' ||
