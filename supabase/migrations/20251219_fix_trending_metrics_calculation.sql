@@ -58,9 +58,14 @@ BEGIN
 
   RETURN FALSE; -- No change detected
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 COMMENT ON FUNCTION capture_repository_metrics IS 'Captures repository metrics. Sets previous_value from last record so generated columns change_amount and change_percentage auto-calculate.';
+
+-- Add composite index for efficient metrics lookup
+-- This optimizes the query that finds the most recent metric value
+CREATE INDEX IF NOT EXISTS idx_repository_metrics_lookup 
+  ON repository_metrics_history (repository_id, metric_type, captured_at DESC);
 
 -- Fix 2: Change trigger from BEFORE to AFTER INSERT
 -- Generated columns (change_percentage) aren't computed until after the row is inserted
@@ -148,7 +153,7 @@ BEGIN
         'change_percentage', NEW.change_percentage
       ),
       v_importance
-    ) ON CONFLICT (repository_id, title, created_at) DO NOTHING;
+    ) ON CONFLICT (repository_id, title) DO NOTHING;
   END IF;
 
   RETURN NEW;
