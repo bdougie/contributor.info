@@ -67,6 +67,12 @@ COMMENT ON FUNCTION capture_repository_metrics IS 'Captures repository metrics. 
 CREATE INDEX IF NOT EXISTS idx_repository_metrics_lookup 
   ON repository_metrics_history (repository_id, metric_type, captured_at DESC);
 
+-- Add 'contributor_drop' to allowed change_type values
+-- This allows us to distinguish contributor decreases from increases
+ALTER TABLE repository_changelogs DROP CONSTRAINT IF EXISTS repository_changelogs_change_type_check;
+ALTER TABLE repository_changelogs ADD CONSTRAINT repository_changelogs_change_type_check 
+  CHECK (change_type IN ('milestone', 'trending', 'activity_spike', 'contributor_surge', 'contributor_drop', 'release'));
+
 -- Fix 2: Change trigger from BEFORE to AFTER INSERT
 -- Generated columns (change_percentage) aren't computed until after the row is inserted
 -- so we need an AFTER trigger that updates the row
@@ -108,7 +114,11 @@ BEGIN
             WHEN NEW.change_amount > 0 THEN NEW.change_amount || ' new contributors joined'
             ELSE ABS(NEW.change_amount) || ' contributors left'
           END;
-        v_change_type := 'contributor_surge';
+        v_change_type := 
+          CASE
+            WHEN NEW.change_amount > 0 THEN 'contributor_surge'
+            ELSE 'contributor_drop'
+          END;
         v_importance := LEAST(100, ABS(NEW.change_amount) * 10);
 
       WHEN 'pull_requests' THEN
