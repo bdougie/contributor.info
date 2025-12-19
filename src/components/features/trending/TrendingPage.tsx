@@ -119,6 +119,13 @@ export function TrendingPage({
   // Calculate pagination
   const totalPages = Math.ceil(Math.max(0, filteredRepos.length - 1) / REPOS_PER_PAGE);
 
+  // Clamp currentPage when totalPages decreases from external data changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   // Get repos for the current page (excluding the first "hottest" repo which is always shown)
   const paginatedRepos = useMemo(() => {
     if (filteredRepos.length <= 1) return [];
