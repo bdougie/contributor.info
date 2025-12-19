@@ -122,30 +122,10 @@ export function TrendingPage({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          <div className="animate-pulse">
-            <div className="h-8 bg-muted rounded w-1/3 mb-2" />
-            <div className="h-4 bg-muted rounded w-1/2" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-48 bg-muted rounded-lg" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={className}>
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header - Always visible */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-start sm:items-center gap-3 mb-4">
             <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex-shrink-0">
@@ -169,13 +149,20 @@ export function TrendingPage({
               </span>
               <span className="sm:hidden">{getTimePeriodLabel(timePeriod)}</span>
             </div>
-            <Badge variant="secondary">
-              {filteredRepos.length} {filteredRepos.length === 1 ? 'repo' : 'repos'}
-            </Badge>
+            {!loading && (
+              <Badge variant="secondary">
+                {filteredRepos.length} {filteredRepos.length === 1 ? 'repo' : 'repos'}
+              </Badge>
+            )}
+            {loading && (
+              <Badge variant="secondary" className="text-muted-foreground">
+                Loading...
+              </Badge>
+            )}
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Controls - Always visible */}
         <div className="mb-6">
           <Tabs value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
             <div className="flex flex-col gap-4 mb-6">
@@ -229,83 +216,107 @@ export function TrendingPage({
             </div>
 
             <TabsContent value={timePeriod} className="space-y-0">
-              {/* Trending Events Insights */}
-              {filteredRepos.length > 0 && (
-                <TrendingEventsInsights
-                  repositories={filteredRepos.map((repo) => ({
-                    full_name: `${repo.owner}/${repo.name}`,
-                    owner: repo.owner,
-                    name: repo.name,
-                    language: repo.language,
-                  }))}
-                  timeRange={timePeriod}
-                />
-              )}
-
-              {filteredRepos.length === 0 ? (
+              {/* Loading state for repository content */}
+              {loading && (
                 <Card className="border-dashed">
                   <CardContent className="flex items-center justify-center py-16">
-                    <div className="text-center max-w-md">
+                    <div className="text-center">
                       <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full w-fit mx-auto mb-4">
-                        <TrendingUp className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                        <Zap className="w-8 h-8 text-orange-600 dark:text-orange-400 animate-pulse" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-2">No trending repositories yet</h3>
-                      <p className="text-muted-foreground mb-6">
-                        {languageFilter !== 'all'
-                          ? `No ${languageFilter} repositories are trending right now. Try a different language or be the first to track one!`
-                          : 'Be the first to track a repository and help populate our trending data.'}
+                      <h3 className="text-xl font-semibold mb-2">Loading trending repositories</h3>
+                      <p className="text-muted-foreground">
+                        Fetching the hottest repositories based on recent activity...
                       </p>
-                      <div className="space-y-4">
-                        <GitHubSearchInput
-                          placeholder="Search for a repository to track..."
-                          onSearch={handleSearch}
-                          onSelect={handleSelectRepository}
-                          searchLocation="trending"
-                          buttonText="Track"
-                          className="max-w-sm mx-auto"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Try: facebook/react, microsoft/vscode, or vercel/next.js
-                        </p>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              ) : (
+              )}
+
+              {/* Content only shown when not loading */}
+              {!loading && (
                 <>
-                  {/* Top trending highlight */}
+                  {/* Trending Events Insights */}
                   {filteredRepos.length > 0 && (
-                    <Card className="mb-8 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                          🔥 Hottest Repository
-                        </CardTitle>
-                        <CardDescription>
-                          Top trending by {getSortLabel(sortBy).toLowerCase()}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <TrendingRepositoryCard
-                          repository={filteredRepos[0]}
-                          showDataFreshness={true}
-                          onClick={onRepositoryClick}
-                        />
-                      </CardContent>
-                    </Card>
+                    <TrendingEventsInsights
+                      repositories={filteredRepos.map((repo) => ({
+                        full_name: `${repo.owner}/${repo.name}`,
+                        owner: repo.owner,
+                        name: repo.name,
+                        language: repo.language,
+                      }))}
+                      timeRange={timePeriod}
+                    />
                   )}
 
-                  {/* Repository grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredRepos.slice(1).map((repo) => (
-                      <TrendingRepositoryCard
-                        key={repo.id}
-                        repository={repo}
-                        showDataFreshness={true}
-                        onClick={onRepositoryClick}
-                      />
-                    ))}
-                  </div>
+                  {filteredRepos.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="flex items-center justify-center py-16">
+                        <div className="text-center max-w-md">
+                          <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full w-fit mx-auto mb-4">
+                            <TrendingUp className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                          </div>
+                          <h3 className="text-xl font-semibold mb-2">
+                            No trending repositories yet
+                          </h3>
+                          <p className="text-muted-foreground mb-6">
+                            {languageFilter !== 'all'
+                              ? `No ${languageFilter} repositories are trending right now. Try a different language or be the first to track one!`
+                              : 'Be the first to track a repository and help populate our trending data.'}
+                          </p>
+                          <div className="space-y-4">
+                            <GitHubSearchInput
+                              placeholder="Search for a repository to track..."
+                              onSearch={handleSearch}
+                              onSelect={handleSelectRepository}
+                              searchLocation="trending"
+                              buttonText="Track"
+                              className="max-w-sm mx-auto"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Try: facebook/react, microsoft/vscode, or vercel/next.js
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Top trending highlight */}
+                      {filteredRepos.length > 0 && (
+                        <Card className="mb-8 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                              🔥 Hottest Repository
+                            </CardTitle>
+                            <CardDescription>
+                              Top trending by {getSortLabel(sortBy).toLowerCase()}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <TrendingRepositoryCard
+                              repository={filteredRepos[0]}
+                              showDataFreshness={true}
+                              onClick={onRepositoryClick}
+                            />
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Repository grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {filteredRepos.slice(1).map((repo) => (
+                          <TrendingRepositoryCard
+                            key={repo.id}
+                            repository={repo}
+                            showDataFreshness={true}
+                            onClick={onRepositoryClick}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </TabsContent>
