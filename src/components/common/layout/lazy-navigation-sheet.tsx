@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { Menu } from '@/components/ui/icon';
 import { SheetSkeleton } from '@/components/ui/lazy-sheet';
 
@@ -32,10 +32,27 @@ export function LazyNavigationSheet({
   setIsMenuOpen,
   children,
 }: LazyNavigationSheetProps) {
+  // Track if components have ever been loaded (persists across open/close)
+  const [hasEverOpened, setHasEverOpened] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    setHasEverOpened(true);
+    setIsMenuOpen(true);
+  }, [setIsMenuOpen]);
+
+  // Preload on hover for faster first open
+  const handlePreload = useCallback(() => {
+    if (!hasEverOpened) {
+      import('@/components/ui/sheet');
+    }
+  }, [hasEverOpened]);
+
   // Always render the trigger button
   const triggerButton = (
     <button
-      onClick={() => setIsMenuOpen(true)}
+      onClick={handleOpen}
+      onMouseEnter={handlePreload}
+      onFocus={handlePreload}
       className="p-2 hover:bg-muted rounded-md transition-colors"
       aria-label="Open menu"
     >
@@ -44,11 +61,11 @@ export function LazyNavigationSheet({
   );
 
   // If menu has never been opened, just show the trigger
-  if (!isMenuOpen) {
+  if (!hasEverOpened) {
     return triggerButton;
   }
 
-  // Once opened, load the Sheet components
+  // Once opened, keep Sheet in DOM and control via open prop
   return (
     <Suspense
       fallback={
