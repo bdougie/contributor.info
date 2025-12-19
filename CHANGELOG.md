@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0](https://github.com/bdougie/contributor.info/compare/v4.3.3...v4.4.0) (2025-12-19)
+
+
+### 🚀 Features
+
+* **trending:** add pagination to trending repositories page ([#1423](https://github.com/bdougie/contributor.info/issues/1423)) ([971972d](https://github.com/bdougie/contributor.info/commit/971972dba0e95ae8a6b9ff47738b24cf584187ef))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([1827f0f](https://github.com/bdougie/contributor.info/commit/1827f0f1bad5c53f7e365041515da990e37b468f))
+
 ## [4.3.3](https://github.com/bdougie/contributor.info/compare/v4.3.2...v4.3.3) (2025-12-19)
 
 
