@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.3](https://github.com/bdougie/contributor.info/compare/v4.3.2...v4.3.3) (2025-12-19)
+
+
+### 🐛 Bug Fixes
+
+* **ui:** replace skeleton loaders with static content ([#1422](https://github.com/bdougie/contributor.info/issues/1422)) ([31bb2cc](https://github.com/bdougie/contributor.info/commit/31bb2cc80c6006543287f26d87eb4bec9b6cad19))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([2b730bd](https://github.com/bdougie/contributor.info/commit/2b730bd034a8d41e7d1f5aa9d0b6df37887eeef0))
+
 ## [4.3.2](https://github.com/bdougie/contributor.info/compare/v4.3.1...v4.3.2) (2025-12-19)
 
 
