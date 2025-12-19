@@ -1,5 +1,4 @@
 import { lazy, Suspense, Component, ErrorInfo, ReactNode } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 // Export individual lazy components with proper typing
@@ -66,6 +65,7 @@ export const LazySheetOverlay = lazy(() =>
 );
 
 // Loading fallback for sheets with flexible positioning
+// Uses static content instead of animated skeletons for better UX
 interface SheetSkeletonProps {
   side?: 'left' | 'right' | 'top' | 'bottom';
   className?: string;
@@ -104,13 +104,17 @@ export const SheetSkeleton = ({
           className
         )}
       >
+        {/* Static content matching actual menu structure */}
         <div className="space-y-4">
-          <Skeleton className="h-6 w-32" />
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
+          <h2 className="text-lg font-semibold">Menu</h2>
+          <nav className="flex flex-col space-y-4 mt-6">
+            <span className="text-lg font-semibold text-muted-foreground">Home</span>
+            <span className="text-base text-muted-foreground">🔥 Trending</span>
+            <span className="text-base text-muted-foreground">✨ View Demo</span>
+            <span className="text-base text-muted-foreground">Changelog</span>
+            <span className="text-base text-muted-foreground">Pricing</span>
+            <span className="text-base text-muted-foreground">Docs</span>
+          </nav>
         </div>
       </div>
     </>

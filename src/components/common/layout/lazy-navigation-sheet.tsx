@@ -1,21 +1,20 @@
-import { lazy, Suspense } from 'react';
+import { useCallback, useRef } from 'react';
 import { Menu } from '@/components/ui/icon';
-import { SheetSkeleton } from '@/components/ui/lazy-sheet';
+import {
+  LazySheetWrapper,
+  LazySheetContent,
+  LazySheetHeader,
+  LazySheetTitle,
+} from '@/components/ui/lazy-sheet';
 
-// Lazy load Sheet components only when menu is opened
-const Sheet = lazy(() => import('@/components/ui/sheet').then((m) => ({ default: m.Sheet })));
-const SheetContent = lazy(() =>
-  import('@/components/ui/sheet').then((m) => ({ default: m.SheetContent }))
-);
-const SheetHeader = lazy(() =>
-  import('@/components/ui/sheet').then((m) => ({ default: m.SheetHeader }))
-);
-const SheetTitle = lazy(() =>
-  import('@/components/ui/sheet').then((m) => ({ default: m.SheetTitle }))
-);
-const SheetTrigger = lazy(() =>
-  import('@/components/ui/sheet').then((m) => ({ default: m.SheetTrigger }))
-);
+// Preload function - imports the sheet module ahead of time
+let preloadPromise: Promise<unknown> | null = null;
+const preloadSheet = () => {
+  if (!preloadPromise) {
+    preloadPromise = import('@/components/ui/sheet');
+  }
+  return preloadPromise;
+};
 
 interface LazyNavigationSheetProps {
   isMenuOpen: boolean;
@@ -24,49 +23,56 @@ interface LazyNavigationSheetProps {
 }
 
 /**
- * Lazy-loaded navigation sheet that only loads Radix Dialog/Sheet when opened
- * This reduces the initial bundle size by ~15KB
+ * Navigation sheet with preload-on-hover for optimal performance
+ * - Lazy loads sheet components (saves ~15KB from initial bundle)
+ * - Preloads on hover/focus so it's ready before click
+ * - No flicker because module loads during hover intent
  */
 export function LazyNavigationSheet({
   isMenuOpen,
   setIsMenuOpen,
   children,
 }: LazyNavigationSheetProps) {
-  // Always render the trigger button
-  const triggerButton = (
-    <button
-      onClick={() => setIsMenuOpen(true)}
-      className="p-2 hover:bg-muted rounded-md transition-colors"
-      aria-label="Open menu"
-    >
-      <Menu className="w-5 h-5" />
-    </button>
-  );
+  const hasPreloaded = useRef(false);
 
-  // If menu has never been opened, just show the trigger
-  if (!isMenuOpen) {
-    return triggerButton;
-  }
+  const handlePreload = useCallback(() => {
+    if (!hasPreloaded.current) {
+      hasPreloaded.current = true;
+      preloadSheet();
+    }
+  }, []);
 
-  // Once opened, load the Sheet components
+  const handleClick = useCallback(() => {
+    // Ensure preload started, then open
+    handlePreload();
+    setIsMenuOpen(true);
+  }, [handlePreload, setIsMenuOpen]);
+
   return (
-    <Suspense
-      fallback={
-        <>
-          {triggerButton}
-          <SheetSkeleton side="left" />
-        </>
-      }
-    >
-      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <SheetTrigger asChild>{triggerButton}</SheetTrigger>
-        <SheetContent side="left" className="w-[300px] sm:w-[350px]">
-          <SheetHeader>
-            <SheetTitle>Menu</SheetTitle>
-          </SheetHeader>
+    <>
+      {/* Trigger button - always rendered, not lazy */}
+      <button
+        className="p-2 hover:bg-muted rounded-md transition-colors"
+        aria-label="Open menu"
+        aria-expanded={isMenuOpen}
+        aria-haspopup="dialog"
+        onClick={handleClick}
+        onMouseEnter={handlePreload}
+        onFocus={handlePreload}
+        onTouchStart={handlePreload}
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Sheet content - lazy loaded, only renders when open */}
+      <LazySheetWrapper open={isMenuOpen} onOpenChange={setIsMenuOpen} side="left">
+        <LazySheetContent side="left" className="w-[300px] sm:w-[350px]">
+          <LazySheetHeader>
+            <LazySheetTitle>Menu</LazySheetTitle>
+          </LazySheetHeader>
           {children}
-        </SheetContent>
-      </Sheet>
-    </Suspense>
+        </LazySheetContent>
+      </LazySheetWrapper>
+    </>
   );
 }
