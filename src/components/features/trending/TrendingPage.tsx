@@ -155,7 +155,7 @@ export function TrendingPage({
               </Badge>
             )}
             {loading && (
-              <Badge variant="secondary" className="text-muted-foreground">
+              <Badge variant="secondary" className="text-muted-foreground" aria-live="polite">
                 Loading...
               </Badge>
             )}
