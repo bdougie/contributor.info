@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.1](https://github.com/bdougie/contributor.info/compare/v4.3.0...v4.3.1) (2025-12-19)
+
+
+### 🐛 Bug Fixes
+
+* **database:** fix trending metrics calculation ([#1419](https://github.com/bdougie/contributor.info/issues/1419)) ([f0f7656](https://github.com/bdougie/contributor.info/commit/f0f76565e35919c07ba040b3ebf401510889ee6a)), closes [#1418](https://github.com/bdougie/contributor.info/issues/1418)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([4ea5898](https://github.com/bdougie/contributor.info/commit/4ea589884e7719efd89c171348ed10093e32bdfc))
+
 ## [4.3.0](https://github.com/bdougie/contributor.info/compare/v4.2.0...v4.3.0) (2025-12-18)
 
 
