@@ -421,12 +421,17 @@ export function TrendingPage({
                             onClick={handlePreviousPage}
                             disabled={currentPage === 1}
                             className="gap-1"
+                            aria-label="Go to previous page"
                           >
                             <ChevronLeft className="h-4 w-4" />
                             <span className="hidden sm:inline">Previous</span>
                           </Button>
 
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <div
+                            className="flex items-center gap-2 text-sm text-muted-foreground"
+                            aria-live="polite"
+                            aria-atomic="true"
+                          >
                             <span>Page</span>
                             <Badge variant="secondary" className="px-2">
                               {currentPage}
@@ -440,6 +445,7 @@ export function TrendingPage({
                             onClick={handleNextPage}
                             disabled={currentPage === totalPages}
                             className="gap-1"
+                            aria-label="Go to next page"
                           >
                             <span className="hidden sm:inline">Next</span>
                             <ChevronRight className="h-4 w-4" />
