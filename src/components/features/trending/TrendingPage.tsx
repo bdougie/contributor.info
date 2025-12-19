@@ -216,21 +216,66 @@ export function TrendingPage({
             </div>
 
             <TabsContent value={timePeriod} className="space-y-0">
-              {/* Loading state for repository content */}
+              {/* Loading state - skeleton matching hottest repository card */}
               {loading && (
-                <Card className="border-dashed">
-                  <CardContent className="flex items-center justify-center py-16">
-                    <div className="text-center">
-                      <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full w-fit mx-auto mb-4">
-                        <Zap className="w-8 h-8 text-orange-600 dark:text-orange-400 animate-pulse" />
-                      </div>
-                      <h3 className="text-xl font-semibold mb-2">Loading trending repositories</h3>
-                      <p className="text-muted-foreground">
-                        Fetching the hottest repositories based on recent activity...
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+                <>
+                  <Card className="mb-8 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        🔥 Hottest Repository
+                      </CardTitle>
+                      <CardDescription>Loading top trending repository...</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Skeleton card matching TrendingRepositoryCard structure */}
+                      <Card className="animate-pulse">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-full bg-muted" />
+                              <div className="min-w-0 space-y-2">
+                                <div className="h-5 w-40 bg-muted rounded" />
+                                <div className="h-3 w-24 bg-muted rounded" />
+                              </div>
+                            </div>
+                            <div className="h-6 w-16 bg-muted rounded-full" />
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="h-4 w-full bg-muted rounded mb-4" />
+                          <div className="h-4 w-3/4 bg-muted rounded mb-4" />
+                          <div className="flex items-center gap-4">
+                            <div className="h-4 w-16 bg-muted rounded" />
+                            <div className="h-4 w-16 bg-muted rounded" />
+                            <div className="h-4 w-16 bg-muted rounded" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </CardContent>
+                  </Card>
+
+                  {/* Skeleton grid for remaining repos */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Card key={i} className="animate-pulse">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-muted" />
+                            <div className="space-y-2">
+                              <div className="h-4 w-32 bg-muted rounded" />
+                              <div className="h-3 w-20 bg-muted rounded" />
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="h-3 w-full bg-muted rounded mb-2" />
+                          <div className="h-3 w-2/3 bg-muted rounded" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </>
               )}
 
               {/* Content only shown when not loading */}
