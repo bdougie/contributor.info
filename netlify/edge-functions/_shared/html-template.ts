@@ -273,6 +273,23 @@ function renderMetaTags(meta: MetaTags, url: string): SafeHTML {
 }
 
 /**
+ * Render a lightweight header placeholder that reserves space.
+ * This prevents layout shift without the HTML bloat of rendering full header content.
+ * React will hydrate the real header content.
+ */
+export function renderHeader(): SafeHTML {
+  return html`<header class="border-b" style="height:64px" aria-hidden="true"></header>`;
+}
+
+/**
+ * Render a lightweight footer placeholder that reserves space.
+ * React will hydrate the real footer content.
+ */
+export function renderFooter(): SafeHTML {
+  return html`<footer class="border-t" style="height:57px" aria-hidden="true"></footer>`;
+}
+
+/**
  * Theme detection script - runs before render to prevent FOUC
  */
 const THEME_SCRIPT = `

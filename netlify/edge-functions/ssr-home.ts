@@ -11,6 +11,8 @@ import {
   renderHTML,
   getSSRHeaders,
   getAssetReferences,
+  renderHeader,
+  renderFooter,
   html,
   type SafeHTML,
   type MetaTags,
@@ -80,11 +82,12 @@ function renderHomeContent(): SafeHTML {
   `);
 
   return html`
-    <div class="flex flex-col min-h-screen">
-      <main class="flex-1">
-        <div class="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <article class="flex items-center justify-center w-full">
-            <div class="w-full max-w-2xl space-y-6 px-4">
+    <div class="min-h-screen bg-background flex flex-col">
+      ${renderHeader()}
+      <main class="flex-1 bg-muted/50 dark:bg-black">
+        <div class="container px-4 py-6">
+          <article class="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+            <div class="w-full max-w-2xl space-y-6">
               <!-- Hero Card -->
               <div class="rounded-lg border bg-card shadow-sm text-card-foreground">
                 <div class="flex flex-col space-y-1.5 p-6">
@@ -157,24 +160,12 @@ function renderHomeContent(): SafeHTML {
           </article>
         </div>
       </main>
-
-      <footer class="border-t py-4">
-        <div class="container px-4 text-center text-sm text-muted-foreground">
-          Made with ❤️ by
-          <a
-            href="https://github.com/bdougie"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hover:text-primary transition-colors"
-            >bdougie</a
-          >
-        </div>
-      </footer>
+      ${renderFooter()}
     </div>
 
     <!-- Inline script for basic interactivity before hydration -->
     <script>
-      ${scriptContent}
+      ${scriptContent};
     </script>
   `;
 }

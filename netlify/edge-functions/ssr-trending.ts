@@ -11,6 +11,8 @@ import {
   renderHTML,
   getSSRHeaders,
   getAssetReferences,
+  renderHeader,
+  renderFooter,
   html,
   type SafeHTML,
   type MetaTags,
@@ -104,24 +106,30 @@ function renderRepoCard(repo: TrendingRepo, isHottest = false): SafeHTML {
 function renderTrendingContent(repos: TrendingRepo[]): SafeHTML {
   if (repos.length === 0) {
     return html`
-      <div class="container mx-auto px-4 py-8">
-        <div class="text-center py-12">
-          <svg
-            class="w-12 h-12 text-muted-foreground mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-            />
-          </svg>
-          <h3 class="text-lg font-medium mb-2">No trending repositories found</h3>
-          <p class="text-muted-foreground">Check back later for trending content.</p>
-        </div>
+      <div class="min-h-screen bg-background flex flex-col">
+        ${renderHeader()}
+        <main class="flex-1 bg-muted/50 dark:bg-black">
+          <div class="container px-4 py-6">
+            <div class="text-center py-12">
+              <svg
+                class="w-12 h-12 text-muted-foreground mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                />
+              </svg>
+              <h3 class="text-lg font-medium mb-2">No trending repositories found</h3>
+              <p class="text-muted-foreground">Check back later for trending content.</p>
+            </div>
+          </div>
+        </main>
+        ${renderFooter()}
       </div>
     `;
   }
@@ -129,71 +137,77 @@ function renderTrendingContent(repos: TrendingRepo[]): SafeHTML {
   const [hottest, ...rest] = repos;
 
   return html`
-    <div class="container mx-auto px-4 py-8">
-      <!-- Header -->
-      <div class="mb-6 sm:mb-8">
-        <div class="flex items-start sm:items-center gap-3 mb-4">
-          <div class="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex-shrink-0">
-            <svg
-              class="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
+    <div class="min-h-screen bg-background flex flex-col">
+      ${renderHeader()}
+      <main class="flex-1 bg-muted/50 dark:bg-black">
+        <div class="container px-4 py-6">
+          <!-- Header -->
+          <div class="mb-6 sm:mb-8">
+            <div class="flex items-start sm:items-center gap-3 mb-4">
+              <div class="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex-shrink-0">
+                <svg
+                  class="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 dark:text-orange-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Trending Repositories</h1>
+                <p class="text-sm sm:text-base text-muted-foreground hidden sm:block">
+                  Discover repositories with significant recent activity and growth
+                </p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span
+                class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary"
+              >
+                ${repos.length} repos
+              </span>
+            </div>
           </div>
-          <div class="min-w-0">
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">Trending Repositories</h1>
-            <p class="text-sm sm:text-base text-muted-foreground hidden sm:block">
-              Discover repositories with significant recent activity and growth
-            </p>
+
+          <!-- Hottest Repository -->
+          <div
+            class="mb-6 p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10"
+          >
+            <h2 class="flex items-center gap-2 text-lg font-semibold mb-3">
+              <svg
+                class="w-5 h-5 text-orange-600 dark:text-orange-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              🔥 Hottest Repository
+            </h2>
+            ${renderRepoCard(hottest, true)}
           </div>
+
+          <!-- Repository Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            ${rest.map((repo) => renderRepoCard(repo))}
+          </div>
+
+          <!-- Filters placeholder (hydrated on client) -->
+          <div id="ssr-filters-section" class="hidden"></div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <span
-            class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary"
-          >
-            ${repos.length} repos
-          </span>
-        </div>
-      </div>
-
-      <!-- Hottest Repository -->
-      <div
-        class="mb-6 p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-transparent dark:from-orange-900/10"
-      >
-        <h2 class="flex items-center gap-2 text-lg font-semibold mb-3">
-          <svg
-            class="w-5 h-5 text-orange-600 dark:text-orange-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M13 10V3L4 14h7v7l9-11h-7z"
-            />
-          </svg>
-          🔥 Hottest Repository
-        </h2>
-        ${renderRepoCard(hottest, true)}
-      </div>
-
-      <!-- Repository Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        ${rest.map((repo) => renderRepoCard(repo))}
-      </div>
-
-      <!-- Filters placeholder (hydrated on client) -->
-      <div id="ssr-filters-section" class="hidden"></div>
+      </main>
+      ${renderFooter()}
     </div>
   `;
 }
