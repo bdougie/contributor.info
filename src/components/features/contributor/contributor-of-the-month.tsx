@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ContributorOfMonthSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { AddToWorkspaceModal } from '../workspace/AddToWorkspaceModal';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
@@ -15,7 +15,11 @@ import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
-import { RepositorySlackButton } from '../slack';
+
+// Lazy load Slack button to avoid impacting initial page load
+const RepositorySlackButton = lazy(() =>
+  import('../slack/RepositorySlackButton').then((m) => ({ default: m.RepositorySlackButton }))
+);
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -356,7 +360,9 @@ export function ContributorOfTheMonth({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <RepositorySlackButton owner={repositoryOwner} repo={repositoryName} />
+              <Suspense fallback={null}>
+                <RepositorySlackButton owner={repositoryOwner} repo={repositoryName} />
+              </Suspense>
               {workspaceWithRepo ? (
                 <Button
                   variant="outline"
