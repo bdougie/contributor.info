@@ -273,6 +273,82 @@ function renderMetaTags(meta: MetaTags, url: string): SafeHTML {
 }
 
 /**
+ * Render the shared header that matches the React Layout header structure.
+ * This ensures pixel-perfect hydration without layout shifts.
+ */
+export function renderHeader(): SafeHTML {
+  // Menu icon SVG (matches lucide-react Menu icon)
+  const menuIcon = html`
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class="w-5 h-5"
+    >
+      <line x1="4" x2="20" y1="12" y2="12"></line>
+      <line x1="4" x2="20" y1="6" y2="6"></line>
+      <line x1="4" x2="20" y1="18" y2="18"></line>
+    </svg>
+  `;
+
+  return html`
+    <header class="border-b">
+      <div class="container flex h-16 items-center px-4">
+        <!-- Hamburger Menu Button -->
+        <div class="flex items-center space-x-4">
+          <button
+            class="p-2 hover:bg-muted rounded-md transition-colors"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-haspopup="dialog"
+          >
+            ${menuIcon}
+          </button>
+          <button class="text-xl font-bold hover:text-primary transition-colors">
+            contributor.info
+          </button>
+        </div>
+        <!-- Auth Button Placeholder -->
+        <div class="ml-auto flex items-center gap-2">
+          <button
+            class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+          >
+            <span class="hidden sm:inline">Login with GitHub</span>
+            <span class="sm:hidden">Login</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  `;
+}
+
+/**
+ * Render the shared footer that matches the React Layout footer structure.
+ */
+export function renderFooter(): SafeHTML {
+  return html`
+    <footer class="border-t py-4">
+      <div class="container px-4 text-center text-sm text-muted-foreground">
+        Made with ❤️ by
+        <a
+          href="https://github.com/bdougie"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-primary transition-colors"
+          >bdougie</a
+        >
+      </div>
+    </footer>
+  `;
+}
+
+/**
  * Theme detection script - runs before render to prevent FOUC
  */
 const THEME_SCRIPT = `
