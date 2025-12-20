@@ -203,12 +203,12 @@ serve(async (req) => {
       });
     }
 
-    if (!tokenData.ok || !tokenData.access_token) {
-      console.error('Slack OAuth error: %s', tokenData.error);
+    if (!tokenData.ok || !tokenData.access_token || !tokenData.team) {
+      console.error('Slack OAuth error: %s', tokenData.error || 'Missing required data');
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${FRONTEND_URL}/${repoPath}?slack_install=error&error=${tokenData.error}`,
+          Location: `${FRONTEND_URL}/${repoPath}?slack_install=error&error=${tokenData.error || 'invalid_response'}`,
         },
       });
     }

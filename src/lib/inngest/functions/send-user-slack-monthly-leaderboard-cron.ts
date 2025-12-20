@@ -186,11 +186,12 @@ export const sendUserSlackMonthlyLeaderboardCron = inngest.createFunction(
         `
         )
         .eq('enabled', true)
-        .not('channel_id', 'is', null);
+        .not('channel_id', 'is', null)
+        .neq('channel_id', 'pending'); // Skip integrations awaiting channel selection
 
       if (error) {
         console.error('Error fetching user Slack integrations: %s', error.message);
-        return [];
+        throw new Error(`Failed to fetch user Slack integrations: ${error.message}`);
       }
 
       return (data as unknown as UserSlackIntegrationWithRepo[]) || [];
