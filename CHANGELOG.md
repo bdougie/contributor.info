@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0](https://github.com/bdougie/contributor.info/compare/v4.4.3...v4.5.0) (2025-12-20)
+
+
+### 🚀 Features
+
+* **slack:** add user-level Slack integration for monthly leaderboard ([#1426](https://github.com/bdougie/contributor.info/issues/1426)) ([f22f419](https://github.com/bdougie/contributor.info/commit/f22f41967631ffddfc1b0e7c8d450b136198f60f)), closes [#1233](https://github.com/bdougie/contributor.info/issues/1233)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([4dadca7](https://github.com/bdougie/contributor.info/commit/4dadca730d195800e862b98e5d732a4d8b2e6203))
+
 ## [4.4.3](https://github.com/bdougie/contributor.info/compare/v4.4.2...v4.4.3) (2025-12-20)
 
 
