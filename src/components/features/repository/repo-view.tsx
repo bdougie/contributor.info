@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { Share2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -34,6 +34,11 @@ import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
+
+// Lazy load Slack button to avoid impacting initial page load
+const RepositorySlackButton = lazy(() =>
+  import('../slack/RepositorySlackButton').then((m) => ({ default: m.RepositorySlackButton }))
+);
 
 // Repository path pattern for parsing owner/repo from various formats (e.g., "owner/repo" or "github.com/owner/repo")
 const REPO_PATH_PATTERN = /(?:github\.com\/)?([^/]+)\/([^/]+)/;
@@ -294,6 +299,9 @@ export default function RepoView() {
                   showLabel={false}
                   autoTriggerOnLoad={true}
                 />
+                <Suspense fallback={null}>
+                  <RepositorySlackButton owner={owner || ''} repo={repo || ''} />
+                </Suspense>
                 <Button
                   variant="outline"
                   size="icon"

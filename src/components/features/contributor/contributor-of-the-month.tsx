@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ContributorOfMonthSkeleton } from '@/components/skeletons';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { WorkspaceCreateModal } from '../workspace/WorkspaceCreateModal';
 import { AddToWorkspaceModal } from '../workspace/AddToWorkspaceModal';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
@@ -15,6 +15,11 @@ import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
+
+// Lazy load Slack button to avoid impacting initial page load
+const RepositorySlackButton = lazy(() =>
+  import('../slack/RepositorySlackButton').then((m) => ({ default: m.RepositorySlackButton }))
+);
 
 interface ContributorOfTheMonthProps {
   ranking: ContributorRanking | null;
@@ -354,27 +359,32 @@ export function ContributorOfTheMonth({
                 Add this repo to a workspace for complete rankings and analytics
               </p>
             </div>
-            {workspaceWithRepo ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/workspace/${workspaceWithRepo.slug}`)}
-                className="gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View Workspace
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddToWorkspaceModal(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add to Workspace
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              <Suspense fallback={null}>
+                <RepositorySlackButton owner={repositoryOwner} repo={repositoryName} />
+              </Suspense>
+              {workspaceWithRepo ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/workspace/${workspaceWithRepo.slug}`)}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  View Workspace
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddToWorkspaceModal(true)}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add to Workspace
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -11,6 +11,7 @@ import type { User } from '@supabase/supabase-js';
 import { LastUpdated } from '@/components/ui/last-updated';
 import { usePageTimestamp } from '@/hooks/use-data-timestamp';
 import { SubscriptionService, SUBSCRIPTION_TIERS } from '@/services/polar/subscription.service';
+import { UserSlackIntegrationsCard } from '@/components/features/slack';
 
 interface EmailPreferences {
   welcome_emails: boolean;
@@ -21,7 +22,6 @@ interface EmailPreferences {
 
 interface SubscriptionStats {
   tier: string;
-  subscription: any;
 }
 
 export function SettingsPage() {
@@ -210,6 +210,10 @@ export function SettingsPage() {
           <Button onClick={handleSavePreferences} disabled={saving} className="mt-6">
             {saving ? 'Saving...' : 'Save Preferences'}
           </Button>
+        </section>
+
+        <section className="border-t pt-8">
+          <UserSlackIntegrationsCard />
         </section>
 
         <section className="border-t pt-8">

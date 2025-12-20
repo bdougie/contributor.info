@@ -47,7 +47,7 @@ function createSpamPR(overrides: Partial<PullRequestData> = {}): PullRequestData
     author: {
       id: 99999,
       login: 'newuser123',
-      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago (clearly within 7-day threshold)
       public_repos: 0,
       followers: 0,
       following: 0,
