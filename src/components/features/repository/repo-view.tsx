@@ -205,66 +205,9 @@ export default function RepoView() {
     }
   };
 
-  // Show header + search + skeleton while checking tracking status
-  // This keeps the UI stable while we determine if the repo is tracked
-  if (trackingState.status === 'checking') {
-    return (
-      <article className="py-2">
-        <Breadcrumbs />
-        <RepoSearchSection
-          onSearch={handleSearchInput}
-          onSelect={handleSelectRepository}
-          onExampleSelect={handleSelectExample}
-        />
-        <section className="grid gap-8">
-          <Card>
-            <CardContent className="p-8">
-              <div className="space-y-4 animate-pulse" role="status" aria-live="polite">
-                <div className="text-center text-muted-foreground">
-                  Loading repository data...
-                </div>
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Card key={i} className="p-4" aria-hidden="true">
-                      <div className="space-y-3">
-                        <div className="h-4 bg-muted rounded w-3/4"></div>
-                        <div className="h-3 bg-muted rounded w-1/2"></div>
-                        <div className="h-3 bg-muted rounded w-5/6"></div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-      </article>
-    );
-  }
-
-  // Check if repository needs tracking (show tracking card instead of error)
-  if (trackingState.status === 'not_tracked') {
-    return (
-      <article className="py-2">
-        <Breadcrumbs />
-        <RepoSearchSection
-          onSearch={handleSearchInput}
-          onSelect={handleSelectRepository}
-          onExampleSelect={handleSelectExample}
-        />
-        <section className="grid gap-8">
-          <RepositoryTrackingCard
-            owner={owner || ''}
-            repo={repo || ''}
-            onTrackingComplete={() => {
-              // Refresh the page to load the newly tracked repository data
-              window.location.reload();
-            }}
-          />
-        </section>
-      </article>
-    );
-  }
+  // Determine if we're in any loading state (checking tracking OR loading data)
+  const isLoading = trackingState.status === 'checking' || stats.loading;
+  const showTrackingCard = trackingState.status === 'not_tracked';
 
   if (stats.error) {
     // Check if this is a 404 repository error
@@ -330,7 +273,7 @@ export default function RepoView() {
                 </p>
                 {/* Reserve space for last updated timestamp to prevent CLS */}
                 <div className="mt-2 repo-header-timestamp">
-                  {!stats.loading ? (
+                  {!isLoading && !showTrackingCard ? (
                     <time className="text-sm text-muted-foreground">
                       <LastUpdated timestamp={lastUpdated} label="Data last updated" size="sm" />
                     </time>
@@ -439,10 +382,10 @@ export default function RepoView() {
                     </aside>
                   )}
                   {/* Show data state indicator for pending/partial data */}
-                  {!stats.loading &&
+                  {!isLoading &&
+                    !showTrackingCard &&
                     dataStatus &&
-                    dataStatus.status !== 'success' &&
-                    trackingState.status === 'tracked' && (
+                    dataStatus.status !== 'success' && (
                       <aside>
                         <DataStateIndicator
                           status={dataStatus.status}
@@ -457,41 +400,53 @@ export default function RepoView() {
             )}
 
             <section className="mt-6 tab-content-container">
-              <ErrorBoundary context="Repository Data Provider">
-                <RepoStatsProvider
-                  value={{
-                    stats,
-                    lotteryFactor,
-                    directCommitsData,
-                    includeBots,
-                    setIncludeBots,
+              {/* Show tracking card if repository needs tracking */}
+              {showTrackingCard ? (
+                <RepositoryTrackingCard
+                  owner={owner || ''}
+                  repo={repo || ''}
+                  onTrackingComplete={() => {
+                    // Refresh the page to load the newly tracked repository data
+                    window.location.reload();
                   }}
-                >
-                  {stats.loading ? (
-                    <div className="space-y-4 animate-pulse">
-                      <div className="text-center text-muted-foreground">
-                        Loading repository data...
+                />
+              ) : (
+                <ErrorBoundary context="Repository Data Provider">
+                  <RepoStatsProvider
+                    value={{
+                      stats,
+                      lotteryFactor,
+                      directCommitsData,
+                      includeBots,
+                      setIncludeBots,
+                    }}
+                  >
+                    {isLoading ? (
+                      <div className="space-y-4 animate-pulse" role="status" aria-live="polite">
+                        <div className="text-center text-muted-foreground">
+                          Loading repository data...
+                        </div>
+                        {/* Use feed skeleton instead of generic card grid */}
+                        <div className="space-y-3">
+                          {Array.from({ length: 3 }).map((_, i) => (
+                            <Card key={i} className="p-4" aria-hidden="true">
+                              <div className="space-y-3">
+                                <div className="h-4 bg-muted rounded w-3/4"></div>
+                                <div className="h-3 bg-muted rounded w-1/2"></div>
+                                <div className="h-3 bg-muted rounded w-5/6"></div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
                       </div>
-                      {/* Use feed skeleton instead of generic card grid */}
-                      <div className="space-y-3">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <Card key={i} className="p-4">
-                            <div className="space-y-3">
-                              <div className="h-4 bg-muted rounded w-3/4"></div>
-                              <div className="h-3 bg-muted rounded w-1/2"></div>
-                              <div className="h-3 bg-muted rounded w-5/6"></div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <ErrorBoundary context="Repository Chart Display">
-                      <Outlet />
-                    </ErrorBoundary>
-                  )}
-                </RepoStatsProvider>
-              </ErrorBoundary>
+                    ) : (
+                      <ErrorBoundary context="Repository Chart Display">
+                        <Outlet />
+                      </ErrorBoundary>
+                    )}
+                  </RepoStatsProvider>
+                </ErrorBoundary>
+              )}
             </section>
           </CardContent>
         </Card>

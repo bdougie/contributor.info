@@ -12,6 +12,8 @@ import { logger } from '@/lib/logger';
 import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
 // Eagerly load core layout components to prevent hydration flash
 import { Layout, Home } from '@/components/common/layout';
+// Eagerly load repo skeleton to prevent layout mismatch during lazy loading
+import { RepoViewSkeleton } from '@/components/skeletons/layouts/repo-view-skeleton';
 
 const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
@@ -235,10 +237,22 @@ const PageSkeleton = () => {
     return null;
   }
 
-  // For repo routes with SSR content, preserve the SSR skeleton during lazy loading
-  // This prevents the landing page skeleton from flashing on repo pages
-  if (isSSR && isRepoRoute()) {
-    return null;
+  // For repo routes, show the repo-specific skeleton that matches the actual layout
+  // This prevents layout mismatch jarring when RepoView loads
+  if (isRepoRoute()) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b">
+          <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
+            <div className="text-xl font-bold">contributor.info</div>
+            <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
+          </div>
+        </header>
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4">
+          <RepoViewSkeleton />
+        </main>
+      </div>
+    );
   }
 
   return (
