@@ -33,6 +33,7 @@ import { RepositoryTrackingCard } from './repository-tracking-card';
 import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
+import { RepositorySlackButton } from '../slack/RepositorySlackButton';
 import { useAnalytics } from '@/hooks/use-analytics';
 
 // Repository path pattern for parsing owner/repo from various formats (e.g., "owner/repo" or "github.com/owner/repo")
@@ -294,6 +295,7 @@ export default function RepoView() {
                   showLabel={false}
                   autoTriggerOnLoad={true}
                 />
+                <RepositorySlackButton owner={owner || ''} repo={repo || ''} />
                 <Button
                   variant="outline"
                   size="icon"

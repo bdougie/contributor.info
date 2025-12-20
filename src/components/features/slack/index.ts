@@ -1,0 +1,1 @@
+export { RepositorySlackButton } from './RepositorySlackButton';
