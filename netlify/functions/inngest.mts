@@ -13,6 +13,7 @@ import {
   discoverNewRepository,
   syncDiscussionsCron,
   sendSlackAssigneeReportCron,
+  sendUserSlackMonthlyLeaderboardCron,
   captureRepositoryMetricsCron,
   captureRepositoryMetricsManual,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
@@ -37,6 +38,8 @@ const inngestHandler = serve({
     syncDiscussionsCron,
     // Slack integration cron
     sendSlackAssigneeReportCron,
+    // User Slack monthly leaderboard cron
+    sendUserSlackMonthlyLeaderboardCron,
     // Repository metrics capture for trending
     captureRepositoryMetricsCron,
     captureRepositoryMetricsManual,
@@ -64,6 +67,7 @@ export default async (req: Request, context: Context) => {
           'discover-new-repository',
           'sync-discussions-cron',
           'send-slack-assignee-report-cron',
+          'send-user-slack-monthly-leaderboard-cron',
           'capture-repository-metrics-cron',
           'capture-repository-metrics-manual',
         ],

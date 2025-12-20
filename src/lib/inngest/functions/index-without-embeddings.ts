@@ -28,6 +28,7 @@ export { syncDiscussionsCron } from './sync-discussions-cron';
 
 // Slack integration cron jobs
 export { sendSlackAssigneeReportCron } from './send-slack-assignee-report-cron';
+export { sendUserSlackMonthlyLeaderboardCron } from './send-user-slack-monthly-leaderboard-cron';
 
 // Repository metrics capture for trending detection
 export {
