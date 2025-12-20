@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.2](https://github.com/bdougie/contributor.info/compare/v4.4.1...v4.4.2) (2025-12-20)
+
+
+### 🐛 Bug Fixes
+
+* **repo-view:** unify loading states into stable shell pattern ([#1424](https://github.com/bdougie/contributor.info/issues/1424)) ([2771a37](https://github.com/bdougie/contributor.info/commit/2771a37e81ab7576a5623d4a9a2dad6277e58963))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([1953e46](https://github.com/bdougie/contributor.info/commit/1953e46e06d7dd046261551825653c24600c31d4))
+
 ## [4.4.1](https://github.com/bdougie/contributor.info/compare/v4.4.0...v4.4.1) (2025-12-19)
 
 
