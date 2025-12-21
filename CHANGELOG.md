@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0](https://github.com/bdougie/contributor.info/compare/v4.5.0...v4.6.0) (2025-12-21)
+
+
+### 🚀 Features
+
+* **ui:** use social layout for monthly leaderboard on mobile ([#1430](https://github.com/bdougie/contributor.info/issues/1430)) ([d4ff3a7](https://github.com/bdougie/contributor.info/commit/d4ff3a75c8810e7cf7489ef2150b75a659a1e582))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([f24d9ee](https://github.com/bdougie/contributor.info/commit/f24d9eeff288fc2424f5877bb439d0449a895156))
+
 ## [4.5.0](https://github.com/bdougie/contributor.info/compare/v4.4.3...v4.5.0) (2025-12-20)
 
 
