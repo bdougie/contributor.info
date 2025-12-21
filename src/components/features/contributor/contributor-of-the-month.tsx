@@ -254,7 +254,7 @@ export function ContributorOfTheMonth({
                 </div>
 
                 {/* Large screens: 3-column grid (in-app view) - hidden during capture */}
-                <div className="grid gap-4 grid-cols-3 shareable-desktop-only">
+                <div className="hidden md:grid gap-4 md:grid-cols-3 shareable-desktop-only">
                   {topContributors.map((contributor, index) => {
                     const isFirstPlace = index === 0 && showBlurredFirst && !isLoggedIn;
 
@@ -287,7 +287,7 @@ export function ContributorOfTheMonth({
                 </div>
 
                 {/* Simplified layout for shareable card capture - shown during capture */}
-                <div className="hidden shareable-capture-only space-y-4">
+                <div className="block md:hidden shareable-capture-only space-y-4">
                   {/* Top contributor - prominently displayed */}
                   {topContributors[0] && (
                     <div className="relative max-w-sm mx-auto">
