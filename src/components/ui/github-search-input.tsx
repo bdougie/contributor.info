@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
+import { SearchIcon, Star, Clock, GitBranch, Loader2, X } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -241,6 +241,14 @@ export function GitHubSearchInput({
             onFocus={handleInputFocus}
             className="w-full pr-8"
             autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showDropdown}
+            aria-controls={showDropdown ? 'github-search-results' : undefined}
+            aria-activedescendant={
+              selectedIndex >= 0 ? `github-search-result-${selectedIndex}` : undefined
+            }
+            aria-label={placeholder}
           />
           {/* Loading spinner in input field */}
           {loading && inputValue.length > 1 && (
@@ -248,11 +256,28 @@ export function GitHubSearchInput({
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
+          {/* Clear button */}
+          {!loading && inputValue.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setInputValue('');
+                setShowDropdown(false);
+                inputRef.current?.focus();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
 
           {/* Dropdown with search results */}
           {showDropdown && (
             <div
               ref={dropdownRef}
+              id="github-search-results"
+              role="listbox"
               className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-200"
             >
               {loading && (
@@ -288,6 +313,9 @@ export function GitHubSearchInput({
                 results.map((repo, index) => (
                   <button
                     key={repo.id}
+                    id={`github-search-result-${index}`}
+                    role="option"
+                    aria-selected={selectedIndex === index}
                     type="button"
                     onClick={() => handleSelectRepository(repo, index)}
                     className={cn(
