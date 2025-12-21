@@ -16,6 +16,12 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+// Mock lazy-loaded Supabase - will be configured in beforeEach to return mocked supabase
+const mockGetSupabase = vi.fn();
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: mockGetSupabase,
+}));
+
 // Mock WorkspacePrioritySync
 vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
   workspacePrioritySync: {
@@ -33,7 +39,7 @@ vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
 }));
 
 // Mock Inngest
-vi.mock('@/lib/inngest/client-safe', () => ({
+vi.mock('@/lib/inngest/client', () => ({
   inngest: {
     send: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
   },
@@ -42,6 +48,8 @@ vi.mock('@/lib/inngest/client-safe', () => ({
 describe('WorkspaceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Configure getSupabase to return the mocked supabase
+    mockGetSupabase.mockResolvedValue(supabase);
   });
 
   afterEach(() => {
