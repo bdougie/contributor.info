@@ -132,7 +132,16 @@ export function VirtualizedGrid<T>({
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
               }}
-              className={cn('grid', `grid-cols-${columnCount}`, gap && `gap-${gap / 4}`, className)}
+              className={cn(
+                'grid',
+                columnCount === 1 && 'grid-cols-1',
+                columnCount === 2 && 'grid-cols-2',
+                columnCount === 3 && 'grid-cols-3',
+                columnCount === 4 && 'grid-cols-4',
+                columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
+                gap && `gap-${gap / 4}`,
+                className
+              )}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
@@ -197,6 +206,84 @@ export function WindowVirtualizedList<T>({
               className={className}
             >
               {renderItem(item, virtualItem.index)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export interface WindowVirtualizedGridProps<T> extends VirtualizedGridProps<T> {
+  ref?: Ref<HTMLDivElement>;
+  scrollMargin?: number;
+}
+
+/**
+ * Window scroller for grid virtualization
+ * Use when the grid takes up the entire viewport
+ */
+export function WindowVirtualizedGrid<T>({
+  items,
+  renderItem,
+  columnCount = 3,
+  itemHeight = 200,
+  gap = 16,
+  className,
+  overscan = 2,
+  ref,
+  scrollMargin = 0,
+}: WindowVirtualizedGridProps<T>) {
+  const rowCount = Math.ceil(items.length / columnCount);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
+    estimateSize: () => itemHeight + gap,
+    overscan,
+    scrollMargin,
+  });
+
+  return (
+    <div ref={ref}>
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const startIndex = virtualRow.index * columnCount;
+          const endIndex = Math.min(startIndex + columnCount, items.length);
+          const rowItems = items.slice(startIndex, endIndex);
+
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              className={cn(
+                'grid',
+                columnCount === 1 && 'grid-cols-1',
+                columnCount === 2 && 'grid-cols-2',
+                columnCount === 3 && 'grid-cols-3',
+                columnCount === 4 && 'grid-cols-4',
+                columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
+                gap && `gap-${gap / 4}`,
+                className
+              )}
+            >
+              {rowItems.map((item, colIndex) => {
+                const actualIndex = startIndex + colIndex;
+                return <div key={actualIndex}>{renderItem(item, actualIndex)}</div>;
+              })}
             </div>
           );
         })}

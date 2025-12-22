@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WindowVirtualizedGrid } from '@/components/ui/virtualized-list';
 import {
   X,
   Search,
@@ -270,6 +271,43 @@ export function ContributorsList({
   showTrackedOnly = false,
 }: ContributorsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnCount, setColumnCount] = useState(1);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateColumns = () => {
+      const width = window.innerWidth;
+      if (width >= 1024) setColumnCount(3); // lg
+      else if (width >= 640) setColumnCount(2); // sm
+      else setColumnCount(1);
+    };
+    updateColumns();
+    window.addEventListener('resize', updateColumns);
+    return () => window.removeEventListener('resize', updateColumns);
+  }, []);
+
+  const measureOffset = useCallback(() => {
+    if (listRef.current) {
+      const rect = listRef.current.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      setScrollMargin(rect.top + scrollTop);
+    }
+  }, []);
+
+  useEffect(() => {
+    measureOffset();
+    window.addEventListener('resize', measureOffset);
+    return () => window.removeEventListener('resize', measureOffset);
+  }, [measureOffset]);
+
+  useEffect(() => {
+    if (!loading) {
+      // Small timeout to allow layout to stabilize
+      const timer = setTimeout(measureOffset, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, measureOffset]);
 
   const filteredContributors = contributors.filter((contributor) => {
     const matchesSearch =
@@ -336,38 +374,43 @@ export function ContributorsList({
               </p>
             )}
           </div>
+        ) : view === 'grid' ? (
+          <WindowVirtualizedGrid
+            ref={listRef}
+            items={filteredContributors}
+            columnCount={columnCount}
+            scrollMargin={scrollMargin}
+            itemHeight={280}
+            gap={16}
+            renderItem={(contributor) => {
+              const isTracked = trackedContributors.includes(contributor.id);
+              return (
+                <ContributorCard
+                  key={contributor.id}
+                  contributor={contributor}
+                  isTracked={isTracked}
+                  onTrack={() => onTrackContributor?.(contributor.id)}
+                  onUntrack={() => onUntrackContributor?.(contributor.id)}
+                  onClick={() => onContributorClick?.(contributor)}
+                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
+                />
+              );
+            }}
+          />
         ) : (
-          <div
-            className={
-              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
-            }
-          >
+          <div className="space-y-3">
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
-              if (view === 'grid') {
-                return (
-                  <ContributorCard
-                    key={contributor.id}
-                    contributor={contributor}
-                    isTracked={isTracked}
-                    onTrack={() => onTrackContributor?.(contributor.id)}
-                    onUntrack={() => onUntrackContributor?.(contributor.id)}
-                    onClick={() => onContributorClick?.(contributor)}
-                    onAddToGroup={() => onAddToGroup?.(contributor.id)}
-                  />
-                );
-              } else {
-                return (
-                  <ContributorListItem
-                    key={contributor.id}
-                    contributor={contributor}
-                    isTracked={isTracked}
-                    onTrack={() => onTrackContributor?.(contributor.id)}
-                    onUntrack={() => onUntrackContributor?.(contributor.id)}
-                    onClick={() => onContributorClick?.(contributor)}
-                  />
-                );
-              }
+              return (
+                <ContributorListItem
+                  key={contributor.id}
+                  contributor={contributor}
+                  isTracked={isTracked}
+                  onTrack={() => onTrackContributor?.(contributor.id)}
+                  onUntrack={() => onUntrackContributor?.(contributor.id)}
+                  onClick={() => onContributorClick?.(contributor)}
+                />
+              );
             })}
           </div>
         )}
@@ -415,16 +458,17 @@ export function ContributorsList({
               </p>
             )}
           </div>
-        ) : (
-          <div
-            className={
-              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
-            }
-          >
-            {filteredContributors.map((contributor) => {
+        ) : view === 'grid' ? (
+          <WindowVirtualizedGrid
+            ref={listRef}
+            items={filteredContributors}
+            columnCount={columnCount}
+            scrollMargin={scrollMargin}
+            itemHeight={280}
+            gap={16}
+            renderItem={(contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
-
-              return view === 'grid' ? (
+              return (
                 <ContributorCard
                   key={contributor.id}
                   contributor={contributor}
@@ -434,7 +478,14 @@ export function ContributorsList({
                   onClick={() => onContributorClick?.(contributor)}
                   onAddToGroup={() => onAddToGroup?.(contributor.id)}
                 />
-              ) : (
+              );
+            }}
+          />
+        ) : (
+          <div className="space-y-3">
+            {filteredContributors.map((contributor) => {
+              const isTracked = trackedContributors.includes(contributor.id);
+              return (
                 <ContributorListItem
                   key={contributor.id}
                   contributor={contributor}
