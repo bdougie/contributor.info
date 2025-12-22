@@ -237,12 +237,9 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
         <div className="flex gap-2">
           {!isJobActive ? (
-            <Button onClick={handleTriggerBackfill} disabled={isLoading} className="w-full">
+            <Button onClick={handleTriggerBackfill} isLoading={isLoading} className="w-full">
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Triggering...
-                </>
+                'Triggering...'
               ) : (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
