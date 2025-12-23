@@ -5,3 +5,7 @@
 ## 2025-12-22 - Tailwind Dynamic Classes
 **Learning:** Dynamic class generation (e.g., `grid-cols-${count}`) can lead to missing styles if the resulting class names are not explicitly safelisted or present elsewhere in the source code. Tailwind's JIT compiler purges unused classes.
 **Action:** Always map dynamic values to full class name strings or ensure they are covered by safelists when building reusable components.
+
+## 2024-05-23 - Activity Feed Performance Bottleneck
+**Learning:** The `ActivityItem` component was performing O(N*M) calculations (filtering all PRs and comments) for every activity item rendered. Since the activity feed renders many items for the same user, this resulted in massive redundant computation (15x-20x slowdown for 50 items).
+**Action:** Implemented a shared `WeakMap` cache for contributor activity counts keyed by the `pullRequests` array. This transforms the complexity from O(Activities * PRs) to O(PRs) (amortized constant time lookup per activity). Future list items should avoid inline heavy aggregations over the parent data context.

@@ -103,3 +103,44 @@ export async function createContributorStatsWithOrgs(
 
   return stats;
 }
+
+// Cache for contributor activity counts to avoid expensive recalculations
+const activityCountsCache = new WeakMap<
+  PullRequest[],
+  Record<string, { reviews: number; comments: number }>
+>();
+
+/**
+ * Efficiently calculates review and comment counts for all contributors
+ * Uses caching to prevent recalculation when pullRequests array reference hasn't changed
+ */
+export function getContributorActivityCounts(
+  pullRequests: PullRequest[]
+): Record<string, { reviews: number; comments: number }> {
+  if (activityCountsCache.has(pullRequests)) {
+    return activityCountsCache.get(pullRequests)!;
+  }
+
+  const counts: Record<string, { reviews: number; comments: number }> = {};
+
+  pullRequests.forEach((pr) => {
+    pr.reviews?.forEach((review) => {
+      const login = review.user.login;
+      if (!counts[login]) {
+        counts[login] = { reviews: 0, comments: 0 };
+      }
+      counts[login].reviews++;
+    });
+
+    pr.comments?.forEach((comment) => {
+      const login = comment.user.login;
+      if (!counts[login]) {
+        counts[login] = { reviews: 0, comments: 0 };
+      }
+      counts[login].comments++;
+    });
+  });
+
+  activityCountsCache.set(pullRequests, counts);
+  return counts;
+}
