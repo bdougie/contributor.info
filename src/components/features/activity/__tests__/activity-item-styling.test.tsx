@@ -32,7 +32,7 @@ beforeEach(() => {
   global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
     mockObserver = new MockIntersectionObserver(callback);
     return mockObserver;
-  }) as any;
+  }) as unknown as typeof IntersectionObserver;
 });
 
 afterEach(() => {
@@ -62,6 +62,9 @@ vi.mock('@/lib/contributor-utils', () => ({
       mergedPullRequests: 3,
       totalContributions: 8,
     }),
+  getContributorActivityCounts: () => ({
+    'test-user': { reviews: 0, comments: 0 },
+  }),
 }));
 
 const mockActivity: PullRequestActivity = {
