@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkspaceService } from '../workspace.service';
 import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase-lazy';
 import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
@@ -14,6 +15,11 @@ vi.mock('@/lib/supabase', () => ({
     from: vi.fn(),
     rpc: vi.fn(),
   },
+}));
+
+// Mock lazy-loaded Supabase - will be configured in beforeEach to return mocked supabase
+vi.mock('@/lib/supabase-lazy', () => ({
+  getSupabase: vi.fn(),
 }));
 
 // Mock WorkspacePrioritySync
@@ -33,7 +39,7 @@ vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
 }));
 
 // Mock Inngest
-vi.mock('@/lib/inngest/client-safe', () => ({
+vi.mock('@/lib/inngest/client', () => ({
   inngest: {
     send: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
   },
@@ -42,6 +48,8 @@ vi.mock('@/lib/inngest/client-safe', () => ({
 describe('WorkspaceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Configure getSupabase to return the mocked supabase
+    vi.mocked(getSupabase).mockResolvedValue(supabase);
   });
 
   afterEach(() => {
@@ -424,7 +432,8 @@ describe('WorkspaceService', () => {
 
       // Mock repositories table for event payload
       const repositoriesMock = {
-        select: vi.fn().mockReturnValue({          eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: { full_name: 'test/repo' },
               error: null,
@@ -1223,9 +1232,7 @@ describe('WorkspaceService', () => {
           workspace_members: [{ user_id: mockUserId, role: 'owner' }],
           repository_count: [{ count: 1 }],
           member_count: [{ count: 1 }],
-          workspace_repos: [
-            { repository: { stargazers_count: 20 } },
-          ],
+          workspace_repos: [{ repository: { stargazers_count: 20 } }],
         },
         {
           id: 'ws-2',
