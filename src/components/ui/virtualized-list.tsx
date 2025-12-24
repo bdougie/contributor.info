@@ -107,8 +107,16 @@ export function VirtualizedGrid<T>({
     overscan,
   });
 
+  // Pre-calculate grid template to avoid recalculating on every render
+  const gridTemplate = `repeat(${columnCount}, minmax(0, 1fr))`;
+
   return (
-    <div ref={parentRef} className={cn('overflow-auto will-change-scroll', containerClassName)}>
+    <div
+      ref={parentRef}
+      className={cn('overflow-auto will-change-scroll', containerClassName)}
+      role="grid"
+      aria-rowcount={rowCount}
+    >
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -124,6 +132,8 @@ export function VirtualizedGrid<T>({
           return (
             <div
               key={virtualRow.key}
+              role="row"
+              aria-rowindex={virtualRow.index + 1}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -131,12 +141,16 @@ export function VirtualizedGrid<T>({
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
+                display: 'grid',
+                gridTemplateColumns: gridTemplate,
+                gap: gap ? `${gap}px` : undefined,
               }}
-              className={cn('grid', `grid-cols-${columnCount}`, gap && `gap-${gap / 4}`, className)}
+              className={className}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return <div key={actualIndex}>{renderItem(item, actualIndex)}</div>;
+                // Remove wrapper div, apply role directly via className
+                return renderItem(item, actualIndex);
               })}
             </div>
           );
@@ -197,6 +211,84 @@ export function WindowVirtualizedList<T>({
               className={className}
             >
               {renderItem(item, virtualItem.index)}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export interface WindowVirtualizedGridProps<T> extends VirtualizedGridProps<T> {
+  ref?: Ref<HTMLDivElement>;
+  scrollMargin?: number;
+}
+
+/**
+ * Window scroller for grid virtualization
+ * Use when the grid takes up the entire viewport
+ */
+export function WindowVirtualizedGrid<T>({
+  items,
+  renderItem,
+  columnCount = 3,
+  itemHeight = 200,
+  gap = 16,
+  className,
+  overscan = 2,
+  ref,
+  scrollMargin = 0,
+}: WindowVirtualizedGridProps<T>) {
+  const rowCount = Math.ceil(items.length / columnCount);
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
+    estimateSize: () => itemHeight + gap,
+    overscan,
+    scrollMargin,
+  });
+
+  // Pre-calculate grid template to avoid recalculating on every render
+  const gridTemplate = `repeat(${columnCount}, minmax(0, 1fr))`;
+
+  return (
+    <div ref={ref} role="grid" aria-rowcount={rowCount}>
+      <div
+        style={{
+          height: `${rowVirtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+          const startIndex = virtualRow.index * columnCount;
+          const endIndex = Math.min(startIndex + columnCount, items.length);
+          const rowItems = items.slice(startIndex, endIndex);
+
+          return (
+            <div
+              key={virtualRow.key}
+              role="row"
+              aria-rowindex={virtualRow.index + 1}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+                display: 'grid',
+                gridTemplateColumns: gridTemplate,
+                gap: gap ? `${gap}px` : undefined,
+              }}
+              className={className}
+            >
+              {rowItems.map((item, colIndex) => {
+                const actualIndex = startIndex + colIndex;
+                // Remove wrapper div, apply role directly via className
+                return renderItem(item, actualIndex);
+              })}
             </div>
           );
         })}
