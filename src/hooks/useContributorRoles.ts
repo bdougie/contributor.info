@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -32,106 +33,110 @@ export function useContributorRoles(
   options: UseContributorRolesOptions = {}
 ) {
   const { enableRealtime = false, minimumConfidence = 0 } = options;
-  const [roles, setRoles] = useState<ContributorRoleWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
+  // Include minimumConfidence in the key so changing it triggers a refetch with the new filter
+  const queryKey = useMemo(
+    () => ['contributor-roles', owner, repo, minimumConfidence],
+    [owner, repo, minimumConfidence]
+  );
 
+  const {
+    data: roles = [],
+    isLoading: loading,
+    error,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const supabase = await getSupabase();
+      let query = supabase
+        .from('contributor_roles')
+        .select('*')
+        .eq('repository_owner', owner)
+        .eq('repository_name', repo)
+        .order('confidence_score', { ascending: false });
+
+      if (minimumConfidence > 0) {
+        query = query.gte('confidence_score', minimumConfidence);
+      }
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError;
+
+      // Enhance with additional computed properties
+      return (data || []).map((role) => ({
+        ...role,
+        is_bot: checkIfBot(role.user_id),
+        activity_level: getActivityLevel(role.permission_events_count),
+        days_since_last_active: getDaysSinceLastActive(role.last_verified),
+      }));
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!owner && !!repo,
+  });
+
+  // Realtime subscription
   useEffect(() => {
+    if (!enableRealtime || !owner || !repo) return;
+
     let channel: RealtimeChannel | null = null;
 
-    const fetchRoles = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    getSupabase().then((supabase) => {
+      channel = supabase
+        .channel(`roles:${owner}/${repo}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'contributor_roles',
+            filter: `repository_owner=eq.${owner}&repository_name=eq.${repo}`,
+          },
+          (payload) => {
+            queryClient.setQueryData(
+              queryKey,
+              (oldRoles: ContributorRoleWithStats[] | undefined) => {
+                const currentRoles = oldRoles || [];
 
-        const supabase = await getSupabase();
-        let query = supabase
-          .from('contributor_roles')
-          .select('*')
-          .eq('repository_owner', owner)
-          .eq('repository_name', repo)
-          .order('confidence_score', { ascending: false });
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                  const newRole = payload.new as ContributorRole;
 
-        if (minimumConfidence > 0) {
-          query = query.gte('confidence_score', minimumConfidence);
-        }
+                  // Check confidence threshold
+                  if (minimumConfidence > 0 && newRole.confidence_score < minimumConfidence) {
+                    // Remove if it doesn't meet threshold anymore
+                    return currentRoles.filter((r) => r.id !== newRole.id);
+                  }
 
-        const { data, error: fetchError } = await query;
+                  const enhancedRole: ContributorRoleWithStats = {
+                    ...newRole,
+                    is_bot: checkIfBot(newRole.user_id),
+                    activity_level: getActivityLevel(newRole.permission_events_count),
+                    days_since_last_active: getDaysSinceLastActive(newRole.last_verified),
+                  };
 
-        if (fetchError) throw fetchError;
-
-        // Enhance with additional computed properties
-        const enhancedRoles = (data || []).map((role) => ({
-          ...role,
-          is_bot: checkIfBot(role.user_id),
-          activity_level: getActivityLevel(role.permission_events_count),
-          days_since_last_active: getDaysSinceLastActive(role.last_verified),
-        }));
-
-        setRoles(enhancedRoles);
-      } catch (err) {
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoles();
-
-    // Set up real-time subscription
-    if (enableRealtime) {
-      getSupabase().then((supabase) => {
-        channel = supabase
-          .channel(`roles:${owner}/${repo}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'contributor_roles',
-              filter: `repository_owner=eq.${owner}&repository_name=eq.${repo}`,
-            },
-            (payload) => {
-              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                const newRole = payload.new as ContributorRole;
-
-                // Check confidence threshold
-                if (minimumConfidence > 0 && newRole.confidence_score < minimumConfidence) {
-                  // Remove if it doesn't meet threshold anymore
-                  setRoles((prev) => prev.filter((r) => r.id !== newRole.id));
-                  return;
-                }
-
-                const enhancedRole: ContributorRoleWithStats = {
-                  ...newRole,
-                  is_bot: checkIfBot(newRole.user_id),
-                  activity_level: getActivityLevel(newRole.permission_events_count),
-                  days_since_last_active: getDaysSinceLastActive(newRole.last_verified),
-                };
-
-                setRoles((prev) => {
-                  const filtered = prev.filter((r) => r.id !== enhancedRole.id);
+                  const filtered = currentRoles.filter((r) => r.id !== enhancedRole.id);
                   return [...filtered, enhancedRole].sort(
                     (a, b) => b.confidence_score - a.confidence_score
                   );
-                });
-              } else if (payload.eventType === 'DELETE') {
-                setRoles((prev) => prev.filter((r) => r.id !== payload.old.id));
+                } else if (payload.eventType === 'DELETE') {
+                  return currentRoles.filter((r) => r.id !== payload.old.id);
+                }
+                return currentRoles;
               }
-            }
-          )
-          .subscribe();
-      });
-    }
+            );
+          }
+        )
+        .subscribe();
+    });
 
     return () => {
       if (channel) {
         getSupabase().then((sb) => sb.removeChannel(channel!));
       }
     };
-  }, [owner, repo, enableRealtime, minimumConfidence]);
+  }, [owner, repo, enableRealtime, minimumConfidence, queryClient, queryKey]);
 
-  return { roles, loading, error };
+  return { roles, loading, error: error as Error | null };
 }
 
 // Helper function to check if user is a bot
