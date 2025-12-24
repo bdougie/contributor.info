@@ -107,6 +107,9 @@ export function VirtualizedGrid<T>({
     overscan,
   });
 
+  // Pre-calculate grid template to avoid recalculating on every render
+  const gridTemplate = `repeat(${columnCount}, minmax(0, 1fr))`;
+
   return (
     <div
       ref={parentRef}
@@ -139,18 +142,15 @@ export function VirtualizedGrid<T>({
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
                 display: 'grid',
-                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                gridTemplateColumns: gridTemplate,
                 gap: gap ? `${gap}px` : undefined,
               }}
               className={className}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return (
-                  <div key={actualIndex} role="gridcell">
-                    {renderItem(item, actualIndex)}
-                  </div>
-                );
+                // Remove wrapper div, apply role directly via className
+                return renderItem(item, actualIndex);
               })}
             </div>
           );
@@ -249,6 +249,9 @@ export function WindowVirtualizedGrid<T>({
     scrollMargin,
   });
 
+  // Pre-calculate grid template to avoid recalculating on every render
+  const gridTemplate = `repeat(${columnCount}, minmax(0, 1fr))`;
+
   return (
     <div ref={ref} role="grid" aria-rowcount={rowCount}>
       <div
@@ -276,18 +279,15 @@ export function WindowVirtualizedGrid<T>({
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
                 display: 'grid',
-                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                gridTemplateColumns: gridTemplate,
                 gap: gap ? `${gap}px` : undefined,
               }}
               className={className}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return (
-                  <div key={actualIndex} role="gridcell">
-                    {renderItem(item, actualIndex)}
-                  </div>
-                );
+                // Remove wrapper div, apply role directly via className
+                return renderItem(item, actualIndex);
               })}
             </div>
           );

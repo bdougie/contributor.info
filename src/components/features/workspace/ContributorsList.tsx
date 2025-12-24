@@ -345,6 +345,31 @@ export function ContributorsList({
     return matchesSearch && matchesTrackedFilter;
   });
 
+  // Memoize renderItem to avoid re-creating functions on every render
+  const renderGridItem = useCallback(
+    (contributor: Contributor) => {
+      const isTracked = trackedContributors.includes(contributor.id);
+      return (
+        <ContributorCard
+          key={contributor.id}
+          contributor={contributor}
+          isTracked={isTracked}
+          onTrack={() => onTrackContributor?.(contributor.id)}
+          onUntrack={() => onUntrackContributor?.(contributor.id)}
+          onClick={() => onContributorClick?.(contributor)}
+          onAddToGroup={() => onAddToGroup?.(contributor.id)}
+        />
+      );
+    },
+    [
+      trackedContributors,
+      onTrackContributor,
+      onUntrackContributor,
+      onContributorClick,
+      onAddToGroup,
+    ]
+  );
+
   if (loading) {
     return (
       <Card className={cn('w-full', className)}>
@@ -407,20 +432,7 @@ export function ContributorsList({
             scrollMargin={scrollMargin}
             itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
             gap={VIRTUALIZATION_CONFIG.GAP}
-            renderItem={(contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
-              return (
-                <ContributorCard
-                  key={contributor.id}
-                  contributor={contributor}
-                  isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
-                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
-                />
-              );
-            }}
+            renderItem={renderGridItem}
           />
         )}
         {filteredContributors.length > 0 && view === 'list' && (
@@ -493,20 +505,7 @@ export function ContributorsList({
             scrollMargin={scrollMargin}
             itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
             gap={VIRTUALIZATION_CONFIG.GAP}
-            renderItem={(contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
-              return (
-                <ContributorCard
-                  key={contributor.id}
-                  contributor={contributor}
-                  isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
-                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
-                />
-              );
-            }}
+            renderItem={renderGridItem}
           />
         )}
         {filteredContributors.length > 0 && view === 'list' && (
