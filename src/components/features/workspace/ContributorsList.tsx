@@ -61,6 +61,13 @@ export interface ContributorsListProps {
   showTrackedOnly?: boolean;
 }
 
+// Virtualization configuration constants
+const VIRTUALIZATION_CONFIG = {
+  ITEM_HEIGHT: 280,
+  GAP: 16,
+  RESIZE_DEBOUNCE_MS: 150,
+} as const;
+
 const ContributorCard = memo(function ContributorCard({
   contributor,
   isTracked,
@@ -315,7 +322,7 @@ export function ContributorsList({
 
     const debouncedResize = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(updateLayout, 150);
+      timeoutId = setTimeout(updateLayout, VIRTUALIZATION_CONFIG.RESIZE_DEBOUNCE_MS);
     };
 
     window.addEventListener('resize', debouncedResize, { passive: true });
@@ -398,8 +405,8 @@ export function ContributorsList({
             items={filteredContributors}
             columnCount={columnCount}
             scrollMargin={scrollMargin}
-            itemHeight={280}
-            gap={16}
+            itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.GAP}
             renderItem={(contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
               return (
@@ -484,8 +491,8 @@ export function ContributorsList({
             items={filteredContributors}
             columnCount={columnCount}
             scrollMargin={scrollMargin}
-            itemHeight={280}
-            gap={16}
+            itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.GAP}
             renderItem={(contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
               return (

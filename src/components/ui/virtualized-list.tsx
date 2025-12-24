@@ -108,7 +108,12 @@ export function VirtualizedGrid<T>({
   });
 
   return (
-    <div ref={parentRef} className={cn('overflow-auto will-change-scroll', containerClassName)}>
+    <div
+      ref={parentRef}
+      className={cn('overflow-auto will-change-scroll', containerClassName)}
+      role="grid"
+      aria-rowcount={rowCount}
+    >
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -124,6 +129,8 @@ export function VirtualizedGrid<T>({
           return (
             <div
               key={virtualRow.key}
+              role="row"
+              aria-rowindex={virtualRow.index + 1}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -131,21 +138,19 @@ export function VirtualizedGrid<T>({
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
+                display: 'grid',
+                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                 gap: gap ? `${gap}px` : undefined,
               }}
-              className={cn(
-                'grid',
-                columnCount === 1 && 'grid-cols-1',
-                columnCount === 2 && 'grid-cols-2',
-                columnCount === 3 && 'grid-cols-3',
-                columnCount === 4 && 'grid-cols-4',
-                columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
-                className
-              )}
+              className={className}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return <div key={actualIndex}>{renderItem(item, actualIndex)}</div>;
+                return (
+                  <div key={actualIndex} role="gridcell">
+                    {renderItem(item, actualIndex)}
+                  </div>
+                );
               })}
             </div>
           );
@@ -245,7 +250,7 @@ export function WindowVirtualizedGrid<T>({
   });
 
   return (
-    <div ref={ref}>
+    <div ref={ref} role="grid" aria-rowcount={rowCount}>
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -261,6 +266,8 @@ export function WindowVirtualizedGrid<T>({
           return (
             <div
               key={virtualRow.key}
+              role="row"
+              aria-rowindex={virtualRow.index + 1}
               style={{
                 position: 'absolute',
                 top: 0,
@@ -268,21 +275,19 @@ export function WindowVirtualizedGrid<T>({
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
+                display: 'grid',
+                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                 gap: gap ? `${gap}px` : undefined,
               }}
-              className={cn(
-                'grid',
-                columnCount === 1 && 'grid-cols-1',
-                columnCount === 2 && 'grid-cols-2',
-                columnCount === 3 && 'grid-cols-3',
-                columnCount === 4 && 'grid-cols-4',
-                columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
-                className
-              )}
+              className={className}
             >
               {rowItems.map((item, colIndex) => {
                 const actualIndex = startIndex + colIndex;
-                return <div key={actualIndex}>{renderItem(item, actualIndex)}</div>;
+                return (
+                  <div key={actualIndex} role="gridcell">
+                    {renderItem(item, actualIndex)}
+                  </div>
+                );
               })}
             </div>
           );
