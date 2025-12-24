@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
 import { faqService } from '@/lib/llm/faq-service';
 import { logWarning } from '@/lib/error-logging';
+import { safeJSONStringify } from '@/lib/validation/validation-utils';
 
 interface FAQ {
   id: string;
@@ -416,7 +417,7 @@ export function ProjectFAQ({ owner, repo, timeRange }: ProjectFAQProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqSchema),
+          __html: safeJSONStringify(faqSchema),
         }}
       />
 

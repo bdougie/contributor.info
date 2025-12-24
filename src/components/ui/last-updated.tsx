@@ -1,7 +1,7 @@
 import { Clock } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useTimeFormatter } from '@/hooks/use-time-formatter';
-import { sanitizeString } from '@/lib/validation/validation-utils';
+import { sanitizeString, safeJSONStringify } from '@/lib/validation/validation-utils';
 
 interface LastUpdatedProps {
   /**
@@ -100,8 +100,8 @@ function StructuredData({ isoString }: { isoString: string }) {
     dateModified: isoString,
   };
 
-  // Use React's built-in JSON serialization which is XSS-safe
-  const jsonContent = JSON.stringify(structuredData);
+  // Safely serialize JSON to prevent XSS (escapes '<' characters)
+  const jsonContent = safeJSONStringify(structuredData);
 
   return (
     <script
