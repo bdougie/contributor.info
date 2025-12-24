@@ -131,6 +131,7 @@ export function VirtualizedGrid<T>({
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
+                gap: gap ? `${gap}px` : undefined,
               }}
               className={cn(
                 'grid',
@@ -139,7 +140,6 @@ export function VirtualizedGrid<T>({
                 columnCount === 3 && 'grid-cols-3',
                 columnCount === 4 && 'grid-cols-4',
                 columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
-                gap && `gap-${gap / 4}`,
                 className
               )}
             >
@@ -268,6 +268,7 @@ export function WindowVirtualizedGrid<T>({
                 width: '100%',
                 height: `${virtualRow.size}px`,
                 transform: `translateY(${virtualRow.start}px)`,
+                gap: gap ? `${gap}px` : undefined,
               }}
               className={cn(
                 'grid',
@@ -276,7 +277,6 @@ export function WindowVirtualizedGrid<T>({
                 columnCount === 3 && 'grid-cols-3',
                 columnCount === 4 && 'grid-cols-4',
                 columnCount > 4 && `grid-cols-${columnCount}`, // Fallback for higher counts
-                gap && `gap-${gap / 4}`,
                 className
               )}
             >
