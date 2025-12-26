@@ -348,6 +348,17 @@ export function sanitizeEmail(value: unknown): string | null {
   return emailRegex.test(sanitized) ? sanitized : null;
 }
 
+/**
+ * Safely stringifies a value to JSON, escaping characters that could be unsafe
+ * when injected into HTML (e.g., inside <script> tags).
+ * Escapes < to \u003c and > to \u003e
+ */
+export function safeJSONStringify(value: unknown): string {
+  return JSON.stringify(value).replace(/[<>]/g, (char) => {
+    return char === '<' ? '\\u003c' : '\\u003e';
+  });
+}
+
 // =====================================================
 // GITHUB-SPECIFIC VALIDATION UTILITIES
 // =====================================================
