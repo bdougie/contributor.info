@@ -43,6 +43,7 @@ export function BillingDashboard() {
   const [loading, setLoading] = useState(false);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
   const [creatingCheckout, setCreatingCheckout] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
 
   // Handle success redirect
   useEffect(() => {
@@ -154,6 +155,8 @@ export function BillingDashboard() {
       subscription_id: usageStats.subscription.polar_subscription_id,
     });
 
+    setCancelingSubscription(true);
+
     try {
       await SubscriptionService.cancelSubscription(usageStats.subscription.polar_subscription_id);
       trackEvent('subscription_cancel_success', {
@@ -170,6 +173,8 @@ export function BillingDashboard() {
           subscription_id: usageStats.subscription.polar_subscription_id,
         },
       });
+    } finally {
+      setCancelingSubscription(false);
     }
   };
 
@@ -267,6 +272,7 @@ export function BillingDashboard() {
                 <Button
                   variant="outline"
                   onClick={handleCancelSubscription}
+                  isLoading={cancelingSubscription}
                   className="text-red-600 hover:text-red-700"
                 >
                   Cancel Subscription
@@ -394,16 +400,9 @@ export function BillingDashboard() {
                         <Button
                           className="w-full"
                           onClick={() => handleUpgrade(tier.id as 'pro' | 'team')}
-                          disabled={creatingCheckout}
+                          isLoading={creatingCheckout}
                         >
-                          {creatingCheckout ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            `Upgrade to ${tier.name}`
-                          )}
+                          {creatingCheckout ? 'Processing...' : `Upgrade to ${tier.name}`}
                         </Button>
                       )}
                       {tier.id === currentTier && (
