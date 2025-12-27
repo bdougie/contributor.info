@@ -230,10 +230,11 @@ export function ManualSyncButton({
     return <Lock className={iconClassName} />;
   };
 
+  const buttonText = getSyncButtonText(isSyncing, isLoggedIn);
   const buttonContent = (
     <>
       {getIcon()}
-      {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
+      {showLabel && <span>{buttonText}</span>}
     </>
   );
 
@@ -244,6 +245,7 @@ export function ManualSyncButton({
       variant={variant}
       size={size}
       className={className}
+      aria-label={!showLabel ? buttonText : undefined}
     >
       {buttonContent}
     </Button>

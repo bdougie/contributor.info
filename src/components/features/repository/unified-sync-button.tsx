@@ -439,10 +439,11 @@ export function UnifiedSyncButton({
     return <Lock className={iconClass} />;
   };
 
+  const buttonText = getSyncButtonText(isSyncing, isLoggedIn);
   const buttonContent = (
     <>
       {getButtonIcon()}
-      {showLabel && <span>{getSyncButtonText(isSyncing, isLoggedIn)}</span>}
+      {showLabel && <span>{buttonText}</span>}
     </>
   );
 
@@ -453,6 +454,7 @@ export function UnifiedSyncButton({
       variant={variant}
       size={size}
       className={className}
+      aria-label={!showLabel ? buttonText : undefined}
     >
       {buttonContent}
     </Button>
