@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.1](https://github.com/bdougie/contributor.info/compare/v4.6.0...v4.6.1) (2025-12-27)
+
+
+### 🐛 Bug Fixes
+
+* **security:** prevent XSS in JSON-LD injection ([#1434](https://github.com/bdougie/contributor.info/issues/1434)) ([be91554](https://github.com/bdougie/contributor.info/commit/be9155404fa24e41517727fb53b7c81c7ef2c896))
+* upgrade @supabase/supabase-js from 2.86.0 to 2.86.2 ([#1443](https://github.com/bdougie/contributor.info/issues/1443)) ([b57ff63](https://github.com/bdougie/contributor.info/commit/b57ff637111386d1cf58acea9b668f65320de599))
+* upgrade dub from 0.68.0 to 0.69.0 ([#1442](https://github.com/bdougie/contributor.info/issues/1442)) ([5b98de5](https://github.com/bdougie/contributor.info/commit/5b98de5b68838abd44f26898ec50685c14c7e709))
+* upgrade lucide-react from 0.554.0 to 0.556.0 ([#1440](https://github.com/bdougie/contributor.info/issues/1440)) ([bbbea0a](https://github.com/bdougie/contributor.info/commit/bbbea0afd264f1435a3ad8bacf2bf140b1c86550))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0f866bd](https://github.com/bdougie/contributor.info/commit/0f866bdc36a0941db1023b9874b50747e6270443))
+
 ## [4.6.0](https://github.com/bdougie/contributor.info/compare/v4.5.0...v4.6.0) (2025-12-21)
 
 
