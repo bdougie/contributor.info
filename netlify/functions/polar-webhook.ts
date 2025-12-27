@@ -1,9 +1,22 @@
 import { Handler } from '@netlify/functions';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
+import type { WebhookPayload } from '@polar-sh/sdk/webhooks';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 import type { Database } from '../../src/types/supabase';
 import { WorkspaceBackfillService } from '../../src/services/workspace-backfill.service';
+
+// Type definitions for webhook handlers
+interface WebhookHandlers {
+  onSubscriptionCreated: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionUpdated: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionCanceled: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionRevoked: (payload: WebhookPayload) => Promise<void>;
+  onCustomerCreated: (payload: WebhookPayload) => Promise<void>;
+  onCustomerUpdated: (payload: WebhookPayload) => Promise<void>;
+  onOrderCreated: (payload: WebhookPayload) => Promise<void>;
+  onPayload: (payload: WebhookPayload) => Promise<void>;
+}
 
 // Polar addon product IDs
 const POLAR_ADDON_PRODUCT_IDS = {
@@ -235,10 +248,8 @@ export const handler: Handler = async (event) => {
   // Process the webhook payload with event handlers
   try {
     // Define webhook event handlers
-    const handlers = {
-      webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
-
-      onSubscriptionCreated: async (payload) => {
+    const handlers: WebhookHandlers = {
+      onSubscriptionCreated: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription created:', subscription.id);
 
@@ -341,7 +352,7 @@ export const handler: Handler = async (event) => {
         );
       },
 
-      onSubscriptionUpdated: async (payload) => {
+      onSubscriptionUpdated: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription updated:', subscription.id);
 
@@ -481,7 +492,7 @@ export const handler: Handler = async (event) => {
         );
       },
 
-      onSubscriptionCanceled: async (payload) => {
+      onSubscriptionCanceled: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription canceled:', subscription.id);
 
@@ -508,7 +519,7 @@ export const handler: Handler = async (event) => {
         }
       },
 
-      onSubscriptionRevoked: async (payload) => {
+      onSubscriptionRevoked: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription revoked:', subscription.id);
 
@@ -524,7 +535,7 @@ export const handler: Handler = async (event) => {
           .eq('polar_subscription_id', subscription.id);
       },
 
-      onCustomerCreated: async (payload) => {
+      onCustomerCreated: async (payload: WebhookPayload) => {
         const customer = payload.data;
         console.log('Customer created:', customer.id);
 
@@ -551,7 +562,7 @@ export const handler: Handler = async (event) => {
         );
       },
 
-      onCustomerUpdated: async (payload) => {
+      onCustomerUpdated: async (payload: WebhookPayload) => {
         const customer = payload.data;
         console.log('Customer updated:', customer.id);
 
@@ -564,7 +575,7 @@ export const handler: Handler = async (event) => {
           .eq('polar_customer_id', customer.id);
       },
 
-      onOrderCreated: async (payload) => {
+      onOrderCreated: async (payload: WebhookPayload) => {
         const order = payload.data;
         console.log('Order created:', order.id);
 
@@ -580,7 +591,7 @@ export const handler: Handler = async (event) => {
         }
       },
 
-      onPayload: async (payload) => {
+      onPayload: async (payload: WebhookPayload) => {
         // Handle any other webhook events
         console.log('Received webhook event:', payload.type);
       },
@@ -589,45 +600,29 @@ export const handler: Handler = async (event) => {
     // Dispatch webhook to appropriate handler based on event type
     switch (webhookPayload.type) {
       case 'subscription.created':
-        if (handlers.onSubscriptionCreated) {
-          await handlers.onSubscriptionCreated(webhookPayload);
-        }
+        await handlers.onSubscriptionCreated(webhookPayload);
         break;
       case 'subscription.updated':
-        if (handlers.onSubscriptionUpdated) {
-          await handlers.onSubscriptionUpdated(webhookPayload);
-        }
+        await handlers.onSubscriptionUpdated(webhookPayload);
         break;
       case 'subscription.canceled':
-        if (handlers.onSubscriptionCanceled) {
-          await handlers.onSubscriptionCanceled(webhookPayload);
-        }
+        await handlers.onSubscriptionCanceled(webhookPayload);
         break;
       case 'subscription.revoked':
-        if (handlers.onSubscriptionRevoked) {
-          await handlers.onSubscriptionRevoked(webhookPayload);
-        }
+        await handlers.onSubscriptionRevoked(webhookPayload);
         break;
       case 'customer.created':
-        if (handlers.onCustomerCreated) {
-          await handlers.onCustomerCreated(webhookPayload);
-        }
+        await handlers.onCustomerCreated(webhookPayload);
         break;
       case 'customer.updated':
-        if (handlers.onCustomerUpdated) {
-          await handlers.onCustomerUpdated(webhookPayload);
-        }
+        await handlers.onCustomerUpdated(webhookPayload);
         break;
       case 'order.created':
-        if (handlers.onOrderCreated) {
-          await handlers.onOrderCreated(webhookPayload);
-        }
+        await handlers.onOrderCreated(webhookPayload);
         break;
       default:
         // Call onPayload for any unhandled event types
-        if (handlers.onPayload) {
-          await handlers.onPayload(webhookPayload);
-        }
+        await handlers.onPayload(webhookPayload);
         break;
     }
 
