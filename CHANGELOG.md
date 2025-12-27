@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0](https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0) (2025-12-27)
+
+
+### 🐛 Bug Fixes
+
+* **ux:** add aria-label to icon-only sync buttons ([#1439](https://github.com/bdougie/contributor.info/issues/1439)) ([0a8c4a7](https://github.com/bdougie/contributor.info/commit/0a8c4a736b89502a9bc5b195ef07ab07d66ba04f))
+
+
+### ⚡ Performance Improvements
+
+* optimize findUserPullRequests from O(M*N) to O(N) ([#1445](https://github.com/bdougie/contributor.info/issues/1445)) ([0708ff3](https://github.com/bdougie/contributor.info/commit/0708ff3650096b88bfba73ab418cef57cac708e3))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([dd968d1](https://github.com/bdougie/contributor.info/commit/dd968d1fbdb22256d6ecee6ded036b6ed1d4c207))
+
 ## [4.7.0](https://github.com/bdougie/contributor.info/compare/v4.6.1...v4.7.0) (2025-12-27)
 
 
