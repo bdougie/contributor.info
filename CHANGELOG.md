@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0](https://github.com/bdougie/contributor.info/compare/v4.6.1...v4.7.0) (2025-12-27)
+
+
+### 🚀 Features
+
+* **ui:** standardize button loading state ([#1432](https://github.com/bdougie/contributor.info/issues/1432)) ([f956352](https://github.com/bdougie/contributor.info/commit/f956352ab998473341c053ccfcb108deb60a18df))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([04fde42](https://github.com/bdougie/contributor.info/commit/04fde42ee83f59c8475e7c8cd4e7d2f457773f4f))
+
 ## [4.6.1](https://github.com/bdougie/contributor.info/compare/v4.6.0...v4.6.1) (2025-12-27)
 
 
