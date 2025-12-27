@@ -261,6 +261,17 @@ export class ValidationError extends Error {
 // =====================================================
 
 /**
+ * Safely converts an object to a JSON string, escaping characters that could cause
+ * XSS when embedded in HTML script tags (specifically '<').
+ *
+ * Use this instead of JSON.stringify when embedding JSON in dangerouslySetInnerHTML
+ * or similar contexts.
+ */
+export function safeJSONStringify(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+/**
  * Sanitizes string input by trimming whitespace and handling null/undefined
  */
 export function sanitizeString(value: unknown): string | null {
