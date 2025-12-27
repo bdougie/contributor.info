@@ -2,6 +2,51 @@ import { PullRequest, ContributorStats } from '@/lib/types';
 import { fetchUserOrganizations } from '@/lib/github';
 import { getSupabase } from '@/lib/supabase-lazy';
 
+// Cache for user pull requests lookup
+const userPullRequestsCache = new WeakMap<
+  PullRequest[],
+  Map<string, Set<PullRequest>>
+>();
+
+/**
+ * Indexes pull requests by user login and ID for O(1) lookup
+ */
+function getIndexedPullRequests(pullRequests: PullRequest[]): Map<string, Set<PullRequest>> {
+  if (userPullRequestsCache.has(pullRequests)) {
+    return userPullRequestsCache.get(pullRequests)!;
+  }
+
+  const index = new Map<string, Set<PullRequest>>();
+
+  const addToIndex = (key: string, pr: PullRequest) => {
+    if (!index.has(key)) {
+      index.set(key, new Set());
+    }
+    index.get(key)!.add(pr);
+  };
+
+  pullRequests.forEach((pr) => {
+    const userLogin = pr.user?.login?.toLowerCase();
+    if (userLogin) {
+      addToIndex(`login:${userLogin}`, pr);
+    }
+
+    if (pr.user?.id !== undefined && pr.user?.id !== null) {
+      const idStr = String(pr.user.id).toLowerCase();
+      if (idStr) addToIndex(`id:${idStr}`, pr);
+    }
+
+    const authorLogin = pr.author?.login?.toLowerCase();
+    if (authorLogin) {
+      // Add to login namespace as lookup checks both fields against username
+      addToIndex(`login:${authorLogin}`, pr);
+    }
+  });
+
+  userPullRequestsCache.set(pullRequests, index);
+  return index;
+}
+
 /**
  * Find pull requests associated with a specific user, considering different
  * ways the user might be identified in the data
@@ -13,23 +58,25 @@ export function findUserPullRequests(
 ): PullRequest[] {
   if (!username) return [];
 
+  const index = getIndexedPullRequests(allPullRequests);
+  const results = new Set<PullRequest>();
+
   const normalizedUsername = username.toLowerCase();
-  const normalizedUserId = userId?.toLowerCase() || '';
+  const loginKey = `login:${normalizedUsername}`;
 
-  // Find PRs by this user using multiple potential matching criteria
-  return allPullRequests.filter((pr) => {
-    // Normalize all potential user identifiers for comparison
-    const prUserLogin = pr.user?.login?.toLowerCase() || '';
-    const prUserId = String(pr.user?.id || '').toLowerCase();
-    const prAuthorLogin = pr.author?.login?.toLowerCase() || '';
+  if (index.has(loginKey)) {
+    index.get(loginKey)!.forEach((pr) => results.add(pr));
+  }
 
-    // Check if any of the identifiers match
-    return (
-      prUserLogin === normalizedUsername ||
-      (normalizedUserId && prUserId === normalizedUserId) ||
-      prAuthorLogin === normalizedUsername
-    );
-  });
+  if (userId) {
+    const normalizedUserId = userId.toLowerCase();
+    const idKey = `id:${normalizedUserId}`;
+    if (index.has(idKey)) {
+      index.get(idKey)!.forEach((pr) => results.add(pr));
+    }
+  }
+
+  return Array.from(results);
 }
 
 /**
