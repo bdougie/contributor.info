@@ -118,6 +118,7 @@ const ContributorCard = memo(function ContributorCard({
             size="icon"
             className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
             onClick={isTracked ? onUntrack : onTrack}
+            aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
           >
             {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
           </Button>
@@ -256,6 +257,7 @@ const ContributorListItem = memo(function ContributorListItem({
               onTrack?.();
             }
           }}
+          aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
         >
           {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
         </Button>
