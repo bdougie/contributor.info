@@ -519,3 +519,39 @@ export class ValidationStats {
 
 // Global validation stats instance
 export const validationStats = new ValidationStats();
+
+// =====================================================
+// SECURITY UTILITIES
+// =====================================================
+
+/**
+ * Safely stringifies a JSON object, escaping characters that could be used for XSS attacks
+ * when injected into HTML (e.g. in <script> tags).
+ *
+ * Escapes:
+ * - < to \u003c
+ * - > to \u003e
+ * - & to \u0026
+ * - \u2028 to \u2028 (Line Separator)
+ * - \u2029 to \u2029 (Paragraph Separator)
+ */
+export function safeJSONStringify(value: unknown): string {
+  const stringified = JSON.stringify(value);
+  if (!stringified) return '';
+  return stringified.replace(/[<>&\u2028\u2029]/g, (char) => { // eslint-disable-line no-control-regex
+    switch (char) {
+      case '<':
+        return '\\u003c';
+      case '>':
+        return '\\u003e';
+      case '&':
+        return '\\u0026';
+      case '\u2028': // Line Separator
+        return '\\u2028';
+      case '\u2029': // Paragraph Separator
+        return '\\u2029';
+      default:
+        return char;
+    }
+  });
+}
