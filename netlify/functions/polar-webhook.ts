@@ -497,7 +497,7 @@ export const handler: Handler = async (event) => {
         console.log('Subscription canceled:', subscription.id);
 
         // Mark subscription as canceled
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'canceled',
@@ -505,6 +505,16 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('❌ Failed to cancel subscription:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'subscription_cancel_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw error;
+        }
 
         const userId = subscription.metadata?.user_id as string;
         if (userId) {
@@ -524,7 +534,7 @@ export const handler: Handler = async (event) => {
         console.log('Subscription revoked:', subscription.id);
 
         // Immediately downgrade to free tier
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'inactive',
@@ -533,6 +543,16 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('❌ Failed to revoke subscription:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'subscription_revoke_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw error;
+        }
       },
 
       onCustomerCreated: async (payload: WebhookPayload) => {
@@ -547,7 +567,7 @@ export const handler: Handler = async (event) => {
         }
 
         // Create or update subscription record with customer ID
-        await supabase.from('subscriptions').upsert(
+        const { error } = await supabase.from('subscriptions').upsert(
           {
             user_id: userId,
             polar_customer_id: customer.id,
@@ -560,6 +580,16 @@ export const handler: Handler = async (event) => {
             onConflict: 'user_id',
           }
         );
+
+        if (error) {
+          console.error('❌ Failed to create customer record:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'customer_creation_db_failed' },
+            extra: { customer_id: customer.id, user_id: userId },
+          });
+          throw error;
+        }
       },
 
       onCustomerUpdated: async (payload: WebhookPayload) => {
@@ -567,12 +597,17 @@ export const handler: Handler = async (event) => {
         console.log('Customer updated:', customer.id);
 
         // Update customer information if needed
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             updated_at: new Date().toISOString(),
           })
           .eq('polar_customer_id', customer.id);
+
+        if (error) {
+          console.error('❌ Failed to update customer record:', error);
+          // Non-critical update, log but don't throw
+        }
       },
 
       onOrderCreated: async (payload: WebhookPayload) => {
