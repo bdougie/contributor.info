@@ -1,6 +1,5 @@
 import { Handler } from '@netlify/functions';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
-import { handleWebhookPayload } from '@polar-sh/adapter-utils';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 import type { Database } from '../../src/types/supabase';
@@ -235,7 +234,8 @@ export const handler: Handler = async (event) => {
 
   // Process the webhook payload with event handlers
   try {
-    await handleWebhookPayload(webhookPayload, {
+    // Define webhook event handlers
+    const handlers = {
       webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
 
       onSubscriptionCreated: async (payload) => {
@@ -584,7 +584,52 @@ export const handler: Handler = async (event) => {
         // Handle any other webhook events
         console.log('Received webhook event:', payload.type);
       },
-    });
+    };
+
+    // Dispatch webhook to appropriate handler based on event type
+    switch (webhookPayload.type) {
+      case 'subscription.created':
+        if (handlers.onSubscriptionCreated) {
+          await handlers.onSubscriptionCreated(webhookPayload);
+        }
+        break;
+      case 'subscription.updated':
+        if (handlers.onSubscriptionUpdated) {
+          await handlers.onSubscriptionUpdated(webhookPayload);
+        }
+        break;
+      case 'subscription.canceled':
+        if (handlers.onSubscriptionCanceled) {
+          await handlers.onSubscriptionCanceled(webhookPayload);
+        }
+        break;
+      case 'subscription.revoked':
+        if (handlers.onSubscriptionRevoked) {
+          await handlers.onSubscriptionRevoked(webhookPayload);
+        }
+        break;
+      case 'customer.created':
+        if (handlers.onCustomerCreated) {
+          await handlers.onCustomerCreated(webhookPayload);
+        }
+        break;
+      case 'customer.updated':
+        if (handlers.onCustomerUpdated) {
+          await handlers.onCustomerUpdated(webhookPayload);
+        }
+        break;
+      case 'order.created':
+        if (handlers.onOrderCreated) {
+          await handlers.onOrderCreated(webhookPayload);
+        }
+        break;
+      default:
+        // Call onPayload for any unhandled event types
+        if (handlers.onPayload) {
+          await handlers.onPayload(webhookPayload);
+        }
+        break;
+    }
 
     return {
       statusCode: 200,
