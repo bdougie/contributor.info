@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0](https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0) (2025-12-28)
+
+
+### 🚀 Features
+
+* **ui:** standardize button loading state ([49c8ea4](https://github.com/bdougie/contributor.info/commit/49c8ea41fd3950d260cf322fe64ed12687fd55ed))
+
+
+### 🐛 Bug Fixes
+
+* add error handling to all polar-webhook database operations ([7a6b801](https://github.com/bdougie/contributor.info/commit/7a6b8015cc4da0ec8c310c9d74176aee109735cf))
+* address CodeRabbit review comments for Button component ([50c0cdf](https://github.com/bdougie/contributor.info/commit/50c0cdff82082eb17c3cecf0e10c1d64cd04a499))
+* replace @polar-sh/adapter-utils with direct implementation ([d1bcdfb](https://github.com/bdougie/contributor.info/commit/d1bcdfb43e5044c94a4efa6dbd08b4455961fb13))
+
+
+### ♻️ Code Refactoring
+
+* add TypeScript types to polar-webhook handlers ([7729227](https://github.com/bdougie/contributor.info/commit/77292273bb4b99d35d80c4b5d651f961a3ec960e))
+
+
+### 🔧 Maintenance
+
+* remove unused @polar-sh/nextjs and add @polar-sh/adapter-utils ([4b876ef](https://github.com/bdougie/contributor.info/commit/4b876efd45ee78dd99c2ad61bfa31657f523db76))
+* update tracked repositories list [skip ci] ([f3a59eb](https://github.com/bdougie/contributor.info/commit/f3a59ebd60e6a8c5c00a3fe69ae3f3efd6c59c46))
+* **ux:** add missing aria-labels to icon-only buttons ([#1433](https://github.com/bdougie/contributor.info/issues/1433)) ([c93f585](https://github.com/bdougie/contributor.info/commit/c93f585ccf8f4aa0ee06a3e2de01689465354dfe))
+
 ## [4.8.0](https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0) (2025-12-27)
 
 
