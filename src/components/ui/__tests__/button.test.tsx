@@ -16,7 +16,6 @@ describe('Button', () => {
 
   // Tests for new functionality
   it('shows loading spinner and disables button when isLoading is true', () => {
-    // @ts-expect-error - isLoading prop to be added
     const { container } = render(<Button isLoading>Click me</Button>);
     const button = screen.getByRole('button'); // It might still have text "Click me"
 
@@ -26,11 +25,24 @@ describe('Button', () => {
   });
 
   it('does not show spinner when isLoading is false', () => {
-    // @ts-expect-error - isLoading prop to be added
     const { container } = render(<Button isLoading={false}>Click me</Button>);
     const button = screen.getByRole('button', { name: /click me/i });
 
     expect(button).not.toBeDisabled();
+    expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
+  });
+
+  it('disables button in asChild mode when isLoading is true', () => {
+    const { container } = render(
+      <Button asChild isLoading>
+        <a href="#">Link Button</a>
+      </Button>
+    );
+    const link = container.querySelector('a');
+
+    // Note: Spinner is not shown in asChild mode due to Slot limitations (single child requirement)
+    // Loading state is indicated through disabled attribute only
+    expect(link).toHaveAttribute('disabled');
     expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
   });
 });
