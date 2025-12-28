@@ -1,10 +1,22 @@
 import { Handler } from '@netlify/functions';
 import { validateEvent, WebhookVerificationError } from '@polar-sh/sdk/webhooks';
-import { handleWebhookPayload } from '@polar-sh/adapter-utils';
+import type { WebhookPayload } from '@polar-sh/sdk/webhooks';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 import type { Database } from '../../src/types/supabase';
 import { WorkspaceBackfillService } from '../../src/services/workspace-backfill.service';
+
+// Type definitions for webhook handlers
+interface WebhookHandlers {
+  onSubscriptionCreated: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionUpdated: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionCanceled: (payload: WebhookPayload) => Promise<void>;
+  onSubscriptionRevoked: (payload: WebhookPayload) => Promise<void>;
+  onCustomerCreated: (payload: WebhookPayload) => Promise<void>;
+  onCustomerUpdated: (payload: WebhookPayload) => Promise<void>;
+  onOrderCreated: (payload: WebhookPayload) => Promise<void>;
+  onPayload: (payload: WebhookPayload) => Promise<void>;
+}
 
 // Polar addon product IDs
 const POLAR_ADDON_PRODUCT_IDS = {
@@ -235,10 +247,9 @@ export const handler: Handler = async (event) => {
 
   // Process the webhook payload with event handlers
   try {
-    await handleWebhookPayload(webhookPayload, {
-      webhookSecret: process.env.POLAR_WEBHOOK_SECRET,
-
-      onSubscriptionCreated: async (payload) => {
+    // Define webhook event handlers
+    const handlers: WebhookHandlers = {
+      onSubscriptionCreated: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription created:', subscription.id);
 
@@ -341,7 +352,7 @@ export const handler: Handler = async (event) => {
         );
       },
 
-      onSubscriptionUpdated: async (payload) => {
+      onSubscriptionUpdated: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription updated:', subscription.id);
 
@@ -481,12 +492,12 @@ export const handler: Handler = async (event) => {
         );
       },
 
-      onSubscriptionCanceled: async (payload) => {
+      onSubscriptionCanceled: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription canceled:', subscription.id);
 
         // Mark subscription as canceled
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'canceled',
@@ -494,6 +505,16 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('❌ Failed to cancel subscription:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'subscription_cancel_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw error;
+        }
 
         const userId = subscription.metadata?.user_id as string;
         if (userId) {
@@ -508,12 +529,12 @@ export const handler: Handler = async (event) => {
         }
       },
 
-      onSubscriptionRevoked: async (payload) => {
+      onSubscriptionRevoked: async (payload: WebhookPayload) => {
         const subscription = payload.data;
         console.log('Subscription revoked:', subscription.id);
 
         // Immediately downgrade to free tier
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'inactive',
@@ -522,9 +543,19 @@ export const handler: Handler = async (event) => {
             updated_at: new Date().toISOString(),
           })
           .eq('polar_subscription_id', subscription.id);
+
+        if (error) {
+          console.error('❌ Failed to revoke subscription:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'subscription_revoke_db_failed' },
+            extra: { subscription_id: subscription.id },
+          });
+          throw error;
+        }
       },
 
-      onCustomerCreated: async (payload) => {
+      onCustomerCreated: async (payload: WebhookPayload) => {
         const customer = payload.data;
         console.log('Customer created:', customer.id);
 
@@ -536,7 +567,7 @@ export const handler: Handler = async (event) => {
         }
 
         // Create or update subscription record with customer ID
-        await supabase.from('subscriptions').upsert(
+        const { error } = await supabase.from('subscriptions').upsert(
           {
             user_id: userId,
             polar_customer_id: customer.id,
@@ -549,22 +580,37 @@ export const handler: Handler = async (event) => {
             onConflict: 'user_id',
           }
         );
+
+        if (error) {
+          console.error('❌ Failed to create customer record:', error);
+          await captureServerException(new Error(error.message), {
+            level: 'error',
+            tags: { type: 'customer_creation_db_failed' },
+            extra: { customer_id: customer.id, user_id: userId },
+          });
+          throw error;
+        }
       },
 
-      onCustomerUpdated: async (payload) => {
+      onCustomerUpdated: async (payload: WebhookPayload) => {
         const customer = payload.data;
         console.log('Customer updated:', customer.id);
 
         // Update customer information if needed
-        await supabase
+        const { error } = await supabase
           .from('subscriptions')
           .update({
             updated_at: new Date().toISOString(),
           })
           .eq('polar_customer_id', customer.id);
+
+        if (error) {
+          console.error('❌ Failed to update customer record:', error);
+          // Non-critical update, log but don't throw
+        }
       },
 
-      onOrderCreated: async (payload) => {
+      onOrderCreated: async (payload: WebhookPayload) => {
         const order = payload.data;
         console.log('Order created:', order.id);
 
@@ -580,11 +626,40 @@ export const handler: Handler = async (event) => {
         }
       },
 
-      onPayload: async (payload) => {
+      onPayload: async (payload: WebhookPayload) => {
         // Handle any other webhook events
         console.log('Received webhook event:', payload.type);
       },
-    });
+    };
+
+    // Dispatch webhook to appropriate handler based on event type
+    switch (webhookPayload.type) {
+      case 'subscription.created':
+        await handlers.onSubscriptionCreated(webhookPayload);
+        break;
+      case 'subscription.updated':
+        await handlers.onSubscriptionUpdated(webhookPayload);
+        break;
+      case 'subscription.canceled':
+        await handlers.onSubscriptionCanceled(webhookPayload);
+        break;
+      case 'subscription.revoked':
+        await handlers.onSubscriptionRevoked(webhookPayload);
+        break;
+      case 'customer.created':
+        await handlers.onCustomerCreated(webhookPayload);
+        break;
+      case 'customer.updated':
+        await handlers.onCustomerUpdated(webhookPayload);
+        break;
+      case 'order.created':
+        await handlers.onOrderCreated(webhookPayload);
+        break;
+      default:
+        // Call onPayload for any unhandled event types
+        await handlers.onPayload(webhookPayload);
+        break;
+    }
 
     return {
       statusCode: 200,

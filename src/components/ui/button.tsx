@@ -53,6 +53,9 @@ function Button({
   const Comp = asChild ? Slot : 'button';
 
   if (asChild) {
+    // Note: When using asChild with isLoading, the spinner cannot be rendered
+    // because Slot requires a single child element. The loading state is indicated
+    // only through the disabled attribute.
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
@@ -72,7 +75,7 @@ function Button({
       disabled={isLoading || disabled}
       {...props}
     >
-      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
       {children}
     </Comp>
   );
