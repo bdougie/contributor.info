@@ -105,7 +105,7 @@ export function ShareableCard({
               dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined,
             });
           }
-        } catch (err) {
+        } catch {
           // Fallback to just copying the image
           try {
             await SnapDOMCaptureService.copyBlobToClipboard(blob);
@@ -115,7 +115,7 @@ export function ShareableCard({
             if (!bypassAnalytics) {
               await trackShareEvent('copy', 'image');
             }
-          } catch (err2) {
+          } catch {
             toast.error('Failed to copy to clipboard');
           }
         }
@@ -148,7 +148,7 @@ export function ShareableCard({
                 dubLinkId: shortUrl !== currentUrl ? shortUrl.split('/').pop() : undefined,
               });
             }
-          } catch (err) {
+          } catch {
             // User cancelled share
           }
         } else {
@@ -215,6 +215,7 @@ export function ShareableCard({
             className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
             onClick={() => handleCapture('copy')}
             title="Copy chart as image"
+            aria-label="Copy chart as image"
             disabled={isCapturing}
           >
             <Copy className="h-4 w-4" />
@@ -225,6 +226,7 @@ export function ShareableCard({
             className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
             onClick={() => handleCapture('download')}
             title="Download chart"
+            aria-label="Download chart"
             disabled={isCapturing}
           >
             <Download className="h-4 w-4" />
@@ -235,6 +237,7 @@ export function ShareableCard({
             className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
             onClick={() => handleCapture('share')}
             title="Share chart"
+            aria-label="Share chart"
             disabled={isCapturing}
           >
             <Share2 className="h-4 w-4" />
