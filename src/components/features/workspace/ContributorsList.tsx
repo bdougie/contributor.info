@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { WindowVirtualizedGrid } from '@/components/ui/virtualized-list';
 import {
   X,
   Search,
@@ -60,7 +61,14 @@ export interface ContributorsListProps {
   showTrackedOnly?: boolean;
 }
 
-function ContributorCard({
+// Virtualization configuration constants
+const VIRTUALIZATION_CONFIG = {
+  ITEM_HEIGHT: 280,
+  GAP: 16,
+  RESIZE_DEBOUNCE_MS: 150,
+} as const;
+
+const ContributorCard = memo(function ContributorCard({
   contributor,
   isTracked,
   onTrack,
@@ -165,9 +173,9 @@ function ContributorCard({
       </CardContent>
     </Card>
   );
-}
+});
 
-function ContributorListItem({
+const ContributorListItem = memo(function ContributorListItem({
   contributor,
   isTracked,
   onTrack,
@@ -254,7 +262,7 @@ function ContributorListItem({
       </div>
     </div>
   );
-}
+});
 
 export function ContributorsList({
   contributors,
@@ -270,6 +278,60 @@ export function ContributorsList({
   showTrackedOnly = false,
 }: ContributorsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [columnCount, setColumnCount] = useState(1);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Combine layout updates into single callback
+  const updateLayout = useCallback(() => {
+    const width = window.innerWidth;
+    if (width >= 1024)
+      setColumnCount(3); // lg
+    else if (width >= 640)
+      setColumnCount(2); // sm
+    else setColumnCount(1);
+
+    if (listRef.current) {
+      const rect = listRef.current.getBoundingClientRect();
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      setScrollMargin(rect.top + scrollTop);
+    }
+  }, []);
+
+  // Use ResizeObserver for efficient layout measurements
+  useEffect(() => {
+    if (!listRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateLayout();
+    });
+
+    resizeObserver.observe(listRef.current);
+
+    // Initial measurement
+    updateLayout();
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateLayout]);
+
+  // Single debounced resize handler for window
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const debouncedResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateLayout, VIRTUALIZATION_CONFIG.RESIZE_DEBOUNCE_MS);
+    };
+
+    window.addEventListener('resize', debouncedResize, { passive: true });
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', debouncedResize);
+    };
+  }, [updateLayout]);
 
   const filteredContributors = contributors.filter((contributor) => {
     const matchesSearch =
@@ -282,6 +344,31 @@ export function ContributorsList({
 
     return matchesSearch && matchesTrackedFilter;
   });
+
+  // Memoize renderItem to avoid re-creating functions on every render
+  const renderGridItem = useCallback(
+    (contributor: Contributor) => {
+      const isTracked = trackedContributors.includes(contributor.id);
+      return (
+        <ContributorCard
+          key={contributor.id}
+          contributor={contributor}
+          isTracked={isTracked}
+          onTrack={() => onTrackContributor?.(contributor.id)}
+          onUntrack={() => onUntrackContributor?.(contributor.id)}
+          onClick={() => onContributorClick?.(contributor)}
+          onAddToGroup={() => onAddToGroup?.(contributor.id)}
+        />
+      );
+    },
+    [
+      trackedContributors,
+      onTrackContributor,
+      onUntrackContributor,
+      onContributorClick,
+      onAddToGroup,
+    ]
+  );
 
   if (loading) {
     return (
@@ -322,7 +409,7 @@ export function ContributorsList({
           </div>
         </div>
 
-        {filteredContributors.length === 0 ? (
+        {filteredContributors.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-2">
@@ -336,38 +423,32 @@ export function ContributorsList({
               </p>
             )}
           </div>
-        ) : (
-          <div
-            className={
-              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
-            }
-          >
+        )}
+        {filteredContributors.length > 0 && view === 'grid' && (
+          <WindowVirtualizedGrid
+            ref={listRef}
+            items={filteredContributors}
+            columnCount={columnCount}
+            scrollMargin={scrollMargin}
+            itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.GAP}
+            renderItem={renderGridItem}
+          />
+        )}
+        {filteredContributors.length > 0 && view === 'list' && (
+          <div className="space-y-3">
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
-              if (view === 'grid') {
-                return (
-                  <ContributorCard
-                    key={contributor.id}
-                    contributor={contributor}
-                    isTracked={isTracked}
-                    onTrack={() => onTrackContributor?.(contributor.id)}
-                    onUntrack={() => onUntrackContributor?.(contributor.id)}
-                    onClick={() => onContributorClick?.(contributor)}
-                    onAddToGroup={() => onAddToGroup?.(contributor.id)}
-                  />
-                );
-              } else {
-                return (
-                  <ContributorListItem
-                    key={contributor.id}
-                    contributor={contributor}
-                    isTracked={isTracked}
-                    onTrack={() => onTrackContributor?.(contributor.id)}
-                    onUntrack={() => onUntrackContributor?.(contributor.id)}
-                    onClick={() => onContributorClick?.(contributor)}
-                  />
-                );
-              }
+              return (
+                <ContributorListItem
+                  key={contributor.id}
+                  contributor={contributor}
+                  isTracked={isTracked}
+                  onTrack={() => onTrackContributor?.(contributor.id)}
+                  onUntrack={() => onUntrackContributor?.(contributor.id)}
+                  onClick={() => onContributorClick?.(contributor)}
+                />
+              );
             })}
           </div>
         )}
@@ -401,7 +482,7 @@ export function ContributorsList({
           </div>
         </div>
 
-        {filteredContributors.length === 0 ? (
+        {filteredContributors.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-2">
@@ -415,26 +496,23 @@ export function ContributorsList({
               </p>
             )}
           </div>
-        ) : (
-          <div
-            className={
-              view === 'grid' ? 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'
-            }
-          >
+        )}
+        {filteredContributors.length > 0 && view === 'grid' && (
+          <WindowVirtualizedGrid
+            ref={listRef}
+            items={filteredContributors}
+            columnCount={columnCount}
+            scrollMargin={scrollMargin}
+            itemHeight={VIRTUALIZATION_CONFIG.ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.GAP}
+            renderItem={renderGridItem}
+          />
+        )}
+        {filteredContributors.length > 0 && view === 'list' && (
+          <div className="space-y-3">
             {filteredContributors.map((contributor) => {
               const isTracked = trackedContributors.includes(contributor.id);
-
-              return view === 'grid' ? (
-                <ContributorCard
-                  key={contributor.id}
-                  contributor={contributor}
-                  isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
-                  onAddToGroup={() => onAddToGroup?.(contributor.id)}
-                />
-              ) : (
+              return (
                 <ContributorListItem
                   key={contributor.id}
                   contributor={contributor}
