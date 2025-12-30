@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.0](https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0) (2025-12-30)
+
+
+### 🚀 Features
+
+* **a11y:** add aria-labels to icon-only buttons ([#1449](https://github.com/bdougie/contributor.info/issues/1449)) ([66e4fb2](https://github.com/bdougie/contributor.info/commit/66e4fb2ce0e42c0db92e384aeed2d4cf7e16638d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([9644d1f](https://github.com/bdougie/contributor.info/commit/9644d1f47fd03e76102e2fd274949fa851e398ac))
+
 ## [4.9.0](https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0) (2025-12-28)
 
 
