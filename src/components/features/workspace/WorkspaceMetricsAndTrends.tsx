@@ -287,7 +287,7 @@ export function WorkspaceMetricsAndTrends({
   const hasWorkspaceAccess = isLoggedIn && userRole;
   const showUpgradePrompt = !hasWorkspaceAccess;
 
-  const repoName = workspaceName || "Workspace Overview";
+  const repoName = workspaceName || 'Workspace Overview';
 
   return (
     <Card className="relative">
@@ -306,6 +306,7 @@ export function WorkspaceMetricsAndTrends({
               onClick={handleCopyLink}
               className="h-8 w-8"
               title="Copy page link"
+              aria-label="Copy page link"
             >
               <Link className="h-4 w-4" />
             </Button>
@@ -404,7 +405,12 @@ export function WorkspaceMetricsAndTrends({
                             style={{
                               width: `${
                                 Math.max(metrics.velocity.current, metrics.velocity.previous) > 0
-                                  ? (metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100
+                                  ? (metrics.velocity.current /
+                                      Math.max(
+                                        metrics.velocity.current,
+                                        metrics.velocity.previous
+                                      )) *
+                                    100
                                   : 0
                               }%`,
                             }}
