@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.1](https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1) (2025-12-30)
+
+
+### 🐛 Bug Fixes
+
+* **ui:** add missing aria-label to mobile insights sidebar toggle ([#1450](https://github.com/bdougie/contributor.info/issues/1450)) ([eb7b7ab](https://github.com/bdougie/contributor.info/commit/eb7b7aba0d8fd5e90f070c928f472841b968fee0))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([be6189a](https://github.com/bdougie/contributor.info/commit/be6189a9b5fd6dc809d4ef3f8d7917e0cdd5d391))
+
 ## [4.10.0](https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0) (2025-12-30)
 
 
