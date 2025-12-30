@@ -234,6 +234,7 @@ export function InsightsSidebar({ className }: InsightsSidebarProps) {
               variant="outline"
               size="icon"
               className="md:hidden fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg z-50"
+              aria-label="Open insights"
             >
               <Sparkles className="h-6 w-6" />
             </Button>
