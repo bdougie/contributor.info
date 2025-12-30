@@ -11,6 +11,7 @@ axios/axios
 bdougie/contributor.info
 better-auth/better-auth
 BlueMatthew/WechatExporter
+Bridgetamana/pixlated
 CGCookie/retopoflow
 clickhouse/clickhouse
 ClickHouse/ClickHouse
