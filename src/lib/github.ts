@@ -215,24 +215,64 @@ export async function searchGitHubRepositories(
   );
 }
 
+// Cache for in-flight and completed organization requests
+const orgsRequestCache = new Map<string, Promise<{ login: string; avatar_url: string }[]>>();
+
 // Export the fetchUserOrganizations function to fix the missing export error
 export async function fetchUserOrganizations(
   username: string,
   headers: HeadersInit
 ): Promise<{ login: string; avatar_url: string }[]> {
+  // Create a cache key that includes the auth token to prevent leaking private orgs
+  // across different user sessions or privilege levels
+  let authHeader = '';
   try {
-    const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const orgs = await response.json();
-    return orgs.slice(0, 3).map((org: GitHubOrganization) => ({
-      login: org.login,
-      avatar_url: org.avatar_url,
-    }));
+    authHeader = new Headers(headers).get('authorization') || '';
   } catch {
+    // Fallback if Headers constructor fails (unlikely but safe)
+    authHeader = '';
+  }
+  const cacheKey = `${username.toLowerCase()}:${authHeader}`;
+
+  // Simple memory management: clear cache if it gets too large
+  if (orgsRequestCache.size > 1000) {
+    orgsRequestCache.clear();
+  }
+
+  // Return existing promise if request is already in flight or cached
+  if (orgsRequestCache.has(cacheKey)) {
+    return orgsRequestCache.get(cacheKey)!;
+  }
+
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
+
+      if (!response.ok) {
+        // Don't cache errors/non-200 responses
+        throw new Error(`Failed to fetch orgs: ${response.status}`);
+      }
+
+      const orgs = await response.json();
+      return orgs.slice(0, 3).map((org: GitHubOrganization) => ({
+        login: org.login,
+        avatar_url: org.avatar_url,
+      }));
+    } catch (error) {
+      // Re-throw error to trigger cache cleanup in the outer catch block
+      throw error;
+    }
+  })();
+
+  // Store promise in cache
+  orgsRequestCache.set(cacheKey, fetchPromise);
+
+  try {
+    return await fetchPromise;
+  } catch (error) {
+    // Remove from cache on error so we can retry later
+    orgsRequestCache.delete(cacheKey);
+    // Return empty array to gracefully handle failure
     return [];
   }
 }
