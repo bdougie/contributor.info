@@ -81,9 +81,12 @@ export function useCombinedActivity({
 
     // Sort by timestamp, most recent first
     activities.sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
-      return dateB - dateA;
+      // Optimization: Use Date.parse() instead of new Date()
+      // Date.parse() returns a number (primitive) and avoids allocating Date objects.
+      // We cannot use string comparison because timestamps from different sources
+      // might have different precision (e.g. milliseconds vs no milliseconds),
+      // breaking lexicographical sort order.
+      return Date.parse(b.timestamp) - Date.parse(a.timestamp);
     });
 
     return activities;
