@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.2](https://github.com/bdougie/contributor.info/compare/v4.10.1...v4.10.2) (2026-01-02)
+
+
+### 🐛 Bug Fixes
+
+* fly-social-cards/package.json & fly-social-cards/package-lock.json to reduce vulnerabilities ([#1460](https://github.com/bdougie/contributor.info/issues/1460)) ([d2e43a5](https://github.com/bdougie/contributor.info/commit/d2e43a52d2e0d835fd0a62cf7fb6e68c2e562ba5))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0ec430f](https://github.com/bdougie/contributor.info/commit/0ec430f9a01ebed4638c23c9325524b31fe5c7d2))
+
 ## [4.10.1](https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1) (2025-12-30)
 
 
