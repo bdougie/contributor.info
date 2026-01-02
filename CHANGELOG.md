@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.12.0](https://github.com/bdougie/contributor.info/compare/v4.11.0...v4.12.0) (2026-01-02)
+
+
+### 🚀 Features
+
+* **ui:** add tooltips to contributor tracking buttons ([#1457](https://github.com/bdougie/contributor.info/issues/1457)) ([9ce50f5](https://github.com/bdougie/contributor.info/commit/9ce50f56faddf4a923a005825c13bbc8f96a56d0))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6caa720](https://github.com/bdougie/contributor.info/commit/6caa72050a2f4c70c8823a73c618dd225882dc4a))
+
 ## [4.11.0](https://github.com/bdougie/contributor.info/compare/v4.10.2...v4.11.0) (2026-01-02)
 
 
