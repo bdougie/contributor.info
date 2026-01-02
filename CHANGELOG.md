@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0](https://github.com/bdougie/contributor.info/compare/v4.10.2...v4.11.0) (2026-01-02)
+
+
+### ⚡ Performance Improvements
+
+* optimize activity feed sorting with Date.parse ([#1455](https://github.com/bdougie/contributor.info/issues/1455)) ([86e8a3b](https://github.com/bdougie/contributor.info/commit/86e8a3be16b38206334dc624902fad1ccab5341d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([cba00cb](https://github.com/bdougie/contributor.info/commit/cba00cbffd2101ddce13e29cf013faee853fb4b7))
+
 ## [4.10.2](https://github.com/bdougie/contributor.info/compare/v4.10.1...v4.10.2) (2026-01-02)
 
 
