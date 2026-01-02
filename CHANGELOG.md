@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.0](https://github.com/bdougie/contributor.info/compare/v4.12.0...v4.13.0) (2026-01-02)
+
+
+### ⚡ Performance Improvements
+
+* cache fetchUserOrganizations calls ([#1462](https://github.com/bdougie/contributor.info/issues/1462)) ([48e68d7](https://github.com/bdougie/contributor.info/commit/48e68d7a9dc59173430fd8c0df249b751c626aa1))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a5cd398](https://github.com/bdougie/contributor.info/commit/a5cd39898ecc87749f01ee6b4f08e2180982051b))
+
 ## [4.12.0](https://github.com/bdougie/contributor.info/compare/v4.11.0...v4.12.0) (2026-01-02)
 
 
