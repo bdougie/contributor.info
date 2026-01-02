@@ -197,7 +197,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
     "@continuedev/cli": "^1.4.44",
-    "@eslint/js": "^9.11.1",
+    "@eslint/js": "^9.39.2",
     "@iarna/toml": "^2.2.5",
     "@iconify/json": "^2.2.367",
     "@mdx-js/react": "^2.3.0",

@@ -215,26 +215,68 @@ export async function searchGitHubRepositories(
   );
 }
 
+// Cache for user organizations to avoid frequent refetches
+// Key: username, Value: { data: Organization[], timestamp: number }
+const orgsCache = new Map<
+  string,
+  { data: { login: string; avatar_url: string }[]; timestamp: number }
+>();
+const ORGS_CACHE_TTL = 1000 * 60 * 60; // 1 hour
+const ORGS_CACHE_MAX_SIZE = 5000; // Prevent memory leaks
+
+// Pending requests for deduplication of concurrent calls
+const pendingOrgsRequests = new Map<string, Promise<{ login: string; avatar_url: string }[]>>();
+
 // Export the fetchUserOrganizations function to fix the missing export error
 export async function fetchUserOrganizations(
   username: string,
   headers: HeadersInit
 ): Promise<{ login: string; avatar_url: string }[]> {
-  try {
-    const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
+  const cacheKey = username.toLowerCase();
 
-    if (!response.ok) {
-      return [];
-    }
-
-    const orgs = await response.json();
-    return orgs.slice(0, 3).map((org: GitHubOrganization) => ({
-      login: org.login,
-      avatar_url: org.avatar_url,
-    }));
-  } catch {
-    return [];
+  // Check memory cache first
+  const cached = orgsCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < ORGS_CACHE_TTL) {
+    return cached.data;
   }
+
+  // Check for pending request (request deduplication)
+  if (pendingOrgsRequests.has(cacheKey)) {
+    return pendingOrgsRequests.get(cacheKey)!;
+  }
+
+  // Create new request
+  const promise = (async () => {
+    try {
+      const response = await fetch(`${GITHUB_API_BASE}/users/${username}/orgs`, { headers });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const orgs = await response.json();
+      const result = orgs.slice(0, 3).map((org: GitHubOrganization) => ({
+        login: org.login,
+        avatar_url: org.avatar_url,
+      }));
+
+      // Update cache with size limit check
+      if (orgsCache.size >= ORGS_CACHE_MAX_SIZE) {
+        orgsCache.clear(); // Simple strategy: clear all if full
+      }
+      orgsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+      return result;
+    } catch {
+      return [];
+    } finally {
+      // Remove from pending requests
+      pendingOrgsRequests.delete(cacheKey);
+    }
+  })();
+
+  pendingOrgsRequests.set(cacheKey, promise);
+  return promise;
 }
 
 async function fetchPRReviews(owner: string, repo: string, prNumber: number, headers: HeadersInit) {
