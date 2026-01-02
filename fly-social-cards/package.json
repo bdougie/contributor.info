@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.2",
-    "express": "^4.18.2",
+    "express": "^4.22.0",
     "dotenv": "^16.3.1",
     "sharp": "^0.34.5",
     "playwright": "^1.48.0"
