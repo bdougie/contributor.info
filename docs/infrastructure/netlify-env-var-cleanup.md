@@ -42,11 +42,9 @@ All other VITE_ variables are actively used:
 | `VITE_DUB_CO_KEY` | src/lib/dub.ts - Short link generation |
 | `VITE_DUB_DOMAIN_DEV` | src/lib/env.ts - Development domain |
 | `VITE_DUB_DOMAIN_PROD` | src/lib/env.ts - Production domain |
-| `VITE_POLAR_ACCESS_TOKEN` | src/services/polar/subscription.service.ts |
 | `VITE_POLAR_PRODUCT_ID_PRO` | src/components/billing/UpgradeModal.tsx |
 | `VITE_POLAR_PRODUCT_ID_TEAM` | src/components/billing/UpgradeModal.tsx |
 | `VITE_POLAR_WEBHOOK_SECRET` | Polar webhook validation |
-| `VITE_POLAR_ENVIRONMENT` | Polar API environment |
 | `VITE_POSTHOG_HOST` | src/lib/llm/posthog-openai-service.ts |
 | `VITE_POSTHOG_KEY` | src/lib/env.ts - Analytics |
 | `VITE_SENTRY_DSN` | src/lib/env.ts - Error tracking |
@@ -55,6 +53,15 @@ All other VITE_ variables are actively used:
 | `VITE_SUPABASE_URL` | Frontend database access |
 | `VITE_SUPABASE_ANON_KEY` | Frontend database access |
 | `VITE_INNGEST_APP_ID` | Inngest client configuration |
+
+#### 🔒 Migrated to Server-Side (Security Fix - Jan 2025)
+
+**2 variables** migrated from client-side to server-side for security:
+
+- `VITE_POLAR_ACCESS_TOKEN` → `POLAR_ACCESS_TOKEN` - Moved to Netlify function (PR #1456)
+- `VITE_POLAR_ENVIRONMENT` → `POLAR_ENVIRONMENT` - Moved to Netlify function (PR #1456)
+
+These variables exposed administrative Polar API tokens in the browser bundle, allowing potential unauthorized subscription management. Now handled securely via `netlify/functions/polar-cancel.ts`.
 
 ## Solution
 
