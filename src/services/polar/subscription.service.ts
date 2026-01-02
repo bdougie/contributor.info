@@ -203,21 +203,29 @@ export class SubscriptionService {
   static async cancelSubscription(subscriptionId: string) {
     try {
       const supabase = await getSupabase();
-      // Cancel subscription through Polar API
-      // Note: The actual cancellation will be handled via webhook
-      const response = await fetch(
-        `https://api.polar.sh/v1/subscriptions/${subscriptionId}/cancel`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_POLAR_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+
+      // Get current session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('User not authenticated');
+      }
+
+      // Cancel subscription through server-side function
+      const response = await fetch('/.netlify/functions/polar-cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          subscriptionId,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to cancel subscription');
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to cancel subscription');
       }
 
       const subscription = await response.json();
