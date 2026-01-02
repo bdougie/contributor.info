@@ -143,7 +143,13 @@ export function groupWorkspaceDataByContributor(
 
   // Sort PRs by updated_at for each author
   prsByAuthor.forEach((prs) => {
-    prs.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    prs
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
   });
 
   // Group issues by author
