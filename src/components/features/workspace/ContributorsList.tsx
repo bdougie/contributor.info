@@ -16,6 +16,7 @@ import {
   TrendingDown,
   Minus,
 } from '@/components/ui/icon';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
 import { getTrendColor } from '@/lib/utils/state-mapping';
@@ -113,15 +114,24 @@ const ContributorCard = memo(function ContributorCard({
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
             </button>
           </div>
-          <Button
-            variant={isTracked ? 'ghost' : 'outline'}
-            size="icon"
-            className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
-            onClick={isTracked ? onUntrack : onTrack}
-            aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
-          >
-            {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isTracked ? 'ghost' : 'outline'}
+                  size="icon"
+                  className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
+                  onClick={isTracked ? onUntrack : onTrack}
+                  aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
+                >
+                  {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isTracked ? 'Untrack contributor' : 'Track contributor'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {contributor.bio && (
@@ -245,22 +255,31 @@ const ContributorListItem = memo(function ContributorListItem({
           {contributor.stats.repositories_contributed} repos
         </Badge>
 
-        <Button
-          variant={isTracked ? 'ghost' : 'outline'}
-          size="icon"
-          className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isTracked) {
-              onUntrack?.();
-            } else {
-              onTrack?.();
-            }
-          }}
-          aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
-        >
-          {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isTracked ? 'ghost' : 'outline'}
+                size="icon"
+                className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isTracked) {
+                    onUntrack?.();
+                  } else {
+                    onTrack?.();
+                  }
+                }}
+                aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
+              >
+                {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{isTracked ? 'Untrack contributor' : 'Track contributor'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
