@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ActivityItem } from '../activity-item';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { PullRequestActivity } from '@/lib/types';
 
 // Mock IntersectionObserver
@@ -121,9 +122,11 @@ const mockRepoStatsContext = {
 describe('ActivityItem Link Styling', () => {
   it('should render pull request link with orange color', () => {
     render(
-      <RepoStatsContext.Provider value={mockRepoStatsContext}>
-        <ActivityItem activity={mockActivity} />
-      </RepoStatsContext.Provider>
+      <TooltipProvider>
+        <RepoStatsContext.Provider value={mockRepoStatsContext}>
+          <ActivityItem activity={mockActivity} />
+        </RepoStatsContext.Provider>
+      </TooltipProvider>
     );
 
     const prLink = screen.getByRole('link', { name: 'Pull request #123' });
@@ -135,9 +138,11 @@ describe('ActivityItem Link Styling', () => {
 
   it('should render repository link with orange color', () => {
     render(
-      <RepoStatsContext.Provider value={mockRepoStatsContext}>
-        <ActivityItem activity={mockActivity} />
-      </RepoStatsContext.Provider>
+      <TooltipProvider>
+        <RepoStatsContext.Provider value={mockRepoStatsContext}>
+          <ActivityItem activity={mockActivity} />
+        </RepoStatsContext.Provider>
+      </TooltipProvider>
     );
 
     const repoLink = screen.getByRole('link', { name: 'Repository facebook/react' });
@@ -149,9 +154,11 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify both links have consistent orange styling', () => {
     render(
-      <RepoStatsContext.Provider value={mockRepoStatsContext}>
-        <ActivityItem activity={mockActivity} />
-      </RepoStatsContext.Provider>
+      <TooltipProvider>
+        <RepoStatsContext.Provider value={mockRepoStatsContext}>
+          <ActivityItem activity={mockActivity} />
+        </RepoStatsContext.Provider>
+      </TooltipProvider>
     );
 
     const allLinks = screen.getAllByRole('link');
@@ -175,9 +182,11 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify repository link has additional styling classes', () => {
     render(
-      <RepoStatsContext.Provider value={mockRepoStatsContext}>
-        <ActivityItem activity={mockActivity} />
-      </RepoStatsContext.Provider>
+      <TooltipProvider>
+        <RepoStatsContext.Provider value={mockRepoStatsContext}>
+          <ActivityItem activity={mockActivity} />
+        </RepoStatsContext.Provider>
+      </TooltipProvider>
     );
 
     const repoLink = screen.getByRole('link', { name: 'Repository facebook/react' });
@@ -193,9 +202,11 @@ describe('ActivityItem Link Styling', () => {
 
   it('should verify the orange color is specifically text-orange-500', () => {
     const { container } = render(
-      <RepoStatsContext.Provider value={mockRepoStatsContext}>
-        <ActivityItem activity={mockActivity} />
-      </RepoStatsContext.Provider>
+      <TooltipProvider>
+        <RepoStatsContext.Provider value={mockRepoStatsContext}>
+          <ActivityItem activity={mockActivity} />
+        </RepoStatsContext.Provider>
+      </TooltipProvider>
     );
 
     // Check that text-orange-500 class is present in the DOM
