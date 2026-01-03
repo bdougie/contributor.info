@@ -5,6 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.2](https://github.com/bdougie/contributor.info/compare/v4.13.1...v4.13.2) (2026-01-03)
+
+
+### 🐛 Bug Fixes
+
+* **a11y:** add aria-labels to demo page chart toggle buttons ([#1465](https://github.com/bdougie/contributor.info/issues/1465)) ([dc365a6](https://github.com/bdougie/contributor.info/commit/dc365a66e1b19fb2e8f5c8b78fc7c7bf12ef511a))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([61fbf29](https://github.com/bdougie/contributor.info/commit/61fbf29783cbe70d816a5a03f1fc2086670d3238))
+
+## [4.13.1](https://github.com/bdougie/contributor.info/compare/v4.13.0...v4.13.1) (2026-01-03)
+
+
+### 🐛 Bug Fixes
+
+* webhooks-server/package.json & webhooks-server/package-lock.json to reduce vulnerabilities ([#1463](https://github.com/bdougie/contributor.info/issues/1463)) ([5e7b66b](https://github.com/bdougie/contributor.info/commit/5e7b66b985a23224d053912e653b4efa2e0102d9))
+
+
+### 🔧 Maintenance
+
+* remove unused Calendar component and react-day-picker ([#1454](https://github.com/bdougie/contributor.info/issues/1454)) ([955df2e](https://github.com/bdougie/contributor.info/commit/955df2eee4c8c47bd5d2b9cbcf29861b037995e4))
+* update tracked repositories list [skip ci] ([cfd0c1f](https://github.com/bdougie/contributor.info/commit/cfd0c1f53f22b1df5f1fd6f51fdc2b52c02d488f))
+
+## [4.13.0](https://github.com/bdougie/contributor.info/compare/v4.12.0...v4.13.0) (2026-01-02)
+
+
+### ⚡ Performance Improvements
+
+* cache fetchUserOrganizations calls ([#1462](https://github.com/bdougie/contributor.info/issues/1462)) ([48e68d7](https://github.com/bdougie/contributor.info/commit/48e68d7a9dc59173430fd8c0df249b751c626aa1))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a5cd398](https://github.com/bdougie/contributor.info/commit/a5cd39898ecc87749f01ee6b4f08e2180982051b))
+
+## [4.12.0](https://github.com/bdougie/contributor.info/compare/v4.11.0...v4.12.0) (2026-01-02)
+
+
+### 🚀 Features
+
+* **ui:** add tooltips to contributor tracking buttons ([#1457](https://github.com/bdougie/contributor.info/issues/1457)) ([9ce50f5](https://github.com/bdougie/contributor.info/commit/9ce50f56faddf4a923a005825c13bbc8f96a56d0))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6caa720](https://github.com/bdougie/contributor.info/commit/6caa72050a2f4c70c8823a73c618dd225882dc4a))
+
+## [4.11.0](https://github.com/bdougie/contributor.info/compare/v4.10.2...v4.11.0) (2026-01-02)
+
+
+### ⚡ Performance Improvements
+
+* optimize activity feed sorting with Date.parse ([#1455](https://github.com/bdougie/contributor.info/issues/1455)) ([86e8a3b](https://github.com/bdougie/contributor.info/commit/86e8a3be16b38206334dc624902fad1ccab5341d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([cba00cb](https://github.com/bdougie/contributor.info/commit/cba00cbffd2101ddce13e29cf013faee853fb4b7))
+
+## [4.10.2](https://github.com/bdougie/contributor.info/compare/v4.10.1...v4.10.2) (2026-01-02)
+
+
+### 🐛 Bug Fixes
+
+* fly-social-cards/package.json & fly-social-cards/package-lock.json to reduce vulnerabilities ([#1460](https://github.com/bdougie/contributor.info/issues/1460)) ([d2e43a5](https://github.com/bdougie/contributor.info/commit/d2e43a52d2e0d835fd0a62cf7fb6e68c2e562ba5))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0ec430f](https://github.com/bdougie/contributor.info/commit/0ec430f9a01ebed4638c23c9325524b31fe5c7d2))
+
 ## [4.10.1](https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1) (2025-12-30)
 
 
