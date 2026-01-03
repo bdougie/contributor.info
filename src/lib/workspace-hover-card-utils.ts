@@ -175,8 +175,15 @@ export function groupWorkspaceDataByContributor(
   });
 
   // Sort issues by updated_at for each author
-  issuesByAuthor.forEach((issues) => {
-    issues.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  issuesByAuthor.forEach((issues, author) => {
+    const sorted = issues
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    issuesByAuthor.set(author, sorted);
   });
 
   // Group PRs by reviewer
@@ -207,8 +214,15 @@ export function groupWorkspaceDataByContributor(
   });
 
   // Sort PRs by updated_at for each reviewer
-  prsByReviewer.forEach((prs) => {
-    prs.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  prsByReviewer.forEach((prs, reviewer) => {
+    const sorted = prs
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    prsByReviewer.set(reviewer, sorted);
   });
 
   // Group activities by author
@@ -229,8 +243,15 @@ export function groupWorkspaceDataByContributor(
   });
 
   // Sort activities by created_at for each author
-  activitiesByAuthor.forEach((activities) => {
-    activities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  activitiesByAuthor.forEach((activities, author) => {
+    const sorted = activities
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.created_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    activitiesByAuthor.set(author, sorted);
   });
 
   cachedGroupedData = {
