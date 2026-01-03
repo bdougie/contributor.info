@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.2](https://github.com/bdougie/contributor.info/compare/v4.13.1...v4.13.2) (2026-01-03)
+
+
+### 🐛 Bug Fixes
+
+* **a11y:** add aria-labels to demo page chart toggle buttons ([#1465](https://github.com/bdougie/contributor.info/issues/1465)) ([dc365a6](https://github.com/bdougie/contributor.info/commit/dc365a66e1b19fb2e8f5c8b78fc7c7bf12ef511a))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([61fbf29](https://github.com/bdougie/contributor.info/commit/61fbf29783cbe70d816a5a03f1fc2086670d3238))
+
 ## [4.13.1](https://github.com/bdougie/contributor.info/compare/v4.13.0...v4.13.1) (2026-01-03)
 
 
