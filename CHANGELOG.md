@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.14.0](https://github.com/bdougie/contributor.info/compare/v4.13.2...v4.14.0) (2026-01-05)
+
+
+### ⚡ Performance Improvements
+
+* optimize date sorting using schwartzian transform in workspace-… ([#1461](https://github.com/bdougie/contributor.info/issues/1461)) ([2b12c43](https://github.com/bdougie/contributor.info/commit/2b12c431fa67c89c2d76f55e2697de68e3773159))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3682ae9](https://github.com/bdougie/contributor.info/commit/3682ae95f02bcb36a687f789fbf2053eaf2d8d39))
+
 ## [4.13.2](https://github.com/bdougie/contributor.info/compare/v4.13.1...v4.13.2) (2026-01-03)
 
 
