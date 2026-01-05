@@ -261,15 +261,24 @@ export function TrendChart({
             </CardTitle>
           </div>
           {onExpandToggle && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onExpandToggle}
-              className="h-8 w-8 shareable-desktop-only"
-              aria-label={isExpanded ? 'Collapse chart' : 'Expand chart'}
-            >
-              {isExpanded ? <X className="h-4 w-4" /> : <Layout className="h-4 w-4" />}
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onExpandToggle}
+                    className="h-8 w-8 shareable-desktop-only"
+                    aria-label={isExpanded ? 'Collapse chart' : 'Expand chart'}
+                  >
+                    {isExpanded ? <X className="h-4 w-4" /> : <Layout className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isExpanded ? 'Collapse chart' : 'Expand chart'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </CardHeader>
