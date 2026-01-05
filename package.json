@@ -163,7 +163,7 @@
     "papaparse": "^5.5.3",
     "posthog-js": "^1.285.0",
     "react": "^19.2.1",
-    "react-day-picker": "^9.6.7",
+    "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.1",
     "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.53.0",
