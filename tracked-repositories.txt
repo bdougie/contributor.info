@@ -71,6 +71,7 @@ Supabase/supabase
 TanStack/table
 tensorflow/tensorflow
 terraform-providers/terraform-provider-aws
+terrapkg/packages
 theopenlane/core
 topoteretes/cognee
 vercel/ai
