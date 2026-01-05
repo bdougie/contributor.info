@@ -280,21 +280,12 @@ export function getRecentPRsForContributor(
   allPRs: WorkspacePR[],
   limit = 5
 ): HoverCardPR[] {
-  // For backwards compatibility, still support the old API
-  // But use grouping if we have cached data
-  if (cachedGroupedData) {
-    const prs = cachedGroupedData.prsByAuthor.get(contributorUsername.toLowerCase()) || [];
-    return prs.slice(0, limit);
-  }
-
-  // Fallback to original implementation
   const contributorPRs = allPRs.filter(
     (pr) => pr.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  const sortedPRs = contributorPRs.sort((a, b) => {
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-  });
+  // Use string comparison for sorting - ISO date strings sort lexicographically
+  const sortedPRs = contributorPRs.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   return sortedPRs.slice(0, limit).map(transformPRToHoverCard);
 }
@@ -311,20 +302,12 @@ export function getRecentIssuesForContributor(
   allIssues: WorkspaceIssue[],
   limit = 5
 ): RecentIssue[] {
-  // Use cached data if available
-  if (cachedGroupedData) {
-    const issues = cachedGroupedData.issuesByAuthor.get(contributorUsername.toLowerCase()) || [];
-    return issues.slice(0, limit);
-  }
-
-  // Fallback to original implementation
   const contributorIssues = allIssues.filter(
     (issue) => issue.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  const sortedIssues = contributorIssues.sort((a, b) => {
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-  });
+  // Use string comparison for sorting - ISO date strings sort lexicographically
+  const sortedIssues = contributorIssues.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   return sortedIssues.slice(0, limit).map((issue) => ({
     id: issue.id,
@@ -353,13 +336,6 @@ export function getRecentPRsForReviewer(
   allPRs: WorkspacePR[],
   limit = 5
 ): HoverCardPR[] {
-  // Use cached data if available
-  if (cachedGroupedData) {
-    const prs = cachedGroupedData.prsByReviewer.get(reviewerUsername.toLowerCase()) || [];
-    return prs.slice(0, limit);
-  }
-
-  // Fallback to original implementation
   const reviewerPRs = allPRs.filter((pr) => {
     const isRequestedReviewer = pr.requested_reviewers?.some(
       (reviewer) => reviewer.username.toLowerCase() === reviewerUsername.toLowerCase()
@@ -370,9 +346,8 @@ export function getRecentPRsForReviewer(
     return isRequestedReviewer || hasReviewed;
   });
 
-  const sortedPRs = reviewerPRs.sort((a, b) => {
-    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-  });
+  // Use string comparison for sorting - ISO date strings sort lexicographically
+  const sortedPRs = reviewerPRs.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
 
   return sortedPRs.slice(0, limit).map(transformPRToHoverCard);
 }
@@ -389,21 +364,14 @@ export function getRecentActivitiesForContributor(
   allActivities: ActivityItem[],
   limit = 5
 ): RecentActivity[] {
-  // Use cached data if available
-  if (cachedGroupedData) {
-    const activities =
-      cachedGroupedData.activitiesByAuthor.get(contributorUsername.toLowerCase()) || [];
-    return activities.slice(0, limit);
-  }
-
-  // Fallback to original implementation
   const contributorActivities = allActivities.filter(
     (activity) => activity.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  const sortedActivities = contributorActivities.sort((a, b) => {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
+  // Use string comparison for sorting - ISO date strings sort lexicographically
+  const sortedActivities = contributorActivities.sort((a, b) =>
+    b.created_at.localeCompare(a.created_at)
+  );
 
   return sortedActivities.slice(0, limit).map((activity) => ({
     id: activity.id,
