@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.0](https://github.com/bdougie/contributor.info/compare/v4.14.0...v4.15.0) (2026-01-05)
+
+
+### ⚡ Performance Improvements
+
+* remove unused cache infrastructure from workspace hover cards ([#1469](https://github.com/bdougie/contributor.info/issues/1469)) ([ae31d64](https://github.com/bdougie/contributor.info/commit/ae31d648e9750e0ec2fc0b19ae9f3a1c37f71270)), closes [#1461](https://github.com/bdougie/contributor.info/issues/1461)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([bff1374](https://github.com/bdougie/contributor.info/commit/bff13742541655641c48d7b4c31b18a4aedfefb7))
+
 ## [4.14.0](https://github.com/bdougie/contributor.info/compare/v4.13.2...v4.14.0) (2026-01-05)
 
 
