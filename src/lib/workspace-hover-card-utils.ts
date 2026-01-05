@@ -3,6 +3,68 @@ import type { Issue as WorkspaceIssue } from '@/components/features/workspace/Wo
 import type { ActivityItem } from '@/components/features/workspace/AnalyticsDashboard';
 import type { PullRequest as HoverCardPR, RecentIssue, RecentActivity } from '@/lib/types';
 
+// Memoization cache for pre-grouped data by contributor
+interface GroupedData {
+  prsByAuthor: Map<string, HoverCardPR[]>;
+  issuesByAuthor: Map<string, RecentIssue[]>;
+  prsByReviewer: Map<string, HoverCardPR[]>;
+  activitiesByAuthor: Map<string, RecentActivity[]>;
+}
+
+// Cache management constants
+const MAX_CACHE_ENTRIES = 10;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+let cachedGroupedData: GroupedData | null = null;
+let cachedDataHash: string | null = null;
+let cacheTimestamp: number = Date.now();
+let cacheEntryCount: number = 0;
+
+/**
+ * Helper to create a content-based hash for cache invalidation.
+ * Uses the most recent updated_at timestamps to detect data changes.
+ */
+function createDataHash(
+  prs: WorkspacePR[],
+  issues: WorkspaceIssue[],
+  activities: ActivityItem[]
+): string {
+  // Get most recent timestamps from each dataset
+  const latestPR =
+    prs.length > 0 ? Math.max(...prs.map((pr) => new Date(pr.updated_at).getTime())) : 0;
+  const latestIssue =
+    issues.length > 0
+      ? Math.max(...issues.map((issue) => new Date(issue.updated_at).getTime()))
+      : 0;
+  const latestActivity =
+    activities.length > 0
+      ? Math.max(...activities.map((activity) => new Date(activity.created_at).getTime()))
+      : 0;
+
+  // Combine counts and timestamps for a more robust cache key
+  return `${prs.length}-${issues.length}-${activities.length}-${latestPR}-${latestIssue}-${latestActivity}`;
+}
+
+/**
+ * Check if cache should be invalidated based on TTL and size limits
+ */
+function shouldInvalidateCache(): boolean {
+  const now = Date.now();
+  const isExpired = now - cacheTimestamp > CACHE_TTL;
+  const isOversized = cacheEntryCount > MAX_CACHE_ENTRIES;
+  return isExpired || isOversized;
+}
+
+/**
+ * Clear the cache to prevent memory leaks
+ */
+function clearCache(): void {
+  cachedGroupedData = null;
+  cachedDataHash = null;
+  cacheTimestamp = Date.now();
+  cacheEntryCount = 0;
+}
+
 /**
  * Helper to transform workspace PR to hover card format
  */
@@ -28,6 +90,182 @@ function transformPRToHoverCard(pr: WorkspacePR): HoverCardPR {
     },
     html_url: pr.url,
   };
+}
+
+/**
+ * Pre-group all workspace data by contributor for efficient lookups.
+ * This function should be called once when the data changes, not on every hover.
+ *
+ * PERFORMANCE OPTIMIZATION:
+ * To use this optimization, call this function in workspace-page.tsx whenever
+ * PRs, issues, or activities data changes (in a useEffect or useMemo), then
+ * the individual getter functions will automatically use the cached grouped data.
+ *
+ * Example usage:
+ * ```ts
+ * useEffect(() => {
+ *   if (prs.length > 0 || issues.length > 0 || activities.length > 0) {
+ *     groupWorkspaceDataByContributor(prs, issues, activities);
+ *   }
+ * }, [prs, issues, activities]);
+ * ```
+ */
+export function groupWorkspaceDataByContributor(
+  allPRs: WorkspacePR[],
+  allIssues: WorkspaceIssue[],
+  allActivities: ActivityItem[]
+): GroupedData {
+  const dataHash = createDataHash(allPRs, allIssues, allActivities);
+
+  // Check cache expiration and size limits
+  if (shouldInvalidateCache()) {
+    clearCache();
+  }
+
+  // Return cached data if hash matches
+  if (cachedDataHash === dataHash && cachedGroupedData) {
+    return cachedGroupedData;
+  }
+
+  const prsByAuthor = new Map<string, HoverCardPR[]>();
+  const issuesByAuthor = new Map<string, RecentIssue[]>();
+  const prsByReviewer = new Map<string, HoverCardPR[]>();
+  const activitiesByAuthor = new Map<string, RecentActivity[]>();
+
+  // Group PRs by author
+  allPRs.forEach((pr) => {
+    const username = pr.author.username.toLowerCase();
+    if (!prsByAuthor.has(username)) {
+      prsByAuthor.set(username, []);
+    }
+    prsByAuthor.get(username)!.push(transformPRToHoverCard(pr));
+  });
+
+  // Sort PRs by updated_at for each author
+  prsByAuthor.forEach((prs, author) => {
+    const sorted = prs
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    prsByAuthor.set(author, sorted);
+  });
+
+  // Group issues by author
+  allIssues.forEach((issue) => {
+    const username = issue.author.username.toLowerCase();
+    if (!issuesByAuthor.has(username)) {
+      issuesByAuthor.set(username, []);
+    }
+    issuesByAuthor.get(username)!.push({
+      id: issue.id,
+      number: issue.number,
+      title: issue.title,
+      state: issue.state,
+      created_at: issue.created_at,
+      updated_at: issue.updated_at,
+      closed_at: issue.closed_at,
+      repository_owner: issue.repository.owner,
+      repository_name: issue.repository.name,
+      comments_count: issue.comments_count,
+      html_url: issue.url,
+    });
+  });
+
+  // Sort issues by updated_at for each author
+  issuesByAuthor.forEach((issues, author) => {
+    const sorted = issues
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    issuesByAuthor.set(author, sorted);
+  });
+
+  // Group PRs by reviewer
+  allPRs.forEach((pr) => {
+    const transformedPR = transformPRToHoverCard(pr);
+
+    // Add to requested reviewers
+    pr.requested_reviewers?.forEach((reviewer) => {
+      const username = reviewer.username.toLowerCase();
+      if (!prsByReviewer.has(username)) {
+        prsByReviewer.set(username, []);
+      }
+      prsByReviewer.get(username)!.push(transformedPR);
+    });
+
+    // Add to reviewers who have reviewed
+    pr.reviewers?.forEach((reviewer) => {
+      const username = reviewer.username.toLowerCase();
+      if (!prsByReviewer.has(username)) {
+        prsByReviewer.set(username, []);
+      }
+      // Avoid duplicates
+      const existingPRs = prsByReviewer.get(username)!;
+      if (!existingPRs.some((p) => p.id === transformedPR.id)) {
+        existingPRs.push(transformedPR);
+      }
+    });
+  });
+
+  // Sort PRs by updated_at for each reviewer
+  prsByReviewer.forEach((prs, reviewer) => {
+    const sorted = prs
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.updated_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    prsByReviewer.set(reviewer, sorted);
+  });
+
+  // Group activities by author
+  allActivities.forEach((activity) => {
+    const username = activity.author.username.toLowerCase();
+    if (!activitiesByAuthor.has(username)) {
+      activitiesByAuthor.set(username, []);
+    }
+    activitiesByAuthor.get(username)!.push({
+      id: activity.id,
+      type: activity.type,
+      title: activity.title,
+      created_at: activity.created_at,
+      status: activity.status,
+      repository: activity.repository,
+      url: activity.url,
+    });
+  });
+
+  // Sort activities by created_at for each author
+  activitiesByAuthor.forEach((activities, author) => {
+    const sorted = activities
+      .map((item) => ({
+        original: item,
+        timestamp: new Date(item.created_at).getTime(),
+      }))
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .map((wrapper) => wrapper.original);
+    activitiesByAuthor.set(author, sorted);
+  });
+
+  cachedGroupedData = {
+    prsByAuthor,
+    issuesByAuthor,
+    prsByReviewer,
+    activitiesByAuthor,
+  };
+  cachedDataHash = dataHash;
+  cacheTimestamp = Date.now();
+  cacheEntryCount =
+    prsByAuthor.size + issuesByAuthor.size + prsByReviewer.size + activitiesByAuthor.size;
+
+  return cachedGroupedData;
 }
 
 /**

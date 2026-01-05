@@ -288,6 +288,12 @@ export function DemoWorkspacePage() {
                       size="icon"
                       onClick={() => toggleChartExpansion('trends')}
                       className="h-8 w-8"
+                      title={
+                        expandedChart === 'trends' ? 'Collapse trends chart' : 'Expand trends chart'
+                      }
+                      aria-label={
+                        expandedChart === 'trends' ? 'Collapse trends chart' : 'Expand trends chart'
+                      }
                     >
                       {expandedChart === 'trends' ? (
                         <X className="h-4 w-4" />
@@ -324,6 +330,16 @@ export function DemoWorkspacePage() {
                       size="icon"
                       onClick={() => toggleChartExpansion('activity')}
                       className="h-8 w-8"
+                      title={
+                        expandedChart === 'activity'
+                          ? 'Collapse activity chart'
+                          : 'Expand activity chart'
+                      }
+                      aria-label={
+                        expandedChart === 'activity'
+                          ? 'Collapse activity chart'
+                          : 'Expand activity chart'
+                      }
                     >
                       {expandedChart === 'activity' ? (
                         <X className="h-4 w-4" />
