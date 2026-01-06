@@ -4,7 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { ContributorStats } from '@/lib/types';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchUserOrganizations } from '@/lib/github';
+import { getSupabase } from '@/lib/supabase-lazy';
 import {
   GitPullRequest,
   MessageSquare,
@@ -68,11 +70,63 @@ export function ContributorHoverCard({
     console.warn('ContributorHoverCard: Missing required contributor data', contributor);
   }
 
-  // Use contributor data from props (which may include cached profile data)
-  const displayOrganizations = contributor?.organizations || [];
+  const [organizations, setOrganizations] = useState(contributor?.organizations || []);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [hasFetchedOrgs, setHasFetchedOrgs] = useState(
+    Boolean(contributor?.organizations && contributor.organizations.length > 0)
+  );
+
+  // Sync state with prop if it changes
+  useEffect(() => {
+    if (contributor?.organizations) {
+      setOrganizations(contributor.organizations);
+      if (contributor.organizations.length > 0) {
+        setHasFetchedOrgs(true);
+      }
+    }
+  }, [contributor?.organizations]);
+
+  const handleOpenChange = async (open: boolean) => {
+    if (
+      open &&
+      !hasFetchedOrgs &&
+      (!organizations || organizations.length === 0) &&
+      isValidContributor &&
+      !loadingOrgs
+    ) {
+      setLoadingOrgs(true);
+      try {
+        const headers: HeadersInit = {
+          Accept: 'application/vnd.github.v3+json',
+        };
+
+        // Try to get user's GitHub token from Supabase session
+        const supabase = await getSupabase();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const userToken = session?.provider_token;
+        const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+
+        if (token) {
+          headers.Authorization = `token ${token}`;
+        }
+
+        const orgs = await fetchUserOrganizations(contributor.login, headers);
+        setOrganizations(orgs);
+      } catch (error) {
+        console.error('Error fetching organizations:', error);
+      } finally {
+        setLoadingOrgs(false);
+        setHasFetchedOrgs(true); // Mark as fetched even if empty to prevent loops
+      }
+    }
+  };
+
+  const displayOrganizations = organizations;
 
   return (
-    <HoverCardPrimitive.Root openDelay={0} closeDelay={100}>
+    <HoverCardPrimitive.Root openDelay={0} closeDelay={100} onOpenChange={handleOpenChange}>
       <HoverCardPrimitive.Trigger asChild>
         <div className="inline-block" style={{ pointerEvents: 'auto' }}>
           {children}
@@ -313,48 +367,52 @@ export function ContributorHoverCard({
                 </>
               )}
 
-              {displayOrganizations && displayOrganizations.length > 0 && (
+              {(loadingOrgs || (displayOrganizations && displayOrganizations.length > 0)) && (
                 <>
                   <Separator className="my-3" />
                   <div>
                     <div className="text-sm font-medium mb-2">Organizations</div>
-                    <div className="flex flex-wrap gap-2">
-                      {displayOrganizations.slice(0, 4).map((org) => {
-                        // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
-                        const avatarUrl: string =
-                          'avatarUrl' in org
-                            ? (org.avatarUrl as string)
-                            : (org.avatar_url as string);
-                        const orgName: string | undefined =
-                          'name' in org ? (org.name as string | undefined) : undefined;
+                    {loadingOrgs && !displayOrganizations.length ? (
+                      <div className="text-xs text-muted-foreground">Loading...</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {displayOrganizations.slice(0, 4).map((org) => {
+                          // Handle both GraphQL (avatarUrl) and REST (avatar_url) formats
+                          const avatarUrl: string =
+                            'avatarUrl' in org
+                              ? (org.avatarUrl as string)
+                              : (org.avatar_url as string);
+                          const orgName: string | undefined =
+                            'name' in org ? (org.name as string | undefined) : undefined;
 
-                        return (
-                          <a
-                            key={org.login}
-                            href={`https://github.com/${org.login}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
-                            title={orgName || org.login}
-                          >
-                            <OptimizedAvatar
-                              src={avatarUrl}
-                              alt={org.login}
-                              size={32}
-                              lazy={false}
-                              fallback={org.login[0].toUpperCase()}
-                              className="h-4 w-4"
-                            />
-                            <span className="text-xs">{org.login}</span>
-                          </a>
-                        );
-                      })}
-                      {displayOrganizations.length > 4 && (
-                        <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
-                          +{displayOrganizations.length - 4}
-                        </span>
-                      )}
-                    </div>
+                          return (
+                            <a
+                              key={org.login}
+                              href={`https://github.com/${org.login}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-2 py-1 rounded-md border bg-muted/30 hover:bg-muted/50 transition-colors"
+                              title={orgName || org.login}
+                            >
+                              <OptimizedAvatar
+                                src={avatarUrl}
+                                alt={org.login}
+                                size={32}
+                                lazy={false}
+                                fallback={org.login[0].toUpperCase()}
+                                className="h-4 w-4"
+                              />
+                              <span className="text-xs">{org.login}</span>
+                            </a>
+                          );
+                        })}
+                        {displayOrganizations.length > 4 && (
+                          <span className="flex items-center px-2 py-1 text-xs text-muted-foreground">
+                            +{displayOrganizations.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </>
               )}
