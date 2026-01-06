@@ -3,6 +3,7 @@ import {
   useContext,
   useId,
   useMemo,
+  useLayoutEffect,
   type ComponentProps,
   type ComponentType,
   type CSSProperties,
@@ -78,16 +79,17 @@ function ChartContainer({ id, className, children, config, ref, ...props }: Char
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([, cfg]) => cfg.theme || cfg.color);
 
-  if (!colorConfig.length) {
-    return null;
-  }
+  useLayoutEffect(() => {
+    if (!colorConfig.length) {
+      return;
+    }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
+    const style = document.createElement('style');
+    style.setAttribute('data-chart-style', id);
+
+    const styles = Object.entries(THEMES)
+      .map(
+        ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
@@ -97,11 +99,20 @@ ${colorConfig
   .join('\n')}
 }
 `
-          )
-          .join('\n'),
-      }}
-    />
-  );
+      )
+      .join('\n');
+
+    style.textContent = styles;
+    document.head.appendChild(style);
+
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, [id, config]);
+
+  return null;
 };
 
 const ChartTooltip = RechartsTooltip;
