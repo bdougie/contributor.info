@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.18.0](https://github.com/bdougie/contributor.info/compare/v4.17.0...v4.18.0) (2026-01-07)
+
+
+### 🚀 Features
+
+* **a11y:** add missing aria-labels to icon-only buttons ([#1472](https://github.com/bdougie/contributor.info/issues/1472)) ([62000cb](https://github.com/bdougie/contributor.info/commit/62000cb031948c46894220b2bcaec995fd63965d))
+
+
+### ⚡ Performance Improvements
+
+* lazy load contributor organizations in hover card ([#1471](https://github.com/bdougie/contributor.info/issues/1471)) ([a13dea4](https://github.com/bdougie/contributor.info/commit/a13dea4a3fbcbbe3e3a599617ae1d761a86bf2a3))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([e8c1618](https://github.com/bdougie/contributor.info/commit/e8c1618c1030c8489a7627f3dec52b52445d18e6))
+
 ## [4.17.0](https://github.com/bdougie/contributor.info/compare/v4.16.0...v4.17.0) (2026-01-07)
 
 
