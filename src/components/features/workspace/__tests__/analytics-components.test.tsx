@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Mock the Select component to avoid jsdom issues with Radix UI
 interface SelectProps {
@@ -105,7 +105,8 @@ describe('ActivityTableFilters', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
-  it('debounces search input', async () => {
+  it('debounces search input', () => {
+    vi.useFakeTimers();
     const onSearchChange = vi.fn();
     const onTypeFilterChange = vi.fn();
 
@@ -119,21 +120,19 @@ describe('ActivityTableFilters', () => {
     );
 
     const searchInput = screen.getByPlaceholderText('Search activities...');
-    await userEvent.type(searchInput, 'test');
+    fireEvent.change(searchInput, { target: { value: 'test' } });
 
     // Should not be called immediately
     expect(onSearchChange).not.toHaveBeenCalled();
 
     // Should be called after debounce delay
-    await waitFor(
-      () => {
-        expect(onSearchChange).toHaveBeenCalledWith('test');
-      },
-      { timeout: 400 }
-    );
+    vi.advanceTimersByTime(400);
+    expect(onSearchChange).toHaveBeenCalledWith('test');
+
+    vi.useRealTimers();
   });
 
-  it('handles type filter change', async () => {
+  it('handles type filter change', () => {
     const onSearchChange = vi.fn();
     const onTypeFilterChange = vi.fn();
 
@@ -194,7 +193,11 @@ describe('ActivityTableHeader', () => {
 
 describe('ActivityTableRow', () => {
   it('renders activity information correctly', () => {
-    render(<ActivityTableRow activity={mockActivity} />);
+    render(
+      <TooltipProvider>
+        <ActivityTableRow activity={mockActivity} />
+      </TooltipProvider>
+    );
 
     // Test that title is rendered
     expect(screen.getByText('Fix authentication bug')).toBeInTheDocument();
@@ -208,7 +211,11 @@ describe('ActivityTableRow', () => {
   });
 
   it('displays correct status badge', () => {
-    render(<ActivityTableRow activity={mockActivity} />);
+    render(
+      <TooltipProvider>
+        <ActivityTableRow activity={mockActivity} />
+      </TooltipProvider>
+    );
 
     const statusBadge = screen.getByText('Merged');
     expect(statusBadge).toBeInTheDocument();
@@ -218,7 +225,11 @@ describe('ActivityTableRow', () => {
   it('opens GitHub link in new tab when clicking external link', () => {
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    render(<ActivityTableRow activity={mockActivity} />);
+    render(
+      <TooltipProvider>
+        <ActivityTableRow activity={mockActivity} />
+      </TooltipProvider>
+    );
 
     const linkButton = screen.getByRole('button', { name: /open pull request in new tab/i });
     fireEvent.click(linkButton);
