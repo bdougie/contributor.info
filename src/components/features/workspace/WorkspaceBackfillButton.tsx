@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Database } from '@/components/ui/icon';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LastUpdated } from '@/components/ui/last-updated';
 
 interface WorkspaceBackfillButtonProps {
@@ -229,14 +229,12 @@ export function WorkspaceBackfillButton({
 
   return (
     <div className="flex items-center gap-3">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-xs">{tooltipText}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-xs">{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
 
       {lastBackfillTime && !isBackfilling && (
         <LastUpdated

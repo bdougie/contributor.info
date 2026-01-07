@@ -7,7 +7,7 @@ import { GitPullRequest, MessageSquare, GitPullRequestDraft, Trophy } from '@/co
 import { ContributorCardSimple } from './contributor-card-simple';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContributorHoverCard } from './contributor-hover-card';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { createContributorStats } from '@/lib/contributor-utils';
@@ -82,35 +82,33 @@ export function ContributorCard(props: ContributorCardProps) {
     side?: 'top' | 'right' | 'bottom' | 'left';
     className?: string;
   }) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-        <TooltipContent side={side} className={className}>
-          <div className="space-y-1">
-            <div className="font-medium">{content.title}</div>
-            <div className="text-xs space-y-1">
-              {content.items.map(
-                (
-                  item: {
-                    iconName: string;
-                    count: number;
-                    label: string;
-                  },
-                  index: number
-                ) => (
-                  <div key={index} className="flex items-center gap-2">
-                    {renderIcon(item.iconName, 'h-3 w-3')}
-                    <span>
-                      {item.count} {item.label}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
+    <Tooltip>
+      <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+      <TooltipContent side={side} className={className}>
+        <div className="space-y-1">
+          <div className="font-medium">{content.title}</div>
+          <div className="text-xs space-y-1">
+            {content.items.map(
+              (
+                item: {
+                  iconName: string;
+                  count: number;
+                  label: string;
+                },
+                index: number
+              ) => (
+                <div key={index} className="flex items-center gap-2">
+                  {renderIcon(item.iconName, 'h-3 w-3')}
+                  <span>
+                    {item.count} {item.label}
+                  </span>
+                </div>
+              )
+            )}
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 
   const renderBadge = ({

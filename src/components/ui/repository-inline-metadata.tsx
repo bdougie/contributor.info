@@ -1,7 +1,7 @@
 import { RepositorySizeBadge } from './repository-size-badge';
 import { DataFreshnessIndicator } from './data-freshness-indicator';
 import { useRepositoryMetadata } from '@/hooks/use-repository-metadata';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface RepositoryInlineMetadataProps {
   owner?: string;
@@ -62,33 +62,29 @@ export function RepositoryInlineMetadata({
   };
 
   return (
-    <TooltipProvider>
-      <div className={`flex items-center gap-2 ${className || ''}`}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center">
-              <RepositorySizeBadge size={metadata.size} />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs whitespace-pre-line">
-            {getSizeTooltip()}
-          </TooltipContent>
-        </Tooltip>
+    <div className={`flex items-center gap-2 ${className || ''}`}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center">
+            <RepositorySizeBadge size={metadata.size} />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs whitespace-pre-line">{getSizeTooltip()}</TooltipContent>
+      </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center justify-center h-5">
-              <DataFreshnessIndicator
-                freshness={metadata.dataFreshness}
-                lastUpdate={metadata.lastDataUpdate}
-              />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-xs whitespace-pre-line">
-            {getFreshnessTooltip()}
-          </TooltipContent>
-        </Tooltip>
-      </div>
-    </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center justify-center h-5">
+            <DataFreshnessIndicator
+              freshness={metadata.dataFreshness}
+              lastUpdate={metadata.lastDataUpdate}
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs whitespace-pre-line">
+          {getFreshnessTooltip()}
+        </TooltipContent>
+      </Tooltip>
+    </div>
   );
 }

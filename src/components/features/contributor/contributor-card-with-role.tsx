@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { MonthlyContributor } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContributorHoverCard } from './contributor-hover-card';
 import { useMemo, useContext } from 'react';
 import {
@@ -82,12 +82,12 @@ export function ContributorCardWithRole({
     // Confidence score (if enabled and user is maintainer/owner)
     if (showConfidence && role.role !== 'contributor') {
       const confidencePercent = Math.round(role.confidence_score * 100);
-      const confidenceColor =
-        confidencePercent >= 90
-          ? 'text-green-600'
-          : confidencePercent >= 70
-            ? 'text-yellow-600'
-            : 'text-orange-600';
+      let confidenceColor = 'text-orange-600';
+      if (confidencePercent >= 90) {
+        confidenceColor = 'text-green-600';
+      } else if (confidencePercent >= 70) {
+        confidenceColor = 'text-yellow-600';
+      }
 
       badges.push(
         <span key="confidence" className={cn('text-xs font-medium', confidenceColor)}>
@@ -136,97 +136,95 @@ export function ContributorCardWithRole({
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className={cn(
-              'relative p-4 rounded-lg border bg-card transition-all cursor-pointer',
-              'hover:bg-muted/50',
-              isWinner && 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10',
-              role?.role === 'owner' && 'border-purple-500/30',
-              role?.role === 'maintainer' && 'border-blue-500/30',
-              className
-            )}
-            role={isWinner ? 'article' : 'listitem'}
-            aria-label={`${login}${isWinner ? ' - Winner' : ''}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
-            tabIndex={0}
-          >
-            {/* Rank Badge */}
-            {showRank && (
-              <div className="absolute -top-2 -right-2 z-10">
-                <Badge
-                  variant={rank === 1 ? 'default' : 'secondary'}
-                  className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
-                >
-                  {rank}
-                </Badge>
-              </div>
-            )}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className={cn(
+            'relative p-4 rounded-lg border bg-card transition-all cursor-pointer',
+            'hover:bg-muted/50',
+            isWinner && 'ring-2 ring-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10',
+            role?.role === 'owner' && 'border-purple-500/30',
+            role?.role === 'maintainer' && 'border-blue-500/30',
+            className
+          )}
+          role={isWinner ? 'article' : 'listitem'}
+          aria-label={`${login}${isWinner ? ' - Winner' : ''}, ${activity.totalScore} points${role ? `, ${role.role}` : ''}`}
+          tabIndex={0}
+        >
+          {/* Rank Badge */}
+          {showRank && (
+            <div className="absolute -top-2 -right-2 z-10">
+              <Badge
+                variant={rank === 1 ? 'default' : 'secondary'}
+                className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+              >
+                {rank}
+              </Badge>
+            </div>
+          )}
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start gap-3">
-                <ContributorHoverCard contributor={contributorData}>
-                  <Avatar className="h-10 w-10 cursor-pointer">
-                    <AvatarImage
-                      src={`${avatar_url}?s=80`}
-                      alt={login}
-                      loading="lazy"
-                      width={40}
-                      height={40}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-3">
+              <ContributorHoverCard contributor={contributorData}>
+                <Avatar className="h-10 w-10 cursor-pointer">
+                  <AvatarImage
+                    src={`${avatar_url}?s=80`}
+                    alt={login}
+                    loading="lazy"
+                    width={40}
+                    height={40}
+                  />
+                  <AvatarFallback>{login.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </ContributorHoverCard>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium text-sm truncate">{login}</h3>
+                  {isWinner && (
+                    <Trophy
+                      className="h-4 w-4 text-yellow-600"
+                      data-testid="trophy-icon"
+                      aria-label="Winner"
+                      role="img"
                     />
-                    <AvatarFallback>{login.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                </ContributorHoverCard>
+                  )}
+                </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-sm truncate">{login}</h3>
-                    {isWinner && (
-                      <Trophy
-                        className="h-4 w-4 text-yellow-600"
-                        data-testid="trophy-icon"
-                        aria-label="Winner"
-                        role="img"
-                      />
-                    )}
+                {/* Role badges */}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">{getRoleBadge()}</div>
+
+                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <GitPullRequest className="h-3 w-3" />
+                    <span>{activity.pullRequests}</span>
                   </div>
-
-                  {/* Role badges */}
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">{getRoleBadge()}</div>
-
-                  <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <GitPullRequest className="h-3 w-3" />
-                      <span>{activity.pullRequests}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <GitPullRequestDraft className="h-3 w-3" />
-                      <span>{activity.reviews}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageSquare className="h-3 w-3" />
-                      <span>{activity.comments}</span>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <GitPullRequestDraft className="h-3 w-3" />
+                    <span>{activity.reviews}</span>
                   </div>
-
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-xs font-medium">Score: {activity.totalScore}</span>
-                    {role && role.role !== 'contributor' && (
-                      <span className="text-xs text-muted-foreground">
-                        {role.role === 'owner' ? 'Internal' : 'Internal'} Contributor
-                      </span>
-                    )}
+                  <div className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    <span>{activity.comments}</span>
                   </div>
+                </div>
+
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-xs font-medium">Score: {activity.totalScore}</span>
+                  {role && role.role !== 'contributor' && (
+                    <span className="text-xs text-muted-foreground">
+                      {role.role === 'owner' ? 'Internal' : 'Internal'} Contributor
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
-          {tooltipContent}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        {tooltipContent}
+      </TooltipContent>
+    </Tooltip>
   );
 }

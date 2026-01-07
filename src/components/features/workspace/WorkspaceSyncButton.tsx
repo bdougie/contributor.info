@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Loader2 } from '@/components/ui/icon';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { env } from '@/lib/env';
 
 interface WorkspaceSyncButtonProps {
@@ -118,33 +118,31 @@ export function WorkspaceSyncButton({
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            onClick={handleSync}
-            disabled={isSyncing || repositoryIds.length === 0}
-            variant={variant}
-            size={size}
-            className={`${className} disabled:cursor-not-allowed`}
-          >
-            {isSyncing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {syncProgress && <span className="ml-2">{syncProgress}</span>}
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4" />
-                <span className="ml-2">Sync Workspace Data</span>
-              </>
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Refresh repository data, stars, forks, and activity</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          onClick={handleSync}
+          disabled={isSyncing || repositoryIds.length === 0}
+          variant={variant}
+          size={size}
+          className={`${className} disabled:cursor-not-allowed`}
+        >
+          {isSyncing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {syncProgress && <span className="ml-2">{syncProgress}</span>}
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4" />
+              <span className="ml-2">Sync Workspace Data</span>
+            </>
+          )}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Refresh repository data, stars, forks, and activity</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }

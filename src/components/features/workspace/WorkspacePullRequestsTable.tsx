@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { InlineCodeDiff } from '@/components/ui/code-diff';
 import {
   GitPullRequest,
@@ -215,29 +215,27 @@ export function WorkspacePullRequestsTable({
               pr.title.length > 60 ? pr.title.substring(0, 60) + '...' : pr.title;
 
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <a
-                      href={githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => {
-                        if (onPullRequestClick) {
-                          e.preventDefault();
-                          onPullRequestClick(pr);
-                        }
-                      }}
-                      className="font-medium hover:text-primary hover:underline transition-colors text-left block cursor-pointer"
-                    >
-                      <span className="line-clamp-1">{truncatedTitle}</span>
-                    </a>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-md">
-                    <p>{pr.title}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (onPullRequestClick) {
+                        e.preventDefault();
+                        onPullRequestClick(pr);
+                      }
+                    }}
+                    className="font-medium hover:text-primary hover:underline transition-colors text-left block cursor-pointer"
+                  >
+                    <span className="line-clamp-1">{truncatedTitle}</span>
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-md">
+                  <p>{pr.title}</p>
+                </TooltipContent>
+              </Tooltip>
             );
           },
         }),
@@ -338,54 +336,50 @@ export function WorkspacePullRequestsTable({
                   const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
                   return (
-                    <TooltipProvider key={reviewer.username}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <a
-                            href={reviewerFilterUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-block -ml-2 first:ml-0 first:ml-2"
-                            style={{ zIndex: maxVisible - index }}
-                          >
-                            <img
-                              src={reviewer.avatar_url}
-                              alt={reviewer.username}
-                              className={cn(
-                                'h-6 w-6 rounded-full border-2 hover:ring-2 hover:ring-primary transition-all',
-                                reviewer.approved ? 'border-green-500' : 'border-background'
-                              )}
-                            />
-                          </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={reviewerFilterUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block -ml-2 first:ml-0 first:ml-2"
+                          style={{ zIndex: maxVisible - index }}
+                        >
+                          <img
+                            src={reviewer.avatar_url}
+                            alt={reviewer.username}
+                            className={cn(
+                              'h-6 w-6 rounded-full border-2 hover:ring-2 hover:ring-primary transition-all',
+                              reviewer.approved ? 'border-green-500' : 'border-background'
+                            )}
+                          />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
                 {remainingCount > 0 && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default align-top">
-                          <span className="text-xs font-medium">+{remainingCount}</span>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1">
-                          {reviewers.slice(maxVisible).map((reviewer) => (
-                            <p key={reviewer.username}>
-                              {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
-                            </p>
-                          ))}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default align-top">
+                        <span className="text-xs font-medium">+{remainingCount}</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        {reviewers.slice(maxVisible).map((reviewer) => (
+                          <p key={reviewer.username}>
+                            {reviewer.username} {reviewer.approved ? '(Approved)' : '(Pending)'}
+                          </p>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </>
             );
@@ -564,73 +558,78 @@ export function WorkspacePullRequestsTable({
               </div>
             ) : (
               <div className="rounded-md border h-[600px] overflow-auto" ref={parentRef}>
-                  <table className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative">
-                    <thead className="sticky top-0 z-10 bg-background shadow-sm">
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="border-b">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap bg-background"
+                <table className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative">
+                  <thead className="sticky top-0 z-10 bg-background shadow-sm">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b">
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap bg-background"
+                            style={{
+                              width: header.column.columnDef.size,
+                              minWidth: header.column.columnDef.minSize,
+                            }}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {rowVirtualizer.getVirtualItems().length > 0 && (
+                      <tr>
+                        <td
+                          style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }}
+                          colSpan={columns.length}
+                        />
+                      </tr>
+                    )}
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const row = rows[virtualRow.index];
+                      return (
+                        <tr key={row.id} className="border-b hover:bg-muted/50 transition-colors">
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-4 py-4"
                               style={{
-                                width: header.column.columnDef.size,
-                                minWidth: header.column.columnDef.minSize,
+                                width: cell.column.columnDef.size,
+                                minWidth: cell.column.columnDef.minSize,
                               }}
                             >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
                           ))}
                         </tr>
-                      ))}
-                    </thead>
-                    <tbody>
-                      {rowVirtualizer.getVirtualItems().length > 0 && (
-                        <tr>
-                          <td style={{ height: `${rowVirtualizer.getVirtualItems()[0].start}px` }} colSpan={columns.length} />
-                        </tr>
-                      )}
-                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                        const row = rows[virtualRow.index];
-                        return (
-                          <tr
-                            key={row.id}
-                            className="border-b hover:bg-muted/50 transition-colors"
-                          >
-                            {row.getVisibleCells().map((cell) => (
-                              <td
-                                key={cell.id}
-                                className="px-4 py-4"
-                                style={{
-                                  width: cell.column.columnDef.size,
-                                  minWidth: cell.column.columnDef.minSize,
-                                }}
-                              >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-                      {rowVirtualizer.getVirtualItems().length > 0 && (
-                         <tr>
-                          <td style={{ height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px` }} colSpan={columns.length} />
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      );
+                    })}
+                    {rowVirtualizer.getVirtualItems().length > 0 && (
+                      <tr>
+                        <td
+                          style={{
+                            height: `${rowVirtualizer.getTotalSize() - rowVirtualizer.getVirtualItems()[rowVirtualizer.getVirtualItems().length - 1].end}px`,
+                          }}
+                          colSpan={columns.length}
+                        />
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             )}
 
             <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                    Showing {filteredPullRequests.length} pull requests
-                    {filteredPullRequests.length < pullRequests.length && (
-                      <span className="text-muted-foreground">
-                        {' '}
-                        (filtered from {pullRequests.length})
-                      </span>
-                    )}
-                </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredPullRequests.length} pull requests
+                {filteredPullRequests.length < pullRequests.length && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    (filtered from {pullRequests.length})
+                  </span>
+                )}
+              </div>
             </div>
           </>
         )}

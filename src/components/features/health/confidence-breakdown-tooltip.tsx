@@ -1,5 +1,5 @@
 import { Star, MessageSquare, RotateCcw, CheckCircle } from '@/components/ui/icon';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 
 interface ConfidenceBreakdownTooltipProps {
@@ -22,20 +22,18 @@ export function ConfidenceBreakdownTooltip({
 }: ConfidenceBreakdownTooltipProps) {
   if (!breakdown) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>{children}</TooltipTrigger>
-          <TooltipContent side="top" className="max-w-sm">
-            <div className="p-1">
-              <p className="text-sm font-medium mb-2">Contributor Confidence</p>
-              <p className="text-xs text-muted-foreground">
-                Measures how likely stargazers and forkers are to return and make meaningful
-                contributions to your repository.
-              </p>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side="top" className="max-w-sm">
+          <div className="p-1">
+            <p className="text-sm font-medium mb-2">Contributor Confidence</p>
+            <p className="text-xs text-muted-foreground">
+              Measures how likely stargazers and forkers are to return and make meaningful
+              contributions to your repository.
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -100,57 +98,55 @@ export function ConfidenceBreakdownTooltip({
   };
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side="top" className="max-w-md">
-          <div className="p-3">
-            <p className="text-sm font-medium mb-3">Confidence Breakdown</p>
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-md">
+        <div className="p-3">
+          <p className="text-sm font-medium mb-3">Confidence Breakdown</p>
 
-            <div className="space-y-3">
-              {factors.map((factor) => {
-                const Icon = factor.icon;
-                return (
-                  <div key={factor.name} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-3 w-3" />
-                        <span className="text-xs font-medium">{factor.name}</span>
-                        <span className="text-xs text-muted-foreground">({factor.weight}%)</span>
-                      </div>
-                      <span className={`text-xs font-medium ${getColorForValue(factor.value)}`}>
-                        {Math.round(factor.value)}%
-                      </span>
+          <div className="space-y-3">
+            {factors.map((factor) => {
+              const Icon = factor.icon;
+              return (
+                <div key={factor.name} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-3 w-3" />
+                      <span className="text-xs font-medium">{factor.name}</span>
+                      <span className="text-xs text-muted-foreground">({factor.weight}%)</span>
                     </div>
-
-                    <div className="relative">
-                      <Progress value={factor.value} className="h-1.5" />
-                      <div
-                        className={`absolute top-0 left-0 h-1.5 rounded-full transition-all ${getProgressColorForValue(factor.value)}`}
-                        style={{ width: `${Math.min(factor.value, 100)}%` }}
-                      />
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">{factor.description}</p>
-                    {factor.detail && (
-                      <p className="text-xs text-muted-foreground italic">{factor.detail}</p>
-                    )}
+                    <span className={`text-xs font-medium ${getColorForValue(factor.value)}`}>
+                      {Math.round(factor.value)}%
+                    </span>
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="mt-3 pt-2 border-t">
-              <p className="text-xs text-muted-foreground">
-                Overall conversion rate:{' '}
-                <span className={`font-medium ${getColorForValue(conversionRate)}`}>
-                  {conversionRate.toFixed(1)}%
-                </span>
-              </p>
-            </div>
+                  <div className="relative">
+                    <Progress value={factor.value} className="h-1.5" />
+                    <div
+                      className={`absolute top-0 left-0 h-1.5 rounded-full transition-all ${getProgressColorForValue(factor.value)}`}
+                      style={{ width: `${Math.min(factor.value, 100)}%` }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">{factor.description}</p>
+                  {factor.detail && (
+                    <p className="text-xs text-muted-foreground italic">{factor.detail}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+
+          <div className="mt-3 pt-2 border-t">
+            <p className="text-xs text-muted-foreground">
+              Overall conversion rate:{' '}
+              <span className={`font-medium ${getColorForValue(conversionRate)}`}>
+                {conversionRate.toFixed(1)}%
+              </span>
+            </p>
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }

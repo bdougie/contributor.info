@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Select,
   SelectContent,
@@ -93,57 +93,53 @@ const ActivityRow = memo(function ActivityRow({
         <div className="flex items-center gap-3 w-full">
           {/* Type */}
           <div className="flex-shrink-0 w-16 sm:w-24">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
-                    <Icon className="h-3 w-3" />
-                    {activity.type.toUpperCase()}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-semibold">
-                    {(() => {
-                      if (activity.type === 'pr') return 'Pull Request';
-                      if (activity.type === 'issue') return 'Issue';
-                      if (activity.type === 'commit') return 'Commit';
-                      return 'Review';
-                    })()}
-                  </p>
-                  <p className="text-xs">Status: {activity.status}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
+                  <Icon className="h-3 w-3" />
+                  {activity.type.toUpperCase()}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-semibold">
+                  {(() => {
+                    if (activity.type === 'pr') return 'Pull Request';
+                    if (activity.type === 'issue') return 'Issue';
+                    if (activity.type === 'commit') return 'Commit';
+                    return 'Review';
+                  })()}
+                </p>
+                <p className="text-xs">Status: {activity.status}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Activity */}
           <div className="flex-1 min-w-[250px]">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  {activity.url ? (
-                    <a
-                      href={activity.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                    >
-                      {activity.title}
-                    </a>
-                  ) : (
-                    <span className="text-sm font-medium truncate block text-muted-foreground">
-                      {activity.title}
-                    </span>
-                  )}
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold text-sm">{activity.title}</p>
-                  <p className="text-xs mt-1">Repository: {activity.repository}</p>
-                  <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
-                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {activity.url ? (
+                  <a
+                    href={activity.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                  >
+                    {activity.title}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium truncate block text-muted-foreground">
+                    {activity.title}
+                  </span>
+                )}
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold text-sm">{activity.title}</p>
+                <p className="text-xs mt-1">Repository: {activity.repository}</p>
+                <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
+                {activity.url && <p className="text-xs">Click to open in GitHub</p>}
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Author */}
@@ -175,84 +171,78 @@ const ActivityRow = memo(function ActivityRow({
 
           {/* Repository */}
           <div className="hidden md:block flex-shrink-0 w-44">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href={`https://github.com/${activity.repository}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-muted-foreground truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                  >
-                    {activity.repository}
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-semibold">{activity.repository}</p>
-                  <p className="text-xs">Click to view repository</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={`https://github.com/${activity.repository}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                >
+                  {activity.repository}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-semibold">{activity.repository}</p>
+                <p className="text-xs">Click to view repository</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Status - always render Tooltip to maintain consistent hook count */}
           <div className="hidden sm:block flex-shrink-0 w-36">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    {activity.status ? (
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] || ''
-                        )}
-                      >
-                        {activity.status}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
                   {activity.status ? (
-                    <>
-                      <p className="font-semibold">Status: {activity.status}</p>
-                      <p className="text-xs">
-                        {(() => {
-                          if (activity.status === 'merged') return 'Successfully merged';
-                          if (activity.status === 'open') return 'Awaiting review';
-                          if (activity.status === 'closed') return 'Closed without merging';
-                          return 'Review approved';
-                        })()}
-                      </p>
-                    </>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        STATUS_COLORS[activity.status as keyof typeof STATUS_COLORS] || ''
+                      )}
+                    >
+                      {activity.status}
+                    </Badge>
                   ) : (
-                    <p className="text-xs text-muted-foreground">No status</p>
+                    <span className="text-muted-foreground text-xs">—</span>
                   )}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {activity.status ? (
+                  <>
+                    <p className="font-semibold">Status: {activity.status}</p>
+                    <p className="text-xs">
+                      {(() => {
+                        if (activity.status === 'merged') return 'Successfully merged';
+                        if (activity.status === 'open') return 'Awaiting review';
+                        if (activity.status === 'closed') return 'Closed without merging';
+                        return 'Review approved';
+                      })()}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No status</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Date */}
           <div className="flex-shrink-0 w-44">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(activityDate, {
-                      addSuffix: true,
-                    })}
-                  </p>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="font-semibold">Exact time</p>
-                  <p className="text-xs">{format(activityDate, 'PPpp')}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-sm text-muted-foreground">
+                  {formatDistanceToNow(activityDate, {
+                    addSuffix: true,
+                  })}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-semibold">Exact time</p>
+                <p className="text-xs">{format(activityDate, 'PPpp')}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Link */}

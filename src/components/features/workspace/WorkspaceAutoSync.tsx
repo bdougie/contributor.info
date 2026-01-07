@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Clock } from '@/components/ui/icon';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 import { env } from '@/lib/env';
 
@@ -222,41 +222,39 @@ export function WorkspaceAutoSync({
 
   return (
     <div className={`flex items-center gap-4 text-sm text-muted-foreground ${className}`}>
-      <TooltipProvider>
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4" />
-          <span>
-            Last checked: <span className="font-medium">{getLastSyncText()}</span>
-            {isDataStale() && <span className="ml-2 text-yellow-600">(may be outdated)</span>}
-          </span>
-          {nextSyncTime && !isSyncing && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="ml-2 text-xs opacity-75">• {getNextSyncText()}</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Auto-sync runs every {syncIntervalMinutes} minutes when the page is active</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <Clock className="h-4 w-4" />
+        <span>
+          Last checked: <span className="font-medium">{getLastSyncText()}</span>
+          {isDataStale() && <span className="ml-2 text-yellow-600">(may be outdated)</span>}
+        </span>
+        {nextSyncTime && !isSyncing && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="ml-2 text-xs opacity-75">• {getNextSyncText()}</span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Auto-sync runs every {syncIntervalMinutes} minutes when the page is active</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => performSync(true)}
-              disabled={isSyncing || repositoryIds.length === 0}
-              className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Sync now"
-            >
-              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{isSyncing ? 'Syncing...' : 'Sync now'}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => performSync(true)}
+            disabled={isSyncing || repositoryIds.length === 0}
+            className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Sync now"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{isSyncing ? 'Syncing...' : 'Sync now'}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Calendar, Info } from '@/components/ui/icon';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface IssueVolumeData {
@@ -85,103 +85,101 @@ export function IssueVolumeCalendarCard({ volumeData, loading }: IssueVolumeCale
   const maxCount = Math.max(...days.map((d) => d.count));
 
   return (
-    <TooltipProvider>
-      <Card className="p-3 min-w-0">
-        <div className="flex items-center gap-2 mb-3">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <h4 className="text-sm font-medium truncate">Weekly Issue Volume</h4>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" className="inline-flex">
-                <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">
-                Shows the last 2 weeks. Top row is last week, bottom row is this week. Deeper orange
-                indicates more issues created that day.
-              </p>
-            </TooltipContent>
-          </Tooltip>
+    <Card className="p-3 min-w-0">
+      <div className="flex items-center gap-2 mb-3">
+        <Calendar className="h-4 w-4 text-muted-foreground" />
+        <h4 className="text-sm font-medium truncate">Weekly Issue Volume</h4>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="inline-flex">
+              <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-pointer" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-xs">
+              Shows the last 2 weeks. Top row is last week, bottom row is this week. Deeper orange
+              indicates more issues created that day.
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Calendar grid - 2 rows of 7 days */}
+      <div className="space-y-1 mb-3">
+        {/* First week */}
+        <div className="flex gap-1">
+          {days.slice(0, 7).map((day, index) => {
+            // Calculate opacity based on issue count (deeper orange = more issues)
+            let opacity = 0.1;
+            if (maxCount > 0) {
+              opacity = 0.1 + (day.count / maxCount) * 0.8; // Range from 0.1 to 0.9
+            }
+
+            return (
+              <div
+                key={index}
+                className="w-4 h-4 rounded-sm border border-gray-200 flex items-center justify-center"
+                style={{
+                  backgroundColor: `rgba(251, 146, 60, ${opacity})`, // Orange-400
+                }}
+                title={`${day.date.toLocaleDateString()}: ${day.count} issues`}
+              />
+            );
+          })}
         </div>
 
-        {/* Calendar grid - 2 rows of 7 days */}
-        <div className="space-y-1 mb-3">
-          {/* First week */}
-          <div className="flex gap-1">
-            {days.slice(0, 7).map((day, index) => {
-              // Calculate opacity based on issue count (deeper orange = more issues)
-              let opacity = 0.1;
-              if (maxCount > 0) {
-                opacity = 0.1 + (day.count / maxCount) * 0.8; // Range from 0.1 to 0.9
-              }
+        {/* Second week */}
+        <div className="flex gap-1">
+          {days.slice(7, 14).map((day, index) => {
+            // Calculate opacity based on issue count (deeper orange = more issues)
+            let opacity = 0.1;
+            if (maxCount > 0) {
+              opacity = 0.1 + (day.count / maxCount) * 0.8; // Range from 0.1 to 0.9
+            }
 
-              return (
-                <div
-                  key={index}
-                  className="w-4 h-4 rounded-sm border border-gray-200 flex items-center justify-center"
-                  style={{
-                    backgroundColor: `rgba(251, 146, 60, ${opacity})`, // Orange-400
-                  }}
-                  title={`${day.date.toLocaleDateString()}: ${day.count} issues`}
-                />
-              );
-            })}
+            return (
+              <div
+                key={index + 7}
+                className="w-4 h-4 rounded-sm border border-gray-200 flex items-center justify-center"
+                style={{
+                  backgroundColor: `rgba(251, 146, 60, ${opacity})`, // Orange-400
+                }}
+                title={`${day.date.toLocaleDateString()}: ${day.count} issues`}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Week day labels */}
+      <div className="flex gap-1 mb-3">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => (
+          <div key={index} className="w-4 text-xs text-muted-foreground text-center">
+            {label}
           </div>
+        ))}
+      </div>
 
-          {/* Second week */}
-          <div className="flex gap-1">
-            {days.slice(7, 14).map((day, index) => {
-              // Calculate opacity based on issue count (deeper orange = more issues)
-              let opacity = 0.1;
-              if (maxCount > 0) {
-                opacity = 0.1 + (day.count / maxCount) * 0.8; // Range from 0.1 to 0.9
-              }
-
-              return (
-                <div
-                  key={index + 7}
-                  className="w-4 h-4 rounded-sm border border-gray-200 flex items-center justify-center"
-                  style={{
-                    backgroundColor: `rgba(251, 146, 60, ${opacity})`, // Orange-400
-                  }}
-                  title={`${day.date.toLocaleDateString()}: ${day.count} issues`}
-                />
-              );
-            })}
+      {/* Current week count and change percentage at bottom */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">This week</span>
+          <span className="text-sm font-medium">{volumeData.current} issues</span>
+        </div>
+        {volumeData.change !== 0 && (
+          <div className="flex items-center justify-center">
+            <p
+              className={cn(
+                'text-xs font-medium',
+                volumeData.change > 0 ? 'text-green-500' : 'text-red-500'
+              )}
+            >
+              {volumeData.change > 0 ? '+' : ''}
+              {Math.round(volumeData.change)}% change
+            </p>
           </div>
-        </div>
-
-        {/* Week day labels */}
-        <div className="flex gap-1 mb-3">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((label, index) => (
-            <div key={index} className="w-4 text-xs text-muted-foreground text-center">
-              {label}
-            </div>
-          ))}
-        </div>
-
-        {/* Current week count and change percentage at bottom */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">This week</span>
-            <span className="text-sm font-medium">{volumeData.current} issues</span>
-          </div>
-          {volumeData.change !== 0 && (
-            <div className="flex items-center justify-center">
-              <p
-                className={cn(
-                  'text-xs font-medium',
-                  volumeData.change > 0 ? 'text-green-500' : 'text-red-500'
-                )}
-              >
-                {volumeData.change > 0 ? '+' : ''}
-                {Math.round(volumeData.change)}% change
-              </p>
-            </div>
-          )}
-        </div>
-      </Card>
-    </TooltipProvider>
+        )}
+      </div>
+    </Card>
   );
 }

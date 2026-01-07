@@ -5,7 +5,7 @@ import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { toast } from 'sonner';
 import { inngest } from '@/lib/inngest/client';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { POLLING_CONFIG, isSyncAllowed } from '@/lib/progressive-capture/throttle-config';
 import { getSyncButtonText } from '@/lib/utils/ui-state';
 
@@ -254,14 +254,12 @@ export function ManualSyncButton({
   // If syncing, show progress
   if (isSyncing && syncProgress) {
     return (
-      <TooltipProvider>
-        <Tooltip open>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">{syncProgress}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip open>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">{syncProgress}</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -273,14 +271,12 @@ export function ManualSyncButton({
       : 'Login to manually sync this repository';
 
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">{tooltipText}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 

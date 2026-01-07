@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router';
 import React, { Suspense, lazy, useEffect } from 'react';
 import { ThemeProvider } from '@/components/common/theming';
 import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
 import { OfflineNotification } from '@/components/common/OfflineNotification';
@@ -10,7 +11,6 @@ import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 import { logger } from '@/lib/logger';
 import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
-import { TooltipProvider } from '@/components/ui/tooltip';
 // Eagerly load core layout components to prevent hydration flash
 import { Layout, Home } from '@/components/common/layout';
 // Eagerly load repo skeleton to prevent layout mismatch during lazy loading
