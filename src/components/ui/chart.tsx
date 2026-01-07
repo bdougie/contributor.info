@@ -3,13 +3,13 @@ import {
   useContext,
   useId,
   useMemo,
-  useLayoutEffect,
   type ComponentProps,
   type ComponentType,
   type CSSProperties,
   type ReactNode,
   type Ref,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ResponsiveContainer as RechartsResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -105,24 +105,24 @@ ${colorConfig
       .join('\n');
   }, [id, colorConfig]);
 
-  useLayoutEffect(() => {
-    if (!styles) {
-      return;
-    }
+  if (!styles) {
+    return null;
+  }
 
-    const style = document.createElement('style');
-    style.setAttribute('data-chart-style', id);
-    style.textContent = styles;
-    document.head.appendChild(style);
-
-    return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
-      }
-    };
-  }, [id, styles]);
-
-  return null;
+  // Use createPortal to render directly into document.head
+  // Callback ref sets textContent securely without dangerouslySetInnerHTML
+  // This avoids useLayoutEffect blocking and restores original performance
+  return createPortal(
+    <style
+      data-chart-style={id}
+      ref={(el) => {
+        if (el) {
+          el.textContent = styles;
+        }
+      }}
+    />,
+    document.head
+  );
 };
 
 const ChartTooltip = RechartsTooltip;
