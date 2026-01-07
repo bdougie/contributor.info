@@ -344,7 +344,7 @@ export function LotteryFactorContent({
               Lottery Factor
               <TooltipProvider>
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger aria-label="More info about Lottery Factor">
                     <HelpCircle className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>

@@ -182,6 +182,7 @@ export function IssueMetricsAndTrendsCard({
               onClick={handleCopyLink}
               className="h-8 w-8"
               title="Copy page link"
+              aria-label="Copy page link"
             >
               <Link className="h-4 w-4" />
             </Button>
