@@ -343,7 +343,7 @@ export function LotteryFactorContent({
               <LotteryIcon className="h-5 w-5 hidden sm:block" />
               Lottery Factor
               <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger aria-label="More info about Lottery Factor">
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent>

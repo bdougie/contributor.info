@@ -387,7 +387,7 @@ export function ActivityChart({
                 {title}
                 {description && (
                   <Tooltip>
-                    <TooltipTrigger>
+                    <TooltipTrigger aria-label="More info">
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>

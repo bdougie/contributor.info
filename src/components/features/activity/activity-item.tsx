@@ -2,16 +2,11 @@ import { PullRequestActivity } from '@/lib/types';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContributorHoverCard } from '../contributor';
-import { useContext, useMemo, useState, useEffect } from 'react';
+import { useContext, useMemo } from 'react';
 import { BotIcon } from '@/components/ui/icon';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
-import {
-  createContributorStats,
-  createContributorStatsWithOrgs,
-  getContributorActivityCounts,
-} from '@/lib/contributor-utils';
+import { createContributorStats, getContributorActivityCounts } from '@/lib/contributor-utils';
 import { useContributorRole } from '@/hooks/useContributorRoles';
-import type { ContributorStats } from '@/lib/types';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
 
 interface ActivityItemProps {
@@ -21,33 +16,14 @@ interface ActivityItemProps {
 export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
   const { stats } = useContext(RepoStatsContext);
-  const [contributorData, setContributorData] = useState<ContributorStats | null>(null);
 
   // Get the contributor's role
   const { role } = useContributorRole(repository.owner, repository.name, user.id);
 
-  // Create initial contributor data
-  const initialContributorData = useMemo(() => {
+  // Create initial contributor data (synchronous)
+  const displayData = useMemo(() => {
     return createContributorStats(stats.pullRequests, user.name, user.avatar, user.id);
   }, [user, stats.pullRequests]);
-
-  // Fetch organizations data
-  useEffect(() => {
-    const fetchContributorData = async () => {
-      const dataWithOrgs = await createContributorStatsWithOrgs(
-        stats.pullRequests,
-        user.name,
-        user.avatar,
-        user.id
-      );
-      setContributorData(dataWithOrgs);
-    };
-
-    fetchContributorData();
-  }, [user, stats.pullRequests]);
-
-  // Use initial data if async data not ready yet
-  const displayData = contributorData || initialContributorData;
 
   // Calculate reviews and comments count for this user
   const activityCounts = useMemo(() => {

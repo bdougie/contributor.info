@@ -429,8 +429,8 @@ function App() {
   return (
     <ErrorBoundary context="Application Root">
       <ThemeProvider defaultTheme="dark" storageKey="contributor-info-theme">
-        <TooltipProvider>
-          <FeatureFlagsProvider>
+        <FeatureFlagsProvider>
+          <TooltipProvider>
             <SVGSpriteInliner />
             <Router>
               <WorkspaceProvider>
@@ -704,8 +704,8 @@ function App() {
                 />
               </WorkspaceProvider>
             </Router>
-          </FeatureFlagsProvider>
-        </TooltipProvider>
+          </TooltipProvider>
+        </FeatureFlagsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

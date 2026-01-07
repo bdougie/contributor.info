@@ -292,6 +292,10 @@
     "name": "terraform-provider-aws"
   },
   {
+    "owner": "terrapkg",
+    "name": "packages"
+  },
+  {
     "owner": "theopenlane",
     "name": "core"
   },

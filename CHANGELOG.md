@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.18.0](https://github.com/bdougie/contributor.info/compare/v4.17.0...v4.18.0) (2026-01-07)
+
+
+### 🚀 Features
+
+* **a11y:** add missing aria-labels to icon-only buttons ([#1472](https://github.com/bdougie/contributor.info/issues/1472)) ([62000cb](https://github.com/bdougie/contributor.info/commit/62000cb031948c46894220b2bcaec995fd63965d))
+
+
+### ⚡ Performance Improvements
+
+* lazy load contributor organizations in hover card ([#1471](https://github.com/bdougie/contributor.info/issues/1471)) ([a13dea4](https://github.com/bdougie/contributor.info/commit/a13dea4a3fbcbbe3e3a599617ae1d761a86bf2a3))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([e8c1618](https://github.com/bdougie/contributor.info/commit/e8c1618c1030c8489a7627f3dec52b52445d18e6))
+
+## [4.17.0](https://github.com/bdougie/contributor.info/compare/v4.16.0...v4.17.0) (2026-01-07)
+
+
+### ⚡ Performance Improvements
+
+* move TooltipProvider to App root ([#1464](https://github.com/bdougie/contributor.info/issues/1464)) ([a66f0ef](https://github.com/bdougie/contributor.info/commit/a66f0ef00e7cc9cf56ae69997ddb8c23053fdd67))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([7bb0485](https://github.com/bdougie/contributor.info/commit/7bb048535e9b1014fd9feedbb113252e3f41d9bf))
+
+## [4.16.0](https://github.com/bdougie/contributor.info/compare/v4.15.0...v4.16.0) (2026-01-07)
+
+
+### 🚀 Features
+
+* add database schema for GitHub Action usage tracking ([#1473](https://github.com/bdougie/contributor.info/issues/1473)) ([9d0bf4a](https://github.com/bdougie/contributor.info/commit/9d0bf4a75724c0ae2d1fc10394c54887df91118f)), closes [#1468](https://github.com/bdougie/contributor.info/issues/1468) [#196](https://github.com/bdougie/contributor.info/issues/196)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([bdd8c06](https://github.com/bdougie/contributor.info/commit/bdd8c063f19a9bf8fba4a04078ab7becbb726f0b))
+
+## [4.15.0](https://github.com/bdougie/contributor.info/compare/v4.14.0...v4.15.0) (2026-01-05)
+
+
+### ⚡ Performance Improvements
+
+* remove unused cache infrastructure from workspace hover cards ([#1469](https://github.com/bdougie/contributor.info/issues/1469)) ([ae31d64](https://github.com/bdougie/contributor.info/commit/ae31d648e9750e0ec2fc0b19ae9f3a1c37f71270)), closes [#1461](https://github.com/bdougie/contributor.info/issues/1461)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([bff1374](https://github.com/bdougie/contributor.info/commit/bff13742541655641c48d7b4c31b18a4aedfefb7))
+
+## [4.14.0](https://github.com/bdougie/contributor.info/compare/v4.13.2...v4.14.0) (2026-01-05)
+
+
+### ⚡ Performance Improvements
+
+* optimize date sorting using schwartzian transform in workspace-… ([#1461](https://github.com/bdougie/contributor.info/issues/1461)) ([2b12c43](https://github.com/bdougie/contributor.info/commit/2b12c431fa67c89c2d76f55e2697de68e3773159))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3682ae9](https://github.com/bdougie/contributor.info/commit/3682ae95f02bcb36a687f789fbf2053eaf2d8d39))
+
 ## [4.13.2](https://github.com/bdougie/contributor.info/compare/v4.13.1...v4.13.2) (2026-01-03)
 
 

@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ResponsiveContainer as RechartsResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -76,18 +77,21 @@ function ChartContainer({ id, className, children, config, ref, ...props }: Char
 }
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([, cfg]) => cfg.theme || cfg.color);
+  // Memoize colorConfig to prevent recalculation on every render
+  const colorConfig = useMemo(
+    () => Object.entries(config).filter(([, cfg]) => cfg.theme || cfg.color),
+    [config]
+  );
 
-  if (!colorConfig.length) {
-    return null;
-  }
+  // Memoize styles string to prevent recreation when config hasn't changed
+  const styles = useMemo(() => {
+    if (!colorConfig.length) {
+      return null;
+    }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
+    return Object.entries(THEMES)
+      .map(
+        ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
@@ -97,18 +101,34 @@ ${colorConfig
   .join('\n')}
 }
 `
-          )
-          .join('\n'),
+      )
+      .join('\n');
+  }, [id, colorConfig]);
+
+  if (!styles) {
+    return null;
+  }
+
+  // Use createPortal to render directly into document.head
+  // Callback ref sets textContent securely without dangerouslySetInnerHTML
+  // This avoids useLayoutEffect blocking and restores original performance
+  return createPortal(
+    <style
+      data-chart-style={id}
+      ref={(el) => {
+        if (el) {
+          el.textContent = styles;
+        }
       }}
-    />
+    />,
+    document.head
   );
 };
 
 const ChartTooltip = RechartsTooltip;
 
 export interface ChartTooltipContentProps
-  extends ComponentProps<typeof RechartsTooltip>,
-    Omit<ComponentProps<'div'>, 'content'> {
+  extends ComponentProps<typeof RechartsTooltip>, Omit<ComponentProps<'div'>, 'content'> {
   ref?: Ref<HTMLDivElement>;
   hideLabel?: boolean;
   hideIndicator?: boolean;
@@ -249,8 +269,7 @@ function ChartTooltipContent({
 const ChartLegend = RechartsLegend;
 
 export interface ChartLegendContentProps
-  extends ComponentProps<'div'>,
-    Pick<LegendProps, 'payload' | 'verticalAlign'> {
+  extends ComponentProps<'div'>, Pick<LegendProps, 'payload' | 'verticalAlign'> {
   ref?: Ref<HTMLDivElement>;
   hideIcon?: boolean;
   nameKey?: string;
