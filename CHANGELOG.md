@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.17.0](https://github.com/bdougie/contributor.info/compare/v4.16.0...v4.17.0) (2026-01-07)
+
+
+### ⚡ Performance Improvements
+
+* move TooltipProvider to App root ([#1464](https://github.com/bdougie/contributor.info/issues/1464)) ([a66f0ef](https://github.com/bdougie/contributor.info/commit/a66f0ef00e7cc9cf56ae69997ddb8c23053fdd67))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([7bb0485](https://github.com/bdougie/contributor.info/commit/7bb048535e9b1014fd9feedbb113252e3f41d9bf))
+
 ## [4.16.0](https://github.com/bdougie/contributor.info/compare/v4.15.0...v4.16.0) (2026-01-07)
 
 
