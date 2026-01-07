@@ -77,17 +77,19 @@ function ChartContainer({ id, className, children, config, ref, ...props }: Char
 }
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(([, cfg]) => cfg.theme || cfg.color);
+  // Memoize colorConfig to prevent recalculation on every render
+  const colorConfig = useMemo(
+    () => Object.entries(config).filter(([, cfg]) => cfg.theme || cfg.color),
+    [config]
+  );
 
-  useLayoutEffect(() => {
+  // Memoize styles string to prevent recreation when config hasn't changed
+  const styles = useMemo(() => {
     if (!colorConfig.length) {
-      return;
+      return null;
     }
 
-    const style = document.createElement('style');
-    style.setAttribute('data-chart-style', id);
-
-    const styles = Object.entries(THEMES)
+    return Object.entries(THEMES)
       .map(
         ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
@@ -101,7 +103,15 @@ ${colorConfig
 `
       )
       .join('\n');
+  }, [id, colorConfig]);
 
+  useLayoutEffect(() => {
+    if (!styles) {
+      return;
+    }
+
+    const style = document.createElement('style');
+    style.setAttribute('data-chart-style', id);
     style.textContent = styles;
     document.head.appendChild(style);
 
@@ -110,7 +120,7 @@ ${colorConfig
         document.head.removeChild(style);
       }
     };
-  }, [id, config]);
+  }, [id, styles]);
 
   return null;
 };
@@ -118,8 +128,7 @@ ${colorConfig
 const ChartTooltip = RechartsTooltip;
 
 export interface ChartTooltipContentProps
-  extends ComponentProps<typeof RechartsTooltip>,
-    Omit<ComponentProps<'div'>, 'content'> {
+  extends ComponentProps<typeof RechartsTooltip>, Omit<ComponentProps<'div'>, 'content'> {
   ref?: Ref<HTMLDivElement>;
   hideLabel?: boolean;
   hideIndicator?: boolean;
@@ -260,8 +269,7 @@ function ChartTooltipContent({
 const ChartLegend = RechartsLegend;
 
 export interface ChartLegendContentProps
-  extends ComponentProps<'div'>,
-    Pick<LegendProps, 'payload' | 'verticalAlign'> {
+  extends ComponentProps<'div'>, Pick<LegendProps, 'payload' | 'verticalAlign'> {
   ref?: Ref<HTMLDivElement>;
   hideIcon?: boolean;
   nameKey?: string;
