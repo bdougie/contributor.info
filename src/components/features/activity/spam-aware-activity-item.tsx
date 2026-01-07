@@ -1,6 +1,6 @@
 import { PullRequestActivity } from '@/lib/types';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContributorHoverCard } from '../contributor';
 import { useContext, useMemo, useState, useEffect } from 'react';
 import { BotIcon } from '@/components/ui/icon';
@@ -142,16 +142,14 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
               priority={false}
             />
             {user.isBot && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <BotIcon className="h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Bot account</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <BotIcon className="h-3 w-3 absolute -bottom-1 -right-1 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Bot account</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </ContributorHoverCard>

@@ -13,7 +13,7 @@ import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -342,20 +342,18 @@ export function LotteryFactorContent({
             <div className="text-xl font-semibold flex items-center gap-2">
               <LotteryIcon className="h-5 w-5 hidden sm:block" />
               Lottery Factor
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      The Lottery Factor measures the distribution of contributions across
-                      maintainers. A high percentage indicates increased risk due to concentrated
-                      knowledge.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    The Lottery Factor measures the distribution of contributions across
+                    maintainers. A high percentage indicates increased risk due to concentrated
+                    knowledge.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Badge
               variant="secondary"
@@ -405,44 +403,42 @@ export function LotteryFactorContent({
 
             <div className="h-2 w-full rounded-full overflow-hidden flex">
               {getProgressBarSegments(safeLotteryFactor.contributors).map((segment, i) => (
-                <TooltipProvider key={i}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div
-                        className={`h-full transition-colors ${segment.color}`}
-                        style={{ width: segment.width }}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <div className="flex items-center gap-2">
-                        {segment.contributor ? (
-                          <>
-                            <OptimizedAvatar
-                              src={segment.contributor.avatar_url}
-                              alt={segment.contributor.login}
-                              size={32}
-                              lazy={false}
-                              fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
-                              className="w-4 h-4"
-                            />
-                            <span>{segment.contributor.login}</span>
-                            <span className="text-muted-foreground">
-                              ({Math.round(segment.contributor.percentage)}%)
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Users className="w-4 h-4" />
-                            <span>Other contributors</span>
-                            <span className="text-muted-foreground">
-                              ({Math.round(parseFloat(segment.width))}%)
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={`h-full transition-colors ${segment.color}`}
+                      style={{ width: segment.width }}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div className="flex items-center gap-2">
+                      {segment.contributor ? (
+                        <>
+                          <OptimizedAvatar
+                            src={segment.contributor.avatar_url}
+                            alt={segment.contributor.login}
+                            size={32}
+                            lazy={false}
+                            fallback={segment.contributor.login[0]?.toUpperCase() || '?'}
+                            className="w-4 h-4"
+                          />
+                          <span>{segment.contributor.login}</span>
+                          <span className="text-muted-foreground">
+                            ({Math.round(segment.contributor.percentage)}%)
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Users className="w-4 h-4" />
+                          <span>Other contributors</span>
+                          <span className="text-muted-foreground">
+                            ({Math.round(parseFloat(segment.width))}%)
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </div>

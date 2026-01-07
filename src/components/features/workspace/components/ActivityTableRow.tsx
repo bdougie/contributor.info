@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ExternalLink } from '@/components/ui/icon';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -63,25 +63,23 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
         <div className="flex items-center gap-4 w-full">
           {/* Type */}
           <div className="flex-shrink-0 w-24" role="cell">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge
-                    variant="secondary"
-                    className={cn('gap-1 cursor-help', TYPE_COLORS[activity.type])}
-                    aria-label={getTypeLabel(activity.type)}
-                  >
-                    <Icon className="h-3 w-3" aria-hidden="true" />
-                    <span className="hidden sm:inline">
-                      {activity.type === 'pr' ? 'PR' : activity.type}
-                    </span>
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{getTypeLabel(activity.type)}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  className={cn('gap-1 cursor-help', TYPE_COLORS[activity.type])}
+                  aria-label={getTypeLabel(activity.type)}
+                >
+                  <Icon className="h-3 w-3" aria-hidden="true" />
+                  <span className="hidden sm:inline">
+                    {activity.type === 'pr' ? 'PR' : activity.type}
+                  </span>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{getTypeLabel(activity.type)}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Activity Title */}
@@ -91,29 +89,27 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
 
           {/* Author */}
           <div className="flex-shrink-0 w-32" role="cell">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 cursor-help">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage
-                        src={activity.author.avatar_url || undefined}
-                        alt={`${activity.author.username}'s avatar`}
-                      />
-                      <AvatarFallback>
-                        {activity.author.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm truncate hidden sm:inline">
-                      {activity.author.username}
-                    </span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>@{activity.author.username}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2 cursor-help">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage
+                      src={activity.author.avatar_url || undefined}
+                      alt={`${activity.author.username}'s avatar`}
+                    />
+                    <AvatarFallback>
+                      {activity.author.username.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm truncate hidden sm:inline">
+                    {activity.author.username}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>@{activity.author.username}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Repository */}
@@ -134,45 +130,41 @@ export const ActivityTableRow = memo(({ activity, style }: ActivityTableRowProps
 
           {/* Date */}
           <div className="flex-shrink-0 w-32" role="cell">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <time
-                    className="text-sm text-muted-foreground cursor-help"
-                    dateTime={activity.created_at}
-                  >
-                    {formatDistanceToNow(parseISO(activity.created_at), {
-                      addSuffix: true,
-                    })}
-                  </time>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{format(parseISO(activity.created_at), 'PPpp')}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <time
+                  className="text-sm text-muted-foreground cursor-help"
+                  dateTime={activity.created_at}
+                >
+                  {formatDistanceToNow(parseISO(activity.created_at), {
+                    addSuffix: true,
+                  })}
+                </time>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{format(parseISO(activity.created_at), 'PPpp')}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Link */}
           <div className="w-12" role="cell">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => window.open(activity.url, '_blank', 'noopener,noreferrer')}
-                    aria-label={`Open ${getTypeLabel(activity.type)} in new tab`}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>View on GitHub</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => window.open(activity.url, '_blank', 'noopener,noreferrer')}
+                  aria-label={`Open ${getTypeLabel(activity.type)} in new tab`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View on GitHub</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>

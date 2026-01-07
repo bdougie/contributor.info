@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Lock, Calendar } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -86,16 +86,14 @@ export function TimeRangeSelector({
               <span className="flex items-center gap-1">
                 {timeRangeLabels[range]}
                 {!available && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Lock className="h-3 w-3 ml-1" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>This feature requires an upgrade</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Lock className="h-3 w-3 ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>This feature requires an upgrade</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </span>
             </Button>
@@ -103,19 +101,17 @@ export function TimeRangeSelector({
 
           if (!available && onUpgradeClick) {
             return (
-              <TooltipProvider key={range}>
-                <Tooltip>
-                  <TooltipTrigger asChild>{button}</TooltipTrigger>
-                  <TooltipContent>
-                    <div className="text-sm">
-                      <p className="font-semibold mb-1">
-                        {timeRangeTiers[range] === 'pro' ? 'Pro' : 'Enterprise'} feature
-                      </p>
-                      <p>Upgrade to access {timeRangeLabels[range].toLowerCase()} data</p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-sm">
+                    <p className="font-semibold mb-1">
+                      {timeRangeTiers[range] === 'pro' ? 'Pro' : 'Enterprise'} feature
+                    </p>
+                    <p>Upgrade to access {timeRangeLabels[range].toLowerCase()} data</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
             );
           }
 
@@ -168,19 +164,17 @@ export function TimeRangeSelector({
               }}
               className="flex w-full items-center px-2 py-1.5 text-sm text-primary hover:bg-accent rounded-sm cursor-pointer"
             >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="flex items-center">
-                      <Lock className="h-3 w-3 mr-2" />
-                      Upgrade for more data
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>This feature requires an upgrade</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center">
+                    <Lock className="h-3 w-3 mr-2" />
+                    Upgrade for more data
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>This feature requires an upgrade</p>
+                </TooltipContent>
+              </Tooltip>
             </button>
           </>
         )}

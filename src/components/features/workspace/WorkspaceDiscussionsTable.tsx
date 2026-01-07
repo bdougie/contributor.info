@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LastUpdated } from '@/components/ui/last-updated';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -495,29 +495,27 @@ export function WorkspaceDiscussionsTable({
                       {/* Repository & Category Badges */}
                       <div className="flex flex-wrap gap-2 mb-2">
                         {discussion.repositories && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <a
-                                  href={`https://github.com/${discussion.repositories.owner}/${discussion.repositories.name}/discussions`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2 py-1 border rounded-md text-xs hover:bg-muted/50 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <img
-                                    src={`https://github.com/${discussion.repositories.owner}.png?size=20`}
-                                    alt={discussion.repositories.owner}
-                                    className="h-4 w-4 rounded"
-                                  />
-                                  <span>{discussion.repositories.name}</span>
-                                </a>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                View all discussions in {discussion.repositories.full_name}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a
+                                href={`https://github.com/${discussion.repositories.owner}/${discussion.repositories.name}/discussions`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2 py-1 border rounded-md text-xs hover:bg-muted/50 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <img
+                                  src={`https://github.com/${discussion.repositories.owner}.png?size=20`}
+                                  alt={discussion.repositories.owner}
+                                  className="h-4 w-4 rounded"
+                                />
+                                <span>{discussion.repositories.name}</span>
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              View all discussions in {discussion.repositories.full_name}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         {discussion.category_name && (
                           <Badge variant="secondary" className="text-xs">
@@ -592,56 +590,52 @@ export function WorkspaceDiscussionsTable({
                             </div>
                           )}
                           {similarDiscussionsMap.has(discussion.id) && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setSelectedDiscussionForSimilar(discussion)}
-                                    className="h-7 px-2 text-amber-500 hover:text-amber-600"
-                                    aria-label="View similar discussions"
-                                  >
-                                    <Sparkles className="h-4 w-4" aria-hidden="true" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Similar discussions found</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedDiscussionForSimilar(discussion)}
+                                  className="h-7 px-2 text-amber-500 hover:text-amber-600"
+                                  aria-label="View similar discussions"
+                                >
+                                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Similar discussions found</TooltipContent>
+                            </Tooltip>
                           )}
                           {hasWorkspaceAccess && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => onRespondClick?.(discussion)}
-                                    className={`h-7 px-2 ${
-                                      discussion.responded_by && discussion.responded_at
-                                        ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                    disabled={
-                                      !!(discussion.responded_by && discussion.responded_at) ||
-                                      !onRespondClick
-                                    }
-                                    aria-label={
-                                      discussion.responded_by && discussion.responded_at
-                                        ? 'Already responded'
-                                        : 'Mark as responded'
-                                    }
-                                  >
-                                    <Reply className="h-4 w-4" aria-hidden="true" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {discussion.responded_by && discussion.responded_at
-                                    ? 'Already responded'
-                                    : 'Mark as responded'}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => onRespondClick?.(discussion)}
+                                  className={`h-7 px-2 ${
+                                    discussion.responded_by && discussion.responded_at
+                                      ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
+                                      : 'text-muted-foreground hover:text-foreground'
+                                  }`}
+                                  disabled={
+                                    !!(discussion.responded_by && discussion.responded_at) ||
+                                    !onRespondClick
+                                  }
+                                  aria-label={
+                                    discussion.responded_by && discussion.responded_at
+                                      ? 'Already responded'
+                                      : 'Mark as responded'
+                                  }
+                                >
+                                  <Reply className="h-4 w-4" aria-hidden="true" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {discussion.responded_by && discussion.responded_at
+                                  ? 'Already responded'
+                                  : 'Mark as responded'}
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                         <div className="ml-auto">

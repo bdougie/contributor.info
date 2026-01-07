@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -317,33 +317,29 @@ export function ContributorsTable({
           const stats = row.original.contributions;
           return (
             <div className="flex items-center gap-3 text-sm">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="flex items-center gap-1">
-                    <GitPullRequest className="h-4 w-4 text-muted-foreground" />
-                    <span>{humanizeNumber(stats.pull_requests)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>Pull Requests</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                    <span>{humanizeNumber(stats.issues)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>Issues</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger className="flex items-center gap-1">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span>{humanizeNumber(stats.reviews)}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>Reviews</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger className="flex items-center gap-1">
+                  <GitPullRequest className="h-4 w-4 text-muted-foreground" />
+                  <span>{humanizeNumber(stats.pull_requests)}</span>
+                </TooltipTrigger>
+                <TooltipContent>Pull Requests</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger className="flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                  <span>{humanizeNumber(stats.issues)}</span>
+                </TooltipTrigger>
+                <TooltipContent>Issues</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger className="flex items-center gap-1">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <span>{humanizeNumber(stats.reviews)}</span>
+                </TooltipTrigger>
+                <TooltipContent>Reviews</TooltipContent>
+              </Tooltip>
             </div>
           );
         },

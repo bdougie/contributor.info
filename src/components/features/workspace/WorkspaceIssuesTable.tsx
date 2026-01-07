@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -275,35 +275,34 @@ export function WorkspaceIssuesTable({
 
             return (
               <div className="flex flex-col gap-1">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      {issue.url ? (
-                        <a
-                          href={issue.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => {
-                            if (onIssueClick) {
-                              e.preventDefault();
-                              onIssueClick(issue);
-                            }
-                          }}
-                          className="font-medium hover:text-primary transition-colors text-left block"
-                        >
-                          <span className="line-clamp-1">{truncatedTitle}</span>
-                        </a>
-                      ) : (
-                        <span className="font-medium text-muted-foreground text-left block">
-                          <span className="line-clamp-1">{truncatedTitle}</span>
-                        </span>
-                      )}
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-md">
-                      <p>{issue.title}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {issue.url ? (
+                      <a
+                        href={issue.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (onIssueClick) {
+                            e.preventDefault();
+                            onIssueClick(issue);
+                          }
+                        }}
+                        className="font-medium hover:text-primary transition-colors text-left block"
+                      >
+                        <span className="line-clamp-1">{truncatedTitle}</span>
+                      </a>
+                    ) : (
+                      <span className="font-medium text-muted-foreground text-left block">
+                        <span className="line-clamp-1">{truncatedTitle}</span>
+                      </span>
+                    )}
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-md">
+                    <p>{issue.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+
                 {issue.labels.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
                     <Badge
@@ -460,22 +459,20 @@ export function WorkspaceIssuesTable({
                   );
                 })}
                 {remainingCount > 0 && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
-                          <span className="text-xs font-medium">+{remainingCount}</span>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="space-y-1">
-                          {assignees.slice(maxVisible).map((assignee) => (
-                            <p key={assignee.login}>{assignee.login}</p>
-                          ))}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex h-6 w-6 -ml-2 rounded-full bg-muted border-2 border-background items-center justify-center cursor-default">
+                        <span className="text-xs font-medium">+{remainingCount}</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="space-y-1">
+                        {assignees.slice(maxVisible).map((assignee) => (
+                          <p key={assignee.login}>{assignee.login}</p>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </>
             );
@@ -583,21 +580,19 @@ export function WorkspaceIssuesTable({
             if (!hasSimilar) return null;
 
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedIssueForSimilar(row.original)}
-                      className="h-8 px-2 text-amber-500 hover:text-amber-600"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Similar issues found</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedIssueForSimilar(row.original)}
+                    className="h-8 px-2 text-amber-500 hover:text-amber-600"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Similar issues found</TooltipContent>
+              </Tooltip>
             );
           },
           size: 50,
@@ -609,29 +604,27 @@ export function WorkspaceIssuesTable({
             const hasResponded = row.original.responded_by && row.original.responded_at;
 
             return (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRespondClick?.(row.original)}
-                      className={cn(
-                        'h-8 px-2',
-                        hasResponded
-                          ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                      disabled={!!hasResponded || !onRespondClick}
-                    >
-                      <Reply className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {hasResponded ? 'Already responded' : 'Mark as responded'}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRespondClick?.(row.original)}
+                    className={cn(
+                      'h-8 px-2',
+                      hasResponded
+                        ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                    disabled={!!hasResponded || !onRespondClick}
+                  >
+                    <Reply className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {hasResponded ? 'Already responded' : 'Mark as responded'}
+                </TooltipContent>
+              </Tooltip>
             );
           },
           size: 50,

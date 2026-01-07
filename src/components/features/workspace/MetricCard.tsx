@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Minus, Info } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface MetricCardProps {
   title: string;
@@ -108,21 +108,19 @@ export function MetricCard({
         <div className="flex items-center justify-between">
           <div className="flex-1">
             {description ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="inline-flex items-center gap-1 cursor-default">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {title}
-                      </CardTitle>
-                      <Info className="h-3 w-3 text-muted-foreground/60" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">{description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-flex items-center gap-1 cursor-default">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {title}
+                    </CardTitle>
+                    <Info className="h-3 w-3 text-muted-foreground/60" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">{description}</p>
+                </TooltipContent>
+              </Tooltip>
             ) : (
               <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
             )}

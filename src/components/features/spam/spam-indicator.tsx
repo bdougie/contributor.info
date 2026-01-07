@@ -1,6 +1,6 @@
 import { Shield, AlertTriangle, XCircle, CheckCircle } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface SpamIndicatorProps {
@@ -117,22 +117,20 @@ export function SpamIndicator({
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent>
-          <div className="space-y-1">
-            <p className="font-medium">Spam Detection Score: {spamScore}/100</p>
-            <p className="text-xs text-muted-foreground">
-              {level === 'legitimate' && 'This PR appears to be legitimate'}
-              {level === 'warning' && 'This PR may be low quality'}
-              {level === 'likely' && 'This PR is likely spam'}
-              {level === 'definite' && 'This PR has been identified as spam'}
-            </p>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>{content}</TooltipTrigger>
+      <TooltipContent>
+        <div className="space-y-1">
+          <p className="font-medium">Spam Detection Score: {spamScore}/100</p>
+          <p className="text-xs text-muted-foreground">
+            {level === 'legitimate' && 'This PR appears to be legitimate'}
+            {level === 'warning' && 'This PR may be low quality'}
+            {level === 'likely' && 'This PR is likely spam'}
+            {level === 'definite' && 'This PR has been identified as spam'}
+          </p>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -182,19 +180,17 @@ export function SpamProbabilityBadge({
   // Show "-" for unanalyzed PRs instead of hiding the badge
   if (spamScore === null) {
     return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="outline" className={cn('text-xs gap-1', className)}>
-              <span>📊</span>
-              <span>-</span>
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Not analyzed for spam yet</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="outline" className={cn('text-xs gap-1', className)}>
+            <span>📊</span>
+            <span>-</span>
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Not analyzed for spam yet</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import type { PullRequest, QuadrantData } from '@/lib/types';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 import { ContributorHoverCard } from '../contributor';
@@ -79,7 +78,7 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
   }, [data]);
 
   return (
-    <TooltipProvider>
+    <>
       {/* Mobile placeholder - only shown on small screens */}
       <div className="md:hidden flex flex-col items-center justify-center p-6 border rounded-lg bg-background text-center space-y-4">
         <div className="w-16 h-16 text-muted-foreground animate-pulse">
@@ -208,6 +207,6 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
           </FileHoverInfo>
         ))}
       </div>
-    </TooltipProvider>
+    </>
   );
 }
