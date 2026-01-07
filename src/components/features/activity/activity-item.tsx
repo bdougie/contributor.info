@@ -1,6 +1,6 @@
 import { PullRequestActivity } from '@/lib/types';
 import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ContributorHoverCard } from '../contributor';
 import { useContext, useMemo, useState, useEffect } from 'react';
 import { BotIcon } from '@/components/ui/icon';
@@ -131,19 +131,14 @@ export function ActivityItem({ activity }: ActivityItemProps) {
             <div className="flex items-center space-x-1 text-sm flex-wrap">
               <span className="font-medium">{user.name}</span>
               {user.isBot && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <BotIcon
-                        className="h-3 w-3 text-muted-foreground ml-1"
-                        aria-label="Bot user"
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Bot</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <BotIcon className="h-3 w-3 text-muted-foreground ml-1" aria-label="Bot user" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Bot</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
               <span className="text-muted-foreground">
                 {type === 'starred' && '⭐ '}
