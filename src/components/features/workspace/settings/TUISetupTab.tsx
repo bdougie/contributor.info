@@ -1,53 +1,20 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Terminal, ExternalLink, Sparkles } from '@/components/ui/icon';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
-import { useCurrentUser } from '@/hooks/use-current-user';
-import { SubscriptionService } from '@/services/polar/subscription.service';
+import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
 import { Skeleton } from '@/components/ui/skeleton';
 
-interface TUISetupTabProps {
-  workspaceId: string;
-}
+export function TUISetupTab() {
+  const { canUseRepositoryInsightsTUI, loading } = useSubscriptionLimits();
 
-export function TUISetupTab({ workspaceId }: TUISetupTabProps) {
-  const { user, loading: userLoading } = useCurrentUser();
-  const [hasAccess, setHasAccess] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-
-  useEffect(() => {
-    const checkFeatureAccess = async () => {
-      if (!user?.id) {
-        setCheckingAccess(false);
-        setHasAccess(false);
-        return;
-      }
-
-      try {
-        const access = await SubscriptionService.checkFeatureAccess(
-          user.id,
-          'repositoryInsightsTUI'
-        );
-        setHasAccess(access);
-      } catch (error) {
-        console.error('Error checking TUI feature access:', error);
-        setHasAccess(false);
-      } finally {
-        setCheckingAccess(false);
-      }
-    };
-
-    checkFeatureAccess();
-  }, [user, workspaceId]);
-
-  if (userLoading || checkingAccess) {
+  if (loading) {
     return <TUISetupTabSkeleton />;
   }
 
   // Show upgrade prompt for users without access
-  if (!hasAccess) {
+  if (!canUseRepositoryInsightsTUI) {
     return (
       <div className="space-y-4">
         <PermissionUpgradeCTA

@@ -16,6 +16,7 @@ interface SubscriptionLimits {
   canAddMember: (workspaceId: string) => Promise<boolean>;
   canUsePrivateWorkspaces: boolean;
   canExportData: boolean;
+  canUseRepositoryInsightsTUI: boolean;
   dataRetentionDays: number | 'unlimited';
   loading: boolean;
 }
@@ -44,9 +45,10 @@ export function useSubscriptionLimits(): SubscriptionLimits {
         const tier = subscription?.tier || 'free';
 
         // Check feature access
-        const [privateAccess, exportAccess, retentionDays] = await Promise.all([
+        const [privateAccess, exportAccess, tuiAccess, retentionDays] = await Promise.all([
           SubscriptionService.checkFeatureAccess(user.id, 'privateWorkspaces'),
           SubscriptionService.checkFeatureAccess(user.id, 'exportsEnabled'),
+          SubscriptionService.checkFeatureAccess(user.id, 'repositoryInsightsTUI'),
           SubscriptionService.getFeatureLimit(user.id, 'dataRetentionDays'),
         ]);
 
@@ -57,6 +59,7 @@ export function useSubscriptionLimits(): SubscriptionLimits {
           currentWorkspaceCount: workspaceCheck.current,
           canUsePrivateWorkspaces: privateAccess,
           canExportData: exportAccess,
+          canUseRepositoryInsightsTUI: tuiAccess,
           dataRetentionDays: retentionDays,
         });
       } catch (error) {
@@ -90,6 +93,7 @@ export function useSubscriptionLimits(): SubscriptionLimits {
     canAddMember,
     canUsePrivateWorkspaces: limits.canUsePrivateWorkspaces || false,
     canExportData: limits.canExportData || false,
+    canUseRepositoryInsightsTUI: limits.canUseRepositoryInsightsTUI || false,
     dataRetentionDays: limits.dataRetentionDays || 30,
     loading,
   };

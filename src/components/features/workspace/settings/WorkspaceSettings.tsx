@@ -449,7 +449,7 @@ export function WorkspaceSettings({
       />
 
       {/* Repository Insights TUI */}
-      <TUISetupTab workspaceId={workspace.id} />
+      <TUISetupTab />
 
       {/* Event Data Backfill Section */}
       {repositories.length > 0 && (
