@@ -111,100 +111,65 @@ export function TUISetupTab({ workspaceId }: TUISetupTabProps) {
 
   // Show setup card for users with access
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
-              <Terminal className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle>Repository Insights TUI</CardTitle>
-              <CardDescription>
-                Explore repositories with a local-first terminal interface
-              </CardDescription>
-            </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+            <Terminal className="w-6 h-6 text-primary" />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Run a powerful terminal UI to browse, analyze, and export repository insights. All data
-            stays on your machine - perfect for enterprise environments that require data privacy
-            and control.
+          <div>
+            <CardTitle>Repository Insights TUI</CardTitle>
+            <CardDescription>
+              Explore repositories with a local-first terminal interface
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Run a powerful terminal UI to browse, analyze, and export repository insights. All data
+          stays on your machine - perfect for enterprise environments that require data privacy and
+          control.
+        </p>
+
+        <div className="flex flex-col gap-3 pt-2">
+          <Button asChild variant="default" className="w-full sm:w-auto">
+            <a
+              href="/local"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2"
+            >
+              View Setup Guide
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Opens complete documentation with setup instructions, CLI commands, and deployment
+            guides
           </p>
-
-          <div className="flex flex-col gap-3 pt-2">
-            <Button asChild variant="default" className="w-full sm:w-auto">
-              <a
-                href="/local"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2"
-              >
-                View Setup Guide
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Opens complete documentation with setup instructions, CLI commands, and deployment
-              guides
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Start Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Quick Start</CardTitle>
-          <CardDescription>Get started with the Repository Insights TUI</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3 text-sm">
-            <div>
-              <p className="font-medium mb-1">1. Install Dependencies</p>
-              <code className="block bg-muted px-3 py-2 rounded text-xs font-mono">
-                docker pull contributor-info/tui:latest
-              </code>
-            </div>
-            <div>
-              <p className="font-medium mb-1">2. Run the TUI</p>
-              <code className="block bg-muted px-3 py-2 rounded text-xs font-mono">
-                docker run -it contributor-info/tui
-              </code>
-            </div>
-            <div>
-              <p className="font-medium mb-1">3. Explore Documentation</p>
-              <p className="text-muted-foreground">
-                Visit the setup guide for detailed instructions on keyboard shortcuts, configuration
-                options, and advanced features.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 export function TUISetupTabSkeleton() {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <Skeleton className="w-12 h-12 rounded-full" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-4 w-64" />
-            </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-12 h-12 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-64" />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-10 w-40" />
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-10 w-40" />
+      </CardContent>
+    </Card>
   );
 }
