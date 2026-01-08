@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.20.0](https://github.com/bdougie/contributor.info/compare/v4.19.1...v4.20.0) (2026-01-08)
+
+
+### ⚡ Performance Improvements
+
+* optimize TUISetupTab to use shared subscription hook ([#1481](https://github.com/bdougie/contributor.info/issues/1481)) ([af34d50](https://github.com/bdougie/contributor.info/commit/af34d503ffff9a7b8acd8054446d92282e4f3254)), closes [#1480](https://github.com/bdougie/contributor.info/issues/1480)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([86093d1](https://github.com/bdougie/contributor.info/commit/86093d177027b2af520bfd0a585f5671cc25be53))
+
 ## [4.19.1](https://github.com/bdougie/contributor.info/compare/v4.19.0...v4.19.1) (2026-01-08)
 
 
