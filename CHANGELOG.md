@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.19.0](https://github.com/bdougie/contributor.info/compare/v4.18.0...v4.19.0) (2026-01-08)
+
+
+### 🚀 Features
+
+* Repository Insights TUI settings tab with Teams+ gating ([#1478](https://github.com/bdougie/contributor.info/issues/1478)) ([#1480](https://github.com/bdougie/contributor.info/issues/1480)) ([36978df](https://github.com/bdougie/contributor.info/commit/36978df5d663df183d5c4a2a47dc0f1b42510371))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([b9a9397](https://github.com/bdougie/contributor.info/commit/b9a939756d9f35d7db9517bad300c2e4d9cb309c))
+
 ## [4.18.0](https://github.com/bdougie/contributor.info/compare/v4.17.0...v4.18.0) (2026-01-07)
 
 
