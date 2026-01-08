@@ -400,6 +400,13 @@
   status = 301
   force = true
 
+# Redirect local TUI documentation to subdomain
+[[redirects]]
+  from = "/local"
+  to = "https://local.contributor.info"
+  status = 301
+  force = true
+
 # Redirect rules for SPA behavior
 # All API redirects above have force = true so they take precedence
 [[redirects]]
