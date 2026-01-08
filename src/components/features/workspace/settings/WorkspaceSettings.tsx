@@ -22,6 +22,7 @@ import { WorkspacePermissionService } from '@/services/workspace-permissions.ser
 import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/workspace';
 import { WorkspaceBackfillManager } from '../WorkspaceBackfillManager';
 import { SlackIntegrationCard } from './SlackIntegrationCard';
+import { TUISetupTab } from './TUISetupTab';
 
 interface Repository {
   id: string;
@@ -446,6 +447,9 @@ export function WorkspaceSettings({
         workspaceId={workspace.id}
         canEditSettings={permissions.canEditSettings}
       />
+
+      {/* Repository Insights TUI */}
+      <TUISetupTab workspaceId={workspace.id} />
 
       {/* Event Data Backfill Section */}
       {repositories.length > 0 && (

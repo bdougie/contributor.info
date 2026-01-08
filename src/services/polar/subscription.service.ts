@@ -13,6 +13,7 @@ export interface SubscriptionTier {
     analyticsLevel: 'basic' | 'advanced' | 'enterprise';
     privateWorkspaces: boolean;
     exportsEnabled: boolean;
+    repositoryInsightsTUI: boolean;
     githubRepoAccess?: string[];
     ssoEnabled?: boolean;
     auditLogs?: boolean;
@@ -40,6 +41,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       analyticsLevel: 'basic',
       privateWorkspaces: false,
       exportsEnabled: false,
+      repositoryInsightsTUI: false,
     },
   },
   pro: {
@@ -55,6 +57,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       analyticsLevel: 'advanced',
       privateWorkspaces: false, // Public workspaces only for Pro
       exportsEnabled: false, // No data exports in Pro tier
+      repositoryInsightsTUI: false, // Not available in Pro
       githubRepoAccess: ['premium-analytics'],
       ssoEnabled: false, // No SSO in Pro tier
       auditLogs: false, // No audit logs in Pro tier
@@ -77,6 +80,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       analyticsLevel: 'enterprise',
       privateWorkspaces: true,
       exportsEnabled: true,
+      repositoryInsightsTUI: true,
       githubRepoAccess: ['premium-analytics', 'advanced-insights'],
       ssoEnabled: true,
       auditLogs: true,
@@ -101,6 +105,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
       analyticsLevel: 'enterprise',
       privateWorkspaces: true,
       exportsEnabled: true,
+      repositoryInsightsTUI: true,
       githubRepoAccess: ['all'],
       ssoEnabled: true,
       auditLogs: true,
@@ -205,7 +210,9 @@ export class SubscriptionService {
       const supabase = await getSupabase();
 
       // Get current session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
         throw new Error('User not authenticated');
@@ -216,7 +223,7 @@ export class SubscriptionService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           subscriptionId,

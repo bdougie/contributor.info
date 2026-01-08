@@ -117,6 +117,16 @@ export const UPGRADE_MESSAGES = {
     actionHref: '/workspaces/new',
     actionType: 'upgrade' as const,
   },
+
+  // Developer Tools
+  REPOSITORY_INSIGHTS_TUI: {
+    title: 'Repository Insights TUI',
+    description:
+      'Access a powerful terminal interface for exploring repositories locally with Teams+ plans.',
+    actionText: 'Upgrade to Teams',
+    actionHref: '/billing',
+    actionType: 'upgrade' as const,
+  },
 } as const;
 
 /**
