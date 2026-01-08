@@ -289,6 +289,9 @@ export function TrendChart({
                   return (
                     <button
                       key={index}
+                      type="button"
+                      aria-pressed={isSelected}
+                      aria-label={`Toggle ${dataset.label}`}
                       onClick={() => toggleSeries(index)}
                       className={cn(
                         'flex items-center gap-2 px-2 py-1 rounded-md text-xs font-medium transition-all',
