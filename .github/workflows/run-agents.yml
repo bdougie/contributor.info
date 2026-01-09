@@ -15,4 +15,3 @@ jobs:
     uses: continuedev/continue/.github/workflows/continue-agents.yml@main
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
