@@ -1,0 +1,13 @@
+name: Run Continue Agents
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - main
+
+jobs:
+  agents:
+    uses: continuedev/continue/.github/workflows/continue-agents.yml@main
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
