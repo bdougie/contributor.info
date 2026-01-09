@@ -1,6 +1,6 @@
 ---
 name: Conventional Title
-description: Updates PR title to follow conventional commit format (type(scope): description)
+description: "Updates PR title to follow conventional commit format"
 tools: built_in
 ---
 
