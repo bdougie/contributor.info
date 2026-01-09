@@ -208,6 +208,10 @@
     "name": "app"
   },
   {
+    "owner": "pashkov256",
+    "name": "deletor"
+  },
+  {
     "owner": "pgvector",
     "name": "pgvector"
   },

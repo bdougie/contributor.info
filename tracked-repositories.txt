@@ -50,6 +50,7 @@ nestjs/nest
 ohmyzsh/ohmyzsh
 ollama/ollama
 open-sauced/app
+pashkov256/deletor
 pgvector/pgvector
 pingcap/tidb
 prometheus/prometheus
