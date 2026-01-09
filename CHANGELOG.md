@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.20.1](https://github.com/bdougie/contributor.info/compare/v4.20.0...v4.20.1) (2026-01-09)
+
+
+### 🐛 Bug Fixes
+
+* add github token to continue agents workflow ([#1488](https://github.com/bdougie/contributor.info/issues/1488)) ([a0cd76d](https://github.com/bdougie/contributor.info/commit/a0cd76d8dc1c16e83acc9df9d6756d19d64408d3))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([cd98a31](https://github.com/bdougie/contributor.info/commit/cd98a3116b032075ba98a78a38e55c84f62d938b))
+
+
+### 👷 CI/CD
+
+* add continue agents for pr automation ([#1486](https://github.com/bdougie/contributor.info/issues/1486)) ([fd97191](https://github.com/bdougie/contributor.info/commit/fd97191d9066f9eecad5fc4056aefd924fb373cf))
+* add continue agents workflow for pr automation ([#1482](https://github.com/bdougie/contributor.info/issues/1482)) ([dc2251a](https://github.com/bdougie/contributor.info/commit/dc2251ac395b473aa4038cf0e05c51502b1cfe32))
+
 ## [4.20.0](https://github.com/bdougie/contributor.info/compare/v4.19.1...v4.20.0) (2026-01-08)
 
 
