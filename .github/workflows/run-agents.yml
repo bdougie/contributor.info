@@ -13,6 +13,4 @@ jobs:
       pull-requests: write
       checks: write
     uses: continuedev/continue/.github/workflows/continue-agents.yml@main
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    secrets: inherit
