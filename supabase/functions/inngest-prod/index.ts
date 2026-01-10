@@ -3441,7 +3441,7 @@ const functions = [
 // Create Inngest handler
 const commHandler = new InngestCommHandler({
   frameworkName: 'deno-edge-supabase',
-  signingKey: undefined, // Disabled for debugging - events are being sent but not executing
+  signingKey: INNGEST_SIGNING_KEY,
   client: inngest,
   functions,
   serveHost: Deno.env.get('VITE_DEPLOY_URL') || 'https://egcxzonpmmcirmgqdrla.supabase.co',
