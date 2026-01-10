@@ -17,12 +17,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Pre-calculate constants for humanizeNumber
+const UNITS = ['', 'K', 'M', 'B', 'T'];
+// Math.log(1000) is approximately 6.907755278982137
+const LOG_1000 = Math.log(1000);
+
 export function humanizeNumber(num: number): string {
   if (num === 0) return '0';
 
-  const units = ['', 'K', 'M', 'B', 'T'];
-  const order = Math.floor(Math.log(Math.abs(num)) / Math.log(1000));
-  const unitname = units[order];
+  const order = Math.floor(Math.log(Math.abs(num)) / LOG_1000);
+  const unitname = UNITS[order];
   const value = Math.round(num / Math.pow(1000, order));
   return value + unitname;
 }
