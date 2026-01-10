@@ -1,7 +1,6 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ExampleRepos } from '@/components/features/repository/example-repos';
 import { useNavigate } from 'react-router';
 import { SocialMetaTags } from './meta-tags-provider';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
@@ -13,7 +12,12 @@ import type { GitHubRepository } from '@/lib/github';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 
-// Lazy load components that are only shown for logged-in users or on interaction
+// Lazy load components that are below the fold or only shown for logged-in users
+const ExampleRepos = lazy(() =>
+  import('@/components/features/repository/example-repos').then((m) => ({
+    default: m.ExampleRepos,
+  }))
+);
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
 const WorkspacePreviewCard = lazy(() =>
   import('@/components/features/workspace/WorkspacePreviewCard').then((m) => ({
@@ -115,7 +119,9 @@ export default function Home() {
               />
             </section>
             <aside>
-              <ExampleRepos onSelect={handleSelectExample} />
+              <Suspense fallback={<div className="mt-4 text-center text-sm text-muted-foreground">Loading examples...</div>}>
+                <ExampleRepos onSelect={handleSelectExample} />
+              </Suspense>
             </aside>
           </CardContent>
         </Card>
