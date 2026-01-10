@@ -1,11 +1,8 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router';
 import React, { Suspense, lazy, useEffect } from 'react';
 import { ThemeProvider } from '@/components/common/theming';
-import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
-import { OfflineNotification } from '@/components/common/OfflineNotification';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
@@ -15,6 +12,20 @@ import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
 import { Layout, Home } from '@/components/common/layout';
 // Eagerly load repo skeleton to prevent layout mismatch during lazy loading
 import { RepoViewSkeleton } from '@/components/skeletons/layouts/repo-view-skeleton';
+// SVGSpriteInliner must be eagerly loaded (not lazy) as it's rendered outside Suspense
+// and is needed immediately to inline SVG sprites for the entire app
+import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
+
+// Lazy load UI components that aren't needed for initial LCP
+const Toaster = lazy(() => import('@/components/ui/sonner').then((m) => ({ default: m.Toaster })));
+const PWAInstallPrompt = lazy(() =>
+  import('@/components/ui/pwa-install-prompt').then((m) => ({ default: m.PWAInstallPrompt }))
+);
+const OfflineNotification = lazy(() =>
+  import('@/components/common/OfflineNotification').then((m) => ({
+    default: m.OfflineNotification,
+  }))
+);
 
 const NotFound = lazy(() =>
   import('@/components/common/layout').then((m) => ({ default: m.NotFound }))
@@ -26,9 +37,6 @@ const ProtectedRoute = lazy(() =>
 const AdminRoute = lazy(() =>
   import('@/components/features/auth').then((m) => ({ default: m.AdminRoute }))
 );
-// SVGSpriteInliner must be eagerly loaded (not lazy) as it's rendered outside Suspense
-// and is needed immediately to inline SVG sprites for the entire app
-import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
 // Lazy load workspace redirect - only needed when navigating to legacy /workspace/* routes
 const WorkspaceRedirect = lazy(() =>
   import('@/components/WorkspaceRedirect').then((m) => ({ default: m.WorkspaceRedirect }))
@@ -434,7 +442,9 @@ function App() {
             <SVGSpriteInliner />
             <Router>
               <WorkspaceProvider>
-                <OfflineNotification />
+                <Suspense fallback={null}>
+                  <OfflineNotification />
+                </Suspense>
                 <Suspense fallback={<PageSkeleton />}>
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
@@ -697,11 +707,15 @@ function App() {
                     </Route>
                   </Routes>
                 </Suspense>
-                <Toaster />
-                <PWAInstallPrompt
-                  onInstall={() => logger.debug('PWA installed successfully!')}
-                  onDismiss={() => logger.debug('PWA install prompt dismissed')}
-                />
+                <Suspense fallback={null}>
+                  <Toaster />
+                </Suspense>
+                <Suspense fallback={null}>
+                  <PWAInstallPrompt
+                    onInstall={() => logger.debug('PWA installed successfully!')}
+                    onDismiss={() => logger.debug('PWA install prompt dismissed')}
+                  />
+                </Suspense>
               </WorkspaceProvider>
             </Router>
           </TooltipProvider>
