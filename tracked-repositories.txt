@@ -37,6 +37,7 @@ grafana/grafana
 grenzbotin/strapi-llm-translator
 huggingface/transformers
 husamql3/pstrack
+Iam-Karan-Suresh/kestra
 jargonsdev/jargons.dev
 Kilo-Org/kilocode
 kubernetes/kubernetes
