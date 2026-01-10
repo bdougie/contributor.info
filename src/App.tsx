@@ -12,8 +12,8 @@ import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
 import { Layout, Home } from '@/components/common/layout';
 // Eagerly load repo skeleton to prevent layout mismatch during lazy loading
 import { RepoViewSkeleton } from '@/components/skeletons/layouts/repo-view-skeleton';
-// SVGSpriteInliner must be eagerly loaded (not lazy) as it's rendered outside Suspense
-// and is needed immediately to inline SVG sprites for the entire app
+// SVGSpriteInliner must be eagerly loaded (not lazy) as it's needed immediately
+// to inline SVG sprites for the entire app (rendered early in the component tree)
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
 
 // Lazy load UI components that aren't needed for initial LCP

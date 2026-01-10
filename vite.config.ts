@@ -263,7 +263,8 @@ export default defineConfig(() => ({
           (dep) =>
             dep.includes('vendor-react-core') ||
             dep.includes('vendor-utils') ||
-            dep.includes('index-')
+            // Match index- followed by hash, but exclude other prefixed chunks
+            (dep.includes('index-') && !dep.includes('nivo-') && !dep.includes('charts-'))
         );
       },
     },
