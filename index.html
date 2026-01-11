@@ -81,10 +81,9 @@
       @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
       /* Prevent FOUC */
       body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
-      #root{min-height:100vh;background-color:hsl(var(--background));contain:layout style paint}
+      #root{min-height:100vh;background-color:hsl(var(--background));contain:style paint}
       /* Optimize LCP element rendering */
       h1{font-weight:700;text-rendering:optimizeLegibility;contain:layout style}
-      article{will-change:contents}
     </style>
     
     <!-- Open Graph / Facebook -->
