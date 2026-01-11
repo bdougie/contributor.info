@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import { Share2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -210,6 +210,18 @@ export default function RepoView() {
     }
   };
 
+  // Memoize context value to prevent unnecessary re-renders of heavy chart components
+  const repoStatsContextValue = useMemo(
+    () => ({
+      stats,
+      lotteryFactor,
+      directCommitsData,
+      includeBots,
+      setIncludeBots,
+    }),
+    [stats, lotteryFactor, directCommitsData, includeBots, setIncludeBots]
+  );
+
   // Determine if we're in any loading state (checking tracking OR loading data)
   const isLoading = trackingState.status === 'checking' || stats.loading;
   const showTrackingCard = trackingState.status === 'not_tracked';
@@ -420,15 +432,7 @@ export default function RepoView() {
                 />
               ) : (
                 <ErrorBoundary context="Repository Data Provider">
-                  <RepoStatsProvider
-                    value={{
-                      stats,
-                      lotteryFactor,
-                      directCommitsData,
-                      includeBots,
-                      setIncludeBots,
-                    }}
-                  >
+                  <RepoStatsProvider value={repoStatsContextValue}>
                     {isLoading ? (
                       <div className="space-y-4 animate-pulse" role="status" aria-live="polite">
                         <div className="text-center text-muted-foreground">
