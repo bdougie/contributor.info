@@ -22,6 +22,7 @@ import {
   Layout,
 } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { Kbd } from '@/components/ui/kbd';
 import { cn, validateRepositoryPath } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { getWorkspaceUrl } from '@/lib/workspace-utils';
@@ -405,8 +406,8 @@ export function CommandPalette({
                 Repository not in your workspaces
               </p>
               <p className="text-xs">
-                Press <kbd className="rounded bg-muted px-1">↵</kbd> to navigate to{' '}
-                <strong>{query}</strong>
+                Press <Kbd className="rounded bg-muted px-1 h-auto font-normal">↵</Kbd> to navigate
+                to <strong>{query}</strong>
               </p>
             </div>
           ) : (
@@ -423,11 +424,7 @@ export function CommandPalette({
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   {cmd.icon}
                   <span className="flex-1">{cmd.name}</span>
-                  {cmd.shortcut && (
-                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                      {cmd.shortcut}
-                    </kbd>
-                  )}
+                  {cmd.shortcut && <Kbd>{cmd.shortcut}</Kbd>}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -516,11 +513,7 @@ export function CommandPalette({
                       <span className="block text-xs text-muted-foreground">{cmd.description}</span>
                     )}
                   </div>
-                  {cmd.shortcut && (
-                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                      {cmd.shortcut}
-                    </kbd>
-                  )}
+                  {cmd.shortcut && <Kbd>{cmd.shortcut}</Kbd>}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -532,27 +525,30 @@ export function CommandPalette({
           <div className="flex items-center justify-between">
             <span>
               Type{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="workspace colon">
+              <Kbd
+                className="rounded bg-muted px-1 h-auto font-normal"
+                aria-label="workspace colon"
+              >
                 workspace:
-              </kbd>{' '}
+              </Kbd>{' '}
               or{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="repo colon">
+              <Kbd className="rounded bg-muted px-1 h-auto font-normal" aria-label="repo colon">
                 repo:
-              </kbd>{' '}
+              </Kbd>{' '}
               to filter
             </span>
             <span>
-              <kbd className="rounded bg-muted px-1" aria-label="arrow keys">
+              <Kbd className="rounded bg-muted px-1 h-auto font-normal" aria-label="arrow keys">
                 ↑↓
-              </kbd>{' '}
+              </Kbd>{' '}
               to navigate{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="enter key">
+              <Kbd className="rounded bg-muted px-1 h-auto font-normal" aria-label="enter key">
                 ↵
-              </kbd>{' '}
+              </Kbd>{' '}
               to select{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="escape key">
+              <Kbd className="rounded bg-muted px-1 h-auto font-normal" aria-label="escape key">
                 esc
-              </kbd>{' '}
+              </Kbd>{' '}
               to close
             </span>
           </div>
