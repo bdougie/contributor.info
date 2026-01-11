@@ -22,6 +22,7 @@ import {
   Layout,
 } from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import { Kbd } from '@/components/ui/kbd';
 import { cn, validateRepositoryPath } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { getWorkspaceUrl } from '@/lib/workspace-utils';
@@ -405,8 +406,7 @@ export function CommandPalette({
                 Repository not in your workspaces
               </p>
               <p className="text-xs">
-                Press <kbd className="rounded bg-muted px-1">↵</kbd> to navigate to{' '}
-                <strong>{query}</strong>
+                Press <Kbd>↵</Kbd> to navigate to <strong>{query}</strong>
               </p>
             </div>
           ) : (
@@ -423,11 +423,7 @@ export function CommandPalette({
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   {cmd.icon}
                   <span className="flex-1">{cmd.name}</span>
-                  {cmd.shortcut && (
-                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                      {cmd.shortcut}
-                    </kbd>
-                  )}
+                  {cmd.shortcut && <Kbd>{cmd.shortcut}</Kbd>}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -531,29 +527,13 @@ export function CommandPalette({
         <div id="command-palette-help" className="px-2 py-2 text-xs text-muted-foreground border-t">
           <div className="flex items-center justify-between">
             <span>
-              Type{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="workspace colon">
-                workspace:
-              </kbd>{' '}
-              or{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="repo colon">
-                repo:
-              </kbd>{' '}
-              to filter
+              Type <Kbd aria-label="workspace colon">workspace:</Kbd> or{' '}
+              <Kbd aria-label="repo colon">repo:</Kbd> to filter
             </span>
             <span>
-              <kbd className="rounded bg-muted px-1" aria-label="arrow keys">
-                ↑↓
-              </kbd>{' '}
-              to navigate{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="enter key">
-                ↵
-              </kbd>{' '}
-              to select{' '}
-              <kbd className="rounded bg-muted px-1" aria-label="escape key">
-                esc
-              </kbd>{' '}
-              to close
+              <Kbd aria-label="arrow keys">↑↓</Kbd> to navigate{' '}
+              <Kbd aria-label="enter key">↵</Kbd> to select{' '}
+              <Kbd aria-label="escape key">esc</Kbd> to close
             </span>
           </div>
         </div>
