@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.21.0](https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0) (2026-01-11)
+
+
+### ⚡ Performance Improvements
+
+* memoize RepoStatsContext value in RepoView ([#1504](https://github.com/bdougie/contributor.info/issues/1504)) ([3f62dcf](https://github.com/bdougie/contributor.info/commit/3f62dcfe9b3d890bfc2f0d14884414992010c2bd))
+* optimize humanizeNumber with pre-calculated constants ([#1502](https://github.com/bdougie/contributor.info/issues/1502)) ([408509a](https://github.com/bdougie/contributor.info/commit/408509a6089c9d63aabdec0491921d076639d713))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([710c8b1](https://github.com/bdougie/contributor.info/commit/710c8b142ddded49fd49fd6fe2fc9595bc69814e))
+
 ## [4.20.2](https://github.com/bdougie/contributor.info/compare/v4.20.1...v4.20.2) (2026-01-10)
 
 
