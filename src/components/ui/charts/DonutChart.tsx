@@ -200,7 +200,6 @@ const DonutChartComponent: React.FC<DonutChartProps> = ({
       }
     },
     [
-      data,
       dimensions,
       innerRadius,
       outerRadius,

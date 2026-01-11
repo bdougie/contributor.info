@@ -3,8 +3,18 @@ import { queueManager } from './queue-manager';
 import { trackDatabaseOperation, trackCacheOperation } from '../simple-logging';
 // Removed Sentry import - using simple logging instead
 
+interface AISummaryJob {
+  id: string;
+  repository_id: string;
+  type?: string;
+  priority?: 'high' | 'medium' | 'low';
+  attempts?: number;
+  metadata?: Record<string, unknown>;
+}
+
 // No-op replacement for trackDataSync
-const trackDataSync = (..._args: any[]) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const trackDataSync = (..._args: (string | Record<string, unknown>)[]) => {
   // No-op: Data sync tracking removed
 };
 
@@ -22,7 +32,7 @@ export class AISummaryProcessor {
   ): Promise<boolean> {
     try {
       const { error } = await supabase.from('data_capture_queue').insert({
-        type: 'ai_summary' as any, // Type extension for AI summaries
+        type: 'ai_summary' as unknown as string, // Type extension for AI summaries
         priority,
         repository_id: repositoryId,
         estimated_api_calls: 2, // 1 for summary, 1 for embedding
@@ -60,7 +70,7 @@ export class AISummaryProcessor {
   /**
    * Process AI summary generation job
    */
-  static async processAISummaryJob(job: any): Promise<boolean> {
+  static async processAISummaryJob(job: AISummaryJob): Promise<boolean> {
     const startTime = Date.now();
 
     try {
@@ -279,5 +289,5 @@ export class AISummaryProcessor {
 
 // Export for browser console access
 if (typeof window !== 'undefined') {
-  (window as any).AISummaryProcessor = AISummaryProcessor;
+  (window as unknown as Record<string, unknown>).AISummaryProcessor = AISummaryProcessor;
 }

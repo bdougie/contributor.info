@@ -133,16 +133,28 @@ export function WorkspaceSpamTab({
               <CardDescription>Distribution</CardDescription>
               <div className="grid grid-cols-2 gap-1 mt-1">
                 {[
-                  { label: 'clean', value: stats.distribution.legitimate, variant: 'default' as const },
-                  { label: 'warn', value: stats.distribution.warning, variant: 'secondary' as const },
-                  { label: 'likely', value: stats.distribution.likelySpam, variant: 'secondary' as const },
-                  { label: 'spam', value: stats.distribution.definiteSpam, variant: 'destructive' as const },
+                  {
+                    label: 'clean',
+                    value: stats.distribution.legitimate,
+                    variant: 'default' as const,
+                  },
+                  {
+                    label: 'warn',
+                    value: stats.distribution.warning,
+                    variant: 'secondary' as const,
+                  },
+                  {
+                    label: 'likely',
+                    value: stats.distribution.likelySpam,
+                    variant: 'secondary' as const,
+                  },
+                  {
+                    label: 'spam',
+                    value: stats.distribution.definiteSpam,
+                    variant: 'destructive' as const,
+                  },
                 ].map((item) => (
-                  <Badge
-                    key={item.label}
-                    variant="outline"
-                    className="text-xs justify-center"
-                  >
+                  <Badge key={item.label} variant="outline" className="text-xs justify-center">
                     {item.value} {item.label}
                   </Badge>
                 ))}

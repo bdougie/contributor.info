@@ -134,7 +134,7 @@ export class HybridQueueManager {
         repository_name: data.repositoryName,
         time_range: data.timeRange,
         max_items: data.maxItems,
-        priority: data.metadata?.priority || 'medium',
+        priority: String(data.metadata?.priority || 'medium'),
         trigger_source: data.triggerSource,
       });
 

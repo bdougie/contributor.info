@@ -24,6 +24,13 @@ export interface ResilienceConfig {
   };
 }
 
+interface BulkheadQueueItem<T> {
+  operation: () => Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+  timestamp: number;
+}
+
 export interface ResilienceMetrics {
   circuitBreakerState: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
   failureRate: number;
@@ -197,12 +204,7 @@ class EnhancedCircuitBreaker {
  */
 class Bulkhead {
   private activeCalls = 0;
-  private queue: Array<{
-    operation: () => Promise<any>;
-    resolve: (value: any) => void;
-    reject: (error: any) => void;
-    timestamp: number;
-  }> = [];
+  private queue: Array<BulkheadQueueItem<unknown>> = [];
 
   constructor(
     private maxConcurrentCalls = 10,
@@ -216,9 +218,9 @@ class Bulkhead {
 
     // Queue the operation
     return new Promise<T>((resolve, reject) => {
-      const queueItem = {
-        operation: operation as () => Promise<any>,
-        resolve,
+      const queueItem: BulkheadQueueItem<unknown> = {
+        operation: operation as () => Promise<unknown>,
+        resolve: (value: unknown) => resolve(value as T),
         reject,
         timestamp: Date.now(),
       };
@@ -373,7 +375,7 @@ export class ResilienceService {
       timeout = this.config.timeout.defaultTimeout,
     } = options;
 
-    let wrappedOperation = operation;
+    let wrappedOperation: () => Promise<T> = operation;
 
     // Wrap with timeout if enabled
     if (useTimeout) {

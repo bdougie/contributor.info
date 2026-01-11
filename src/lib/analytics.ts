@@ -15,7 +15,7 @@ export interface ShareEvent {
   domain?: string;
   user_agent?: string;
   referrer?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

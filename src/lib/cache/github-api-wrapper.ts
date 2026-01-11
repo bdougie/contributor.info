@@ -23,6 +23,50 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+// GitHub API response types
+export interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: Record<string, string | number | boolean>;
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+export interface GitHubUser {
+  login: string;
+  id: number;
+  avatar_url: string;
+  name?: string;
+  bio?: string;
+  public_repos?: number;
+  followers?: number;
+  following?: number;
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+export interface GitHubPullRequest {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  url: string;
+  html_url: string;
+  user: GitHubUser;
+  created_at: string;
+  updated_at: string;
+  [key: string]: string | number | boolean | object | null;
+}
+
+export interface GitHubEvent {
+  id: string;
+  type: string;
+  actor: GitHubUser;
+  repo: { id: number; name: string; url: string };
+  payload: Record<string, string | number | boolean | object>;
+  created_at: string;
+  [key: string]: string | number | boolean | object | null;
+}
+
 /**
  * Enhanced GitHub API client with caching and resilience patterns
  */
@@ -36,7 +80,7 @@ export class CachedGitHubApiClient {
    */
   async makeRequest<T>(
     endpoint: string,
-    params: Record<string, any> = {},
+    params: Record<string, string | number | boolean> = {},
     options: ApiCallOptions = {}
   ): Promise<ApiResponse<T>> {
     const startTime = performance.now();
@@ -110,14 +154,14 @@ export class CachedGitHubApiClient {
     owner: string,
     repo: string,
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<GitHubRepository>> {
     const cacheKey = repositoryCache.createKey('repo', { owner, repo });
 
     if (options.useCache !== false && !options.forceRefresh) {
       const cached = await repositoryCache.get(cacheKey);
       if (cached) {
         return {
-          data: cached,
+          data: cached as GitHubRepository,
           success: true,
           fromCache: true,
           rateLimitInfo: null,
@@ -126,7 +170,7 @@ export class CachedGitHubApiClient {
       }
     }
 
-    const result = await this.makeRequest(
+    const result = await this.makeRequest<GitHubRepository>(
       `/repos/${owner}/${repo}`,
       {},
       {
@@ -145,14 +189,14 @@ export class CachedGitHubApiClient {
   /**
    * User-specific API calls with specialized caching
    */
-  async getUser(username: string, options: ApiCallOptions = {}): Promise<ApiResponse<any>> {
+  async getUser(username: string, options: ApiCallOptions = {}): Promise<ApiResponse<GitHubUser>> {
     const cacheKey = userCache.createKey('user', { username });
 
     if (options.useCache !== false && !options.forceRefresh) {
       const cached = await userCache.get(cacheKey);
       if (cached) {
         return {
-          data: cached,
+          data: cached as GitHubUser,
           success: true,
           fromCache: true,
           rateLimitInfo: null,
@@ -161,7 +205,7 @@ export class CachedGitHubApiClient {
       }
     }
 
-    const result = await this.makeRequest(
+    const result = await this.makeRequest<GitHubUser>(
       `/users/${username}`,
       {},
       {
@@ -183,9 +227,9 @@ export class CachedGitHubApiClient {
   async getPullRequests(
     owner: string,
     repo: string,
-    params: Record<string, any> = {},
+    params: Record<string, string | number | boolean> = {},
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any[]>> {
+  ): Promise<ApiResponse<GitHubPullRequest[]>> {
     return this.makeRequest(`/repos/${owner}/${repo}/pulls`, params, {
       ...options,
       cacheTtl: 5 * 60 * 1000, // 5 minutes for PR data
@@ -198,9 +242,9 @@ export class CachedGitHubApiClient {
   async getRepositoryEvents(
     owner: string,
     repo: string,
-    params: Record<string, any> = {},
+    params: Record<string, string | number | boolean> = {},
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any[]>> {
+  ): Promise<ApiResponse<GitHubEvent[]>> {
     return this.makeRequest(`/repos/${owner}/${repo}/events`, params, {
       ...options,
       cacheTtl: 2 * 60 * 1000, // 2 minutes for events
@@ -214,7 +258,7 @@ export class CachedGitHubApiClient {
     repositories: string[],
     timeframe: { month: number; year: number },
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<unknown>> {
     const cacheKey = contributorCache.createKey('contributor-activity', {
       repositories: repositories.sort(),
       ...timeframe,
@@ -235,7 +279,7 @@ export class CachedGitHubApiClient {
 
     // This would typically aggregate multiple API calls
     // For now, return a placeholder that would be implemented with actual logic
-    const result: ApiResponse<any> = {
+    const result: ApiResponse<unknown> = {
       data: null,
       success: false,
       fromCache: false,
@@ -251,13 +295,21 @@ export class CachedGitHubApiClient {
    * Batch API calls with intelligent caching
    */
   async batchRequest<T>(
-    requests: Array<{ endpoint: string; params?: Record<string, any>; options?: ApiCallOptions }>,
+    requests: Array<{
+      endpoint: string;
+      params?: Record<string, unknown>;
+      options?: ApiCallOptions;
+    }>,
     concurrencyLimit = 5
   ): Promise<ApiResponse<T>[]> {
     const results: ApiResponse<T>[] = [];
 
     const executeRequest = async (request: (typeof requests)[0]): Promise<ApiResponse<T>> => {
-      return this.makeRequest<T>(request.endpoint, request.params, request.options);
+      return this.makeRequest<T>(
+        request.endpoint,
+        request.params as Record<string, string | number | boolean> | undefined,
+        request.options
+      );
     };
 
     // Process requests in batches with concurrency limit
@@ -305,7 +357,7 @@ export class CachedGitHubApiClient {
   /**
    * Private helper methods
    */
-  private buildUrl(endpoint: string, params: Record<string, any>): string {
+  private buildUrl(endpoint: string, params: Record<string, unknown>): string {
     const url = new URL(`${this.baseUrl}${endpoint}`);
 
     Object.entries(params).forEach(([key, value]) => {

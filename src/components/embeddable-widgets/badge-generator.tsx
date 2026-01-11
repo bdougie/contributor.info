@@ -109,13 +109,16 @@ function escapeXml(text: string | number | boolean): string {
   if (typeof text !== 'string') {
     text = String(text);
   }
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return (
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;')
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  );
 }
 
 function sanitizeColor(color: string): string {
@@ -273,6 +276,7 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
 }
 
 // Utility function to generate badge URL
+// eslint-disable-next-line react-refresh/only-export-components
 export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string {
   return (
     `${window.location.origin}/api/widget/badge?` +
@@ -288,6 +292,7 @@ export function generateBadgeURL(config: BadgeConfig, data: WidgetData): string 
 }
 
 // Utility function to generate badge markdown
+// eslint-disable-next-line react-refresh/only-export-components
 export function generateBadgeMarkdown(config: BadgeConfig, data: WidgetData): string {
   const badgeUrl = generateBadgeURL(config, data);
   return `![${data.repository.repo} badge](${badgeUrl})`;

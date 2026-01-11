@@ -23,7 +23,7 @@ export interface EnhancedProgressiveDataState {
   stats: RepoStats;
   lotteryFactor: LotteryFactor | null;
   directCommitsData: DirectCommitsData | null;
-  historicalTrends: any | null;
+  historicalTrends: Record<string, unknown> | null;
 
   // Enhanced loading state with error handling
   currentStage: LoadingStage;
@@ -38,7 +38,7 @@ export interface EnhancedProgressiveDataState {
       | 'large_repository_protected'
       | 'error';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, string | number | boolean | object | null>;
   };
 
   // Error recovery state
@@ -119,7 +119,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 
   // Handle errors with automatic retry logic
   const handleStageError = useCallback(
-    async (error: unknown, stage: LoadingStage, context?: any) => {
+    async (error: unknown, stage: LoadingStage, context?: Record<string, unknown>) => {
       const loadingError =
         error instanceof Error && (error as LoadingError).stage
           ? (error as LoadingError)
@@ -407,7 +407,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 1: Critical data
         try {
           await loadCriticalData(owner, repo);
-        } catch (error) {
+        } catch {
           if (!enableGracefulDegradation) {
             return; // Stop if critical stage fails and graceful degradation is disabled
           }
@@ -418,7 +418,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
         // Stage 2: Full data
         try {
           await loadFullData(owner, repo);
-        } catch (error) {
+        } catch {
           console.error('Full stage failed, continuing with available data');
         }
 
@@ -520,7 +520,7 @@ export function useProgressiveRepoDataWithErrorBoundaries(
 function createGenericLoadingError(
   error: unknown,
   stage: LoadingStage,
-  context?: any
+  context?: Record<string, unknown>
 ): LoadingError {
   const message = error instanceof Error ? error.message : String(error);
 

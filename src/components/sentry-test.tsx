@@ -27,11 +27,16 @@ export function SentryTest() {
       console.log('[SentryTest] Test error sent to Sentry');
 
       // Also test if Sentry is loaded directly
-      import('@sentry/react').then((Sentry) => {
-        console.log('[SentryTest] Direct Sentry check - Is initialized?', Sentry.getCurrentScope() !== undefined);
-      }).catch(err => {
-        console.error('[SentryTest] Failed to import Sentry:', err);
-      });
+      import('@sentry/react')
+        .then((Sentry) => {
+          console.log(
+            '[SentryTest] Direct Sentry check - Is initialized?',
+            Sentry.getCurrentScope() !== undefined
+          );
+        })
+        .catch((err) => {
+          console.error('[SentryTest] Failed to import Sentry:', err);
+        });
     }
   };
 
@@ -50,7 +55,7 @@ export function SentryTest() {
     try {
       // This will fail and be caught by trackedFetch
       await fetch('https://this-domain-does-not-exist-12345.com/api/test');
-    } catch (error) {
+    } catch {
       console.log('Network error triggered');
     }
   };

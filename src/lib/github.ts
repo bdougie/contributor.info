@@ -161,11 +161,10 @@ export async function searchGitHubRepositories(
           if (response.status === 403 && error.message?.includes('rate limit')) {
             // Track rate limiting
             const rateLimitReset = response.headers.get('X-RateLimit-Reset');
-            const resetTime = rateLimitReset
-              ? new Date(parseInt(rateLimitReset) * 1000)
-              : undefined;
-
-            trackRateLimit('github', 'search/repositories', undefined, resetTime);
+            if (rateLimitReset) {
+              const resetTime = parseInt(rateLimitReset);
+              trackRateLimit('github', 'search/repositories', resetTime);
+            }
 
             span.setAttributes({
               'http.status_code': 403,
@@ -510,10 +509,29 @@ export async function fetchPullRequests(
 
             if (!detailsResponse.ok) {
               return {
-                ...pr,
+                id: pr.id,
+                number: pr.number,
+                title: pr.title,
+                state: pr.state as 'open' | 'closed',
+                created_at: pr.created_at,
+                updated_at: pr.updated_at,
+                merged_at: pr.merged_at,
+                closed_at: pr.closed_at,
                 additions: 0,
                 deletions: 0,
-              };
+                repository_owner: owner,
+                repository_name: repo,
+                html_url: pr.html_url,
+                user: {
+                  id: pr.user.id,
+                  login: pr.user.login,
+                  avatar_url: pr.user.avatar_url,
+                  type: 'User',
+                },
+                reviews: [],
+                comments: [],
+                organizations: [],
+              } as PullRequest;
             }
 
             const details = await detailsResponse.json();
@@ -534,7 +552,7 @@ export async function fetchPullRequests(
               id: pr.id,
               number: pr.number,
               title: pr.title,
-              state: pr.state,
+              state: pr.state as 'open' | 'closed',
               created_at: pr.created_at,
               updated_at: pr.updated_at,
               merged_at: pr.merged_at,
@@ -549,12 +567,12 @@ export async function fetchPullRequests(
                 id: pr.user.id,
                 login: pr.user.login,
                 avatar_url: pr.user.avatar_url,
-                type: isBot ? 'Bot' : 'User',
+                type: (isBot ? 'Bot' : 'User') as 'User' | 'Bot',
               },
               organizations,
               reviews,
               comments,
-            };
+            } as PullRequest;
           })
         );
 

@@ -799,12 +799,12 @@ export async function enableSessionRecording(): Promise<void> {
     }
   } catch (error) {
     sessionRecordingEnabled = false;
-    
+
     // Log the error in development for debugging
     if (env.DEV) {
       console.error('[PostHog] Failed to enable session recording:', error);
     }
-    
+
     // Track error using centralized error tracking (handles type conversion and PostHog reporting)
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await trackError(errorObj, {

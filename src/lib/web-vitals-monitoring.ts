@@ -42,6 +42,12 @@ interface PerformanceData {
   route: string;
 }
 
+interface NavigatorWithConnection {
+  connection?: {
+    effectiveType?: '4g' | '3g' | '2g' | 'slow-2g';
+  };
+}
+
 class WebVitalsMonitor {
   private metrics: Map<string, VitalMetric> = new Map();
   private callbacks: Set<(metric: VitalMetric) => void> = new Set();
@@ -262,6 +268,7 @@ class WebVitalsMonitor {
     this.batchedMetrics = [];
 
     try {
+      const nav = navigator as NavigatorWithConnection;
       await fetch(this.reportingEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -272,7 +279,7 @@ class WebVitalsMonitor {
             width: window.innerWidth,
             height: window.innerHeight,
           },
-          connection: (navigator as any).connection?.effectiveType || 'unknown',
+          connection: nav.connection?.effectiveType || 'unknown',
         }),
       });
     } catch (error) {
@@ -313,9 +320,15 @@ class WebVitalsMonitor {
     };
   }
 
-  public getSummary() {
+  public getSummary(): Record<
+    string,
+    { value: number; rating: string; threshold?: number; pass: boolean }
+  > {
     const metrics = this.getMetrics();
-    const summary: Record<string, any> = {};
+    const summary: Record<
+      string,
+      { value: number; rating: string; threshold?: number; pass: boolean }
+    > = {};
 
     metrics.metrics.forEach((metric, name) => {
       summary[name] = {

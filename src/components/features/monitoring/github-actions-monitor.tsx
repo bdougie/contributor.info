@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   GitBranch,
   ExternalLink,
@@ -46,7 +46,7 @@ export function GitHubActionsMonitor({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const fetchWorkflows = async () => {
+  const fetchWorkflows = useCallback(async () => {
     try {
       // In a real implementation, this would fetch from GitHub Actions API
       // For now, we'll simulate with mock data based on progressive capture jobs
@@ -86,7 +86,7 @@ export function GitHubActionsMonitor({
     } finally {
       setLoading(false);
     }
-  };
+  }, [showAll]);
 
   useEffect(() => {
     fetchWorkflows();
@@ -95,7 +95,7 @@ export function GitHubActionsMonitor({
       const interval = setInterval(fetchWorkflows, refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh, refreshInterval, showAll]);
+  }, [autoRefresh, refreshInterval, fetchWorkflows]);
 
   const getStatusIcon = (status: string, conclusion: string | null) => {
     if (status === 'completed') {

@@ -18,6 +18,16 @@ interface DataProcessingIndicatorProps {
   className?: string;
 }
 
+// Helper to get processing stage text based on processor type
+const getProcessingStageText = (
+  processor: 'inngest' | 'github_actions' | 'hybrid' | null
+): string => {
+  if (processor === 'inngest') return 'Real-time processing...';
+  if (processor === 'github_actions') return 'Bulk processing...';
+  if (processor === 'hybrid') return 'Hybrid processing...';
+  return 'Processing...';
+};
+
 export function DataProcessingIndicator({ repository, className }: DataProcessingIndicatorProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState<string>('');
@@ -75,13 +85,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setIsProcessing(true);
         setProcessor(eventProcessor);
         setEstimatedTime(eventEstimatedTime);
-        setProcessingStage(
-          eventProcessor === 'inngest'
-            ? 'Real-time processing...'
-            : eventProcessor === 'github_actions'
-              ? 'Bulk processing...'
-              : 'Hybrid processing...'
-        );
+        setProcessingStage(getProcessingStageText(eventProcessor));
         setRecentlyCompleted(false);
         setProgress(10); // Start with small progress
         setCurrentStep('Initializing...');
@@ -260,6 +264,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 /**
  * Hook to manage data processing state
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDataProcessingState(repository: string) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

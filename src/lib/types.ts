@@ -24,11 +24,7 @@ export interface PullRequest {
     login: string;
     avatar_url: string;
   }[];
-  commits?: Array<{
-    language: string;
-    additions: number;
-    deletions: number;
-  }>;
+  commits?: number;
   author?: {
     login: string;
   };
@@ -262,3 +258,6 @@ export const ACTIVITY_WEIGHTS = {
   REVIEWS: 3,
   COMMENTS: 3,
 } as const;
+
+// Type alias for backward compatibility
+export type Contributor = MonthlyContributor;

@@ -47,7 +47,7 @@ export function useDataTimestamp(
         lastUpdated: new Date(),
       }));
     }
-  }, dependencies);
+  }, [autoUpdate, dependencies]);
 
   /**
    * Manually update the timestamp (useful for marking data refresh)

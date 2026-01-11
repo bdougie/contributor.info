@@ -10,6 +10,13 @@ interface EmptyStateProps {
   className?: string;
 }
 
+// Helper to get badge emoji and text based on severity
+const getSeverityBadgeText = (severity: string): string => {
+  if (severity === 'error') return '⚠️ Error';
+  if (severity === 'warning') return '💡 Note';
+  return '✨ Tip';
+};
+
 export function ContributorEmptyState({ type, message, suggestion, className }: EmptyStateProps) {
   const getEmptyStateContent = () => {
     switch (type) {
@@ -153,11 +160,7 @@ export function ContributorEmptyState({ type, message, suggestion, className }: 
                   content.severity === 'info' && 'bg-blue-500 hover:bg-blue-600 text-white'
                 )}
               >
-                {content.severity === 'error'
-                  ? '⚠️ Error'
-                  : content.severity === 'warning'
-                    ? '💡 Note'
-                    : '✨ Tip'}
+                {getSeverityBadgeText(content.severity)}
               </Badge>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {content.suggestionText}

@@ -13,6 +13,10 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 interface PWAInstallPromptProps {
   className?: string;
   onInstall?: () => void;
@@ -31,7 +35,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
     const checkIfStandalone = () => {
       return (
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
+        (window.navigator as NavigatorWithStandalone).standalone === true ||
         document.referrer.includes('android-app://')
       );
     };
@@ -171,6 +175,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
 }
 
 // Hook for programmatic PWA install
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePWAInstall() {
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);

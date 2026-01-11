@@ -24,59 +24,43 @@ export function getLanguageStats(prs: PullRequest[]): LanguageStats[] {
 
   // Count languages based on PRs
   prs.forEach((pr) => {
-    if (pr.commits && pr.commits.length > 0) {
-      pr.commits.forEach((commit) => {
-        const lang = commit.language || 'Other';
-        const current = languageMap.get(lang) || {
-          count: 0,
-          color: colorMap[lang] || colorMap['Other'],
-          totalChanges: 0,
-        };
-        languageMap.set(lang, {
-          count: current.count + 1,
-          color: current.color,
-          totalChanges: current.totalChanges + commit.additions + commit.deletions,
-        });
-      });
-    } else {
-      // For PRs without commit data, infer language from PR title/additions/deletions
+    // Infer language from PR title/additions/deletions since commit data is not available
 
-      // Try to extract language from PR title
-      let lang = 'Other';
-      const titleLower = pr.title.toLowerCase();
+    // Try to extract language from PR title
+    let lang = 'Other';
+    const titleLower = pr.title.toLowerCase();
 
-      if (titleLower.includes('typescript') || titleLower.includes('.ts')) {
-        lang = 'TypeScript';
-      } else if (titleLower.includes('javascript') || titleLower.includes('.js')) {
-        lang = 'JavaScript';
-      } else if (titleLower.includes('css') || titleLower.includes('style')) {
-        lang = 'CSS';
-      } else if (titleLower.includes('html') || titleLower.includes('markup')) {
-        lang = 'HTML';
-      } else if (titleLower.includes('python') || titleLower.includes('.py')) {
-        lang = 'Python';
-      } else if (titleLower.includes('java') || titleLower.includes('.java')) {
-        lang = 'Java';
-      } else if (titleLower.includes('go') || titleLower.includes('.go')) {
-        lang = 'Go';
-      } else if (titleLower.includes('rust') || titleLower.includes('.rs')) {
-        lang = 'Rust';
-      }
-
-      const size = pr.additions + pr.deletions;
-
-      const current = languageMap.get(lang) || {
-        count: 0,
-        color: colorMap[lang] || colorMap['Other'],
-        totalChanges: 0,
-      };
-
-      languageMap.set(lang, {
-        count: current.count + 1,
-        color: current.color,
-        totalChanges: current.totalChanges + size,
-      });
+    if (titleLower.includes('typescript') || titleLower.includes('.ts')) {
+      lang = 'TypeScript';
+    } else if (titleLower.includes('javascript') || titleLower.includes('.js')) {
+      lang = 'JavaScript';
+    } else if (titleLower.includes('css') || titleLower.includes('style')) {
+      lang = 'CSS';
+    } else if (titleLower.includes('html') || titleLower.includes('markup')) {
+      lang = 'HTML';
+    } else if (titleLower.includes('python') || titleLower.includes('.py')) {
+      lang = 'Python';
+    } else if (titleLower.includes('java') || titleLower.includes('.java')) {
+      lang = 'Java';
+    } else if (titleLower.includes('go') || titleLower.includes('.go')) {
+      lang = 'Go';
+    } else if (titleLower.includes('rust') || titleLower.includes('.rs')) {
+      lang = 'Rust';
     }
+
+    const size = pr.additions + pr.deletions;
+
+    const current = languageMap.get(lang) || {
+      count: 0,
+      color: colorMap[lang] || colorMap['Other'],
+      totalChanges: 0,
+    };
+
+    languageMap.set(lang, {
+      count: current.count + 1,
+      color: current.color,
+      totalChanges: current.totalChanges + size,
+    });
   });
 
   // If we don't have any languages detected (no PRs or all PRs lack language data)

@@ -9,8 +9,9 @@ const Tooltip = TooltipPrimitive.Root;
 
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
-export interface TooltipContentProps
-  extends ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> {
+export interface TooltipContentProps extends ComponentPropsWithoutRef<
+  typeof TooltipPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof TooltipPrimitive.Content>>;
 }
 

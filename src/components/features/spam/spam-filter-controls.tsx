@@ -38,7 +38,7 @@ export function SpamFilterControls({
   const presets = useSpamTolerancePresets();
 
   // Determine current preset based on filter options
-  const currentPreset = Object.entries(presets).find(([_, preset]) => {
+  const currentPreset = Object.entries(presets).find(([, preset]) => {
     return (
       preset.options.maxSpamScore === filterOptions.maxSpamScore &&
       preset.options.minSpamScore === filterOptions.minSpamScore &&

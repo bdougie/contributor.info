@@ -6,6 +6,8 @@
  * ways to handle data type conversions and mappings.
  */
 
+import type { QuadrantNode, ContributorNode } from '@/hooks/use-hierarchical-distribution';
+
 /**
  * Configuration for user/contributor type mapping
  */
@@ -209,9 +211,9 @@ export const getDubKeyStatus = (key?: string): '✅ Valid' | '❌ Invalid' => {
  * ```
  */
 export const findContributorInQuadrant = (
-  quadrant?: { children?: Array<{ id: string; [key: string]: any }> },
+  quadrant?: QuadrantNode,
   selectedContributor?: string
-) => {
+): ContributorNode | undefined => {
   if (!quadrant?.children || !selectedContributor) return undefined;
-  return quadrant.children.find((c: any) => c.id === selectedContributor);
+  return quadrant.children.find((c) => c.id === selectedContributor);
 };

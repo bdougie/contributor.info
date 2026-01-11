@@ -118,6 +118,13 @@ export function getDateRangePresets() {
   };
 }
 
+// Helper to get trend direction
+const getTrendDirection = (difference: number): 'up' | 'down' | 'neutral' => {
+  if (difference > 0) return 'up';
+  if (difference < 0) return 'down';
+  return 'neutral';
+};
+
 // Trend calculation utilities
 export function calculateTrend(
   current: number,
@@ -140,7 +147,7 @@ export function calculateTrend(
 
   return {
     value: difference,
-    direction: difference > 0 ? 'up' : difference < 0 ? 'down' : 'neutral',
+    direction: getTrendDirection(difference),
     percentage: Math.abs(percentage),
   };
 }

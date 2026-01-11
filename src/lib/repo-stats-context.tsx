@@ -1,22 +1,5 @@
-import React, { createContext } from 'react';
-import type { RepoStats, LotteryFactor, DirectCommitsData } from '@/lib/types';
-
-// Context to share data between tabs
-interface RepoStatsContextType {
-  stats: RepoStats;
-  lotteryFactor: LotteryFactor | null;
-  directCommitsData: DirectCommitsData | null;
-  includeBots: boolean;
-  setIncludeBots: (value: boolean) => void;
-}
-
-export const RepoStatsContext = createContext<RepoStatsContextType>({
-  stats: { pullRequests: [], loading: true, error: null },
-  lotteryFactor: null,
-  directCommitsData: null,
-  includeBots: false,
-  setIncludeBots: () => {},
-});
+import React from 'react';
+import { RepoStatsContext, type RepoStatsContextType } from '@/lib/repo-stats-context-definition';
 
 // Provider component for RepoStatsContext
 export function RepoStatsProvider({
@@ -28,3 +11,6 @@ export function RepoStatsProvider({
 }) {
   return <RepoStatsContext.Provider value={value}>{children}</RepoStatsContext.Provider>;
 }
+
+// Re-export context for backward compatibility
+export { RepoStatsContext } from '@/lib/repo-stats-context-definition';

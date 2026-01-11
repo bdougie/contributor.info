@@ -3,6 +3,20 @@ import { useState, useEffect } from 'react';
 // Mobile breakpoint (matches Tailwind's 'md' breakpoint)
 const MOBILE_BREAKPOINT = 768;
 
+// Network API types
+interface NetworkInformation {
+  effectiveType: '4g' | '3g' | '2g' | 'slow-2g';
+  downlink: number;
+  rtt: number;
+  saveData: boolean;
+}
+
+interface NavigatorWithNetwork extends Navigator {
+  connection?: NetworkInformation;
+  mozConnection?: NetworkInformation;
+  webkitConnection?: NetworkInformation;
+}
+
 /**
  * Hook to detect if the user is on a mobile device based on screen width
  */
@@ -147,10 +161,8 @@ export function useNetworkAwareDetection() {
 
   useEffect(() => {
     const updateNetworkInfo = () => {
-      const connection =
-        (navigator as any).connection ||
-        (navigator as any).mozConnection ||
-        (navigator as any).webkitConnection;
+      const nav = navigator as NavigatorWithNetwork;
+      const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
 
       if (connection) {
         const isSlowConnection =

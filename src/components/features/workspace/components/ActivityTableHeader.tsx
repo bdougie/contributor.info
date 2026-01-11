@@ -5,6 +5,14 @@ import { ChevronUp, ChevronDown } from '@/components/ui/icon';
 export type SortField = 'created_at' | 'type' | 'author' | 'repository';
 export type SortOrder = 'asc' | 'desc';
 
+// Helper to get aria-sort value
+const getAriaSort = (field: SortField, currentField: SortField, currentOrder: SortOrder) => {
+  if (currentField !== field) {
+    return 'none' as const;
+  }
+  return currentOrder === 'asc' ? ('ascending' as const) : ('descending' as const);
+};
+
 interface ActivityTableHeaderProps {
   sortField: SortField;
   sortOrder: SortOrder;
@@ -45,13 +53,7 @@ export const ActivityTableHeader = memo(
                 className="-ml-2 h-8 data-[state=open]:bg-accent"
                 onClick={() => onSort('type')}
                 aria-label={`Sort by type, currently ${sortField === 'type' ? `sorted ${sortOrder}` : 'not sorted'}`}
-                aria-sort={
-                  sortField === 'type'
-                    ? sortOrder === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : ('none' as const)
-                }
+                aria-sort={getAriaSort('type', sortField, sortOrder)}
               >
                 Type
                 <SortIcon field="type" currentField={sortField} currentOrder={sortOrder} />
@@ -67,13 +69,7 @@ export const ActivityTableHeader = memo(
                 className="-ml-2 h-8 data-[state=open]:bg-accent"
                 onClick={() => onSort('author')}
                 aria-label={`Sort by author, currently ${sortField === 'author' ? `sorted ${sortOrder}` : 'not sorted'}`}
-                aria-sort={
-                  sortField === 'author'
-                    ? sortOrder === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : ('none' as const)
-                }
+                aria-sort={getAriaSort('author', sortField, sortOrder)}
               >
                 Author
                 <SortIcon field="author" currentField={sortField} currentOrder={sortOrder} />
@@ -86,13 +82,7 @@ export const ActivityTableHeader = memo(
                 className="-ml-2 h-8 data-[state=open]:bg-accent"
                 onClick={() => onSort('repository')}
                 aria-label={`Sort by repository, currently ${sortField === 'repository' ? `sorted ${sortOrder}` : 'not sorted'}`}
-                aria-sort={
-                  sortField === 'repository'
-                    ? sortOrder === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : ('none' as const)
-                }
+                aria-sort={getAriaSort('repository', sortField, sortOrder)}
               >
                 Repository
                 <SortIcon field="repository" currentField={sortField} currentOrder={sortOrder} />
@@ -108,13 +98,7 @@ export const ActivityTableHeader = memo(
                 className="-ml-2 h-8 data-[state=open]:bg-accent"
                 onClick={() => onSort('created_at')}
                 aria-label={`Sort by date, currently ${sortField === 'created_at' ? `sorted ${sortOrder}` : 'not sorted'}`}
-                aria-sort={
-                  sortField === 'created_at'
-                    ? sortOrder === 'asc'
-                      ? 'ascending'
-                      : 'descending'
-                    : ('none' as const)
-                }
+                aria-sort={getAriaSort('created_at', sortField, sortOrder)}
               >
                 Date
                 <SortIcon field="created_at" currentField={sortField} currentOrder={sortOrder} />

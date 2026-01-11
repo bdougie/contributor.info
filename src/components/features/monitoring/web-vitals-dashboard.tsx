@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Activity, AlertCircle, Clock, Zap, Layout, Wifi } from '@/components/ui/icon';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -56,28 +56,7 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
   );
   const [historicalData, setHistoricalData] = useState<Record<string, unknown>[]>([]);
 
-  useEffect(() => {
-    loadPerformanceData();
-  }, [repository, timeRange]);
-
-  const loadPerformanceData = async () => {
-    setLoading(true);
-    try {
-      const analytics = getWebVitalsAnalytics();
-      const data = await analytics.getPerformanceSummary(repository);
-      setSummary(data);
-
-      // Load historical data for charts
-      const historical = await loadHistoricalData();
-      setHistoricalData(historical);
-    } catch (error) {
-      console.error('Failed to load performance data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadHistoricalData = async () => {
+  const loadHistoricalData = useCallback(async () => {
     // Mock historical data - in real implementation, fetch from analytics
     const hours = getTimeRangeHours(timeRange);
     const data = [];
@@ -95,7 +74,28 @@ export function WebVitalsDashboard({ repository }: { repository?: string }) {
     }
 
     return data.reverse();
-  };
+  }, [timeRange]);
+
+  const loadPerformanceData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const analytics = getWebVitalsAnalytics();
+      const data = await analytics.getPerformanceSummary(repository);
+      setSummary(data);
+
+      // Load historical data for charts
+      const historical = await loadHistoricalData();
+      setHistoricalData(historical);
+    } catch (error) {
+      console.error('Failed to load performance data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [repository, loadHistoricalData]);
+
+  useEffect(() => {
+    loadPerformanceData();
+  }, [loadPerformanceData]);
 
   const getMetricIcon = (metric: string) => {
     const Icon = METRIC_ICONS[metric as keyof typeof METRIC_ICONS] || Activity;

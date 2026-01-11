@@ -1,6 +1,16 @@
 import { supabase } from '../supabase';
 import { hybridQueueManager } from './hybrid-queue-manager';
 
+export interface QueueJob {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  processor_type: 'inngest' | 'github_actions';
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
 export interface JobMetrics {
   total: number;
   successful: number;
@@ -94,12 +104,13 @@ export class HybridMonitoringDashboard {
         };
       }
 
-      const inngestJobs = jobs.filter((j) => j.processor_type === 'inngest');
-      const githubActionsJobs = jobs.filter((j) => j.processor_type === 'github_actions');
+      const typedJobs = jobs as QueueJob[];
+      const inngestJobs = typedJobs.filter((j) => j.processor_type === 'inngest');
+      const githubActionsJobs = typedJobs.filter((j) => j.processor_type === 'github_actions');
 
       const inngestMetrics = this.calculateJobMetrics(inngestJobs);
       const githubActionsMetrics = this.calculateJobMetrics(githubActionsJobs);
-      const combinedMetrics = this.calculateJobMetrics(jobs);
+      const combinedMetrics = this.calculateJobMetrics(typedJobs);
 
       return {
         inngest: inngestMetrics,
@@ -127,7 +138,7 @@ export class HybridMonitoringDashboard {
   /**
    * Calculate metrics for a set of jobs
    */
-  private static calculateJobMetrics(jobs: any[]): JobMetrics {
+  private static calculateJobMetrics(jobs: QueueJob[]): JobMetrics {
     const total = jobs.length;
     const successful = jobs.filter((j) => j.status === 'completed').length;
     const failed = jobs.filter((j) => j.status === 'failed').length;
@@ -136,7 +147,7 @@ export class HybridMonitoringDashboard {
     // Calculate average processing time
     const completedJobs = jobs.filter(
       (j) => j.status === 'completed' && j.started_at && j.completed_at
-    );
+    ) as Array<QueueJob & { started_at: string; completed_at: string }>;
     const avgProcessingTime =
       completedJobs.length > 0
         ? completedJobs.reduce((sum, job) => {
@@ -382,7 +393,7 @@ export class HybridMonitoringDashboard {
       repository_id: string;
       error: string;
       created_at: string;
-      metadata: any;
+      metadata: unknown;
     }>;
     errorSummary: Record<string, number>;
     topErrors: Array<{ error: string; count: number }>;
@@ -418,12 +429,14 @@ export class HybridMonitoringDashboard {
         errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
 
         // Count specific errors
-        const errorMessage =
-          typeof job.error === 'string'
-            ? job.error
-            : job.error
-              ? JSON.stringify(job.error)
-              : 'Unknown error';
+        let errorMessage: string;
+        if (typeof job.error === 'string') {
+          errorMessage = job.error;
+        } else if (job.error) {
+          errorMessage = JSON.stringify(job.error);
+        } else {
+          errorMessage = 'Unknown error';
+        }
         const errorKey = errorMessage.substring(0, 100);
         errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
       });
@@ -539,7 +552,7 @@ Report generated at: ${new Date().toISOString()}
 
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
-  (window as any).HybridMonitoring = HybridMonitoringDashboard;
+  (window as unknown as Record<string, unknown>).HybridMonitoring = HybridMonitoringDashboard;
 
   // Enable console tools in development
   if (import.meta.env?.DEV) {

@@ -39,7 +39,7 @@ export function storeRateLimitInfo(headers: Headers): RateLimitInfo | null {
     current.core = rateLimitInfo;
     current.lastUpdated = Date.now();
     localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(current));
-  } catch (e) {
+  } catch {
     // Silently handle storage errors
   }
 
@@ -59,7 +59,7 @@ export function getRateLimitInfo(): Partial<RateLimitStatus> | null {
     }
 
     return data;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -112,7 +112,7 @@ export class ExponentialBackoff {
 
   async retry<T>(
     fn: () => Promise<T>,
-    shouldRetry: (error: any) => boolean = () => true
+    shouldRetry: (error: unknown) => boolean = () => true
   ): Promise<T> {
     while (this.attempt < this.maxAttempts) {
       try {
@@ -197,10 +197,11 @@ export async function githubApiRequest<T>(
     },
     (error) => {
       // Retry on rate limit or server errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return (
-        error.message.includes('rate limit') ||
-        error.message.includes('503') ||
-        error.message.includes('502')
+        errorMessage.includes('rate limit') ||
+        errorMessage.includes('503') ||
+        errorMessage.includes('502')
       );
     }
   );
@@ -220,7 +221,7 @@ export function useRateLimitStatus() {
       // Make a lightweight API call to refresh rate limit info
       try {
         await githubApiRequest('https://api.github.com/rate_limit');
-      } catch (e) {
+      } catch {
         // Silently handle refresh errors
       }
     },

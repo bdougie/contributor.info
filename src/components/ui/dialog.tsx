@@ -12,8 +12,9 @@ const DialogPortal = DialogPrimitive.Portal;
 
 const DialogClose = DialogPrimitive.Close;
 
-export interface DialogOverlayProps
-  extends ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay> {
+export interface DialogOverlayProps extends ComponentPropsWithoutRef<
+  typeof DialogPrimitive.Overlay
+> {
   ref?: Ref<ElementRef<typeof DialogPrimitive.Overlay>>;
 }
 
@@ -30,8 +31,9 @@ function DialogOverlay({ className, ref, ...props }: DialogOverlayProps) {
   );
 }
 
-export interface DialogContentProps
-  extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+export interface DialogContentProps extends ComponentPropsWithoutRef<
+  typeof DialogPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof DialogPrimitive.Content>>;
 }
 
@@ -89,8 +91,9 @@ function DialogTitle({ className, ref, ...props }: DialogTitleProps) {
   );
 }
 
-export interface DialogDescriptionProps
-  extends ComponentPropsWithoutRef<typeof DialogPrimitive.Description> {
+export interface DialogDescriptionProps extends ComponentPropsWithoutRef<
+  typeof DialogPrimitive.Description
+> {
   ref?: Ref<ElementRef<typeof DialogPrimitive.Description>>;
 }
 

@@ -353,7 +353,7 @@ class CacheService {
           if (entry && now > entry.expiresAt) {
             keysToRemove.push(key);
           }
-        } catch (error) {
+        } catch {
           // Remove corrupted entries
           keysToRemove.push(key);
         }

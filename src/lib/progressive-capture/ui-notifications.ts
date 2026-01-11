@@ -1,5 +1,22 @@
 import { toast } from 'sonner';
 
+// Helper to get processor text for notifications
+const getProcessorText = (
+  processor?: 'inngest' | 'github_actions' | 'hybrid',
+  short = false
+): string => {
+  if (processor === 'inngest') {
+    return short ? 'Real-time' : 'Real-time processing';
+  }
+  if (processor === 'github_actions') {
+    return short ? 'Bulk' : 'Bulk processing';
+  }
+  if (processor === 'hybrid') {
+    return short ? 'Hybrid' : 'Hybrid processing';
+  }
+  return short ? '' : 'Processing';
+};
+
 /**
  * UI Notification Service for Progressive Data Capture
  * Provides user-friendly notifications when data is being fetched/processed
@@ -33,14 +50,7 @@ export class ProgressiveCaptureNotifications {
     estimatedTime?: number,
     githubActionsUrl?: string
   ) {
-    const processorText =
-      processor === 'inngest'
-        ? 'Real-time processing'
-        : processor === 'github_actions'
-          ? 'Bulk processing'
-          : processor === 'hybrid'
-            ? 'Hybrid processing'
-            : 'Processing';
+    const processorText = getProcessorText(processor, false);
 
     const timeText = estimatedTime ? ` (~${Math.round(estimatedTime / 1000)}s)` : '';
     const completionTime = estimatedTime
@@ -106,15 +116,7 @@ export class ProgressiveCaptureNotifications {
     // Show success notification
     const features = updatedFeatures.length > 0 ? updatedFeatures.join(', ') : 'repository data';
 
-    const processorText =
-      processor === 'inngest'
-        ? 'Real-time'
-        : processor === 'github_actions'
-          ? 'Bulk'
-          : processor === 'hybrid'
-            ? 'Hybrid'
-            : '';
-
+    const processorText = getProcessorText(processor, true);
     const processorSuffix = processorText ? ` • ${processorText} processing complete` : '';
 
     toast.success(`Updated ${repository}!`, {
@@ -191,6 +193,7 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show notification about missing data with action to fix
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   static showMissingDataNotification(repository: string, _missingTypes: string[]) {
     toast.info(`Updating ${repository}...`, {
       description: 'We are fetching data in the background',

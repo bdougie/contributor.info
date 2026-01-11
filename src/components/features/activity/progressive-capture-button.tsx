@@ -33,6 +33,41 @@ interface ProgressiveCaptureButtonProps {
   compact?: boolean;
 }
 
+// Helper to get processor text for toast message
+const getProcessorText = (routing: ProcessorRouting): string => {
+  if (routing.processor === 'hybrid') {
+    return `${routing.inngestJobs} real-time jobs, ${routing.actionsJobs} bulk jobs`;
+  }
+  if (routing.processor === 'inngest') {
+    return 'Real-time processing';
+  }
+  return 'Bulk processing via GitHub Actions';
+};
+
+// Helper to calculate processing time based on routing
+const getProcessingTime = (routing: ProcessorRouting): number => {
+  let baseTime: number;
+  if (routing.processor === 'inngest') {
+    baseTime = 5000;
+  } else if (routing.processor === 'github_actions') {
+    baseTime = 30000;
+  } else {
+    baseTime = 15000;
+  }
+
+  // Add time based on job count
+  const jobMultiplier = (routing.inngestJobs + routing.actionsJobs) * 2000;
+  const maxTime = routing.processor === 'github_actions' ? 180000 : 30000;
+  return Math.min(baseTime + jobMultiplier, maxTime);
+};
+
+// Helper to get badge text for processor type
+const getProcessorBadgeText = (processor: string): string => {
+  if (processor === 'inngest') return 'Real-time';
+  if (processor === 'github_actions') return 'Bulk';
+  return 'Hybrid';
+};
+
 export function ProgressiveCaptureButton({
   owner,
   repo,
@@ -71,33 +106,11 @@ export function ProgressiveCaptureButton({
       setJobsQueued(routing.inngestJobs + routing.actionsJobs);
 
       // Enhanced toast with processor information
-      const processorText =
-        routing.processor === 'hybrid'
-          ? `${routing.inngestJobs} real-time jobs, ${routing.actionsJobs} bulk jobs`
-          : routing.processor === 'inngest'
-            ? 'Real-time processing'
-            : 'Bulk processing via GitHub Actions';
+      const processorText = getProcessorText(routing);
 
       toast.success('Data capture jobs queued!', {
         description: `${processorText} • ${routing.reason}`,
       });
-
-      // Calculate realistic processing times based on job types and data volume
-      const getProcessingTime = (routing: ProcessorRouting) => {
-        const baseTime =
-          routing.processor === 'inngest'
-            ? 5000
-            : routing.processor === 'github_actions'
-              ? 30000
-              : 15000;
-
-        // Add time based on job count
-        const jobMultiplier = (routing.inngestJobs + routing.actionsJobs) * 2000;
-        return Math.min(
-          baseTime + jobMultiplier,
-          routing.processor === 'github_actions' ? 180000 : 30000
-        );
-      };
 
       const processingTime = getProcessingTime(routing);
 
@@ -152,11 +165,7 @@ export function ProgressiveCaptureButton({
         {getProgressiveCaptureText(isTriggering, isProcessing)}
         {routingInfo && (
           <Badge variant="secondary" className="ml-2">
-            {routingInfo.processor === 'inngest'
-              ? 'Real-time'
-              : routingInfo.processor === 'github_actions'
-                ? 'Bulk'
-                : 'Hybrid'}
+            {getProcessorBadgeText(routingInfo.processor)}
           </Badge>
         )}
       </Button>

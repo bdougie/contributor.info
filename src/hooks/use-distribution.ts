@@ -118,21 +118,14 @@ export function useDistribution(pullRequests: PullRequest[]) {
 
           // Process this chunk
           for (const pr of chunk) {
-            // Extract file extensions from commits
+            // Extract file extensions from PR title and changed_files
             const extensions: string[] = [];
-            if (pr.commits && pr.commits.length > 0) {
-              for (const commit of pr.commits) {
-                if (commit.language) {
-                  extensions.push(commit.language);
-                }
-              }
-            } else {
-              // Try to infer extensions from PR title
-              const titleExtMatch = pr.title.match(/\.([\w]+)/g);
-              if (titleExtMatch) {
-                for (const ext of titleExtMatch) {
-                  extensions.push(ext.substring(1));
-                }
+
+            // Try to infer extensions from PR title
+            const titleExtMatch = pr.title.match(/\.([\w]+)/g);
+            if (titleExtMatch) {
+              for (const ext of titleExtMatch) {
+                extensions.push(ext.substring(1));
               }
             }
 

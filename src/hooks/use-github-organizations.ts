@@ -42,7 +42,7 @@ export function useGitHubOrganizations(username: string, token?: string) {
 
         const orgs = await response.json();
         setOrganizations(
-          orgs.slice(0, 3).map((org: any) => ({
+          orgs.slice(0, 3).map((org: Organization) => ({
             login: org.login,
             avatar_url: org.avatar_url,
           }))

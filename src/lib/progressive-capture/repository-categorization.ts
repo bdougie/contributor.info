@@ -10,11 +10,35 @@ export interface RepositoryCategoryStats {
   average_activity_score: number;
 }
 
+export interface RepositoryInfo {
+  id: string;
+  name: string;
+  owner: string;
+  description: string | null;
+  stargazers_count: number;
+  contributors_count: number;
+  updated_at: string;
+}
+
+export interface RepositoryCategory {
+  id: string;
+  repository_id: string;
+  category: string;
+  is_test_repository: boolean;
+  priority_level: number;
+  star_count: number;
+  contributor_count: number;
+  pr_count: number;
+  monthly_activity_score: number;
+  updated_at: string;
+  repositories: RepositoryInfo;
+}
+
 export interface RepositoryCategorizer {
   categorizeAll(): Promise<void>;
   categorizeRepository(repositoryId: string): Promise<string | null>;
   getCategoryStats(): Promise<RepositoryCategoryStats[]>;
-  getRepositoriesByCategory(category: string): Promise<any[]>;
+  getRepositoriesByCategory(category: string): Promise<RepositoryCategory[]>;
   markAsTestRepository(repositoryId: string): Promise<boolean>;
   unmarkAsTestRepository(repositoryId: string): Promise<boolean>;
 }
@@ -172,7 +196,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get repositories by category
    */
-  async getRepositoriesByCategory(category: string): Promise<any[]> {
+  async getRepositoriesByCategory(category: string): Promise<RepositoryCategory[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')
@@ -296,7 +320,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get test repositories for rollout
    */
-  async getTestRepositories(): Promise<any[]> {
+  async getTestRepositories(): Promise<RepositoryCategory[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')
@@ -332,7 +356,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get rollout-ready repositories by priority
    */
-  async getRolloutReadyRepositories(limit: number = 10): Promise<any[]> {
+  async getRolloutReadyRepositories(limit: number = 10): Promise<RepositoryCategory[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')

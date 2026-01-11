@@ -38,40 +38,30 @@ export function QuadrantChart({ data, quadrants }: QuadrantChartProps) {
     return data.map((pr) => {
       const metrics = ContributionAnalyzer.analyze(pr);
 
-      // Handle potentially undefined commits
-      const commits = pr.commits || [];
-
-      const mainLanguage = commits.reduce(
-        (acc, commit) => {
-          if (!acc || commit.additions + commit.deletions > acc.changes) {
-            return {
-              name: commit.language,
-              changes: commit.additions + commit.deletions,
-            };
-          }
-          return acc;
-        },
-        { name: '', changes: 0 }
-      ).name;
-
-      const totalAdditions = commits.reduce((sum, commit) => sum + commit.additions, 0);
-      const totalDeletions = commits.reduce((sum, commit) => sum + commit.deletions, 0);
-
-      // Extract files touched information
-      const filesTouched = commits.map((commit) => ({
-        name: commit.language,
-        additions: commit.additions,
-        deletions: commit.deletions,
-      }));
+      // Use PR's additions/deletions and commits count directly
+      // Create a simple FileTouched array based on changed_files count
+      const filesTouchedArray: Array<{ name: string; additions: number; deletions: number }> = [];
+      if (pr.changed_files && pr.changed_files > 0) {
+        // Distribute changes across files
+        const avgAdditions = Math.floor(pr.additions / pr.changed_files);
+        const avgDeletions = Math.floor(pr.deletions / pr.changed_files);
+        for (let i = 0; i < pr.changed_files; i++) {
+          filesTouchedArray.push({
+            name: `file${i + 1}`,
+            additions: avgAdditions,
+            deletions: avgDeletions,
+          });
+        }
+      }
 
       return {
         ...metrics,
-        language: mainLanguage,
+        language: '',
         pr,
         stats: {
-          additions: totalAdditions,
-          deletions: totalDeletions,
-          filesTouched: filesTouched,
+          additions: pr.additions,
+          deletions: pr.deletions,
+          filesTouched: filesTouchedArray,
         },
       };
     });

@@ -461,7 +461,12 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             style={{
                               width: `${
                                 Math.max(metrics.velocity.current, metrics.velocity.previous) > 0
-                                  ? (metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100
+                                  ? (metrics.velocity.current /
+                                      Math.max(
+                                        metrics.velocity.current,
+                                        metrics.velocity.previous
+                                      )) *
+                                    100
                                   : 0
                               }%`,
                             }}

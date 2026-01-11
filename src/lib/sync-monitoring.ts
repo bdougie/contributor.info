@@ -27,6 +27,12 @@ export interface SyncStats {
   netlifyUsage: number;
 }
 
+interface GroupedMetric {
+  repository: string;
+  timeouts: number;
+  totalTime: number;
+}
+
 export class SyncMonitoring {
   private static metrics: SyncMetrics[] = [];
   private static readonly MAX_METRICS = 100;
@@ -153,10 +159,10 @@ export class SyncMonitoring {
         acc[metric.repository].totalTime += metric.execution_time;
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<string, GroupedMetric>
     );
 
-    return Object.values(grouped).map((g: any) => ({
+    return Object.values(grouped).map((g) => ({
       repository: g.repository,
       timeouts: g.timeouts,
       avgExecutionTime: g.totalTime / g.timeouts,

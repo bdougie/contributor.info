@@ -79,9 +79,15 @@ export function useCachedRepoData(
   const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(null);
   const [directCommitsData, setDirectCommitsData] = useState<DirectCommitsData | null>(null);
   const [dataStatus, setDataStatus] = useState<{
-    status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
+    status:
+      | 'success'
+      | 'pending'
+      | 'no_data'
+      | 'partial_data'
+      | 'large_repository_protected'
+      | 'error';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>({ status: 'success' });
 
   // Track if we're currently fetching to prevent duplicate requests

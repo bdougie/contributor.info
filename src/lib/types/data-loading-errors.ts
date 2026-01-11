@@ -50,9 +50,9 @@ export type RecoveryAction =
 export interface ErrorBoundaryState {
   errors: Record<LoadingStage, LoadingError | null>;
   partialData: {
-    critical?: any;
-    full?: any;
-    enhancement?: any;
+    critical?: Record<string, unknown>;
+    full?: Record<string, unknown>;
+    enhancement?: Record<string, unknown>;
   };
   recoveryAttempts: Record<string, number>;
   lastRecoveryTime: Record<string, number>;

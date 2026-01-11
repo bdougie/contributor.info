@@ -198,8 +198,18 @@ export function calculateFAQPriority(
 }
 
 // Export for browser console access during development
+interface WindowWithFAQ extends Window {
+  faqSitemapGenerator?: {
+    generateFAQSitemapEntries: typeof generateFAQSitemapEntries;
+    generateFAQSitemapXML: typeof generateFAQSitemapXML;
+    generateFAQStructuredData: typeof generateFAQStructuredData;
+    updateMainSitemapWithFAQs: typeof updateMainSitemapWithFAQs;
+  };
+}
+
 if (typeof window !== 'undefined') {
-  (window as any).faqSitemapGenerator = {
+  const windowWithFAQ = window as WindowWithFAQ;
+  windowWithFAQ.faqSitemapGenerator = {
     generateFAQSitemapEntries,
     generateFAQSitemapXML,
     generateFAQStructuredData,

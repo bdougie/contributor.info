@@ -59,7 +59,7 @@ export function getCardClasses(isWinner: boolean): CardClasses {
 
   return {
     container: isWinner ? `${baseClasses} ${winnerClasses}` : baseClasses,
-    rank: isWinner || 1 ? 'default' : 'secondary', // Rank 1 gets default styling
+    rank: isWinner ? 'default' : 'secondary',
   };
 }
 

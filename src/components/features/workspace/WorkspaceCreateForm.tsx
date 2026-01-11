@@ -15,6 +15,14 @@ import {
 } from '@/components/ui/select';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 
+// Helper to get button content text
+const getButtonContent = (loading: boolean, mode: 'create' | 'edit') => {
+  if (loading) {
+    return mode === 'create' ? 'Creating...' : 'Saving...';
+  }
+  return mode === 'create' ? 'Create Workspace' : 'Save Changes';
+};
+
 export interface WorkspaceCreateFormProps {
   onSubmit: (data: CreateWorkspaceRequest) => Promise<void>;
   onCancel?: () => void;
@@ -183,16 +191,8 @@ export function WorkspaceCreateForm({
 
       <div className="flex gap-3 pt-4">
         <Button type="submit" disabled={loading || !formData.name.trim()} className="flex-1">
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {mode === 'create' ? 'Creating...' : 'Saving...'}
-            </>
-          ) : mode === 'create' ? (
-            'Create Workspace'
-          ) : (
-            'Save Changes'
-          )}
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {getButtonContent(loading, mode)}
         </Button>
         {onCancel && (
           <Button

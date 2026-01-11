@@ -11,6 +11,44 @@ import { Button } from './button';
 import type { DataResult } from '@/lib/errors/repository-errors';
 import { UnifiedSyncButton } from '@/components/features/repository/unified-sync-button';
 
+// Helper to get refresh button based on metadata and callbacks
+const getRefreshButton = (
+  metadata:
+    | {
+        owner?: string;
+        repo?: string;
+        repositoryId?: string;
+        lastUpdate?: string;
+      }
+    | undefined,
+  onRefresh?: () => void
+) => {
+  if (metadata?.owner && metadata?.repo) {
+    return (
+      <UnifiedSyncButton
+        owner={metadata.owner}
+        repo={metadata.repo}
+        repositoryId={metadata.repositoryId}
+        lastUpdated={metadata.lastUpdate}
+        variant="ghost"
+        size="sm"
+        className="ml-4"
+        showLabel={true}
+        autoTriggerOnLoad={false}
+      />
+    );
+  }
+  if (onRefresh) {
+    return (
+      <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-4">
+        <RefreshCw className="h-3 w-3 mr-1" />
+        Refresh
+      </Button>
+    );
+  }
+  return null;
+};
+
 interface DataStateIndicatorProps {
   status: DataResult<unknown>['status'];
   message?: string;
@@ -159,24 +197,7 @@ export function DataStateIndicator({
         </div>
         {(onRefresh || (metadata?.owner && metadata?.repo)) &&
           status !== 'pending' &&
-          (metadata?.owner && metadata?.repo ? (
-            <UnifiedSyncButton
-              owner={metadata.owner}
-              repo={metadata.repo}
-              repositoryId={metadata.repositoryId}
-              lastUpdated={metadata.lastUpdate}
-              variant="ghost"
-              size="sm"
-              className="ml-4"
-              showLabel={true}
-              autoTriggerOnLoad={false}
-            />
-          ) : onRefresh ? (
-            <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-4">
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </Button>
-          ) : null)}
+          getRefreshButton(metadata, onRefresh)}
       </div>
       {status === 'partial_data' &&
         metadata?.dataCompleteness !== undefined &&

@@ -39,7 +39,7 @@ export interface CacheStats {
  * - Tier 3: IndexedDB cache (large data)
  */
 export class GitHubCacheService {
-  private memoryCache = new Map<string, CacheEntry<any>>();
+  private memoryCache = new Map<string, CacheEntry<unknown>>();
   private config: CacheConfig;
   private stats: CacheStats = {
     hits: 0,
@@ -92,7 +92,7 @@ export class GitHubCacheService {
 
       this.recordMiss(performance.now() - startTime);
       return null;
-    } catch (error) {
+    } catch {
       this.recordMiss(performance.now() - startTime);
       return null;
     }
@@ -117,7 +117,7 @@ export class GitHubCacheService {
       }
 
       this.updateStats();
-    } catch (error) {
+    } catch {
       // Silently handle cache set errors
     }
   }
@@ -133,7 +133,7 @@ export class GitHubCacheService {
     if (this.config.persistenceEnabled) {
       try {
         localStorage.removeItem(this.getStorageKey(key));
-      } catch (error) {
+      } catch {
         // Silently handle localStorage removal errors
       }
     }
@@ -155,7 +155,7 @@ export class GitHubCacheService {
             localStorage.removeItem(key);
           }
         });
-      } catch (error) {
+      } catch {
         // Silently handle localStorage clearing errors
       }
     }
@@ -182,7 +182,7 @@ export class GitHubCacheService {
   /**
    * Create cache key with repository, endpoint, and parameters
    */
-  createKey(endpoint: string, params: Record<string, any> = {}): string {
+  createKey(endpoint: string, params: Record<string, unknown> = {}): string {
     const sortedParams = Object.keys(params)
       .sort()
       .reduce(
@@ -190,7 +190,7 @@ export class GitHubCacheService {
           sorted[key] = params[key];
           return sorted;
         },
-        {} as Record<string, any>
+        {} as Record<string, unknown>
       );
 
     const paramString = Object.keys(sortedParams).length > 0 ? JSON.stringify(sortedParams) : '';
@@ -228,7 +228,7 @@ export class GitHubCacheService {
       return null;
     }
 
-    return entry.data;
+    return entry.data as T;
   }
 
   private setInMemory<T>(
@@ -268,7 +268,7 @@ export class GitHubCacheService {
       }
 
       return entry.data;
-    } catch (error) {
+    } catch {
       return null;
     }
   }
@@ -292,7 +292,7 @@ export class GitHubCacheService {
       localStorage.setItem(this.getStorageKey(key), JSON.stringify(entry));
     } catch (error) {
       // If storage is full, try to clear some space
-      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      if (error instanceof DOMException && (error as DOMException).name === 'QuotaExceededError') {
         this.cleanupStorage();
       }
     }
@@ -345,7 +345,7 @@ export class GitHubCacheService {
       for (let i = 0; i < toRemove; i++) {
         localStorage.removeItem(entries[i].key);
       }
-    } catch (error) {
+    } catch {
       // Silently handle storage cleanup errors
     }
   }
@@ -391,7 +391,7 @@ export class GitHubCacheService {
             }
           }
         });
-      } catch (error) {
+      } catch {
         // Silently handle expired storage cleanup errors
       }
     }

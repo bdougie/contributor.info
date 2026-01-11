@@ -12,8 +12,9 @@ function RadioGroup({ className, ref, ...props }: RadioGroupProps) {
   return <RadioGroupPrimitive.Root className={cn('grid gap-2', className)} {...props} ref={ref} />;
 }
 
-export interface RadioGroupItemProps
-  extends ComponentPropsWithoutRef<typeof RadioGroupPrimitive.Item> {
+export interface RadioGroupItemProps extends ComponentPropsWithoutRef<
+  typeof RadioGroupPrimitive.Item
+> {
   ref?: Ref<ElementRef<typeof RadioGroupPrimitive.Item>>;
 }
 

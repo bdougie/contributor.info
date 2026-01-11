@@ -149,12 +149,21 @@ class SupabaseMonitoring {
   }
 
   // Enhanced RPC with monitoring
-  async rpc(functionName: string, params?: any) {
+  async rpc(functionName: string, params?: Record<string, unknown>) {
     const startTime = performance.now();
 
     try {
       const result = await this.client.rpc(functionName, params);
       const duration = performance.now() - startTime;
+
+      let rowCount: number;
+      if (Array.isArray(result.data)) {
+        rowCount = result.data.length;
+      } else if (result.data) {
+        rowCount = 1;
+      } else {
+        rowCount = 0;
+      }
 
       await this.logQueryMetrics({
         operation: `rpc: ${functionName}`,
@@ -162,7 +171,7 @@ class SupabaseMonitoring {
         duration,
         success: !result.error,
         errorMessage: result.error?.message,
-        rowCount: Array.isArray(result.data) ? result.data.length : result.data ? 1 : 0,
+        rowCount,
       });
 
       return result;

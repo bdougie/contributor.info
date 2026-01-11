@@ -2,6 +2,27 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { getDiffSymbol } from '@/lib/utils/code-styling';
 
+// Helper to get diff line background color
+const getDiffBgColor = (type: 'addition' | 'deletion' | 'unchanged'): string => {
+  if (type === 'addition') return 'bg-green-50 dark:bg-green-950/20';
+  if (type === 'deletion') return 'bg-red-50 dark:bg-red-950/20';
+  return 'bg-white dark:bg-gray-900';
+};
+
+// Helper to get diff line border color
+const getDiffBorderColor = (type: 'addition' | 'deletion' | 'unchanged'): string => {
+  if (type === 'addition') return 'border-green-500';
+  if (type === 'deletion') return 'border-red-500';
+  return 'border-transparent';
+};
+
+// Helper to get diff symbol color
+const getDiffSymbolColor = (type: 'addition' | 'deletion' | 'unchanged'): string => {
+  if (type === 'addition') return 'text-green-600 dark:text-green-400';
+  if (type === 'deletion') return 'text-red-600 dark:text-red-400';
+  return 'text-gray-400';
+};
+
 interface CodeDiffProps {
   before: string;
   after: string;
@@ -179,28 +200,10 @@ export const MultiLineDiff: React.FC<MultiLineDiffProps> = ({
       )}
     >
       {lines.map((line, index) => {
-        const bgColor =
-          line.type === 'addition'
-            ? 'bg-green-50 dark:bg-green-950/20'
-            : line.type === 'deletion'
-              ? 'bg-red-50 dark:bg-red-950/20'
-              : 'bg-white dark:bg-gray-900';
-
-        const borderColor =
-          line.type === 'addition'
-            ? 'border-green-500'
-            : line.type === 'deletion'
-              ? 'border-red-500'
-              : 'border-transparent';
-
+        const bgColor = getDiffBgColor(line.type);
+        const borderColor = getDiffBorderColor(line.type);
         const symbol = getDiffSymbol(line.type);
-
-        const symbolColor =
-          line.type === 'addition'
-            ? 'text-green-600 dark:text-green-400'
-            : line.type === 'deletion'
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-gray-400';
+        const symbolColor = getDiffSymbolColor(line.type);
 
         return (
           <div

@@ -57,6 +57,7 @@ function validateTimestamp(timestamp: string | Date): Date | null {
       /javascript:/i,
       /on\w+\s*=/i,
       /<\w+/,
+      // eslint-disable-next-line no-control-regex
       /[\x00-\x08\x0B\x0C\x0E-\x1F]/, // Control characters
     ];
 
@@ -146,6 +147,7 @@ export function LastUpdated({
           /javascript:/i,
           /on\w+\s*=/i,
           /<\w+/,
+          // eslint-disable-next-line no-control-regex
           /[\x00-\x08\x0B\x0C\x0E-\x1F]/,
         ];
 

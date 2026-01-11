@@ -118,12 +118,16 @@ export function ProgressiveChart({
       lowFidelity ? highFiDelay : lowFiDelay
     );
 
+    // Copy refs to variables for cleanup function to avoid ref changes during cleanup
+    const lowFiTimeout = timeoutsRef.current.lowFi;
+    const highFiTimeout = timeoutsRef.current.highFi;
+
     return () => {
-      if (timeoutsRef.current.lowFi) {
-        clearTimeout(timeoutsRef.current.lowFi);
+      if (lowFiTimeout) {
+        clearTimeout(lowFiTimeout);
       }
-      if (timeoutsRef.current.highFi) {
-        clearTimeout(timeoutsRef.current.highFi);
+      if (highFiTimeout) {
+        clearTimeout(highFiTimeout);
       }
     };
   }, [isVisible, lowFidelity, lowFiDelay, highFiDelay]);
@@ -173,45 +177,6 @@ export function ProgressiveChart({
   );
 }
 
-/**
- * Hook for using progressive loading pattern
- */
-export function useProgressiveLoading(
-  options: {
-    priority?: boolean;
-    lowFiDelay?: number;
-    highFiDelay?: number;
-  } = {}
-) {
-  const [stage, setStage] = useState<LoadingStage>('skeleton');
-  const [isVisible, setIsVisible] = useState(options.priority || false);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const timeouts: { lowFi?: NodeJS.Timeout; highFi?: NodeJS.Timeout } = {};
-
-    // Progress through stages
-    timeouts.lowFi = setTimeout(() => {
-      setStage('low-fi');
-    }, options.lowFiDelay || 100);
-
-    timeouts.highFi = setTimeout(() => {
-      setStage('high-fi');
-    }, options.highFiDelay || 500);
-
-    return () => {
-      if (timeouts.lowFi) clearTimeout(timeouts.lowFi);
-      if (timeouts.highFi) clearTimeout(timeouts.highFi);
-    };
-  }, [isVisible, options.lowFiDelay, options.highFiDelay]);
-
-  return {
-    stage,
-    isVisible,
-    setIsVisible,
-    isSkeleton: stage === 'skeleton',
-    isLowFi: stage === 'low-fi',
-    isHighFi: stage === 'high-fi',
-  };
-}
+// Re-export hook for backward compatibility
+// eslint-disable-next-line react-refresh/only-export-components
+export { useProgressiveLoading } from './use-progressive-loading';

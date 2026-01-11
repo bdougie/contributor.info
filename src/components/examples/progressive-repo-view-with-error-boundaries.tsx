@@ -284,12 +284,13 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData ? (
+              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData && (
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
-              ) : progressiveData.directCommitsData ? (
+              )}
+              {progressiveData.directCommitsData && (
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {progressiveData.directCommitsData?.hasYoloCoders
@@ -325,7 +326,8 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
                     </div>
                   )}
                 </div>
-              ) : (
+              )}
+              {!progressiveData.directCommitsData && progressiveData.stageProgress.enhancement && (
                 <div className="text-sm text-muted-foreground">Loading advanced analytics...</div>
               )}
             </CardContent>
@@ -382,4 +384,5 @@ export const ProgressiveRepoViewWithHOC = () => {
 
 // Re-export the HOC for convenience
 import { withDataLoadingErrorBoundary } from '@/components/error-boundaries/data-loading-error-boundary';
+// eslint-disable-next-line react-refresh/only-export-components
 export { withDataLoadingErrorBoundary };

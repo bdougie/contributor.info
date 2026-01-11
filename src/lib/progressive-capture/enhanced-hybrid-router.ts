@@ -5,11 +5,37 @@ import {
   getPriorityFactor,
 } from '../utils/performance-helpers';
 
+export interface ProcessingMetadata {
+  [key: string]: string | number | boolean | object | null;
+}
+
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';
   reason: string;
   confidence: number;
-  metadata?: Record<string, any>;
+  metadata?: ProcessingMetadata;
+}
+
+export interface ProcessingJob {
+  job_type?: string;
+  type?: string;
+  repository_id?: string;
+  repositoryId?: string;
+  time_range?: number;
+  timeRange?: number;
+  max_items?: number;
+  maxItems?: number;
+  priority?: string;
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+export interface RepositoryMetadata {
+  id: string;
+  owner: string;
+  name: string;
+  pull_request_count: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BackfillState {
@@ -21,6 +47,24 @@ export interface BackfillState {
   chunk_size: number;
 }
 
+export interface RoutingFactors {
+  timeSensitivity: number;
+  batchSizeFactor: number;
+  repoSizeFactor: number;
+  dataAgeFactor: number;
+  systemLoad: { inngestLoad: number; actionsLoad: number };
+  priorityFactor: number;
+  isHistorical: boolean;
+  repositorySize: number;
+  timeRange: number;
+  maxItems: number;
+}
+
+export interface BackfillRepository {
+  id: string | number;
+  pull_request_count: number;
+}
+
 export class EnhancedHybridRouter {
   private readonly GITHUB_ACTIONS_PERCENTAGE = 0.25; // 25% to GitHub Actions
   private readonly LARGE_REPO_THRESHOLD = 1000;
@@ -29,7 +73,7 @@ export class EnhancedHybridRouter {
   /**
    * Route a job to the appropriate processor based on multiple factors
    */
-  async routeJob(job: any): Promise<RoutingDecision> {
+  async routeJob(job: ProcessingJob): Promise<RoutingDecision> {
     try {
       // Always use GitHub Actions for progressive backfill
       if (job.job_type === 'progressive_backfill' || job.type === 'progressive_backfill') {
@@ -101,7 +145,7 @@ export class EnhancedHybridRouter {
   /**
    * Calculate routing factors for decision making
    */
-  private async calculateRoutingFactors(job: any, repository: any) {
+  private async calculateRoutingFactors(job: ProcessingJob, repository: RepositoryMetadata) {
     const timeRange = job.time_range || job.timeRange || 30;
     const maxItems = job.max_items || job.maxItems || 100;
 
@@ -142,7 +186,7 @@ export class EnhancedHybridRouter {
   /**
    * Make routing decision based on factors
    */
-  private makeRoutingDecision(factors: any): RoutingDecision {
+  private makeRoutingDecision(factors: RoutingFactors): RoutingDecision {
     // Calculate weighted scores
     const inngestScore =
       factors.timeSensitivity * 0.3 +
@@ -189,7 +233,11 @@ export class EnhancedHybridRouter {
   /**
    * Get repository metadata from database
    */
-  private async getRepositoryMetadata(repositoryId: string) {
+  private async getRepositoryMetadata(repositoryId?: string) {
+    if (!repositoryId) {
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('repositories')
@@ -273,14 +321,14 @@ export class EnhancedHybridRouter {
   /**
    * Check if a repository should initiate backfill
    */
-  async shouldInitiateBackfill(repository: any): Promise<boolean> {
+  async shouldInitiateBackfill(repository: BackfillRepository): Promise<boolean> {
     // Check if repository needs backfill
     if (!repository.pull_request_count || repository.pull_request_count < 100) {
       return false; // Small repos don't need backfill
     }
 
     // Check if already being backfilled
-    const existingBackfill = await this.getBackfillState(repository.id);
+    const existingBackfill = await this.getBackfillState(String(repository.id));
     if (existingBackfill) {
       return false;
     }

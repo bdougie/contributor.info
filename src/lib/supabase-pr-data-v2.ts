@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { fetchPullRequests } from './github';
 import type { PullRequest } from './types';
 import { trackDatabaseOperation, trackRateLimit } from './simple-logging';
@@ -8,7 +9,7 @@ import {
   createPartialDataResult,
   type DataResult,
 } from './errors/repository-errors';
-import { getUserType } from './utils/data-type-mapping';
+import { getUserType, getPRState } from './utils/data-type-mapping';
 import { getFetchStrategy, calculateFetchWindow, shouldUseCachedData } from './fetch-strategies';
 import { RepositorySize } from './validation/database-schemas';
 import { sendInngestEvent } from './inngest/client-safe';
@@ -20,6 +21,52 @@ interface TrackedRepositoryInfo {
   size: RepositorySize | null;
   priority: 'high' | 'medium' | 'low' | null;
   size_calculated_at: string | null;
+}
+
+interface DatabaseContributor {
+  username: string;
+  github_id: number;
+  avatar_url: string;
+  is_bot?: boolean;
+  type?: string;
+}
+
+interface DatabaseReview {
+  github_id: number;
+  state: string;
+  body: string;
+  submitted_at: string;
+  contributors?: DatabaseContributor;
+}
+
+interface DatabaseComment {
+  github_id: number;
+  body: string;
+  created_at: string;
+  contributors?: DatabaseContributor;
+}
+
+interface DatabasePullRequest {
+  github_id: number;
+  number: number;
+  title: string;
+  body: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  merged: boolean;
+  contributors?: DatabaseContributor;
+  base_branch: string;
+  head_branch: string;
+  additions: number;
+  deletions: number;
+  changed_files: number;
+  commits: number;
+  html_url: string;
+  reviews?: DatabaseReview[];
+  comments?: DatabaseComment[];
 }
 
 /**
@@ -46,7 +93,7 @@ export async function fetchPRDataWithSmartStrategy(
           .select('id, repository_id, size, priority, size_calculated_at')
           .eq('organization_name', owner)
           .eq('repository_name', repo)
-          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: any };
+          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: PostgrestError | null };
 
         // Get repository ID (fallback to repositories table if not tracked)
         let repositoryId: string | null = null;
@@ -87,7 +134,7 @@ export async function fetchPRDataWithSmartStrategy(
 
         // Step 3: Try to get cached data first
         if (repositoryId) {
-          const { data: dbPRs, error: dbError } = await supabase
+          const { data: dbPRs, error: dbError } = (await supabase
             .from('pull_requests')
             .select(
               `
@@ -148,7 +195,10 @@ export async function fetchPRDataWithSmartStrategy(
             .eq('repository_id', repositoryId)
             .gte('created_at', since.toISOString())
             .order('created_at', { ascending: false })
-            .limit(strategy.maxPRsCache);
+            .limit(strategy.maxPRsCache)) as {
+            data: DatabasePullRequest[] | null;
+            error: PostgrestError | null;
+          };
 
           if (!dbError && dbPRs && dbPRs.length > 0) {
             const transformedPRs = transformDatabasePRs(dbPRs, owner, repo);
@@ -301,7 +351,7 @@ export async function fetchPRDataWithSmartStrategy(
               .maybeSingle();
 
             if (emergencyRepo) {
-              const { data: emergencyData } = await supabase
+              const { data: emergencyData } = (await supabase
                 .from('pull_requests')
                 .select(
                   `
@@ -333,7 +383,7 @@ export async function fetchPRDataWithSmartStrategy(
                 )
                 .eq('repository_id', emergencyRepo.id)
                 .order('created_at', { ascending: false })
-                .limit(100);
+                .limit(100)) as { data: DatabasePullRequest[] | null };
 
               if (emergencyData && emergencyData.length > 0) {
                 const emergencyPRs = transformDatabasePRs(emergencyData, owner, repo);
@@ -390,13 +440,17 @@ export async function fetchPRDataWithSmartStrategy(
 /**
  * Transform database PR records to PullRequest format
  */
-function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRequest[] {
-  return dbPRs.map((dbPR: any) => ({
+function transformDatabasePRs(
+  dbPRs: DatabasePullRequest[],
+  owner: string,
+  repo: string
+): PullRequest[] {
+  return dbPRs.map((dbPR: DatabasePullRequest) => ({
     id: dbPR.github_id,
     number: dbPR.number,
     title: dbPR.title,
     body: dbPR.body,
-    state: dbPR.state,
+    state: getPRState(dbPR.state),
     created_at: dbPR.created_at,
     updated_at: dbPR.updated_at,
     closed_at: dbPR.closed_at,
@@ -421,7 +475,7 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
     html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
     repository_owner: owner,
     repository_name: repo,
-    reviews: (dbPR.reviews || []).map((review: any) => ({
+    reviews: (dbPR.reviews || []).map((review: DatabaseReview) => ({
       id: review.github_id,
       state: review.state,
       body: review.body,
@@ -431,7 +485,7 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
         avatar_url: review.contributors?.avatar_url || '',
       },
     })),
-    comments: (dbPR.comments || []).map((comment: any) => ({
+    comments: (dbPR.comments || []).map((comment: DatabaseComment) => ({
       id: comment.github_id,
       body: comment.body,
       created_at: comment.created_at,

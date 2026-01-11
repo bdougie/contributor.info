@@ -10,7 +10,7 @@ import {
   getCardAccessibility,
   getTrophyIconProps,
 } from '@/lib/contributor-of-month-config';
-import type { ContributorRanking } from '@/lib/types';
+import type { ContributorRanking, Contributor } from '@/lib/types';
 
 interface ContributorOfTheMonthSimpleProps {
   ranking: ContributorRanking | null;
@@ -39,7 +39,7 @@ interface ContributorOfTheMonthSimpleProps {
     role?: string;
   }) => React.ReactNode;
   renderContributorCard?: (props: {
-    contributor: any;
+    contributor: Contributor;
     isWinner?: boolean;
     showRank?: boolean;
   }) => React.ReactNode;
@@ -54,7 +54,7 @@ interface ContributorOfTheMonthSimpleProps {
     className?: string;
   }) => React.ReactNode;
   renderMinimalActivity?: (props: {
-    contributors: any[];
+    contributors: Contributor[];
     month: string;
     year: number;
     className?: string;

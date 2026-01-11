@@ -65,10 +65,14 @@ export function useCachedGitHubApi<T>(
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
-        const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(endpoint, params, {
-          ...apiOptions,
-          forceRefresh,
-        });
+        const result: ApiResponse<T> = await clientRef.current.makeRequest<T>(
+          endpoint,
+          params as Record<string, string | number | boolean>,
+          {
+            ...apiOptions,
+            forceRefresh,
+          }
+        );
 
         if (result.success) {
           setState({

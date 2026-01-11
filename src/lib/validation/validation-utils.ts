@@ -187,7 +187,7 @@ export function formatZodErrors(zodError: ZodError): ValidationIssue[] {
     field: error.path.join('.') || 'root',
     message: error.message,
     code: error.code,
-    received: (error as any).received || undefined,
+    received: 'received' in error ? (error as { received?: unknown }).received : undefined,
   }));
 }
 

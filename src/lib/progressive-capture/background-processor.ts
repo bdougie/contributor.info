@@ -157,7 +157,7 @@ export function startBackgroundProcessing(): void {
         if (stats.pending > 0 && import.meta.env?.DEV) {
           console.log('📋 %s jobs pending in queue', stats.pending);
         }
-      } catch (error) {
+      } catch {
         // Silently handle - no need to show user
       }
     }, 5000);

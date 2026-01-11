@@ -147,9 +147,24 @@ export function useRepositorySummary(
         throw new Error('Repository not found');
       }
 
+      // Transform Supabase data to match Repository interface
+      const repository: Repository = {
+        id: repositoryData.id,
+        full_name: repositoryData.full_name,
+        name: repo,
+        owner: owner,
+        description: repositoryData.description,
+        language: repositoryData.language,
+        stargazers_count: repositoryData.stargazers_count,
+        forks_count: repositoryData.forks_count,
+        ai_summary: repositoryData.ai_summary,
+        summary_generated_at: repositoryData.summary_generated_at,
+        recent_activity_hash: repositoryData.recent_activity_hash,
+      };
+
       // Calculate activity hash
       const activityHash = createActivityHash(pullRequests || []);
-      const shouldRegenerate = needsRegeneration(repositoryData, activityHash);
+      const shouldRegenerate = needsRegeneration(repository, activityHash);
 
       // Use cached summary if available and fresh
       if (repositoryData.ai_summary && !shouldRegenerate) {

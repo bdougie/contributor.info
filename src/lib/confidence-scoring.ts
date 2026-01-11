@@ -41,6 +41,13 @@ export const DEFAULT_WEIGHTS: ConfidenceFactors = {
   temporalConsistencyWeight: 0.25,
 };
 
+function getRecencyScore(daysSinceLastSeen: number): number {
+  if (daysSinceLastSeen <= 7) return 1;
+  if (daysSinceLastSeen <= 30) return 0.8;
+  if (daysSinceLastSeen <= 90) return 0.6;
+  return 0.4;
+}
+
 // Calculate confidence score based on metrics
 export function calculateConfidenceScore(
   metrics: ContributorMetrics,
@@ -69,14 +76,7 @@ export function calculateConfidenceScore(
 
   // 3. Temporal Consistency Component
   // Recency factor (recent activity is weighted higher)
-  const recencyScore =
-    metrics.daysSinceLastSeen <= 7
-      ? 1
-      : metrics.daysSinceLastSeen <= 30
-        ? 0.8
-        : metrics.daysSinceLastSeen <= 90
-          ? 0.6
-          : 0.4;
+  const recencyScore = getRecencyScore(metrics.daysSinceLastSeen);
 
   // Consistency factor (regular activity over time)
   const expectedDays = Math.min(metrics.daysSinceFirstSeen, 90);

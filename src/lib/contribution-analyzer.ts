@@ -6,26 +6,6 @@ export interface ContributionMetrics {
   quadrant: 'refinement' | 'new' | 'refactoring' | 'maintenance';
 }
 
-const NON_CODE_EXTENSIONS = new Set([
-  'yaml',
-  'yml',
-  'json',
-  'toml',
-  'ini',
-  'conf',
-  'md',
-  'txt',
-  'dockerfile',
-  'dockerignore',
-  'gitignore',
-  'env',
-  'example',
-  'template',
-  'lock',
-  'sum',
-  'mod',
-]);
-
 export class ContributionAnalyzer {
   // Track counts of each quadrant type for distribution calculation
   private static quadrantCounts = {
@@ -135,67 +115,29 @@ export class ContributionAnalyzer {
   }
 
   private static calculateMetrics(pr: PullRequest) {
-    let isConfig = true;
-    let isCodePresent = false;
-    let codeAdditions = 0;
-    let codeDeletions = 0;
+    let isConfig = false;
+    let isCodePresent = true;
+    let codeAdditions = pr.additions || 0;
+    let codeDeletions = pr.deletions || 0;
     let configAdditions = 0;
     let configDeletions = 0;
-    let hasMdFile = false;
 
-    if (pr.commits && pr.commits.length > 0) {
-      for (const commit of pr.commits) {
-        if (NON_CODE_EXTENSIONS.has(commit.language)) {
-          // Track config file changes separately
-          configAdditions += commit.additions;
-          configDeletions += commit.deletions;
-
-          // Specifically track if there are any .md files
-          if (commit.language === 'md') {
-            hasMdFile = true;
-          }
-        } else {
-          // This is a code file
-          isConfig = false;
-          isCodePresent = true;
-          codeAdditions += commit.additions;
-          codeDeletions += commit.deletions;
-        }
-      }
-
-      // If this is only .md files or other non-code files, ensure it's maintenance
-      if (!isCodePresent && configAdditions + configDeletions > 0) {
-        isConfig = true;
-      }
-
-      // Special case for documentation-only commits
-      if (hasMdFile && !isCodePresent) {
-        isConfig = true;
-      }
-    } else {
-      // If no commits data, try to infer from PR title
-      const prTitleLower = pr.title.toLowerCase();
-
-      // Check if PR title suggests it's documentation/config only
-      if (
-        prTitleLower.includes('readme') ||
-        prTitleLower.includes('documentation') ||
-        prTitleLower.includes('docs') ||
-        prTitleLower.includes('config') ||
-        prTitleLower.includes('.md') ||
-        prTitleLower.includes('markdown')
-      ) {
-        isConfig = true;
-        isCodePresent = false;
-        configAdditions = pr.additions;
-        configDeletions = pr.deletions;
-      } else {
-        // If no hints in title, fall back to PR level metrics as code
-        codeAdditions = pr.additions;
-        codeDeletions = pr.deletions;
-        isConfig = false;
-        isCodePresent = pr.additions > 0 || pr.deletions > 0;
-      }
+    // Check if PR title suggests it's documentation/config only
+    const prTitleLower = pr.title.toLowerCase();
+    if (
+      prTitleLower.includes('readme') ||
+      prTitleLower.includes('documentation') ||
+      prTitleLower.includes('docs') ||
+      prTitleLower.includes('config') ||
+      prTitleLower.includes('.md') ||
+      prTitleLower.includes('markdown')
+    ) {
+      isConfig = true;
+      isCodePresent = false;
+      configAdditions = pr.additions || 0;
+      configDeletions = pr.deletions || 0;
+      codeAdditions = 0;
+      codeDeletions = 0;
     }
 
     return {

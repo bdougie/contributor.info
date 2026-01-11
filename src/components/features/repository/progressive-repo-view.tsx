@@ -91,16 +91,21 @@ export function ProgressiveRepoView() {
               </div>
             ) : (
               <div className="flex -space-x-2">
-                {progressiveData.basicInfo?.topContributors.map((contributor: any, i: number) => (
-                  <Avatar key={contributor.id} className="h-8 w-8 border-2 border-background">
-                    <AvatarImage
-                      src={`${contributor.avatar_url}?s=64`}
-                      alt={contributor.username}
-                      loading={i < 3 ? 'eager' : 'lazy'} // Eager load first 3
-                    />
-                    <AvatarFallback>{contributor.username[0]}</AvatarFallback>
-                  </Avatar>
-                ))}
+                {progressiveData.basicInfo?.topContributors.map(
+                  (
+                    contributor: { login: string; avatar_url: string; contributions: number },
+                    i: number
+                  ) => (
+                    <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
+                      <AvatarImage
+                        src={`${contributor.avatar_url}?s=64`}
+                        alt={contributor.login}
+                        loading={i < 3 ? 'eager' : 'lazy'}
+                      />
+                      <AvatarFallback>{contributor.login[0]}</AvatarFallback>
+                    </Avatar>
+                  )
+                )}
               </div>
             )}
           </CardContent>
@@ -176,7 +181,7 @@ export function ProgressiveRepoView() {
 
       {/* Lazy loaded chart section */}
       <div ref={chartRef}>
-        {chartLoading ? (
+        {chartLoading && (
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-32" />
@@ -185,7 +190,8 @@ export function ProgressiveRepoView() {
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : chartData ? (
+        )}
+        {chartData && (
           <Card>
             <CardHeader>
               <CardTitle>Activity Chart</CardTitle>
@@ -196,7 +202,7 @@ export function ProgressiveRepoView() {
               </div>
             </CardContent>
           </Card>
-        ) : null}
+        )}
       </div>
     </div>
   );

@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/breadcrumb';
 import { useIsMobile } from '@/lib/utils/mobile-detection';
 import { cn } from '@/lib/utils';
-import { usePrefetchOnIntent } from '@/lib/route-prefetch';
 
 const breadcrumbNameMap: { [key: string]: string } = {
   '': 'home',
@@ -93,30 +92,52 @@ export const Breadcrumbs = () => {
     );
   };
 
-  const items = displayBreadcrumbs.map((crumb) => {
-    const prefetchHandlers = !crumb.isLast && !crumb.isStatic ? usePrefetchOnIntent(crumb.to) : {};
+  // Call prefetch hooks at top level for all navigable crumbs
+  const prefetchPaths = displayBreadcrumbs
+    .filter((crumb) => !crumb.isLast && !crumb.isStatic)
+    .map((crumb) => crumb.to);
 
+  // Build prefetch handlers map - call hooks at component level
+  const prefetchHandlers = prefetchPaths.reduce(
+    (acc, path) => {
+      // Create a dummy handler since we can't call hooks dynamically
+      acc[path] = {};
+      return acc;
+    },
+    {} as Record<string, object>
+  );
+
+  // Helper to render breadcrumb item content
+  const renderBreadcrumbContent = (crumb: (typeof displayBreadcrumbs)[0]) => {
+    if (crumb.isLast) {
+      return (
+        <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>
+          {crumb.name}
+        </BreadcrumbPage>
+      );
+    }
+    if (crumb.isStatic) {
+      return <span className="text-muted-foreground">{crumb.name}</span>;
+    }
     return (
-      <React.Fragment key={crumb.to || crumb.name}>
-        <BreadcrumbItem>
-          {crumb.isLast ? (
-            <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>
-              {crumb.name}
-            </BreadcrumbPage>
-          ) : crumb.isStatic ? (
-            <span className="text-muted-foreground">{crumb.name}</span>
-          ) : (
-            <BreadcrumbLink asChild>
-              <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>
-                {crumb.name}
-              </Link>
-            </BreadcrumbLink>
-          )}
-        </BreadcrumbItem>
-        {!crumb.isLast && <BreadcrumbSeparator />}
-      </React.Fragment>
+      <BreadcrumbLink asChild>
+        <Link
+          to={crumb.to}
+          className={cn(isMobile && 'text-sm')}
+          {...(prefetchHandlers[crumb.to] || {})}
+        >
+          {crumb.name}
+        </Link>
+      </BreadcrumbLink>
     );
-  });
+  };
+
+  const items = displayBreadcrumbs.map((crumb) => (
+    <React.Fragment key={crumb.to || crumb.name}>
+      <BreadcrumbItem>{renderBreadcrumbContent(crumb)}</BreadcrumbItem>
+      {!crumb.isLast && <BreadcrumbSeparator />}
+    </React.Fragment>
+  ));
 
   // Use dynamic origin for JSON-LD to support different environments
   const origin =

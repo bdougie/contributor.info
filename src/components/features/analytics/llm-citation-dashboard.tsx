@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AlertCircle, TrendingUp, Brain, Search, ExternalLink } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,11 +38,7 @@ export function LLMCitationDashboard() {
     end: new Date(),
   });
 
-  useEffect(() => {
-    loadCitationMetrics();
-  }, [dateRange]);
-
-  const loadCitationMetrics = async () => {
+  const loadCitationMetrics = useCallback(async () => {
     try {
       setIsLoading(true);
       // Import dynamically to avoid initialization errors
@@ -56,7 +52,11 @@ export function LLMCitationDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  useEffect(() => {
+    loadCitationMetrics();
+  }, [loadCitationMetrics]);
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

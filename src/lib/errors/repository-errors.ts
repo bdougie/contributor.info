@@ -37,7 +37,7 @@ export interface DataResult<T> {
     | 'pending';
   message?: string;
   repositoryName?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -58,7 +58,7 @@ export function createLargeRepositoryResult<T>(
 /**
  * Creates a successful result
  */
-export function createSuccessResult<T>(data: T, metadata?: Record<string, any>): DataResult<T> {
+export function createSuccessResult<T>(data: T, metadata?: Record<string, unknown>): DataResult<T> {
   return {
     data,
     status: 'success',

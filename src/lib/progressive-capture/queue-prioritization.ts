@@ -209,7 +209,7 @@ export class QueuePrioritizationService {
   /**
    * Get next job to process based on priority
    */
-  async getNextJob(processor: 'inngest' | 'github_actions'): Promise<any | null> {
+  async getNextJob(processor: 'inngest' | 'github_actions'): Promise<unknown | null> {
     try {
       // Prioritize queue first
       await this.prioritizeQueue();

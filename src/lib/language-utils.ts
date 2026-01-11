@@ -15,25 +15,8 @@ export const LANGUAGE_COLORS: Record<string, string> = {
 
 // Helper function to get primary language for a PR
 export const getPrimaryLanguage = (pr: PullRequest): { name: string; color: string } => {
-  if (pr.commits && pr.commits.length > 0) {
-    // Count changes by language
-    const languageChanges: Record<string, number> = {};
-    pr.commits.forEach((commit) => {
-      const lang = commit.language || 'Other';
-      languageChanges[lang] = (languageChanges[lang] || 0) + commit.additions + commit.deletions;
-    });
-
-    // Find language with most changes
-    const primaryLang =
-      Object.entries(languageChanges).sort(([, a], [, b]) => b - a)[0]?.[0] || 'Other';
-
-    return {
-      name: primaryLang,
-      color: LANGUAGE_COLORS[primaryLang] || LANGUAGE_COLORS['Other'],
-    };
-  }
-
-  // Fallback: infer from PR title
+  // Infer from PR title since commits is now a numeric count
+  // (detailed commit data per language is no longer available)
   const titleLower = pr.title.toLowerCase();
   let lang = 'Other';
 

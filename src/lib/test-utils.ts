@@ -8,7 +8,7 @@ import { waitFor, screen } from '@storybook/test';
 /**
  * Enhanced error logging for test debugging
  */
-const logTestError = (context: string, error: Error, additionalInfo?: any) => {
+const logTestError = (context: string, error: Error, additionalInfo?: unknown) => {
   console.error('[Test Utils] %s:', context, {
     error: error.message,
     stack: error.stack,
@@ -32,10 +32,10 @@ export const waitForPortalElement = async (
       () => {
         try {
           const element = name
-            ? screen.getByRole(role as any, { name })
-            : screen.getByRole(role as any);
+            ? screen.getByRole(role as unknown as string, { name })
+            : screen.getByRole(role as unknown as string);
           return element;
-        } catch (queryError) {
+        } catch {
           // Provide helpful debugging information
           const availableRoles = document.querySelectorAll('[role]');
           const roleList = Array.from(availableRoles)
@@ -122,7 +122,7 @@ export const waitForSelectOpen = async (timeout = 5000) => {
         try {
           const listbox = screen.getByRole('listbox');
           return listbox;
-        } catch (queryError) {
+        } catch {
           // Check for select-related elements for debugging
           const selectElements = document.querySelectorAll(
             'select, [data-radix-select], [role="combobox"], [data-radix-select-content]'

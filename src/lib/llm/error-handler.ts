@@ -247,8 +247,9 @@ export const withErrorHandling = <T extends unknown[], R>(
 ) => {
   return async (...args: T): Promise<R | null> => {
     let attemptCount = 0;
+    // Note: config is private, so we hardcoded max retries to 2 (matching default config)
 
-    while (attemptCount <= (llmErrorHandler as any).config.maxRetries) {
+    while (attemptCount <= 2) {
       try {
         return await fn(...args);
       } catch (error) {

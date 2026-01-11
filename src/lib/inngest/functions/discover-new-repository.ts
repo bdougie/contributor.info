@@ -33,7 +33,7 @@ interface GitHubRepository {
   archived: boolean;
   disabled: boolean;
   open_issues_count: number;
-  license: any;
+  license: unknown;
   topics: string[];
   visibility: string;
   default_branch: string;
@@ -152,7 +152,7 @@ export const discoverNewRepository = inngest.createFunction(
           has_wiki: githubData.has_wiki,
           has_pages: githubData.has_pages,
           has_downloads: githubData.has_downloads,
-          license: githubData.license?.spdx_id || null,
+          license: (githubData.license as { spdx_id?: string } | null)?.spdx_id || null,
           topics: githubData.topics || [],
           github_created_at: githubData.created_at,
           github_updated_at: githubData.updated_at,
