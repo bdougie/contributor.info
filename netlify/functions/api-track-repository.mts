@@ -1,5 +1,6 @@
 import type { Context } from '@netlify/functions';
 import { trackInngestFailure, trackTrackingFailure } from './lib/server-tracking.mts';
+import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
 /**
  * Blocked owner names that are app routes, not GitHub organizations
@@ -57,6 +58,58 @@ export default async (req: Request, context: Context) => {
     });
   }
 
+  // Helper to apply headers to any response
+  const withHeaders = (res: Response, rateLimitResult?: any) => {
+    if (rateLimitResult) {
+      return applyRateLimitHeaders(res, rateLimitResult);
+    }
+    return res;
+  };
+
+  // Get Supabase credentials early for rate limiting
+  // Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  // Use service key if available, otherwise use anon key (for local dev)
+  const supabaseKey = supabaseServiceKey || supabaseAnonKey;
+
+  // Rate Limiting Logic
+  let rateLimitResult;
+  let isAuthenticated = false;
+
+  try {
+    // Check if user is authenticated
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    isAuthenticated = !!authHeader;
+
+    if (supabaseUrl && supabaseKey) {
+      const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
+        maxRequests: 10, // Conservative limit for repository tracking (10 per minute)
+        windowMs: 60 * 1000,
+      });
+
+      const rateLimitKey = getRateLimitKey(req, isAuthenticated ? 'authenticated-user' : undefined);
+      rateLimitResult = await limiter.checkLimit(rateLimitKey);
+
+      if (!rateLimitResult.allowed) {
+        return applyRateLimitHeaders(
+          new Response(JSON.stringify({ error: 'Too many requests' }), {
+            status: 429,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }),
+          rateLimitResult
+        );
+      }
+    }
+  } catch (rateLimitError) {
+    console.error('Rate limit check failed:', rateLimitError);
+    // Proceed if rate limiting fails (fail open)
+  }
+
   try {
     // Parse request body
     let body: { owner?: string; repo?: string };
@@ -72,81 +125,89 @@ export default async (req: Request, context: Context) => {
     const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
 
     if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Missing owner or repo',
-          message: 'Please provide both owner and repo parameters as strings',
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Missing owner or repo',
+            message: 'Please provide both owner and repo parameters as strings',
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
 
     // Block app routes that aren't GitHub repositories
     if (BLOCKED_OWNERS.has(owner.toLowerCase())) {
       console.warn(`Blocked tracking attempt for app route: ${owner}/${repo}`);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid repository',
-          message: `'${owner}' is a reserved path and cannot be tracked as a repository`,
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid repository',
+            message: `'${owner}' is a reserved path and cannot be tracked as a repository`,
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
 
     // Validate format to prevent injection attacks
     if (!isValidRepoName(owner) || !isValidRepoName(repo)) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid repository format',
-          message:
-            'Repository names can only contain letters, numbers, dots, underscores, and hyphens',
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid repository format',
+            message:
+              'Repository names can only contain letters, numbers, dots, underscores, and hyphens',
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
 
     // Validate length constraints
     if (owner.length > 39 || repo.length > 100) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid repository name length',
-          message: 'Repository or organization name is too long',
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid repository name length',
+            message: 'Repository or organization name is too long',
+          }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
-
-    // Check if user is authenticated
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
-    const isAuthenticated = !!authHeader;
 
     // GitHub API repository response type
     interface GitHubRepository {
@@ -197,19 +258,22 @@ export default async (req: Request, context: Context) => {
 
       if (isProduction && !githubToken) {
         console.error('Missing GitHub token in production environment');
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Configuration error',
-            message: 'Service temporarily unavailable. Please try again later.',
-          }),
-          {
-            status: 503,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Configuration error',
+              message: 'Service temporarily unavailable. Please try again later.',
+            }),
+            {
+              status: 503,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
 
@@ -224,19 +288,22 @@ export default async (req: Request, context: Context) => {
       });
 
       if (githubResponse.status === 404) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Repository not found',
-            message: `Repository ${owner}/${repo} not found on GitHub`,
-          }),
-          {
-            status: 404,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Repository not found',
+              message: `Repository ${owner}/${repo} not found on GitHub`,
+            }),
+            {
+              status: 404,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
 
@@ -248,19 +315,22 @@ export default async (req: Request, context: Context) => {
 
       // Check if it's a private repository
       if (githubData.private) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Private repository',
-            message: 'Cannot track private repositories',
-          }),
-          {
-            status: 403,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Private repository',
+              message: 'Cannot track private repositories',
+            }),
+            {
+              status: 403,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
     } catch (githubError) {
@@ -282,19 +352,22 @@ export default async (req: Request, context: Context) => {
 
       // In production, GitHub data is REQUIRED - we cannot proceed without it
       // The github_id is critical for all downstream processing
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'GitHub API error',
-          message: 'Unable to fetch repository data from GitHub. Please try again later.',
-        }),
-        {
-          status: 503,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'GitHub API error',
+            message: 'Unable to fetch repository data from GitHub. Please try again later.',
+          }),
+          {
+            status: 503,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
 
@@ -303,15 +376,6 @@ export default async (req: Request, context: Context) => {
     try {
       // Import Supabase admin client
       const { createClient } = await import('@supabase/supabase-js');
-
-      // Get Supabase credentials
-      // Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-      // Use service key if available, otherwise use anon key (for local dev)
-      const supabaseKey = supabaseServiceKey || supabaseAnonKey;
 
       if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
@@ -350,19 +414,22 @@ export default async (req: Request, context: Context) => {
         }
 
         // Return degraded response - tracking may work via Inngest but is not guaranteed
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: `Tracking request received for ${owner}/${repo}`,
-            warning: 'Background processing may be delayed due to configuration issue',
-          }),
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: true,
+              message: `Tracking request received for ${owner}/${repo}`,
+              warning: 'Background processing may be delayed due to configuration issue',
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
 
@@ -550,19 +617,22 @@ export default async (req: Request, context: Context) => {
           });
         }
 
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: `Repository ${owner}/${repo} is already being tracked`,
-            repositoryId: existingRepo.id,
-          }),
-          {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: true,
+              message: `Repository ${owner}/${repo} is already being tracked`,
+              repositoryId: existingRepo.id,
+            }),
+            {
+              status: 200,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
 
@@ -570,19 +640,22 @@ export default async (req: Request, context: Context) => {
       // At this point we MUST have githubData since we return early on GitHub API failures
       if (!githubData) {
         console.error('Critical error: githubData is null but we should have returned earlier');
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Data validation error',
-            message: 'Unable to process repository data. Please try again.',
-          }),
-          {
-            status: 500,
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json',
-            },
-          }
+        return withHeaders(
+          new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Data validation error',
+              message: 'Unable to process repository data. Please try again.',
+            }),
+            {
+              status: 500,
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json',
+              },
+            }
+          ),
+          rateLimitResult
         );
       }
 
@@ -771,26 +844,29 @@ export default async (req: Request, context: Context) => {
         repository.id
       );
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: `Successfully started tracking ${owner}/${repo}`,
-          repositoryId: repository.id,
-          repository: {
-            id: repository.id,
-            owner: repository.owner,
-            name: repository.name,
-            stars: repository.stargazers_count || 0,
-            language: repository.language || null,
-          },
-        }),
-        {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: true,
+            message: `Successfully started tracking ${owner}/${repo}`,
+            repositoryId: repository.id,
+            repository: {
+              id: repository.id,
+              owner: repository.owner,
+              name: repository.name,
+              stars: repository.stargazers_count || 0,
+              language: repository.language || null,
+            },
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     } catch (error) {
       console.error('Failed to track repository:', error);
@@ -806,19 +882,22 @@ export default async (req: Request, context: Context) => {
       });
 
       // Return error status so frontend knows tracking failed
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Tracking failed',
-          message: `Failed to track ${owner}/${repo}. Please try again.`,
-        }),
-        {
-          status: 500,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+      return withHeaders(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Tracking failed',
+            message: `Failed to track ${owner}/${repo}. Please try again.`,
+          }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        ),
+        rateLimitResult
       );
     }
   } catch (error) {
@@ -847,19 +926,22 @@ export default async (req: Request, context: Context) => {
       statusCode: 500,
     });
 
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Internal server error',
-        message: 'Failed to track repository. Please try again.',
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
+    return withHeaders(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Internal server error',
+          message: 'Failed to track repository. Please try again.',
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      ),
+      rateLimitResult
     );
   }
 };
