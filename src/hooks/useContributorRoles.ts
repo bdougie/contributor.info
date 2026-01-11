@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useContributorRoleFromContext } from '@/contexts/contributor-roles-context';
 
 export interface ContributorRole {
   id: string;
@@ -24,6 +25,7 @@ export interface ContributorRoleWithStats extends ContributorRole {
 interface UseContributorRolesOptions {
   enableRealtime?: boolean;
   minimumConfidence?: number;
+  skip?: boolean; // Skip fetching if data is available from context
 }
 
 export function useContributorRoles(
@@ -31,12 +33,18 @@ export function useContributorRoles(
   repo: string,
   options: UseContributorRolesOptions = {}
 ) {
-  const { enableRealtime = false, minimumConfidence = 0 } = options;
+  const { enableRealtime = false, minimumConfidence = 0, skip = false } = options;
   const [roles, setRoles] = useState<ContributorRoleWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Skip fetching if data is available from context
+    if (skip) {
+      setLoading(false);
+      return;
+    }
+
     let channel: RealtimeChannel | null = null;
 
     const fetchRoles = async () => {
@@ -129,7 +137,7 @@ export function useContributorRoles(
         getSupabase().then((sb) => sb.removeChannel(channel!));
       }
     };
-  }, [owner, repo, enableRealtime, minimumConfidence]);
+  }, [owner, repo, enableRealtime, minimumConfidence, skip]);
 
   return { roles, loading, error };
 }
@@ -157,9 +165,28 @@ function getDaysSinceLastActive(lastVerified: string): number {
 
 // Hook to get role for a specific contributor
 export function useContributorRole(owner: string, repo: string, userId: string) {
-  const { roles, loading, error } = useContributorRoles(owner, repo);
-  const role = roles.find((r) => r.user_id === userId);
+  // IMPORTANT: All hooks must be called unconditionally at the top level
+  // Try to get from context first to avoid N+1 queries
+  const contextRoles = useContributorRoleFromContext();
 
+  // Check if we should use context (available and matches our repo)
+  const useContext = contextRoles && contextRoles.owner === owner && contextRoles.repo === repo;
+
+  // Only fetch individually if context is not available
+  // We pass a flag to control whether the hook should actually fetch
+  const { roles, loading, error } = useContributorRoles(owner, repo, {
+    enableRealtime: false,
+    skip: useContext, // Skip fetching if we have context
+  });
+
+  // If using context, return context data
+  if (useContext && contextRoles) {
+    const role = contextRoles.roles.find((r: ContributorRoleWithStats) => r.user_id === userId);
+    return { role, loading: contextRoles.loading, error: contextRoles.error };
+  }
+
+  // Otherwise use the individual fetch data (legacy behavior)
+  const role = roles.find((r: ContributorRoleWithStats) => r.user_id === userId);
   return { role, loading, error };
 }
 

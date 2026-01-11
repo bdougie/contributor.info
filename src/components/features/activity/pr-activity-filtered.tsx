@@ -16,6 +16,7 @@ import {
   convertDatabasePRsToActivities,
   sortActivitiesByTimestamp,
 } from '@/lib/api/pr-activity-adapter';
+import { ContributorRolesProvider } from '@/contexts/contributor-roles-context';
 
 export default function FilteredPRActivity() {
   const { owner, repo: repoName } = useParams<{ owner: string; repo: string }>();
@@ -82,87 +83,94 @@ export default function FilteredPRActivity() {
     (activity) => activity.user.isBot || detectBot({ username: activity.user.name }).isBot
   );
 
+  // Ensure we have valid owner and repo before wrapping with provider
+  if (!owner || !repoName) {
+    return null;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Pull Request Feed</CardTitle>
-            <CardDescription>Recent pull requests with spam filtering</CardDescription>
-          </div>
-          <SpamFilterControls
-            filterOptions={filterOptions}
-            onFilterChange={updateFilterOptions}
-            spamStats={spamStats || undefined}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-3 sm:p-6">
-        {/* Database source indicator */}
-        <Alert className="mb-4">
-          <Database className="h-4 w-4" />
-          <AlertDescription>
-            <span className="font-medium">Using cached data</span> - This feed shows PRs from our
-            database with spam detection.
-            {spamStats && spamStats.totalAnalyzed > 0 && (
-              <span className="block mt-1 text-xs">
-                {spamStats.totalAnalyzed} PRs analyzed • {spamStats.spamCount} marked as spam (
-                {spamStats.spamPercentage.toFixed(1)}%)
-              </span>
-            )}
-          </AlertDescription>
-        </Alert>
-
-        {/* Filter toggles */}
-        {hasBots && (
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
-              <Label htmlFor="filter-bots" className="text-sm">
-                Show Bots
-              </Label>
+    <ContributorRolesProvider owner={owner} repo={repoName}>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Pull Request Feed</CardTitle>
+              <CardDescription>Recent pull requests with spam filtering</CardDescription>
             </div>
+            <SpamFilterControls
+              filterOptions={filterOptions}
+              onFilterChange={updateFilterOptions}
+              spamStats={spamStats || undefined}
+            />
           </div>
-        )}
-
-        <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
-          <span>
-            Showing {visibleActivities.length} of {filteredActivities.length} activities
-          </span>
-          <span>•</span>
-          <span className="text-xs bg-muted px-2 py-1 rounded">
-            📊 Sorted by spam score (highest first)
-          </span>
-        </div>
-
-        {/* Activity Feed */}
-        <div className="space-y-2">
-          {visibleActivities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {spamStats && spamStats.spamCount === 0 ? (
-                <div>
-                  <p className="font-medium">No spam detected in this repository</p>
-                  <p className="text-sm mt-1">All pull requests appear to be legitimate</p>
-                </div>
-              ) : (
-                <p>No pull requests match your filter criteria</p>
+        </CardHeader>
+        <CardContent className="p-3 sm:p-6">
+          {/* Database source indicator */}
+          <Alert className="mb-4">
+            <Database className="h-4 w-4" />
+            <AlertDescription>
+              <span className="font-medium">Using cached data</span> - This feed shows PRs from our
+              database with spam detection.
+              {spamStats && spamStats.totalAnalyzed > 0 && (
+                <span className="block mt-1 text-xs">
+                  {spamStats.totalAnalyzed} PRs analyzed • {spamStats.spamCount} marked as spam (
+                  {spamStats.spamPercentage.toFixed(1)}%)
+                </span>
               )}
-            </div>
-          ) : (
-            visibleActivities.map((activity) => (
-              <SpamAwareActivityItem key={activity.id} activity={activity} />
-            ))
-          )}
-        </div>
+            </AlertDescription>
+          </Alert>
 
-        {hasMore && (
-          <div className="mt-4 flex justify-center">
-            <Button variant="secondary" onClick={handleLoadMore} disabled={loading}>
-              Load More
-            </Button>
+          {/* Filter toggles */}
+          {hasBots && (
+            <div className="flex flex-wrap gap-4 mb-4">
+              <div className="flex items-center space-x-2">
+                <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
+                <Label htmlFor="filter-bots" className="text-sm">
+                  Show Bots
+                </Label>
+              </div>
+            </div>
+          )}
+
+          <div className="mb-2 text-sm text-muted-foreground flex items-center gap-2">
+            <span>
+              Showing {visibleActivities.length} of {filteredActivities.length} activities
+            </span>
+            <span>•</span>
+            <span className="text-xs bg-muted px-2 py-1 rounded">
+              📊 Sorted by spam score (highest first)
+            </span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Activity Feed */}
+          <div className="space-y-2">
+            {visibleActivities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {spamStats && spamStats.spamCount === 0 ? (
+                  <div>
+                    <p className="font-medium">No spam detected in this repository</p>
+                    <p className="text-sm mt-1">All pull requests appear to be legitimate</p>
+                  </div>
+                ) : (
+                  <p>No pull requests match your filter criteria</p>
+                )}
+              </div>
+            ) : (
+              visibleActivities.map((activity) => (
+                <SpamAwareActivityItem key={activity.id} activity={activity} />
+              ))
+            )}
+          </div>
+
+          {hasMore && (
+            <div className="mt-4 flex justify-center">
+              <Button variant="secondary" onClick={handleLoadMore} disabled={loading}>
+                Load More
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </ContributorRolesProvider>
   );
 }

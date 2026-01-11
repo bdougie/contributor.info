@@ -11,6 +11,7 @@ import { useFastPRData } from '@/hooks/use-fast-pr-data';
 import { usePRActivityStore } from '@/lib/pr-activity-store';
 import { useTimeRange } from '@/lib/time-range-store';
 import { useCombinedActivity } from '@/hooks/use-combined-activity';
+import { ContributorRolesProvider } from '@/contexts/contributor-roles-context';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -74,95 +75,102 @@ export default function PRActivity() {
     setVisibleCount((prev) => prev + 15);
   };
 
+  // Ensure we have valid owner and repo before wrapping with provider
+  if (!owner || !repo) {
+    return null;
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Pull Request Activity Feed</CardTitle>
-        <CardDescription>
-          Track detailed activity on pull requests in this repository
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="flex flex-wrap gap-4 mb-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-opened"
-              checked={selectedTypes.includes('opened')}
-              onCheckedChange={() => toggleActivityType('opened')}
-            />
-            <Label htmlFor="filter-opened" className="text-sm">
-              Opened
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-closed"
-              checked={selectedTypes.includes('closed')}
-              onCheckedChange={() => toggleActivityType('closed')}
-            />
-            <Label htmlFor="filter-closed" className="text-sm">
-              Closed
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-merged"
-              checked={selectedTypes.includes('merged')}
-              onCheckedChange={() => toggleActivityType('merged')}
-            />
-            <Label htmlFor="filter-merged" className="text-sm">
-              Merged
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-reviewed"
-              checked={selectedTypes.includes('reviewed')}
-              onCheckedChange={() => toggleActivityType('reviewed')}
-            />
-            <Label htmlFor="filter-reviewed" className="text-sm">
-              Reviewed
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="filter-commented"
-              checked={selectedTypes.includes('commented')}
-              onCheckedChange={() => toggleActivityType('commented')}
-            />
-            <Label htmlFor="filter-commented" className="text-sm">
-              Commented
-            </Label>
-          </div>
-          {hasBots && (
+    <ContributorRolesProvider owner={owner} repo={repo}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Pull Request Activity Feed</CardTitle>
+          <CardDescription>
+            Track detailed activity on pull requests in this repository
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="flex flex-wrap gap-4 mb-4">
             <div className="flex items-center space-x-2">
-              <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
-              <Label htmlFor="filter-bots" className="text-sm">
-                Show Bots
+              <Switch
+                id="filter-opened"
+                checked={selectedTypes.includes('opened')}
+                onCheckedChange={() => toggleActivityType('opened')}
+              />
+              <Label htmlFor="filter-opened" className="text-sm">
+                Opened
               </Label>
             </div>
-          )}
-        </div>
-
-        <div className="mb-2 text-sm text-muted-foreground">
-          Showing {visibleActivities.length} of {filteredActivities.length} activities
-        </div>
-
-        <PullRequestActivityFeed
-          activities={visibleActivities}
-          loading={loading}
-          error={error}
-          selectedTypes={selectedTypes}
-        />
-
-        {hasMore && (
-          <div className="mt-4 flex justify-center">
-            <Button variant="secondary" onClick={handleLoadMore} disabled={loading}>
-              Load More
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="filter-closed"
+                checked={selectedTypes.includes('closed')}
+                onCheckedChange={() => toggleActivityType('closed')}
+              />
+              <Label htmlFor="filter-closed" className="text-sm">
+                Closed
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="filter-merged"
+                checked={selectedTypes.includes('merged')}
+                onCheckedChange={() => toggleActivityType('merged')}
+              />
+              <Label htmlFor="filter-merged" className="text-sm">
+                Merged
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="filter-reviewed"
+                checked={selectedTypes.includes('reviewed')}
+                onCheckedChange={() => toggleActivityType('reviewed')}
+              />
+              <Label htmlFor="filter-reviewed" className="text-sm">
+                Reviewed
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="filter-commented"
+                checked={selectedTypes.includes('commented')}
+                onCheckedChange={() => toggleActivityType('commented')}
+              />
+              <Label htmlFor="filter-commented" className="text-sm">
+                Commented
+              </Label>
+            </div>
+            {hasBots && (
+              <div className="flex items-center space-x-2">
+                <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
+                <Label htmlFor="filter-bots" className="text-sm">
+                  Show Bots
+                </Label>
+              </div>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <div className="mb-2 text-sm text-muted-foreground">
+            Showing {visibleActivities.length} of {filteredActivities.length} activities
+          </div>
+
+          <PullRequestActivityFeed
+            activities={visibleActivities}
+            loading={loading}
+            error={error}
+            selectedTypes={selectedTypes}
+          />
+
+          {hasMore && (
+            <div className="mt-4 flex justify-center">
+              <Button variant="secondary" onClick={handleLoadMore} disabled={loading}>
+                Load More
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </ContributorRolesProvider>
   );
 }
