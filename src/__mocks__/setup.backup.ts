@@ -16,45 +16,68 @@ const createMockComponent = (name: string) =>
     )
   );
 
+interface MockDataPoint {
+  [key: string]: unknown;
+}
+
+interface MockSeries {
+  id: string;
+  data?: MockDataPoint[];
+}
+
+interface MockScatterPlotProps {
+  nodeComponent?: React.ComponentType<{
+    node: { data: MockDataPoint };
+    style: { x: { to: () => number }; y: { to: () => number }; size: { to: () => number } };
+  }>;
+  data?: MockSeries[];
+  [key: string]: unknown;
+}
+
 // Create mock for @nivo/scatterplot components with proper types
-const mockResponsiveScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
-  // Render nodes if nodeComponent and data are provided
-  const nodes = data.flatMap(
-    (series: any) =>
-      series.data
-        ?.map((point: any, index: number) => {
-          if (nodeComponent) {
-            return createElement(nodeComponent, {
-              key: `${series.id}-${index}`,
-              node: { data: point },
-              style: {
-                x: { to: () => 50 },
-                y: { to: () => 50 },
-                size: { to: () => 10 },
-              },
-            });
-          }
-          return null;
-        })
-        .filter(Boolean) || []
-  );
+const mockResponsiveScatterPlot = vi.fn(
+  ({ nodeComponent, data = [], ...props }: MockScatterPlotProps) => {
+    // Render nodes if nodeComponent and data are provided
+    const nodes = data.flatMap(
+      (series: MockSeries) =>
+        series.data
+          ?.map((point: MockDataPoint, index: number) => {
+            if (nodeComponent) {
+              return createElement(nodeComponent, {
+                key: `${series.id}-${index}`,
+                node: { data: point },
+                style: {
+                  x: { to: () => 50 },
+                  y: { to: () => 50 },
+                  size: { to: () => 10 },
+                },
+              });
+            }
+            return null;
+          })
+          .filter(Boolean) || []
+    );
 
-  return createElement(
-    'div',
-    {
-      'data-testid': 'mock-responsive-scatterplot',
-      'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
-      ...props,
-    },
-    nodes
-  );
-});
+    return createElement(
+      'div',
+      {
+        'data-testid': 'mock-responsive-scatterplot',
+        'data-points': data.reduce(
+          (acc: number, series: MockSeries) => acc + (series.data?.length || 0),
+          0
+        ),
+        ...props,
+      },
+      nodes
+    );
+  }
+);
 
-const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
+const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: MockScatterPlotProps) => {
   const nodes = data.flatMap(
-    (series: any) =>
+    (series: MockSeries) =>
       series.data
-        ?.map((point: any, index: number) => {
+        ?.map((point: MockDataPoint, index: number) => {
           if (nodeComponent) {
             return createElement(nodeComponent, {
               key: `${series.id}-${index}`,
@@ -75,7 +98,10 @@ const mockScatterPlot = vi.fn(({ nodeComponent, data = [], ...props }: any) => {
     'div',
     {
       'data-testid': 'mock-scatterplot',
-      'data-points': data.reduce((acc: number, series: any) => acc + (series.data?.length || 0), 0),
+      'data-points': data.reduce(
+        (acc: number, series: MockSeries) => acc + (series.data?.length || 0),
+        0
+      ),
       ...props,
     },
     nodes
