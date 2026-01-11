@@ -22,14 +22,14 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),
   unobserve: vi.fn(),
-})) as any;
+})) as typeof ResizeObserver;
 
 // Mock matchMedia
 global.matchMedia = vi.fn((query: string) => ({
@@ -41,12 +41,36 @@ global.matchMedia = vi.fn((query: string) => ({
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   dispatchEvent: vi.fn(),
-})) as any;
+})) as typeof window.matchMedia;
+
+interface MinimalQueryBuilder {
+  select: ReturnType<typeof vi.fn>;
+  insert: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  neq: ReturnType<typeof vi.fn>;
+  gt: ReturnType<typeof vi.fn>;
+  gte: ReturnType<typeof vi.fn>;
+  lt: ReturnType<typeof vi.fn>;
+  lte: ReturnType<typeof vi.fn>;
+  like: ReturnType<typeof vi.fn>;
+  ilike: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  maybeSingle: ReturnType<typeof vi.fn>;
+  then: (resolve: (value: { data: unknown[]; error: null }) => unknown) => {
+    data: unknown[];
+    error: null;
+  };
+}
 
 // Minimal Supabase mock with method chaining support
 vi.mock('@/lib/supabase', () => {
-  const createQueryBuilder = () => {
-    const queryBuilder: any = {
+  const createQueryBuilder = (): MinimalQueryBuilder => {
+    const queryBuilder: MinimalQueryBuilder = {
       select: vi.fn(() => queryBuilder),
       insert: vi.fn(() => queryBuilder),
       update: vi.fn(() => queryBuilder),
@@ -64,7 +88,8 @@ vi.mock('@/lib/supabase', () => {
       limit: vi.fn(() => queryBuilder),
       single: vi.fn(() => Promise.resolve({ data: null, error: null })),
       maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      then: (resolve: any) => resolve({ data: [], error: null }),
+      then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+        resolve({ data: [], error: null }),
     };
     return queryBuilder;
   };

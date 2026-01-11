@@ -88,7 +88,7 @@ async function refreshSelfSelectionData() {
       console.log(
         `⚠️  Found ${missingData.length} repositories with confidence data but no self-selection data:`
       );
-      missingData.forEach((repo: any) => {
+      missingData.forEach((repo: { repository_owner: string; repository_name: string }) => {
         console.log(`   • ${repo.repository_owner}/${repo.repository_name}`);
       });
       console.log(
@@ -105,11 +105,17 @@ async function refreshSelfSelectionData() {
       .limit(5);
 
     if (sampleData) {
-      sampleData.forEach((repo: any) => {
-        console.log(
-          `   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`
-        );
-      });
+      sampleData.forEach(
+        (repo: {
+          repository_owner: string;
+          repository_name: string;
+          self_selection_rate: number;
+        }) => {
+          console.log(
+            `   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`
+          );
+        }
+      );
     }
 
     // 6. Provide summary

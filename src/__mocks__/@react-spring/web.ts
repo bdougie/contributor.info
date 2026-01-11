@@ -2,13 +2,19 @@
 import { vi } from 'vitest';
 import { createElement } from 'react';
 
+interface AnimatedProps {
+  children?: React.ReactNode;
+  style?: Record<string, { to?: (val: number) => unknown } | unknown>;
+  [key: string]: unknown;
+}
+
 export const animated = new Proxy(
   {},
   {
     get(_target, prop) {
-      return vi.fn(({ children, style, ...props }: any) => {
+      return vi.fn(({ children, style, ...props }: AnimatedProps) => {
         // Convert animated style to regular style
-        const processedStyle: Record<string, any> = {};
+        const processedStyle: Record<string, unknown> = {};
         if (style) {
           Object.keys(style).forEach((key) => {
             const value = style[key];
