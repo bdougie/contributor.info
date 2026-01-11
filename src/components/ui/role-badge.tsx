@@ -69,6 +69,7 @@ export function RoleBadge({ role, className, showIcon = true }: RoleBadgeProps) 
 }
 
 // Utility function to get role color for other components
+// eslint-disable-next-line react-refresh/only-export-components
 export function getRoleColor(role: Role): string {
   return roleConfig[role].className;
 }

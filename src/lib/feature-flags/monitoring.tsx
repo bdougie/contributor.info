@@ -127,6 +127,7 @@ let globalMonitor: FeatureFlagErrorMonitor | null = null;
 /**
  * Initialize the error monitor
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function initializeErrorMonitor(config: ErrorSpikeConfig) {
   globalMonitor = new FeatureFlagErrorMonitor(config);
   return globalMonitor;
@@ -223,6 +224,7 @@ export function FeatureFlagMonitor({
 /**
  * Hook to manually record errors for a specific feature flag
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFeatureFlagError(flagName: FeatureFlagName) {
   return useCallback(
     (error: Error) => {
@@ -298,4 +300,5 @@ export class FeatureFlagPerformanceMonitor {
 }
 
 // Global performance monitor
+// eslint-disable-next-line react-refresh/only-export-components
 export const performanceMonitor = new FeatureFlagPerformanceMonitor();

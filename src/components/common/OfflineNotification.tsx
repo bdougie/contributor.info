@@ -118,4 +118,5 @@ const animationStyles = `
 `;
 
 // Export animation styles to be added to global CSS
+// eslint-disable-next-line react-refresh/only-export-components
 export const offlineNotificationStyles = animationStyles;

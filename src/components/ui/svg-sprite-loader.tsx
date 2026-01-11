@@ -35,6 +35,7 @@ async function loadSpriteContent(): Promise<string> {
   return spritePromise;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSVGSprite(): boolean {
   const [isLoaded, setIsLoaded] = useState(spriteContent !== null);
 

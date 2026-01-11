@@ -123,6 +123,7 @@ export function AdminRoute({ children, fallback }: AdminRouteProps) {
 /**
  * Higher-order component version for route protection
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function withAdminAuth<P extends object>(
   Component: React.ComponentType<P>,
   fallback?: React.ReactNode
