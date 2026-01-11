@@ -33,9 +33,11 @@
     <meta name="application-name" content="Contributor Info" />
     <meta name="format-detection" content="telephone=no" />
     
-    <!-- Performance optimizations for FCP -->
-    <!-- Removed Supabase preconnect - flagged as unused by Lighthouse (issue #1343) -->
-    <!-- Use dns-prefetch for resources loaded after initial render -->
+    <!-- Performance optimizations for LCP -->
+    <!-- Preconnect to critical domains for faster resource loading -->
+    <link rel="preconnect" href="https://avatars.githubusercontent.com" crossorigin>
+    <link rel="preconnect" href="https://egcxzonpmmcirmgqdrla.supabase.co" crossorigin>
+    <!-- DNS prefetch as fallback for older browsers -->
     <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
     <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co">
 
@@ -68,16 +70,21 @@
       *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}
       ::before,::after{--tw-content:''}
       html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-      body{margin:0;line-height:inherit;font-display:swap}
+      body{margin:0;line-height:inherit}
       /* Critical theme variables */
       :root{--background:210 20% 98%;--foreground:215 25% 27%;--card:0 0% 100%;--card-foreground:215 25% 27%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:210 20% 94%;--secondary-foreground:215 25% 27%;--muted:210 20% 94%;--muted-foreground:215 16% 47%;--border:220 13% 91%;--input:210 20% 96%;--ring:14 100% 50%;--radius:0.5rem}
       .dark{--background:0 0% 3.9%;--foreground:0 0% 98%;--card:0 0% 3.9%;--card-foreground:0 0% 98%;--primary:14 100% 50%;--primary-foreground:0 0% 100%;--secondary:0 0% 14.9%;--secondary-foreground:0 0% 98%;--muted:0 0% 14.9%;--muted-foreground:0 0% 63.9%;--border:0 0% 14.9%;--input:0 0% 14.9%;--ring:14 100% 50%}
-      /* Minimal layout for FCP */
-      .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.bg-background{background-color:hsl(var(--background))}.bg-muted{background-color:hsl(var(--muted))}.text-foreground{color:hsl(var(--foreground))}.border-b{border-bottom-width:1px;border-color:hsl(var(--border))}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
+      /* Critical layout for LCP - Home page H1 */
+      .min-h-screen{min-height:100vh}.flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-center{justify-content:center}.space-y-6>:not([hidden])~:not([hidden]){margin-top:1.5rem}.max-w-2xl{max-width:42rem}.w-full{width:100%}.rounded-xl{border-radius:0.75rem}.shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05)}.p-6{padding:1.5rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.font-bold{font-weight:700}.text-center{text-align:center}.text-lg{font-size:1.125rem}.mt-2{margin-top:0.5rem}
+      .bg-background{background-color:hsl(var(--background))}.bg-card{background-color:hsl(var(--card))}.bg-muted{background-color:hsl(var(--muted))}.text-foreground{color:hsl(var(--foreground))}.text-card-foreground{color:hsl(var(--card-foreground))}.text-muted-foreground{color:hsl(var(--muted-foreground))}.border{border-width:1px}.border-border{border-color:hsl(var(--border))}.border-b{border-bottom-width:1px}
+      .animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}
       @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
       /* Prevent FOUC */
       body{background-color:hsl(var(--background));color:hsl(var(--foreground))}
-      #root{min-height:100vh;background-color:hsl(var(--background))}
+      #root{min-height:100vh;background-color:hsl(var(--background));contain:layout style paint}
+      /* Optimize LCP element rendering */
+      h1{font-weight:700;text-rendering:optimizeLegibility;contain:layout style}
+      article{will-change:contents}
     </style>
     
     <!-- Open Graph / Facebook -->
