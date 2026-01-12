@@ -338,7 +338,11 @@ export function sanitizeUrl(value: unknown): string | null {
   }
 
   try {
-    new URL(sanitized);
+    const parsed = new URL(sanitized);
+    // Only allow http and https protocols to prevent XSS
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return null;
+    }
     return sanitized;
   } catch {
     return null;
