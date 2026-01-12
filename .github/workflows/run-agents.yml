@@ -6,9 +6,13 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  checks: write
+  pull-requests: write
+
 jobs:
   agents:
     uses: continuedev/continue/.github/workflows/continue-agents.yml@main
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      GITHUB_TOKEN: ${{ github.token }}
