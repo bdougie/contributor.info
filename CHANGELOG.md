@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.22.1](https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1) (2026-01-12)
+
+
+### 🐛 Bug Fixes
+
+* package.json & pnpm-lock.yaml to reduce vulnerabilities ([#1496](https://github.com/bdougie/contributor.info/issues/1496)) ([cf5a344](https://github.com/bdougie/contributor.info/commit/cf5a3443904dfb79a1ff75abdfac72f1b99d76b2))
+* sync package-lock.json with react-router 7.12.0 upgrade ([fa957a5](https://github.com/bdougie/contributor.info/commit/fa957a5d1b0d1630fe7bc58d8edc47c73cfe7dab)), closes [#1496](https://github.com/bdougie/contributor.info/issues/1496) [#1496](https://github.com/bdougie/contributor.info/issues/1496)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([55f392a](https://github.com/bdougie/contributor.info/commit/55f392a8a3dd19bc75bb7edd50bb278a105d1c0b))
+
 ## [4.22.0](https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0) (2026-01-12)
 
 
