@@ -2,6 +2,8 @@
 
 A web application that visualizes GitHub repository contributors' information, providing insights into pull requests, contributions, and contributor details.
 
+<!-- Test change for CI agent validation -->
+
 ## Project Stats
 
 [![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
