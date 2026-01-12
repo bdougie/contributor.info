@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.22.0](https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0) (2026-01-12)
+
+
+### 🚀 Features
+
+* **security:** add rate limiting to repository tracking endpoint ([#1506](https://github.com/bdougie/contributor.info/issues/1506)) ([3449e42](https://github.com/bdougie/contributor.info/commit/3449e42c727bb5b102bdb518ae8c73ff0fa766a8))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([ffc4b7c](https://github.com/bdougie/contributor.info/commit/ffc4b7c59df083a2aa75ecf98d53bf0984c1e10b))
+
 ## [4.21.0](https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0) (2026-01-11)
 
 
