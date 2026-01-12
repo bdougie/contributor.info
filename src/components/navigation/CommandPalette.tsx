@@ -512,11 +512,7 @@ export function CommandPalette({
                       <span className="block text-xs text-muted-foreground">{cmd.description}</span>
                     )}
                   </div>
-                  {cmd.shortcut && (
-                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                      {cmd.shortcut}
-                    </kbd>
-                  )}
+                  {cmd.shortcut && <Kbd>{cmd.shortcut}</Kbd>}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -531,9 +527,8 @@ export function CommandPalette({
               <Kbd aria-label="repo colon">repo:</Kbd> to filter
             </span>
             <span>
-              <Kbd aria-label="arrow keys">↑↓</Kbd> to navigate{' '}
-              <Kbd aria-label="enter key">↵</Kbd> to select{' '}
-              <Kbd aria-label="escape key">esc</Kbd> to close
+              <Kbd aria-label="arrow keys">↑↓</Kbd> to navigate <Kbd aria-label="enter key">↵</Kbd>{' '}
+              to select <Kbd aria-label="escape key">esc</Kbd> to close
             </span>
           </div>
         </div>
