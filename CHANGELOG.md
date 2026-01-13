@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.23.0](https://github.com/bdougie/contributor.info/compare/v4.22.2...v4.23.0) (2026-01-13)
+
+
+### ⚡ Performance Improvements
+
+* optimize bot detection regex pattern matching ([#1508](https://github.com/bdougie/contributor.info/issues/1508)) ([27a55f8](https://github.com/bdougie/contributor.info/commit/27a55f811c8bd71d81aae6cedd00aec0f1c2a637))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([5aaf9a7](https://github.com/bdougie/contributor.info/commit/5aaf9a7e8080040331559b1485a8b0b37b661e59))
+
 ## [4.22.2](https://github.com/bdougie/contributor.info/compare/v4.22.1...v4.22.2) (2026-01-13)
 
 
