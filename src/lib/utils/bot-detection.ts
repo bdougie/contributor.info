@@ -9,16 +9,23 @@
  * 2. Username pattern matching [bot] suffix
  */
 
-// Known bot patterns
-const KNOWN_BOT_PATTERNS = [
-  /\[bot\]$/i, // Standard [bot] suffix
-  /^dependabot\[?bot\]?$/i, // Dependabot (exact)
-  /^renovate\[?bot\]?$/i, // Renovate (exact)
-  /^github-actions\[?bot\]?$/i, // GitHub Actions (exact)
-  /^continue\[?bot\]?$/i, // Continue AI coding assistant (exact)
-  /^snyk\[?bot\]?$/i, // Snyk security scanner (exact)
-  /-bot$/i, // Ends with -bot
-] as const;
+// Known bot patterns combined into a single regex for O(1) matching complexity
+// Matches:
+// - [bot] suffix (standard)
+// - dependabot, renovate, github-actions, continue, snyk (exact or with [bot])
+// - any username ending with -bot
+const COMBINED_BOT_PATTERN = new RegExp(
+  '(?:' +
+    '\\[bot\\]$|' +
+    '^dependabot(?:\\[bot\\])?$|' +
+    '^renovate(?:\\[bot\\])?$|' +
+    '^github-actions(?:\\[bot\\])?$|' +
+    '^continue(?:\\[bot\\])?$|' +
+    '^snyk(?:\\[bot\\])?$|' +
+    '-bot$' +
+    ')',
+  'i'
+);
 
 /**
  * Input types for bot detection
@@ -39,14 +46,7 @@ export interface BotDetectionInput {
  */
 function detectBotFromUsername(username: string): boolean {
   if (!username) return false;
-
-  for (const pattern of KNOWN_BOT_PATTERNS) {
-    if (pattern.test(username)) {
-      return true;
-    }
-  }
-
-  return false;
+  return COMBINED_BOT_PATTERN.test(username);
 }
 
 /**
