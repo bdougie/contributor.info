@@ -338,7 +338,11 @@ export function sanitizeUrl(value: unknown): string | null {
   }
 
   try {
-    new URL(sanitized);
+    const url = new URL(sanitized);
+    // Strict protocol validation to prevent XSS (e.g., javascript: URIs)
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return null;
+    }
     return sanitized;
   } catch {
     return null;
