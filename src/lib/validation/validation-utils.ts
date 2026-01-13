@@ -5,6 +5,7 @@
 
 import { ZodError } from 'zod';
 import type { ZodSchema } from 'zod';
+import { sanitizeUrl as secureSanitizeUrl } from './url-validation';
 
 // =====================================================
 // VALIDATION RESULT TYPES
@@ -187,7 +188,7 @@ export function formatZodErrors(zodError: ZodError): ValidationIssue[] {
     field: error.path.join('.') || 'root',
     message: error.message,
     code: error.code,
-    received: (error as any).received || undefined,
+    received: 'received' in error ? error.received : undefined,
   }));
 }
 
@@ -329,20 +330,15 @@ export function sanitizeArray<T>(value: unknown, itemValidator?: (item: unknown)
 
 /**
  * Sanitizes URL input and validates format
+ * Delegates to the canonical secure implementation in url-validation.ts
+ * to prevent XSS via dangerous protocols (javascript:, data:, etc.)
  */
 export function sanitizeUrl(value: unknown): string | null {
   const sanitized = sanitizeString(value);
-
   if (!sanitized) {
     return null;
   }
-
-  try {
-    new URL(sanitized);
-    return sanitized;
-  } catch {
-    return null;
-  }
+  return secureSanitizeUrl(sanitized);
 }
 
 /**

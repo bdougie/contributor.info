@@ -204,10 +204,37 @@ describe('Validation Integration Tests', () => {
     });
 
     it('should sanitize URLs correctly', () => {
-      expect(sanitizeUrl('https://github.com')).toBe('https://github.com');
+      // Note: URLs are normalized (trailing slash added for bare domains)
+      expect(sanitizeUrl('https://github.com')).toBe('https://github.com/');
+      expect(sanitizeUrl('http://example.com')).toBe('http://example.com/');
+      expect(sanitizeUrl('https://github.com/user')).toBe('https://github.com/user');
       expect(sanitizeUrl('not-a-url')).toBe(null);
       expect(sanitizeUrl(null)).toBe(null);
       expect(sanitizeUrl('')).toBe(null);
+    });
+
+    it('should block XSS attack vectors in URLs', () => {
+      const xssAttackVectors = [
+        'javascript:alert(1)',
+        'javascript:alert(document.cookie)',
+        'javascript:void(0)',
+        'data:text/html,<script>alert(1)</script>',
+        'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+        'vbscript:msgbox("XSS")',
+        'file:///etc/passwd',
+        'ftp://malicious.com/payload',
+      ];
+
+      xssAttackVectors.forEach((vector) => {
+        expect(sanitizeUrl(vector)).toBe(null);
+      });
+    });
+
+    it('should only allow http and https protocols', () => {
+      expect(sanitizeUrl('https://safe.com')).toBe('https://safe.com/');
+      expect(sanitizeUrl('http://safe.com')).toBe('http://safe.com/');
+      expect(sanitizeUrl('mailto:test@example.com')).toBe(null);
+      expect(sanitizeUrl('tel:+1234567890')).toBe(null);
     });
 
     it('should sanitize emails correctly', () => {
