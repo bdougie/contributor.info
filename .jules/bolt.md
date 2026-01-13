@@ -1,3 +1,7 @@
+## 2026-01-13 - Date Object Allocation in Loops
+**Learning:** Creating `new Date()` objects inside tight loops (like filtering thousands of PRs) significantly impacts performance. ISO 8601 strings can be parsed faster using `Date.parse()` (or comparing timestamps directly), avoiding object allocation overhead.
+**Action:** When filtering or sorting by date in large lists, convert reference dates to timestamps outside the loop and use `Date.parse()` or timestamp comparison inside the loop.
+
 ## 2025-12-22 - Window Virtualization for Grids
 **Learning:** Implementing window-based virtualization for grids requires careful handling of the container's offset relative to the document. The virtualizer assumes items start at the top of the scroll container (window), so using `scrollMargin` equal to the container's offsetTop is crucial to align the virtual window with the actual items.
 **Action:** When adding window virtualization to a component that isn't at the top of the page, always measure and pass the `scrollMargin` or offset to `useVirtualizer`.
