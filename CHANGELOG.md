@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.22.2](https://github.com/bdougie/contributor.info/compare/v4.22.1...v4.22.2) (2026-01-13)
+
+
+### 🐛 Bug Fixes
+
+* prevent xss vulnerability in sanitizeurl ([#1507](https://github.com/bdougie/contributor.info/issues/1507)) ([ba10a1c](https://github.com/bdougie/contributor.info/commit/ba10a1ce98d6dfaaa646871b9dc45325656d4ec5))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([266ad00](https://github.com/bdougie/contributor.info/commit/266ad00080c3aa2ce49f9a144bba9a22debb8519))
+
+
+### 👷 CI/CD
+
+* replace reusable workflow with local copy including GH_TOKEN fix ([#1513](https://github.com/bdougie/contributor.info/issues/1513)) ([2afe470](https://github.com/bdougie/contributor.info/commit/2afe470184d5bb9a1769f811871307950051168d))
+
 ## [4.22.1](https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1) (2026-01-12)
 
 
