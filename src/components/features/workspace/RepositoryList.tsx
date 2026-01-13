@@ -32,6 +32,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, humanizeNumber } from '@/lib/utils';
 import { useState, useMemo } from 'react';
 import {
@@ -175,6 +176,11 @@ export function RepositoryList({
                           ? 'GitHub App installed - Real-time similarity enabled'
                           : 'Click to install GitHub App for real-time similarity'
                       }
+                      aria-label={
+                        isInstalled
+                          ? 'GitHub App installed - Real-time similarity enabled'
+                          : 'Click to install GitHub App for real-time similarity'
+                      }
                       className="flex-shrink-0 hover:opacity-80 transition-opacity"
                     >
                       <Sparkles
@@ -307,7 +313,12 @@ export function RepositoryList({
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Repository actions">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Repository actions"
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -392,15 +403,22 @@ export function RepositoryList({
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{repositories.length} total</Badge>
             {onAddRepository && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={onAddRepository}
-                className="h-7"
-                title="Manage repositories"
-              >
-                <Settings className="h-3 w-3" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onAddRepository}
+                    className="h-7"
+                    aria-label="Manage repositories"
+                  >
+                    <Settings className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Manage repositories</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -414,6 +432,7 @@ export function RepositoryList({
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="pl-9"
+              aria-label="Search repositories"
             />
           </div>
         </div>
