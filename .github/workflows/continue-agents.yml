@@ -1,6 +1,17 @@
 # Local copy of continuedev/continue/.github/workflows/continue-agents.yml
 # Modified to include GH_TOKEN for gh CLI authentication
 # See: https://github.com/bdougie/contributor.info/issues/1512
+#
+# TODO: Once https://github.com/continuedev/continue/pull/9497 is merged,
+# switch to the reusable workflow instead:
+#
+#   jobs:
+#     run-agents:
+#       uses: continuedev/continue/.github/workflows/continue-agents.yml@main
+#       secrets:
+#         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+#
+# See docs/continue-agents-setup.md for migration guide.
 
 name: Continue Agents
 
