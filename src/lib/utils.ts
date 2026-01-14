@@ -123,7 +123,8 @@ export function calculateLotteryFactor(
     const prTimestamp = Date.parse(pr.created_at);
 
     // Optimization: Check recency first to short-circuit
-    if (prTimestamp <= daysAgoTimestamp) {
+    // Also skip invalid dates (NaN) to match original behavior
+    if (isNaN(prTimestamp) || prTimestamp <= daysAgoTimestamp) {
       continue;
     }
 

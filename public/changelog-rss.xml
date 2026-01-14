@@ -6,14 +6,72 @@
     <link>https://contributor.info/changelog</link>
     <atom:link href="https://contributor.info/changelog-rss.xml" rel="self" type="application/rss+xml" />
     <language>en-us</language>
-    <lastBuildDate>Sun, 11 Jan 2026 16:28:02 GMT</lastBuildDate>
-    <pubDate>Sat, 10 Jan 2026 00:00:00 GMT</pubDate>
+    <lastBuildDate>Wed, 14 Jan 2026 03:54:38 GMT</lastBuildDate>
+    <pubDate>Mon, 12 Jan 2026 00:00:00 GMT</pubDate>
     <ttl>1440</ttl>
     <generator>contributor.info RSS Generator</generator>
     <webMaster>team@contributor.info (contributor.info Team)</webMaster>
     <managingEditor>team@contributor.info (contributor.info Team)</managingEditor>
     <atom:link rel="hub" href="https://contributor.info/api/websub/hub" />
 
+    <item>
+      <title>Version 4.22.1 - 2026-01-12</title>
+      <description>3 bug fixes.</description>
+      <content:encoded><![CDATA[<h2>Version 4.22.1</h2>
+<p><strong>Released on 2026-01-12</strong></p>
+<h3>🐛 Bug Fixes</h3>
+<ul>
+<li>package.json &amp; pnpm-lock.yaml to reduce vulnerabilities ([#1496](https://github.com/bdougie/contributor.info/issues/1496)) ([cf5a344](https://github.com/bdougie/contributor.info/commit/cf5a3443904dfb79a1ff75abdfac72f1b99d76b2))</li>
+<li>sync package-lock.json with react-router 7.12.0 upgrade ([fa957a5](https://github.com/bdougie/contributor.info/commit/fa957a5d1b0d1630fe7bc58d8edc47c73cfe7dab)), closes [#1496](https://github.com/bdougie/contributor.info/issues/1496) [#1496](https://github.com/bdougie/contributor.info/issues/1496)</li>
+<li>update tracked repositories list [skip ci] ([55f392a](https://github.com/bdougie/contributor.info/commit/55f392a8a3dd19bc75bb7edd50bb278a105d1c0b))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-4-22-1</guid>
+      <pubDate>Mon, 12 Jan 2026 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Bug Fixes</category>
+    </item>
+    <item>
+      <title>Version 4.22.0 - 2026-01-12</title>
+      <description>2 new features.</description>
+      <content:encoded><![CDATA[<h2>Version 4.22.0</h2>
+<p><strong>Released on 2026-01-12</strong></p>
+<h3>🚀 Features</h3>
+<ul>
+<li>**security:** add rate limiting to repository tracking endpoint ([#1506](https://github.com/bdougie/contributor.info/issues/1506)) ([3449e42](https://github.com/bdougie/contributor.info/commit/3449e42c727bb5b102bdb518ae8c73ff0fa766a8))</li>
+<li>update tracked repositories list [skip ci] ([ffc4b7c](https://github.com/bdougie/contributor.info/commit/ffc4b7c59df083a2aa75ecf98d53bf0984c1e10b))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-4-22-0</guid>
+      <pubDate>Mon, 12 Jan 2026 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+      <category>Features</category>
+    </item>
+    <item>
+      <title>Version 4.21.0 - 2026-01-11</title>
+      <description>3 performance improvements.</description>
+      <content:encoded><![CDATA[<h2>Version 4.21.0</h2>
+<p><strong>Released on 2026-01-11</strong></p>
+<h3>⚡ Performance Improvements</h3>
+<ul>
+<li>memoize RepoStatsContext value in RepoView ([#1504](https://github.com/bdougie/contributor.info/issues/1504)) ([3f62dcf](https://github.com/bdougie/contributor.info/commit/3f62dcfe9b3d890bfc2f0d14884414992010c2bd))</li>
+<li>optimize humanizeNumber with pre-calculated constants ([#1502](https://github.com/bdougie/contributor.info/issues/1502)) ([408509a](https://github.com/bdougie/contributor.info/commit/408509a6089c9d63aabdec0491921d076639d713))</li>
+<li>update tracked repositories list [skip ci] ([710c8b1](https://github.com/bdougie/contributor.info/commit/710c8b142ddded49fd49fd6fe2fc9595bc69814e))</li>
+</ul>
+<p><a href="https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0">View full release notes on GitHub</a></p>
+]]></content:encoded>
+      <link>https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0</link>
+      <guid isPermaLink="true">https://contributor.info/changelog#version-4-21-0</guid>
+      <pubDate>Sun, 11 Jan 2026 00:00:00 GMT</pubDate>
+      <author>team@contributor.info (contributor.info Team)</author>
+      <category>Release</category>
+    </item>
     <item>
       <title>Version 4.20.2 - 2026-01-10</title>
       <description>2 bug fixes.</description>
@@ -334,77 +392,6 @@
       <link>https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1</link>
       <guid isPermaLink="true">https://contributor.info/changelog#version-4-10-1</guid>
       <pubDate>Tue, 30 Dec 2025 00:00:00 GMT</pubDate>
-      <author>team@contributor.info (contributor.info Team)</author>
-      <category>Release</category>
-      <category>Bug Fixes</category>
-    </item>
-    <item>
-      <title>Version 4.10.0 - 2025-12-30</title>
-      <description>2 new features.</description>
-      <content:encoded><![CDATA[<h2>Version 4.10.0</h2>
-<p><strong>Released on 2025-12-30</strong></p>
-<h3>🚀 Features</h3>
-<ul>
-<li>**a11y:** add aria-labels to icon-only buttons ([#1449](https://github.com/bdougie/contributor.info/issues/1449)) ([66e4fb2](https://github.com/bdougie/contributor.info/commit/66e4fb2ce0e42c0db92e384aeed2d4cf7e16638d))</li>
-<li>update tracked repositories list [skip ci] ([9644d1f](https://github.com/bdougie/contributor.info/commit/9644d1f47fd03e76102e2fd274949fa851e398ac))</li>
-</ul>
-<p><a href="https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0">View full release notes on GitHub</a></p>
-]]></content:encoded>
-      <link>https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0</link>
-      <guid isPermaLink="true">https://contributor.info/changelog#version-4-10-0</guid>
-      <pubDate>Tue, 30 Dec 2025 00:00:00 GMT</pubDate>
-      <author>team@contributor.info (contributor.info Team)</author>
-      <category>Release</category>
-      <category>Features</category>
-    </item>
-    <item>
-      <title>Version 4.9.0 - 2025-12-28</title>
-      <description>1 new features, 7 bug fixes.</description>
-      <content:encoded><![CDATA[<h2>Version 4.9.0</h2>
-<p><strong>Released on 2025-12-28</strong></p>
-<h3>🚀 Features</h3>
-<ul>
-<li>**ui:** standardize button loading state ([49c8ea4](https://github.com/bdougie/contributor.info/commit/49c8ea41fd3950d260cf322fe64ed12687fd55ed))</li>
-</ul>
-<h3>🐛 Bug Fixes</h3>
-<ul>
-<li>add error handling to all polar-webhook database operations ([7a6b801](https://github.com/bdougie/contributor.info/commit/7a6b8015cc4da0ec8c310c9d74176aee109735cf))</li>
-<li>address CodeRabbit review comments for Button component ([50c0cdf](https://github.com/bdougie/contributor.info/commit/50c0cdff82082eb17c3cecf0e10c1d64cd04a499))</li>
-<li>replace @polar-sh/adapter-utils with direct implementation ([d1bcdfb](https://github.com/bdougie/contributor.info/commit/d1bcdfb43e5044c94a4efa6dbd08b4455961fb13))</li>
-<li>add TypeScript types to polar-webhook handlers ([7729227](https://github.com/bdougie/contributor.info/commit/77292273bb4b99d35d80c4b5d651f961a3ec960e))</li>
-<li>remove unused @polar-sh/nextjs and add @polar-sh/adapter-utils ([4b876ef](https://github.com/bdougie/contributor.info/commit/4b876efd45ee78dd99c2ad61bfa31657f523db76))</li>
-<li>update tracked repositories list [skip ci] ([f3a59eb](https://github.com/bdougie/contributor.info/commit/f3a59ebd60e6a8c5c00a3fe69ae3f3efd6c59c46))</li>
-<li>**ux:** add missing aria-labels to icon-only buttons ([#1433](https://github.com/bdougie/contributor.info/issues/1433)) ([c93f585](https://github.com/bdougie/contributor.info/commit/c93f585ccf8f4aa0ee06a3e2de01689465354dfe))</li>
-</ul>
-<p><a href="https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0">View full release notes on GitHub</a></p>
-]]></content:encoded>
-      <link>https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0</link>
-      <guid isPermaLink="true">https://contributor.info/changelog#version-4-9-0</guid>
-      <pubDate>Sun, 28 Dec 2025 00:00:00 GMT</pubDate>
-      <author>team@contributor.info (contributor.info Team)</author>
-      <category>Release</category>
-      <category>Features</category>
-      <category>Bug Fixes</category>
-    </item>
-    <item>
-      <title>Version 4.8.0 - 2025-12-27</title>
-      <description>1 bug fixes, 2 performance improvements.</description>
-      <content:encoded><![CDATA[<h2>Version 4.8.0</h2>
-<p><strong>Released on 2025-12-27</strong></p>
-<h3>🐛 Bug Fixes</h3>
-<ul>
-<li>**ux:** add aria-label to icon-only sync buttons ([#1439](https://github.com/bdougie/contributor.info/issues/1439)) ([0a8c4a7](https://github.com/bdougie/contributor.info/commit/0a8c4a736b89502a9bc5b195ef07ab07d66ba04f))</li>
-</ul>
-<h3>⚡ Performance Improvements</h3>
-<ul>
-<li>optimize findUserPullRequests from O(M*N) to O(N) ([#1445](https://github.com/bdougie/contributor.info/issues/1445)) ([0708ff3](https://github.com/bdougie/contributor.info/commit/0708ff3650096b88bfba73ab418cef57cac708e3))</li>
-<li>update tracked repositories list [skip ci] ([dd968d1](https://github.com/bdougie/contributor.info/commit/dd968d1fbdb22256d6ecee6ded036b6ed1d4c207))</li>
-</ul>
-<p><a href="https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0">View full release notes on GitHub</a></p>
-]]></content:encoded>
-      <link>https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0</link>
-      <guid isPermaLink="true">https://contributor.info/changelog#version-4-8-0</guid>
-      <pubDate>Sat, 27 Dec 2025 00:00:00 GMT</pubDate>
       <author>team@contributor.info (contributor.info Team)</author>
       <category>Release</category>
       <category>Bug Fixes</category>
