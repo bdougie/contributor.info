@@ -236,10 +236,11 @@ export function ContributorsTable({
               <button
                 onClick={() => onContributorClick?.(contributor)}
                 className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                aria-label={`View profile for ${contributor.username}`}
               >
                 <img
                   src={contributor.avatar_url}
-                  alt={contributor.username}
+                  alt={`${contributor.username}'s avatar`}
                   className="h-8 w-8 rounded-full"
                 />
                 <div className="space-y-1">
@@ -494,12 +495,16 @@ export function ContributorsTable({
       {/* Search Input */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search
+            className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             placeholder="Search contributors..."
             value={globalFilter ?? ''}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="pl-10"
+            aria-label="Search contributors"
           />
         </div>
       </div>
@@ -620,7 +625,12 @@ export function ContributorsTable({
 
       {/* Pagination */}
       <div className="flex items-center justify-between px-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
+        <div
+          className="flex-1 text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length}{' '}
           {table.getFilteredRowModel().rows.length === 1 ? 'contributor' : 'contributors'}
         </div>
@@ -637,8 +647,9 @@ export function ContributorsTable({
               size="sm"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
+              aria-label="Go to previous page"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               Previous
             </Button>
             <Button
@@ -646,9 +657,10 @@ export function ContributorsTable({
               size="sm"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
+              aria-label="Go to next page"
             >
               Next
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>

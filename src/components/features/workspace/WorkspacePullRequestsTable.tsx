@@ -250,11 +250,12 @@ export function WorkspacePullRequestsTable({
               <button
                 onClick={() => onRepositoryClick?.(repo.owner, repo.name)}
                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors min-w-0"
+                aria-label={`View repository ${repo.owner}/${repo.name}`}
               >
                 {repo.avatar_url && (
                   <img
                     src={repo.avatar_url}
-                    alt={repo.owner}
+                    alt={`${repo.owner} organization avatar`}
                     className="h-5 w-5 rounded flex-shrink-0"
                   />
                 )}
@@ -296,7 +297,7 @@ export function WorkspacePullRequestsTable({
                 >
                   <img
                     src={author.avatar_url}
-                    alt={author.username}
+                    alt={`${author.username} - Pull request author`}
                     className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                   />
                 </a>
@@ -347,7 +348,7 @@ export function WorkspacePullRequestsTable({
                         >
                           <img
                             src={reviewer.avatar_url}
-                            alt={reviewer.username}
+                            alt={`${reviewer.username} - ${reviewer.approved ? 'Approved' : 'Review pending'}`}
                             className={cn(
                               'h-6 w-6 rounded-full border-2 hover:ring-2 hover:ring-primary transition-all',
                               reviewer.approved ? 'border-green-500' : 'border-background'
@@ -515,12 +516,16 @@ export function WorkspacePullRequestsTable({
             <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search
+                  className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <Input
                   placeholder="Search pull requests..."
                   value={globalFilter ?? ''}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-10 w-full sm:w-[300px] min-h-[44px]"
+                  aria-label="Search pull requests"
                 />
               </div>
             </div>
@@ -621,7 +626,12 @@ export function WorkspacePullRequestsTable({
             )}
 
             <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
+              <div
+                className="text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 Showing {filteredPullRequests.length} pull requests
                 {filteredPullRequests.length < pullRequests.length && (
                   <span className="text-muted-foreground">
