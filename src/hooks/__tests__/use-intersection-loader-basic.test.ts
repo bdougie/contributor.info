@@ -1,9 +1,9 @@
+import { createElement } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, cleanup, act } from '@testing-library/react';
+import { renderHook, cleanup, act, render } from '@testing-library/react';
 import { useIntersectionLoader, useIntersectionObserver } from '../use-intersection-loader';
 
 // Simple IntersectionObserver mock
-let observerCallback: IntersectionObserverCallback | null = null;
 let observerOptions: IntersectionObserverInit | null = null;
 const mockObserver = {
   observe: vi.fn(),
@@ -12,16 +12,32 @@ const mockObserver = {
   takeRecords: vi.fn(() => []),
 };
 
-global.IntersectionObserver = vi.fn((callback, options) => {
-  observerCallback = callback;
+global.IntersectionObserver = vi.fn((_callback, options) => {
   observerOptions = options || null;
   return mockObserver;
 }) as unknown as typeof IntersectionObserver;
 
+// Test component that renders a div with the ref attached
+function TestIntersectionLoaderComponent<T>({
+  loadFn,
+  options,
+}: {
+  loadFn: () => Promise<T>;
+  options?: Parameters<typeof useIntersectionLoader>[1];
+}) {
+  const result = useIntersectionLoader<T>(loadFn, options);
+  return createElement('div', { ref: result.ref, 'data-testid': 'intersection-target' });
+}
+
+// Test component for useIntersectionObserver
+function TestIntersectionObserverComponent({ options }: { options?: IntersectionObserverInit }) {
+  const result = useIntersectionObserver(options);
+  return createElement('div', { ref: result.ref, 'data-testid': 'intersection-target' });
+}
+
 describe('useIntersectionLoader - Basic Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    observerCallback = null;
     observerOptions = null;
   });
 
@@ -88,7 +104,9 @@ describe('useIntersectionLoader - Basic Tests', () => {
   describe('Options Handling', () => {
     it('should use default IntersectionObserver options', () => {
       const loadFn = vi.fn().mockResolvedValue('test');
-      renderHook(() => useIntersectionLoader(loadFn));
+
+      // Use component render to properly attach ref to DOM
+      render(createElement(TestIntersectionLoaderComponent, { loadFn }));
 
       // IntersectionObserver should be created with defaults
       expect(global.IntersectionObserver).toHaveBeenCalled();
@@ -102,7 +120,8 @@ describe('useIntersectionLoader - Basic Tests', () => {
         threshold: 0.5,
       };
 
-      renderHook(() => useIntersectionLoader(loadFn, options));
+      // Use component render to properly attach ref to DOM
+      render(createElement(TestIntersectionLoaderComponent, { loadFn, options }));
 
       // The observer should be configured with custom options
       expect(global.IntersectionObserver).toHaveBeenCalled();
@@ -208,7 +227,9 @@ describe('useIntersectionLoader - Basic Tests', () => {
 
     it('should disconnect observer on unmount', () => {
       const loadFn = vi.fn().mockResolvedValue('test');
-      const { unmount } = renderHook(() => useIntersectionLoader(loadFn));
+
+      // Use component render to properly attach ref to DOM
+      const { unmount } = render(createElement(TestIntersectionLoaderComponent, { loadFn }));
 
       unmount();
 
@@ -247,7 +268,6 @@ describe('useIntersectionLoader - Basic Tests', () => {
 describe('useIntersectionObserver - Basic Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    observerCallback = null;
     observerOptions = null;
   });
 
@@ -304,9 +324,10 @@ describe('useIntersectionObserver - Basic Tests', () => {
         threshold: 0.25,
       };
 
-      const { result } = renderHook(() => useIntersectionObserver(options));
+      // Use component render to properly attach ref to DOM
+      render(createElement(TestIntersectionObserverComponent, { options }));
 
-      expect(result.current.ref).toBeDefined();
+      expect(global.IntersectionObserver).toHaveBeenCalled();
       expect(observerOptions?.rootMargin).toBe('50px');
       expect(observerOptions?.threshold).toBe(0.25);
     });
@@ -320,7 +341,8 @@ describe('useIntersectionObserver - Basic Tests', () => {
     });
 
     it('should disconnect observer on unmount', () => {
-      const { unmount } = renderHook(() => useIntersectionObserver());
+      // Use component render to properly attach ref to DOM
+      const { unmount } = render(createElement(TestIntersectionObserverComponent, {}));
 
       unmount();
 
