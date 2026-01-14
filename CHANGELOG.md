@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.28.0](https://github.com/bdougie/contributor.info/compare/v4.27.2...v4.28.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* add csv export for issues, prs, and discussions ([#1544](https://github.com/bdougie/contributor.info/issues/1544)) ([b36cfdc](https://github.com/bdougie/contributor.info/commit/b36cfdc4052e517d2fdff56f86b242b20b04fa01)), closes [#804](https://github.com/bdougie/contributor.info/issues/804)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([71d7503](https://github.com/bdougie/contributor.info/commit/71d7503a62656056dc414532b561b06c5898984e))
+
 ## [4.27.2](https://github.com/bdougie/contributor.info/compare/v4.27.1...v4.27.2) (2026-01-14)
 
 
