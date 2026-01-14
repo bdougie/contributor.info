@@ -374,6 +374,7 @@ export async function fetchPullRequests(
         // Calculate date range based on timeRange parameter
         const since = new Date();
         since.setDate(since.getDate() - parseInt(timeRange));
+        const sinceTimestamp = since.getTime();
 
         // Fetch multiple pages of PRs to ensure we get all recent ones
         const allPRs: GitHubPullRequest[] = [];
@@ -426,8 +427,8 @@ export async function fetchPullRequests(
             }
 
             // Check if all PRs are too old to be relevant
-            const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-            if (oldestPRDate < since) {
+            const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
+            if (!isNaN(oldestPRTimestamp) && oldestPRTimestamp < sinceTimestamp) {
               break; // No point in fetching older PRs
             }
           } else {
@@ -476,8 +477,8 @@ export async function fetchPullRequests(
 
               // Check if all PRs are too old to be relevant
               if (prs.length > 0) {
-                const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-                if (oldestPRDate < since) {
+                const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
+                if (!isNaN(oldestPRTimestamp) && oldestPRTimestamp < sinceTimestamp) {
                   break; // No point in fetching older PRs
                 }
               }
@@ -496,8 +497,8 @@ export async function fetchPullRequests(
 
         // Filter PRs by the time range
         const filteredPRs = allPRs.filter((pr: GitHubPullRequest) => {
-          const prDate = new Date(pr.updated_at);
-          return prDate >= since;
+          const prTimestamp = Date.parse(pr.updated_at);
+          return !isNaN(prTimestamp) && prTimestamp >= sinceTimestamp;
         });
 
         // Fetch additional details for each PR to get additions/deletions
@@ -845,14 +846,15 @@ export async function fetchDirectCommits(
     // Calculate date range based on timeRange parameter (support up to 90 days)
     const since = new Date();
     since.setDate(since.getDate() - Math.min(parseInt(timeRange), 90));
+    const sinceTimestamp = since.getTime();
 
     // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
     const mergedPRs = pullRequests.filter((pr) => {
       if (!pr.merged_at) return false;
       // Only include PRs merged within our time range
-      const mergedDate = new Date(pr.merged_at);
-      return mergedDate >= since;
+      const mergedTimestamp = Date.parse(pr.merged_at);
+      return !isNaN(mergedTimestamp) && mergedTimestamp >= sinceTimestamp;
     });
 
     // Debug logging (can be removed in production)
