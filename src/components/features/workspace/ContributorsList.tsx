@@ -110,7 +110,7 @@ const ContributorCard = memo(function ContributorCard({
             >
               <img
                 src={contributor.avatar_url}
-                alt=""
+                alt={`${contributor.username}'s avatar`}
                 className="h-12 w-12 rounded-full cursor-pointer"
               />
             </button>
@@ -222,7 +222,7 @@ const ContributorListItem = memo(function ContributorListItem({
         className="flex items-center gap-4 flex-1"
         aria-label={`View ${contributor.username} profile`}
       >
-        <img src={contributor.avatar_url} alt="" className="h-10 w-10 rounded-full" />
+        <img src={contributor.avatar_url} alt={`${contributor.username}'s avatar`} className="h-10 w-10 rounded-full" />
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2">
             <p className="font-semibold">{contributor.name || contributor.username}</p>
