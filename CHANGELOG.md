@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.24.0](https://github.com/bdougie/contributor.info/compare/v4.23.1...v4.24.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* **ui:** standardize tooltips for share and slack buttons ([#1509](https://github.com/bdougie/contributor.info/issues/1509)) ([94a90ca](https://github.com/bdougie/contributor.info/commit/94a90ca3deddcc83939b4dfb8ff966f6bb3cd722))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([ef22af7](https://github.com/bdougie/contributor.info/commit/ef22af7df02fd281e9f22277fcc75fff66dd53bf))
+
 ## [4.23.1](https://github.com/bdougie/contributor.info/compare/v4.23.0...v4.23.1) (2026-01-14)
 
 
