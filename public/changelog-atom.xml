@@ -48,7 +48,7 @@
 &lt;p&gt;&lt;strong&gt;Released on 2026-01-14&lt;/strong&gt;&lt;/p&gt;
 &lt;h3&gt;🚀 Features&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;**ui:** standardize tooltips for share and slack buttons ([#1509](https://github.com/bdougie/contributor.info/issues/1509)) ([94a90ca](https://github.com/bdougie/contributor.info/commit/94a90ca3deddcc83939b4dfb8ff966f6bb3cd722))&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ui:&lt;/strong&gt; standardize tooltips for share and slack buttons ([#1509](https://github.com/bdougie/contributor.info/issues/1509)) ([94a90ca](https://github.com/bdougie/contributor.info/commit/94a90ca3deddcc83939b4dfb8ff966f6bb3cd722))&lt;/li&gt;
 &lt;li&gt;update tracked repositories list [skip ci] ([ef22af7](https://github.com/bdougie/contributor.info/commit/ef22af7df02fd281e9f22277fcc75fff66dd53bf))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.23.1...v4.24.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
@@ -159,7 +159,7 @@
 &lt;p&gt;&lt;strong&gt;Released on 2026-01-12&lt;/strong&gt;&lt;/p&gt;
 &lt;h3&gt;🚀 Features&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;**security:** add rate limiting to repository tracking endpoint ([#1506](https://github.com/bdougie/contributor.info/issues/1506)) ([3449e42](https://github.com/bdougie/contributor.info/commit/3449e42c727bb5b102bdb518ae8c73ff0fa766a8))&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;security:&lt;/strong&gt; add rate limiting to repository tracking endpoint ([#1506](https://github.com/bdougie/contributor.info/issues/1506)) ([3449e42](https://github.com/bdougie/contributor.info/commit/3449e42c727bb5b102bdb518ae8c73ff0fa766a8))&lt;/li&gt;
 &lt;li&gt;update tracked repositories list [skip ci] ([ffc4b7c](https://github.com/bdougie/contributor.info/commit/ffc4b7c59df083a2aa75ecf98d53bf0984c1e10b))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
@@ -270,7 +270,7 @@
 &lt;p&gt;&lt;strong&gt;Released on 2026-01-08&lt;/strong&gt;&lt;/p&gt;
 &lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;**a11y:** add aria attributes to trend chart legend buttons ([#1475](https://github.com/bdougie/contributor.info/issues/1475)) ([1bc33cb](https://github.com/bdougie/contributor.info/commit/1bc33cb31a895b0cc698c5e53db6a1eeeb31acce))&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;a11y:&lt;/strong&gt; add aria attributes to trend chart legend buttons ([#1475](https://github.com/bdougie/contributor.info/issues/1475)) ([1bc33cb](https://github.com/bdougie/contributor.info/commit/1bc33cb31a895b0cc698c5e53db6a1eeeb31acce))&lt;/li&gt;
 &lt;li&gt;update tracked repositories list [skip ci] ([b12f854](https://github.com/bdougie/contributor.info/commit/b12f85464f0a3b4f6dbc4789c3952125eab462d4))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.19.0...v4.19.1&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
@@ -314,7 +314,7 @@
 &lt;p&gt;&lt;strong&gt;Released on 2026-01-07&lt;/strong&gt;&lt;/p&gt;
 &lt;h3&gt;🚀 Features&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;**a11y:** add missing aria-labels to icon-only buttons ([#1472](https://github.com/bdougie/contributor.info/issues/1472)) ([62000cb](https://github.com/bdougie/contributor.info/commit/62000cb031948c46894220b2bcaec995fd63965d))&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;a11y:&lt;/strong&gt; add missing aria-labels to icon-only buttons ([#1472](https://github.com/bdougie/contributor.info/issues/1472)) ([62000cb](https://github.com/bdougie/contributor.info/commit/62000cb031948c46894220b2bcaec995fd63965d))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
 &lt;ul&gt;
@@ -425,7 +425,7 @@
 &lt;p&gt;&lt;strong&gt;Released on 2026-01-03&lt;/strong&gt;&lt;/p&gt;
 &lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;**a11y:** add aria-labels to demo page chart toggle buttons ([#1465](https://github.com/bdougie/contributor.info/issues/1465)) ([dc365a6](https://github.com/bdougie/contributor.info/commit/dc365a66e1b19fb2e8f5c8b78fc7c7bf12ef511a))&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;a11y:&lt;/strong&gt; add aria-labels to demo page chart toggle buttons ([#1465](https://github.com/bdougie/contributor.info/issues/1465)) ([dc365a6](https://github.com/bdougie/contributor.info/commit/dc365a66e1b19fb2e8f5c8b78fc7c7bf12ef511a))&lt;/li&gt;
 &lt;li&gt;update tracked repositories list [skip ci] ([61fbf29](https://github.com/bdougie/contributor.info/commit/61fbf29783cbe70d816a5a03f1fc2086670d3238))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.13.1...v4.13.2&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
