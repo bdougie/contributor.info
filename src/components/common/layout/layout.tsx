@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LazyNavigationSheet } from './lazy-navigation-sheet';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { NotificationDropdown } from '@/components/notifications';
@@ -253,14 +254,6 @@ export default function Layout() {
                     <span className="text-sm">Theme</span>
                     <ModeToggle />
                   </div>
-                  <div className="pt-2">
-                    <TourTriggerButton
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start"
-                      showLabel={true}
-                    />
-                  </div>
                 </section>
 
                 <section className="pt-4 border-t">
@@ -298,6 +291,16 @@ export default function Layout() {
 
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <TourTriggerButton variant="ghost" size="icon" showLabel={false} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Learn how to use contributor.info</p>
+              </TooltipContent>
+            </Tooltip>
             {isLoggedIn && (
               <div data-tour="notifications">
                 <NotificationDropdown />
