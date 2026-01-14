@@ -4,8 +4,7 @@ import { WorkspaceDashboard } from '@/components/features/workspace';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Info, Sparkles, GitPullRequest, AlertCircle, Layout, X } from '@/components/ui/icon';
+import { Info, Sparkles, GitPullRequest, AlertCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 // Import demo data cache
@@ -272,90 +271,28 @@ export function DemoWorkspacePage() {
           <TabsContent value="activity" className="space-y-6">
             <div className={cn('grid gap-6', expandedChart ? 'grid-cols-1' : 'lg:grid-cols-2')}>
               {(!expandedChart || expandedChart === 'trends') && (
-                <Card
-                  className={cn(
-                    'transition-all duration-300',
-                    expandedChart === 'trends' && 'col-span-full'
-                  )}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Activity Trends</CardTitle>
-                      <CardDescription>Repository activity over time</CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleChartExpansion('trends')}
-                      className="h-8 w-8"
-                      title={
-                        expandedChart === 'trends' ? 'Collapse trends chart' : 'Expand trends chart'
-                      }
-                      aria-label={
-                        expandedChart === 'trends' ? 'Collapse trends chart' : 'Expand trends chart'
-                      }
-                    >
-                      {expandedChart === 'trends' ? (
-                        <X className="h-4 w-4" />
-                      ) : (
-                        <Layout className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <TrendChart
-                      title=""
-                      data={demoTrendData}
-                      height={getTrendChartHeight()}
-                      showLegend={true}
-                    />
-                  </CardContent>
-                </Card>
+                <TrendChart
+                  title="Activity Trends"
+                  description="Repository activity over time"
+                  data={demoTrendData}
+                  height={getTrendChartHeight()}
+                  showLegend={true}
+                  isExpanded={expandedChart === 'trends'}
+                  onExpandToggle={() => toggleChartExpansion('trends')}
+                  className={cn(expandedChart === 'trends' && 'col-span-full')}
+                />
               )}
 
               {(!expandedChart || expandedChart === 'activity') && (
-                <Card
-                  className={cn(
-                    'transition-all duration-300',
-                    expandedChart === 'activity' && 'col-span-full'
-                  )}
-                >
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <CardTitle>Code Activity</CardTitle>
-                      <CardDescription>Daily code changes (additions vs deletions)</CardDescription>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleChartExpansion('activity')}
-                      className="h-8 w-8"
-                      title={
-                        expandedChart === 'activity'
-                          ? 'Collapse activity chart'
-                          : 'Expand activity chart'
-                      }
-                      aria-label={
-                        expandedChart === 'activity'
-                          ? 'Collapse activity chart'
-                          : 'Expand activity chart'
-                      }
-                    >
-                      {expandedChart === 'activity' ? (
-                        <X className="h-4 w-4" />
-                      ) : (
-                        <Layout className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <ActivityChart
-                      title=""
-                      data={demoActivityData}
-                      height={getActivityChartHeight()}
-                    />
-                  </CardContent>
-                </Card>
+                <ActivityChart
+                  title="Code Activity"
+                  description="Daily code changes (additions vs deletions)"
+                  data={demoActivityData}
+                  height={getActivityChartHeight()}
+                  isExpanded={expandedChart === 'activity'}
+                  onExpandToggle={() => toggleChartExpansion('activity')}
+                  className={cn(expandedChart === 'activity' && 'col-span-full')}
+                />
               )}
             </div>
 

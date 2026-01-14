@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import DemoWorkspacePage from '../demo-workspace-page';
 import { TestRouter } from '@/components/__tests__/test-utils';
 
@@ -209,7 +210,11 @@ vi.mock('react-router', async () => {
 });
 
 const renderWithRouter = (component: React.ReactElement) => {
-  return render(<TestRouter>{component}</TestRouter>);
+  return render(
+    <TestRouter>
+      <TooltipProvider>{component}</TooltipProvider>
+    </TestRouter>
+  );
 };
 
 describe('DemoWorkspacePage', () => {
