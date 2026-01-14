@@ -104,20 +104,6 @@ const BADGE_PRESETS = {
   }),
 };
 
-// Security functions for safe SVG generation
-function escapeXml(text: string | number | boolean): string {
-  if (typeof text !== 'string') {
-    text = String(text);
-  }
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-}
-
 function sanitizeColor(color: string): string {
   const hexPattern = /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
   const rgbPattern =
@@ -167,70 +153,81 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
 
   const { label, message, color } = badgeContent;
 
-  // Generate SVG badge
-  const generateSVG = () => {
-    // Escape user inputs to prevent XSS
-    const safeLabel = escapeXml(label);
-    const safeMessage = escapeXml(message);
+  if (config.format === 'svg') {
+    // Return SVG component instead of dangerous string injection
     const safeColor = sanitizeColor(color);
 
-    // Calculate widths based on escaped content to prevent truncation
-    const labelWidth = Math.max(safeLabel.length * 6.5 + 10, 50);
-    const messageWidth = Math.max(safeMessage.length * 6.5 + 10, 30);
+    // Estimate text width (approximate since we don't have canvas measurement here)
+    // Using the same logic as the original implementation: char length * 6.5 + 10
+    const labelWidth = Math.max(label.length * 6.5 + 10, 50);
+    const messageWidth = Math.max(message.length * 6.5 + 10, 30);
     const totalWidth = labelWidth + messageWidth;
     const height = styleConfig.height;
 
-    return `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height}" viewBox="0 0 ${totalWidth} ${height}">
-        <defs>
-          ${
-            styleConfig.shadow
-              ? `
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="rgba(0,0,0,0.2)"/>
-            </filter>
-          `
-              : ''
-          }
-        </defs>
-        
-        <!-- Left background (label) -->
-        <rect x="0" y="0" width="${labelWidth}" height="${height}" fill="#555" rx="${style.includes('flat') && !style.includes('square') ? 3 : 0}"/>
-        
-        <!-- Right background (message) -->  
-        <rect x="${labelWidth}" y="0" width="${messageWidth}" height="${height}" fill="${safeColor}" rx="${style.includes('flat') && !style.includes('square') ? 3 : 0}"/>
-        
-        <!-- Left text (label) -->
-        <text x="${labelWidth / 2}" y="${height / 2}" 
-              text-anchor="middle" 
-              dominant-baseline="central"
-              font-family="Verdana,Geneva,DejaVu Sans,sans-serif" 
-              font-size="11" 
-              fill="white">
-          ${safeLabel}
-        </text>
-        
-        <!-- Right text (message) -->
-        <text x="${labelWidth + messageWidth / 2}" y="${height / 2}" 
-              text-anchor="middle" 
-              dominant-baseline="central"
-              font-family="Verdana,Geneva,DejaVu Sans,sans-serif" 
-              font-size="11" 
-              font-weight="bold"
-              fill="white">
-          ${safeMessage}
-        </text>
-      </svg>
-    `.trim();
-  };
-
-  if (config.format === 'svg') {
-    // Return raw SVG for embedding
     return (
-      <div
-        className={cn('embeddable-widget badge-svg', className)}
-        dangerouslySetInnerHTML={{ __html: generateSVG() }}
-      />
+      <div className={cn('embeddable-widget badge-svg', className)}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width={totalWidth}
+          height={height}
+          viewBox={`0 0 ${totalWidth} ${height}`}
+        >
+          <defs>
+            {styleConfig.shadow && (
+              <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1" floodColor="rgba(0,0,0,0.2)"/>
+              </filter>
+            )}
+          </defs>
+
+          {/* Left background (label) */}
+          <rect
+            x="0"
+            y="0"
+            width={labelWidth}
+            height={height}
+            fill="#555"
+            rx={style.includes('flat') && !style.includes('square') ? 3 : 0}
+          />
+
+          {/* Right background (message) */}
+          <rect
+            x={labelWidth}
+            y="0"
+            width={messageWidth}
+            height={height}
+            fill={safeColor}
+            rx={style.includes('flat') && !style.includes('square') ? 3 : 0}
+          />
+
+          {/* Left text (label) */}
+          <text
+            x={labelWidth / 2}
+            y={height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="Verdana,Geneva,DejaVu Sans,sans-serif"
+            fontSize="11"
+            fill="white"
+          >
+            {label}
+          </text>
+
+          {/* Right text (message) */}
+          <text
+            x={labelWidth + messageWidth / 2}
+            y={height / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="Verdana,Geneva,DejaVu Sans,sans-serif"
+            fontSize="11"
+            fontWeight="bold"
+            fill="white"
+          >
+            {message}
+          </text>
+        </svg>
+      </div>
     );
   }
 
