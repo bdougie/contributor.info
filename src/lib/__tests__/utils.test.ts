@@ -185,4 +185,16 @@ describe('calculateLotteryFactor function', () => {
     expect(user1?.organizations).toBeDefined();
     expect(user1?.organizations?.[0].login).toBe('test-org');
   });
+
+  it('should ignore PRs with invalid timestamps', () => {
+    const prs: PullRequest[] = [
+      createMockPR('user1', getRecentDate()),
+      createMockPR('user2', 'invalid-date'),
+    ];
+
+    const result = calculateLotteryFactor(prs);
+
+    expect(result.totalContributors).toBe(1);
+    expect(result.contributors[0].login).toBe('user1');
+  });
 });
