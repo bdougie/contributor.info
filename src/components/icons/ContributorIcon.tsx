@@ -8,6 +8,7 @@ export const ContributorIcon: React.FC<{ className?: string }> = ({ className })
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
+    aria-hidden="true"
   >
     <g clipPath="url(#clip0_388_2444)">
       <path

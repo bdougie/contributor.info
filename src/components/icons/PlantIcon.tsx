@@ -6,6 +6,7 @@ export const PlantIcon: React.FC<{ className?: string }> = ({ className }) => (
     xmlns="http://www.w3.org/2000/svg"
     shapeRendering="crispEdges"
     className={className}
+    aria-hidden="true"
   >
     <rect x="4" y="3" width="1" height="1" fill="rgb(0,28,26)" fillOpacity="1.0" />
     <rect x="5" y="3" width="1" height="1" fill="rgb(0,28,27)" fillOpacity="1.0" />
