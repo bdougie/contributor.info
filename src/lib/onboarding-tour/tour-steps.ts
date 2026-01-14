@@ -3,84 +3,61 @@ import type { TourStep } from './types';
 /**
  * Default tour steps for the onboarding experience
  *
- * These steps guide users through the key features of contributor.info:
- * 1. Command palette (Cmd+K)
- * 2. Workspace creation/management
- * 3. Repository tracking
- * 4. Contributor insights
- * 5. Navigation and settings
+ * These steps guide users through the key features on a repository page:
+ * 1. Search for repositories
+ * 2. Activity chart showing metrics and trends
+ * 3. Contributor leaderboard/scatterplot
+ * 4. Workspaces for organizing repositories
+ *
+ * The tour is designed to start on /continuedev/continue
  */
 export const DEFAULT_TOUR_STEPS: TourStep[] = [
   {
     id: 'welcome',
     target: 'body',
     content:
-      'Welcome to contributor.info! Let me show you around the key features that will help you track and understand your open source contributions.',
+      'Welcome to contributor.info! Let me show you the key features for understanding open source contributions.',
     placement: 'center',
     disableBeacon: true,
     category: 'navigation',
   },
   {
-    id: 'home-button',
-    target: '[data-tour="home-button"]',
-    content:
-      'Click the logo anytime to return to the home page where you can search for repositories.',
-    placement: 'bottom',
-    category: 'navigation',
-  },
-  {
-    id: 'command-palette',
-    target: '[data-tour="workspace-switcher"], [data-tour="create-workspace-cta"]',
-    content:
-      'Press Cmd+K (or Ctrl+K) to open the command palette. Quickly navigate between workspaces, repositories, and actions.',
-    placement: 'bottom',
-    category: 'navigation',
-  },
-  {
-    id: 'navigation-menu',
-    target: '[data-tour="navigation-menu"]',
-    content:
-      'Access the navigation menu to explore trending repositories, view the changelog, or adjust your settings.',
-    placement: 'right',
-    category: 'navigation',
-  },
-  {
-    id: 'workspace-intro',
-    target: '[data-tour="workspace-switcher"], [data-tour="create-workspace-cta"]',
-    content:
-      'Workspaces help you organize repositories into collections. Create workspaces for different projects, teams, or interests.',
-    placement: 'bottom',
-    category: 'workspace',
-  },
-  {
-    id: 'notifications',
-    target: '[data-tour="notifications"]',
-    content:
-      'Check your notifications here. Stay updated on activity in your tracked repositories and workspaces.',
-    placement: 'bottom',
-    category: 'collaboration',
-  },
-  {
-    id: 'theme-toggle',
-    target: '[data-tour="theme-toggle"]',
-    content:
-      'Toggle between light and dark mode based on your preference. Your choice will be saved automatically.',
-    placement: 'left',
-    category: 'settings',
-  },
-  {
     id: 'search-repositories',
-    target: '[data-tour="search-input"]',
+    target: '[data-tour="repo-search"]',
     content:
-      'Search for any GitHub repository by typing the owner/repo name. Results appear instantly as you type.',
+      'Search for any GitHub repository by typing the owner/repo name. Try searching for your favorite open source project.',
     placement: 'bottom',
     category: 'repository',
+  },
+  {
+    id: 'activity-chart',
+    target: '[data-tour="activity-chart"]',
+    content:
+      'The activity chart shows PR counts, review times, and velocity trends. Compare current metrics against the previous period.',
+    placement: 'top',
+    category: 'repository',
+  },
+  {
+    id: 'leaderboard',
+    target: '[data-tour="leaderboard"]',
+    content:
+      'The contributor scatterplot visualizes PR activity. Each dot represents a pull request - hover to see details about the contributor and their work.',
+    placement: 'top',
+    category: 'repository',
+  },
+  {
+    id: 'workspaces',
+    target: '[data-tour="workspace-switcher"], [data-tour="create-workspace-cta"]',
+    content:
+      'Workspaces help you organize repositories into collections. Create workspaces for different projects, teams, or areas of interest.',
+    placement: 'bottom',
+    category: 'workspace',
   },
   {
     id: 'tour-complete',
     target: 'body',
     content:
-      "You're all set! Start by searching for a repository or creating your first workspace. You can restart this tour anytime from the help menu.",
+      "You're all set! Explore more repositories or create a workspace to track your favorites. You can restart this tour anytime from the menu.",
     placement: 'center',
     category: 'navigation',
   },

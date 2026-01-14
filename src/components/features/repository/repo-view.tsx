@@ -56,7 +56,7 @@ interface RepoSearchSectionProps {
 
 function RepoSearchSection({ onSearch, onSelect, onExampleSelect }: RepoSearchSectionProps) {
   return (
-    <section className="mb-8">
+    <section className="mb-8" data-tour="repo-search">
       <Card>
         <CardContent className="pt-6">
           <GitHubSearchInput
