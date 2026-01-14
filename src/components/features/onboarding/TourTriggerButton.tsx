@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { HelpCircle } from '@/components/ui/icon';
@@ -27,6 +27,29 @@ export function TourTriggerButton({
   const { startTour, isRunning, isCompleted } = useTour();
   const navigate = useNavigate();
   const location = useLocation();
+  const pendingTourRef = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Start tour when we arrive at the tour page
+  useEffect(() => {
+    if (pendingTourRef.current && location.pathname === TOUR_START_PATH) {
+      pendingTourRef.current = false;
+      // Use a short delay to ensure the page is fully rendered
+      timeoutRef.current = window.setTimeout(() => {
+        startTour(0);
+        timeoutRef.current = null;
+      }, 300);
+    }
+  }, [location.pathname, startTour]);
 
   const handleStartTour = useCallback(() => {
     const isOnTourPage = location.pathname === TOUR_START_PATH;
@@ -35,9 +58,9 @@ export function TourTriggerButton({
       // Already on the tour page, start immediately
       startTour(0);
     } else {
-      // Navigate first, then start tour after a short delay for page load
+      // Navigate first, then start tour when we arrive
+      pendingTourRef.current = true;
       navigate(TOUR_START_PATH);
-      setTimeout(() => startTour(0), 500);
     }
   }, [location.pathname, navigate, startTour]);
 

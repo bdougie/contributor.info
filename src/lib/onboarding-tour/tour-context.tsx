@@ -150,16 +150,27 @@ export function TourProvider({
       // Handle navigation
       if (type === EVENTS.STEP_AFTER) {
         if (action === ACTIONS.NEXT) {
-          setStepIndex(index + 1);
+          if (index < steps.length - 1) {
+            setStepIndex(index + 1);
+          }
         } else if (action === ACTIONS.PREV) {
-          setStepIndex(index - 1);
+          if (index > 0) {
+            setStepIndex(index - 1);
+          }
         }
       }
 
       // Handle target not found
       if (type === EVENTS.TARGET_NOT_FOUND) {
-        // Skip to next step if target not found
-        setStepIndex(index + 1);
+        // Skip to next step if target not found, or complete if at last step
+        if (index < steps.length - 1) {
+          setStepIndex(index + 1);
+        } else {
+          // Last step target not found, complete the tour
+          setIsRunning(false);
+          markTourCompleted();
+          setTourState(getTourState());
+        }
         trackEvent('onboarding_tour_target_not_found', {
           step_id: currentStep?.id,
           step_index: index,

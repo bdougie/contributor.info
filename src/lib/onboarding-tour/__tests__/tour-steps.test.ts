@@ -36,6 +36,7 @@ describe('tour-steps', () => {
     it('filters steps by single category', () => {
       const navigationSteps = getTourStepsByCategory(DEFAULT_TOUR_STEPS, ['navigation']);
 
+      expect(navigationSteps).not.toHaveLength(0);
       navigationSteps.forEach((step) => {
         expect(step.category).toBe('navigation');
       });
@@ -44,6 +45,7 @@ describe('tour-steps', () => {
     it('filters steps by multiple categories', () => {
       const steps = getTourStepsByCategory(DEFAULT_TOUR_STEPS, ['navigation', 'workspace']);
 
+      expect(steps).not.toHaveLength(0);
       steps.forEach((step) => {
         expect(['navigation', 'workspace']).toContain(step.category);
       });
@@ -72,7 +74,8 @@ describe('tour-steps', () => {
   describe('accessibility', () => {
     it('all steps have descriptive content', () => {
       DEFAULT_TOUR_STEPS.forEach((step) => {
-        expect(step.content.length).toBeGreaterThan(20);
+        const content = typeof step.content === 'string' ? step.content : '';
+        expect(content.length).toBeGreaterThan(20);
       });
     });
 

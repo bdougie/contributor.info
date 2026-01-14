@@ -129,9 +129,15 @@ describe('tour-storage', () => {
 
   describe('resetTourState', () => {
     it('resets tour state while preserving startCount', () => {
+      // Start with a clean state
+      localStorage.clear();
+
       markTourCompleted();
       markStepViewed('step1');
       incrementStartCount();
+
+      const beforeReset = getTourState();
+      const countBeforeReset = beforeReset.startCount;
 
       resetTourState();
 
@@ -141,6 +147,7 @@ describe('tour-storage', () => {
       expect(state.viewedSteps).toEqual([]);
       expect(state.dismissed).toBe(false);
       expect(state.dismissedAt).toBeUndefined();
+      expect(state.startCount).toBe(countBeforeReset); // Verify startCount is preserved
     });
   });
 
