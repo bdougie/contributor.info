@@ -5,7 +5,7 @@ import type { TourStep } from './types';
  *
  * These steps guide users through the key features on a repository page:
  * 1. Search for repositories
- * 2. Contributor leaderboard/scatterplot
+ * 2. Contributor distribution chart
  * 3. Workspaces for organizing repositories
  *
  * The tour is designed to start on /continuedev/continue
@@ -32,7 +32,7 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
     id: 'leaderboard',
     target: '[data-tour="leaderboard"]',
     content:
-      'The contributor scatterplot visualizes PR activity. Each dot represents a pull request - hover to see details about the contributor and their work.',
+      'The contributor distribution visualizes PR activity. Each dot represents a pull request - hover to see details about the contributor and their work.',
     placement: 'top',
     category: 'repository',
   },
