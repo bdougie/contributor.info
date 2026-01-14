@@ -32,6 +32,41 @@ export interface TrendChartProps {
   onExpandToggle?: () => void;
 }
 
+/**
+ * Generate accessible summary for trend chart data
+ */
+function generateTrendChartSummary(
+  title: string,
+  data: TrendChartProps['data'],
+  selectedSeries: Set<number>
+): string {
+  if (!data.labels.length || !data.datasets.length) {
+    return `${title}: No data available.`;
+  }
+
+  const visibleDatasets = data.datasets.filter((_, i) => selectedSeries.has(i));
+  const summaryParts: string[] = [
+    `${title}: Trend chart showing ${data.labels.length} time periods with ${visibleDatasets.length} visible series.`,
+  ];
+
+  visibleDatasets.forEach((dataset) => {
+    const values = dataset.data.filter((v): v is number => v !== null);
+    if (values.length > 0) {
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const first = values[0];
+      const last = values[values.length - 1];
+      const trend = last > first ? 'increasing' : last < first ? 'decreasing' : 'stable';
+      const changePercent = first !== 0 ? Math.round(((last - first) / first) * 100) : 0;
+      summaryParts.push(
+        `${dataset.label}: ranges from ${min.toLocaleString()} to ${max.toLocaleString()}, trend is ${trend}${changePercent !== 0 ? ` (${changePercent > 0 ? '+' : ''}${changePercent}%)` : ''}.`
+      );
+    }
+  });
+
+  return summaryParts.join(' ');
+}
+
 // Default colors for datasets
 const DEFAULT_COLORS = [
   '#10b981', // green
@@ -318,12 +353,31 @@ export function TrendChart({
                 })}
               </div>
             )}
-            <div style={{ height }} className="w-full transition-[height] duration-500 ease-in-out">
+            <div
+              style={{ height }}
+              className="w-full transition-[height] duration-500 ease-in-out"
+              role="figure"
+              aria-labelledby={`trend-chart-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
+              aria-describedby={`trend-chart-desc-${title.replace(/\s+/g, '-').toLowerCase()}`}
+            >
+              <span
+                id={`trend-chart-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
+                className="sr-only"
+              >
+                {title}
+              </span>
+              <span
+                id={`trend-chart-desc-${title.replace(/\s+/g, '-').toLowerCase()}`}
+                className="sr-only"
+              >
+                {generateTrendChartSummary(title, data, selectedSeries)}
+              </span>
               <UPlotChart
                 data={chartData}
                 options={chartOptions}
                 height={height}
                 responsive={true}
+                ariaLabel={title}
               />
             </div>
           </div>

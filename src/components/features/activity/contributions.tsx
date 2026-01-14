@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useContext, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -48,6 +48,39 @@ import { maintainerRolesCache } from '@/lib/maintainer-roles-cache';
 
 interface ContributionsChartProps {
   isRepositoryTracked?: boolean;
+}
+
+/**
+ * Generates an accessible summary of scatter plot data for screen readers
+ */
+function generateChartSummary(
+  data: Array<{ id: string; data: Array<{ contributor: string; x: number; y: number }> }>,
+  effectiveTimeRange: number
+): string {
+  if (!data[0]?.data?.length) {
+    return 'No pull request data available.';
+  }
+
+  const points = data[0].data;
+  const totalPRs = points.length;
+  
+  // Find top contributor (most PRs)
+  const contributorCounts = new Map<string, number>();
+  points.forEach((p) => {
+    contributorCounts.set(p.contributor, (contributorCounts.get(p.contributor) || 0) + 1);
+  });
+  const topContributor = [...contributorCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  
+  // Find largest PR
+  const maxLines = Math.max(...points.map((p) => p.y));
+  
+  // Calculate average lines
+  const avgLines = Math.round(points.reduce((sum, p) => sum + p.y, 0) / totalPRs);
+
+  return `This scatter plot shows ${totalPRs} pull requests over the last ${effectiveTimeRange} days. ` +
+    `Most active contributor: ${topContributor?.[0] || 'unknown'} with ${topContributor?.[1] || 0} pull requests. ` +
+    `Largest pull request: ${maxLines.toLocaleString()} lines changed. ` +
+    `Average lines per pull request: ${avgLines.toLocaleString()}.`;
 }
 
 function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartProps) {
@@ -680,6 +713,12 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   ).length;
   const hasBots = botCount > 0;
 
+  // Generate accessible summary for screen readers
+  const chartSummary = useMemo(
+    () => generateChartSummary(data, isMobile ? mobileMaxDays : effectiveTimeRangeNumber),
+    [data, isMobile, effectiveTimeRangeNumber]
+  );
+
   // Show placeholder when repository is not tracked
   if (!isRepositoryTracked) {
     return (
@@ -795,7 +834,18 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           </div>
         </div>
       </div>
-      <div className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}>
+      <div
+        className={`${isMobile ? 'h-[280px]' : 'h-[400px]'} w-full overflow-hidden relative`}
+        role="figure"
+        aria-labelledby="scatter-chart-title"
+        aria-describedby="scatter-chart-desc"
+      >
+        <h3 id="scatter-chart-title" className="sr-only">
+          Pull Request Contributions Over Time
+        </h3>
+        <div id="scatter-chart-desc" className="sr-only">
+          {chartSummary}
+        </div>
         <ProgressiveChart
           skeleton={
             <SkeletonChart variant="scatter" height={isMobile ? 'sm' : 'lg'} showAxes={true} />

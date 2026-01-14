@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { colorWithAlpha, processLabelsForUPlot, createAxisValuesFormatter } from './chart-utils';
@@ -23,6 +23,35 @@ export interface AreaChartProps extends Omit<UPlotChartProps, 'data' | 'options'
   xAxisLabel?: string;
   yAxisLabel?: string;
   stacked?: boolean;
+  /** Accessible label for screen readers */
+  ariaLabel?: string;
+}
+
+/**
+ * Generate accessible summary for area chart data
+ */
+function generateAreaChartSummary(data: AreaChartProps['data'], stacked: boolean): string {
+  if (!data.labels.length || !data.datasets.length) {
+    return 'No data available.';
+  }
+
+  const summaryParts: string[] = [
+    `${stacked ? 'Stacked area' : 'Area'} chart with ${data.labels.length} data points and ${data.datasets.length} series.`,
+  ];
+
+  data.datasets.forEach((dataset) => {
+    const values = dataset.data.filter((v): v is number => v !== null);
+    if (values.length > 0) {
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const total = values.reduce((sum, v) => sum + v, 0);
+      summaryParts.push(
+        `${dataset.label}: ranges from ${min} to ${max}, total ${total.toLocaleString()}.`
+      );
+    }
+  });
+
+  return summaryParts.join(' ');
 }
 
 /**
@@ -37,6 +66,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
   xAxisLabel,
   yAxisLabel,
   stacked = false,
+  ariaLabel,
   ...uplotProps
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
@@ -185,5 +215,18 @@ export const AreaChart: React.FC<AreaChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel, stacked]);
 
-  return <UPlotChart data={chartData} options={chartOptions} {...uplotProps} />;
+  const accessibleSummary = useMemo(
+    () => generateAreaChartSummary(data, stacked),
+    [data, stacked]
+  );
+
+  return (
+    <UPlotChart
+      data={chartData}
+      options={chartOptions}
+      ariaLabel={ariaLabel || (stacked ? 'Stacked area chart' : 'Area chart')}
+      ariaDescription={accessibleSummary}
+      {...uplotProps}
+    />
+  );
 };

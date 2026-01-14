@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import type { AlignedData, Options, Series } from 'uplot';
@@ -21,12 +21,48 @@ export interface BarChartProps extends Omit<UPlotChartProps, 'data' | 'options'>
   yAxisLabel?: string;
   grouped?: boolean;
   barWidth?: number;
+  /** Accessible label for screen readers */
+  ariaLabel?: string;
 }
 
 /**
  * BarChart component using uPlot
  * Provides a Recharts-like API with grouped bars support
  */
+/**
+ * Generate accessible summary for bar chart data
+ */
+function generateBarChartSummary(
+  data: BarChartProps['data'],
+  xAxisLabel?: string,
+  yAxisLabel?: string
+): string {
+  if (!data.labels.length || !data.datasets.length) {
+    return 'No data available.';
+  }
+
+  const xLabel = xAxisLabel ? ` X-axis: ${xAxisLabel}.` : '';
+  const yLabel = yAxisLabel ? ` Y-axis: ${yAxisLabel}.` : '';
+
+  const summaryParts: string[] = [
+    `Bar chart with ${data.labels.length} categories and ${data.datasets.length} data series.${xLabel}${yLabel}`,
+  ];
+
+  data.datasets.forEach((dataset) => {
+    const values = dataset.data.filter((v): v is number => v !== null);
+    if (values.length > 0) {
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const avg = Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
+      summaryParts.push(
+        `${dataset.label}: ranges from ${min} to ${max}, average ${avg}.`
+      );
+    }
+  });
+
+  return summaryParts.join(' ');
+}
+
 export const BarChart: React.FC<BarChartProps> = ({
   data,
   isDark = false,
@@ -36,6 +72,7 @@ export const BarChart: React.FC<BarChartProps> = ({
   yAxisLabel,
   grouped = true,
   barWidth = 0.6,
+  ariaLabel,
   ...uplotProps
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
@@ -166,5 +203,18 @@ export const BarChart: React.FC<BarChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel, grouped, barWidth]);
 
-  return <UPlotChart data={chartData} options={chartOptions} {...uplotProps} />;
+  const accessibleSummary = useMemo(
+    () => generateBarChartSummary(data, xAxisLabel, yAxisLabel),
+    [data, xAxisLabel, yAxisLabel]
+  );
+
+  return (
+    <UPlotChart
+      data={chartData}
+      options={chartOptions}
+      ariaLabel={ariaLabel || 'Bar chart'}
+      ariaDescription={accessibleSummary}
+      {...uplotProps}
+    />
+  );
 };

@@ -11,6 +11,10 @@ export interface UPlotChartProps {
   onReady?: (chart: uPlot) => void;
   onDestroy?: () => void;
   responsive?: boolean;
+  /** Accessible label for screen readers */
+  ariaLabel?: string;
+  /** Accessible description for screen readers */
+  ariaDescription?: string;
 }
 
 /**
@@ -26,7 +30,11 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
   onReady,
   onDestroy,
   responsive = true,
+  ariaLabel,
+  ariaDescription,
 }) => {
+  const chartId = React.useId();
+  const descriptionId = ariaDescription ? `${chartId}-desc` : undefined;
   const chartRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -158,5 +166,21 @@ export const UPlotChart: React.FC<UPlotChartProps> = ({
     ? { width: '100%' }
     : { width: propWidth ?? actualDimensions?.width ?? 600 };
 
-  return <div ref={chartRef} className={`uplot-chart ${className}`} style={wrapperStyle} />;
+  return (
+    <div
+      ref={chartRef}
+      className={`uplot-chart ${className}`}
+      style={wrapperStyle}
+      role="img"
+      aria-label={ariaLabel}
+      aria-describedby={descriptionId}
+      tabIndex={0}
+    >
+      {ariaDescription && (
+        <span id={descriptionId} className="sr-only">
+          {ariaDescription}
+        </span>
+      )}
+    </div>
+  );
 };
