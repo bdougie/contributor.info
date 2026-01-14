@@ -36,6 +36,14 @@ import { ContributorHoverCard } from '@/components/features/contributor/contribu
 import type { ContributorStats } from '@/lib/types';
 import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 
+function getAriaSortValue(
+  sortDirection: false | 'asc' | 'desc'
+): 'ascending' | 'descending' | undefined {
+  if (sortDirection === 'asc') return 'ascending';
+  if (sortDirection === 'desc') return 'descending';
+  return undefined;
+}
+
 export interface PullRequest {
   id: string;
   number: number;
@@ -563,13 +571,18 @@ export function WorkspacePullRequestsTable({
               </div>
             ) : (
               <div className="rounded-md border h-[600px] overflow-auto" ref={parentRef}>
-                <table className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative">
+                <table
+                  className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative"
+                  aria-label="Pull requests from tracked repositories"
+                >
                   <thead className="sticky top-0 z-10 bg-background shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b">
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
+                            scope="col"
+                            aria-sort={getAriaSortValue(header.column.getIsSorted())}
                             className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap bg-background"
                             style={{
                               width: header.column.columnDef.size,

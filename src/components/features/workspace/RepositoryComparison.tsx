@@ -328,17 +328,23 @@ export function RepositoryComparison({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table
+              className="w-full text-sm"
+              aria-label="Detailed metrics comparison for selected repositories"
+            >
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Repository</th>
+                  <th scope="col" className="text-left py-2">
+                    Repository
+                  </th>
                   {Object.entries(METRIC_LABELS).map(([key, label]) => {
                     const Icon = METRIC_ICONS[key as ComparisonMetric];
                     return (
-                      <th key={key} className="text-center px-2 py-2">
+                      <th key={key} scope="col" className="text-center px-2 py-2">
                         <div className="flex items-center justify-center gap-1">
-                          <Icon className="h-3.5 w-3.5" />
+                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
                           <span className="hidden sm:inline">{label}</span>
+                          <span className="sr-only sm:hidden">{label}</span>
                         </div>
                       </th>
                     );
