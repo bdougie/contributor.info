@@ -50,6 +50,14 @@ import type { ContributorStats } from '@/lib/types';
 import { getRecentIssuesForContributor } from '@/lib/workspace-hover-card-utils';
 import { useSimilarIssues } from '@/hooks/useSimilarIssues';
 
+function getAriaSortValue(
+  sortDirection: false | 'asc' | 'desc'
+): 'ascending' | 'descending' | undefined {
+  if (sortDirection === 'asc') return 'ascending';
+  if (sortDirection === 'desc') return 'descending';
+  return undefined;
+}
+
 export interface Issue {
   id: string;
   number: number;
@@ -809,6 +817,7 @@ export function WorkspaceIssuesTable({
                             <th
                               key={header.id}
                               scope="col"
+                              aria-sort={getAriaSortValue(header.column.getIsSorted())}
                               className={cn(
                                 'px-4 py-3 font-medium text-sm whitespace-nowrap',
                                 header.column.id === 'comments_count' ? 'text-center' : 'text-left'
