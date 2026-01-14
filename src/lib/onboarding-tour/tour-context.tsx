@@ -102,9 +102,12 @@ export function TourProvider({
       // Track step views
       if (type === EVENTS.STEP_AFTER && currentStep) {
         markStepViewed(currentStep.id);
-        trackEvent('onboarding_tour_step_viewed', {
+        trackEvent('onboarding_tour_step_completed', {
           step_id: currentStep.id,
-          step_index: index,
+          step_name: currentStep.id.replace(/-/g, ' '),
+          step_number: index + 1,
+          total_steps: steps.length,
+          progress_percentage: Math.round(((index + 1) / steps.length) * 100),
           category: currentStep.category,
         });
       }
@@ -116,19 +119,27 @@ export function TourProvider({
         setTourState(getTourState());
         trackEvent('onboarding_tour_completed', {
           total_steps: steps.length,
+          steps_completed: steps.length,
+          completion_rate: 100,
         });
         return;
       }
 
-      // Handle tour skip/close
+      // Handle tour skip/close (abandonment)
       if (status === STATUS.SKIPPED || action === ACTIONS.CLOSE) {
         setIsRunning(false);
         markTourDismissed();
         setTourState(getTourState());
-        trackEvent('onboarding_tour_dismissed', {
-          at_step: index,
-          step_id: currentStep?.id,
-          action: action,
+        const stepsCompleted = index;
+        const completionRate = Math.round((stepsCompleted / steps.length) * 100);
+        trackEvent('onboarding_tour_abandoned', {
+          total_steps: steps.length,
+          steps_completed: stepsCompleted,
+          completion_rate: completionRate,
+          abandoned_at_step: index,
+          abandoned_step_id: currentStep?.id,
+          abandoned_step_name: currentStep?.id?.replace(/-/g, ' '),
+          action: action === ACTIONS.CLOSE ? 'closed' : 'skipped',
         });
         return;
       }
