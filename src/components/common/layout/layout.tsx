@@ -11,9 +11,11 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LazyNavigationSheet } from './lazy-navigation-sheet';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { NotificationDropdown } from '@/components/notifications';
+import { TourTriggerButton } from '@/components/features/onboarding';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
@@ -281,6 +283,7 @@ export default function Layout() {
             <button
               onClick={() => navigate('/')}
               className="text-xl font-bold hover:text-primary transition-colors"
+              data-tour="home-button"
             >
               contributor.info
             </button>
@@ -288,7 +291,21 @@ export default function Layout() {
 
           {/* Workspace and Auth Buttons */}
           <div className="ml-auto flex items-center gap-2">
-            {isLoggedIn && <NotificationDropdown />}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <TourTriggerButton variant="ghost" size="icon" showLabel={false} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Learn how to use contributor.info</p>
+              </TooltipContent>
+            </Tooltip>
+            {isLoggedIn && (
+              <div data-tour="notifications">
+                <NotificationDropdown />
+              </div>
+            )}
             {isLoggedIn && (
               <>
                 {/* Prevent flickering by handling loading state */}
@@ -303,6 +320,7 @@ export default function Layout() {
                     size="sm"
                     onClick={handleCreateWorkspace}
                     className="gap-2"
+                    data-tour="create-workspace-cta"
                   >
                     <Plus className="h-4 w-4" />
                     Create Workspace
@@ -310,7 +328,7 @@ export default function Layout() {
                 )}
                 {!onboardingLoading && !needsOnboarding && !isWorkspacePage() && (
                   // Show workspace switcher for users with workspaces (not on workspace pages)
-                  <div onMouseEnter={handlePreloadCommandPalette}>
+                  <div onMouseEnter={handlePreloadCommandPalette} data-tour="workspace-switcher">
                     <div className="hidden md:block">
                       <WorkspaceSwitcher
                         className="min-w-[200px]"

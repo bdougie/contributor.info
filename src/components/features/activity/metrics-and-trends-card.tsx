@@ -279,7 +279,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
   }, [loading, metrics, trends, owner, repo, timeRange, hasLowDataQuality]);
 
   return (
-    <Card>
+    <Card data-tour="activity-chart">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -461,7 +461,12 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                             style={{
                               width: `${
                                 Math.max(metrics.velocity.current, metrics.velocity.previous) > 0
-                                  ? (metrics.velocity.current / Math.max(metrics.velocity.current, metrics.velocity.previous)) * 100
+                                  ? (metrics.velocity.current /
+                                      Math.max(
+                                        metrics.velocity.current,
+                                        metrics.velocity.previous
+                                      )) *
+                                    100
                                   : 0
                               }%`,
                             }}

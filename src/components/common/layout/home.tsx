@@ -105,7 +105,7 @@ export default function Home() {
             </p>
           </CardHeader>
           <CardContent>
-            <section>
+            <section data-tour="search-input">
               <GitHubSearchInput
                 placeholder="Search repositories (e.g., facebook/react)"
                 onSearch={handleSearch}
