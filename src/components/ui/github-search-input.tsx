@@ -244,7 +244,7 @@ export function GitHubSearchInput({
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={showDropdown}
-            aria-controls="github-search-listbox"
+            aria-controls={showDropdown ? 'github-search-listbox' : undefined}
             aria-activedescendant={
               selectedIndex >= 0 && results[selectedIndex]
                 ? `search-result-${results[selectedIndex].id}`
