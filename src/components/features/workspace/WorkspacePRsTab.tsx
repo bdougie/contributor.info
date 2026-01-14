@@ -10,6 +10,7 @@ import {
   WorkspacePullRequestsTable,
   type PullRequest,
 } from '@/components/features/workspace/WorkspacePullRequestsTable';
+import { exportPullRequestsToCSV, generateExportFilename } from '@/lib/utils/csv-export';
 import { LazyReviewerDistributionChart } from '@/components/features/workspace/charts/ReviewerDistributionChart-lazy';
 import { PRAuthorStatusChart as LazyPRAuthorStatusChart } from '@/components/features/workspace/charts/PRAuthorStatusChart-lazy';
 import { useWorkspacePRs } from '@/hooks/useWorkspacePRs';
@@ -101,6 +102,11 @@ export function WorkspacePRsTab({
     return pullRequests.filter((pr) => pr.reviewers?.some((r) => r.username === selectedReviewer));
   }, [pullRequests, selectedReviewer]);
 
+  const handleExportPRs = () => {
+    const filename = generateExportFilename(workspace?.name || 'workspace', 'pull-requests');
+    exportPullRequestsToCSV(filteredPullRequests, filename);
+  };
+
   // Check if there are any PRs with reviewers
   const hasReviewers = pullRequests.some((pr) => pr.reviewers && pr.reviewers.length > 0);
 
@@ -174,6 +180,7 @@ export function WorkspacePRsTab({
         loading={loading}
         onPullRequestClick={handlePullRequestClick}
         onRepositoryClick={handleRepositoryClick}
+        onExport={handleExportPRs}
       />
     </div>
   );

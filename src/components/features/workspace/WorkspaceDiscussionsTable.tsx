@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { exportDiscussionsToCSV, generateExportFilename } from '@/lib/utils/csv-export';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Download,
 } from '@/components/ui/icon';
 import { Reply } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -88,6 +90,7 @@ interface WorkspaceDiscussionsTableProps {
   userRole?: string | null;
   isLoggedIn?: boolean;
   onRespondClick?: (discussion: Discussion) => void;
+  onExport?: () => void;
 }
 
 export function WorkspaceDiscussionsTable({
@@ -98,6 +101,7 @@ export function WorkspaceDiscussionsTable({
   userRole,
   isLoggedIn = false,
   onRespondClick,
+  onExport,
 }: WorkspaceDiscussionsTableProps) {
   // Use the new hook for automatic discussion syncing and caching
   const { discussions, loading, error, refresh } = useWorkspaceDiscussions({
@@ -229,6 +233,16 @@ export function WorkspaceDiscussionsTable({
   // Get unique categories
   const categories = Array.from(new Set(discussions.map((d) => d.category_name).filter(Boolean)));
 
+  // Internal export handler - uses external onExport if provided, otherwise exports internally
+  const handleExport = useCallback(() => {
+    if (onExport) {
+      onExport();
+    } else {
+      const filename = generateExportFilename('discussions', 'discussions');
+      exportDiscussionsToCSV(filteredDiscussions, filename);
+    }
+  }, [onExport, filteredDiscussions]);
+
   // Check if user has workspace access (must be logged in and have a role)
   const hasWorkspaceAccess = isLoggedIn && userRole;
   const showUpgradePrompt = !hasWorkspaceAccess;
@@ -247,6 +261,16 @@ export function WorkspaceDiscussionsTable({
             {!loading && discussions.length > 0 && (
               <LastUpdated timestamp={lastUpdated} label="Updated" size="sm" />
             )}
+            <Button
+              onClick={handleExport}
+              size="sm"
+              variant="outline"
+              className="min-h-[36px] px-3"
+              disabled={discussions.length === 0}
+            >
+              <Download className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </Button>
             <Button
               variant="outline"
               size="icon"
