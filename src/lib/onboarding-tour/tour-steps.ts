@@ -48,7 +48,7 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
     id: 'tour-complete',
     target: 'body',
     content:
-      "You're all set! Explore more repositories or create a workspace to track your favorites. You can restart this tour anytime from the menu.",
+      "You're all set! Connect your GitHub account to create workspaces and track your favorite repositories.",
     placement: 'center',
     category: 'navigation',
   },

@@ -5,7 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WorkspaceProvider } from '@/contexts/WorkspaceContext';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
-import { TourProvider } from '@/lib/onboarding-tour';
+import { TourProviderWithNavigation } from '@/components/features/onboarding';
 import { useSubscriptionSync } from '@/hooks/use-subscription-sync';
 import { logger } from '@/lib/logger';
 import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
@@ -443,7 +443,7 @@ function App() {
             <SVGSpriteInliner />
             <Router>
               <WorkspaceProvider>
-                <TourProvider autoStart={false}>
+                <TourProviderWithNavigation>
                   <Suspense fallback={null}>
                     <OfflineNotification />
                   </Suspense>
@@ -718,7 +718,7 @@ function App() {
                       onDismiss={() => logger.debug('PWA install prompt dismissed')}
                     />
                   </Suspense>
-                </TourProvider>
+                </TourProviderWithNavigation>
               </WorkspaceProvider>
             </Router>
           </TooltipProvider>

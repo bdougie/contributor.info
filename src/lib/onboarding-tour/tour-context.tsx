@@ -23,6 +23,7 @@ export function TourProvider({
   steps = DEFAULT_TOUR_STEPS,
   autoStart = false,
   autoStartDelay = 2000,
+  onComplete,
 }: TourProviderProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
@@ -122,6 +123,8 @@ export function TourProvider({
           steps_completed: steps.length,
           completion_rate: 100,
         });
+        // Call the completion callback to handle navigation
+        onComplete?.();
         return;
       }
 
@@ -163,7 +166,7 @@ export function TourProvider({
         });
       }
     },
-    [steps]
+    [steps, onComplete]
   );
 
   const contextValue = useMemo<TourContextValue>(

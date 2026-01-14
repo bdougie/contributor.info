@@ -72,6 +72,8 @@ export interface TourProviderProps {
   autoStart?: boolean;
   /** Delay before auto-starting (ms) */
   autoStartDelay?: number;
+  /** Callback when tour is completed */
+  onComplete?: () => void;
 }
 
 /**

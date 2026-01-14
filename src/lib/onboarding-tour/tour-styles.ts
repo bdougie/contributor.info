@@ -82,7 +82,7 @@ export const tourStyles: TourStyles = {
 export const tourLocale = {
   back: 'Back',
   close: 'Close',
-  last: 'Finish',
+  last: 'Connect GitHub',
   next: 'Next',
   open: 'Open the dialog',
   skip: 'Skip tour',
