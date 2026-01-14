@@ -650,7 +650,7 @@ export function AddRepositoryModal({
                       <div className="flex items-center gap-2">
                         <img
                           src={repo.owner.avatar_url}
-                          alt={repo.owner.login}
+                          alt={`${repo.owner.login}'s avatar`}
                           className="h-5 w-5 rounded"
                         />
                         <span className="font-medium text-sm truncate">{repo.full_name}</span>

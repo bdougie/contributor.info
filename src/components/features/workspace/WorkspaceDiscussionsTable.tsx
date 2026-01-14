@@ -536,7 +536,7 @@ export function WorkspaceDiscussionsTable({
                               >
                                 <img
                                   src={`https://github.com/${discussion.repositories.owner}.png?size=20`}
-                                  alt={discussion.repositories.owner}
+                                  alt={`${discussion.repositories.owner}'s avatar`}
                                   className="h-4 w-4 rounded"
                                 />
                                 <span>{discussion.repositories.name}</span>

@@ -279,7 +279,7 @@ export function WorkspaceSpamTab({
                         <div className="flex items-center gap-2">
                           <img
                             src={pr.author.avatar_url || getFallbackAvatar()}
-                            alt={pr.author.username}
+                            alt={`${pr.author.username}'s avatar`}
                             className="h-6 w-6 rounded-full flex-shrink-0"
                           />
                           <span className="text-sm whitespace-nowrap">{pr.author.username}</span>
