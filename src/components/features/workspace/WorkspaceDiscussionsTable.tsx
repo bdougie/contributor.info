@@ -261,16 +261,20 @@ export function WorkspaceDiscussionsTable({
             {!loading && discussions.length > 0 && (
               <LastUpdated timestamp={lastUpdated} label="Updated" size="sm" />
             )}
-            <Button
-              onClick={handleExport}
-              size="sm"
-              variant="outline"
-              className="min-h-[36px] px-3"
-              disabled={discussions.length === 0}
-            >
-              <Download className="h-4 w-4 sm:mr-1.5" />
-              <span className="hidden sm:inline">Export CSV</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleExport}
+                  variant="outline"
+                  size="icon"
+                  disabled={discussions.length === 0}
+                  aria-label="Export to CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export CSV</TooltipContent>
+            </Tooltip>
             <Button
               variant="outline"
               size="icon"

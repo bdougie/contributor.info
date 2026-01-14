@@ -540,16 +540,20 @@ export function WorkspacePullRequestsTable({
                 />
               </div>
               {onExport && (
-                <Button
-                  onClick={onExport}
-                  size="sm"
-                  variant="outline"
-                  className="min-h-[36px] px-3"
-                  disabled={pullRequests.length === 0}
-                >
-                  <Download className="h-4 w-4 sm:mr-1.5" />
-                  <span className="hidden sm:inline">Export CSV</span>
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={onExport}
+                      variant="outline"
+                      size="icon"
+                      disabled={pullRequests.length === 0}
+                      aria-label="Export to CSV"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Export CSV</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
