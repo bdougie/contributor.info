@@ -106,6 +106,9 @@ describe('tour-storage', () => {
     });
 
     it('does not add duplicate steps', () => {
+      // Explicitly reset to ensure clean state
+      resetTourState();
+
       markStepViewed('step1');
       markStepViewed('step1');
 
