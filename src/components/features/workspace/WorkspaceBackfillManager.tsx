@@ -331,6 +331,7 @@ export function WorkspaceBackfillManager({
               checked={selectedRepos.size === repositories.length}
               onChange={handleSelectAll}
               className="h-4 w-4 rounded border-gray-300"
+              aria-label="Select all repositories"
             />
             <span className="text-sm text-muted-foreground">
               {selectedRepos.size} of {repositories.length} selected
@@ -379,6 +380,7 @@ export function WorkspaceBackfillManager({
                         onChange={() => handleToggleRepository(repo.full_name)}
                         disabled={isBackfilling}
                         className="h-4 w-4 rounded border-gray-300"
+                        aria-label={`Select ${repo.full_name} for backfill`}
                       />
                     </TableCell>
                     <TableCell>

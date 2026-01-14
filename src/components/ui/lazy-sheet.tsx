@@ -106,7 +106,9 @@ export const SheetSkeleton = ({
       >
         {/* Static content matching actual menu structure */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Menu</h2>
+          <p className="text-lg font-semibold" role="heading" aria-level={2}>
+            Menu
+          </p>
           <nav className="flex flex-col space-y-4 mt-6" aria-label="Mobile menu">
             <span className="text-lg font-semibold text-muted-foreground">Home</span>
             <span className="text-base text-muted-foreground">🔥 Trending</span>

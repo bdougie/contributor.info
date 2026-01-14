@@ -460,6 +460,7 @@ export function WorkspaceIssueMetricsAndTrends({
                         <div className="flex items-center gap-2">
                           <img
                             src={metrics.activityPatterns.mostActiveTriager.avatar_url}
+                            alt={`Avatar for ${metrics.activityPatterns.mostActiveTriager.username}`}
                             className="w-8 h-8 rounded-full"
                           />
                           <div className="overflow-hidden">
