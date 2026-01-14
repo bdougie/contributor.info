@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.30.0](https://github.com/bdougie/contributor.info/compare/v4.29.1...v4.30.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* **ux:** improve accessibility of demo charts ([#1556](https://github.com/bdougie/contributor.info/issues/1556)) ([c3ff827](https://github.com/bdougie/contributor.info/commit/c3ff82759efd6e89bb8a0e96ec73f4bbf874a30d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([9310911](https://github.com/bdougie/contributor.info/commit/9310911aee22f1afcb465ea67bee6d702228ed96))
+
+## [4.29.1](https://github.com/bdougie/contributor.info/compare/v4.29.0...v4.29.1) (2026-01-14)
+
+
+### 🐛 Bug Fixes
+
+* accessibility and performance improvements ([#1558](https://github.com/bdougie/contributor.info/issues/1558)) ([3b5f14e](https://github.com/bdougie/contributor.info/commit/3b5f14e6afc47cb2d081b2955c8ba2eae40c74f3)), closes [#1550](https://github.com/bdougie/contributor.info/issues/1550) [#1551](https://github.com/bdougie/contributor.info/issues/1551) [#1553](https://github.com/bdougie/contributor.info/issues/1553) [#1552](https://github.com/bdougie/contributor.info/issues/1552) [#1545](https://github.com/bdougie/contributor.info/issues/1545) [#1547](https://github.com/bdougie/contributor.info/issues/1547) [#1549](https://github.com/bdougie/contributor.info/issues/1549)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([b639e93](https://github.com/bdougie/contributor.info/commit/b639e93c9dc0a2b83a593c745b16cf66a7ca9433))
+
+## [4.29.0](https://github.com/bdougie/contributor.info/compare/v4.28.0...v4.29.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* add interactive onboarding tour with React Joyride ([#1546](https://github.com/bdougie/contributor.info/issues/1546)) ([774018a](https://github.com/bdougie/contributor.info/commit/774018aa991a3d60d9ba1cfd7b2fdc6c21e84ed8)), closes [#522](https://github.com/bdougie/contributor.info/issues/522)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([b2d9d6e](https://github.com/bdougie/contributor.info/commit/b2d9d6e83769c9af27b719625363db410c88e03f))
+
 ## [4.28.0](https://github.com/bdougie/contributor.info/compare/v4.27.2...v4.28.0) (2026-01-14)
 
 

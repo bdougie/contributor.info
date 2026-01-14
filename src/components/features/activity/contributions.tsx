@@ -63,24 +63,26 @@ function generateChartSummary(
 
   const points = data[0].data;
   const totalPRs = points.length;
-  
+
   // Find top contributor (most PRs)
   const contributorCounts = new Map<string, number>();
   points.forEach((p) => {
     contributorCounts.set(p.contributor, (contributorCounts.get(p.contributor) || 0) + 1);
   });
   const topContributor = [...contributorCounts.entries()].sort((a, b) => b[1] - a[1])[0];
-  
+
   // Find largest PR
   const maxLines = Math.max(...points.map((p) => p.y));
-  
+
   // Calculate average lines
   const avgLines = Math.round(points.reduce((sum, p) => sum + p.y, 0) / totalPRs);
 
-  return `This scatter plot shows ${totalPRs} pull requests over the last ${effectiveTimeRange} days. ` +
+  return (
+    `This scatter plot shows ${totalPRs} pull requests over the last ${effectiveTimeRange} days. ` +
     `Most active contributor: ${topContributor?.[0] || 'unknown'} with ${topContributor?.[1] || 0} pull requests. ` +
     `Largest pull request: ${maxLines.toLocaleString()} lines changed. ` +
-    `Average lines per pull request: ${avgLines.toLocaleString()}.`;
+    `Average lines per pull request: ${avgLines.toLocaleString()}.`
+  );
 }
 
 function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartProps) {
@@ -738,7 +740,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const showYoloButton = directCommitsData?.hasYoloCoders === true;
 
   return (
-    <div className="space-y-4 w-full overflow-hidden">
+    <div className="space-y-4 w-full overflow-hidden" data-tour="leaderboard">
       <div
         className={`flex flex-col gap-4 pt-3 ${isMobile ? 'px-2' : 'md:px-7'} shareable-desktop-only`}
       >

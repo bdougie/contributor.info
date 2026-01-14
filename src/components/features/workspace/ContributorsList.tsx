@@ -101,15 +101,24 @@ const ContributorCard = memo(function ContributorCard({
             <button
               onClick={onAddToGroup || onClick}
               className="hover:opacity-80 transition-opacity"
+              aria-label={
+                onAddToGroup
+                  ? `Add ${contributor.username} to group`
+                  : `View ${contributor.username} profile`
+              }
               title={onAddToGroup ? 'Add to group' : 'View profile'}
             >
               <img
                 src={contributor.avatar_url}
-                alt={contributor.username}
+                alt=""
                 className="h-12 w-12 rounded-full cursor-pointer"
               />
             </button>
-            <button onClick={onClick} className="text-left hover:opacity-80 transition-opacity">
+            <button
+              onClick={onClick}
+              className="text-left hover:opacity-80 transition-opacity"
+              aria-label={`View ${contributor.username} details`}
+            >
               <p className="font-semibold">{contributor.name || contributor.username}</p>
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
             </button>
@@ -208,12 +217,12 @@ const ContributorListItem = memo(function ContributorListItem({
 
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-      <button onClick={onClick} className="flex items-center gap-4 flex-1">
-        <img
-          src={contributor.avatar_url}
-          alt={contributor.username}
-          className="h-10 w-10 rounded-full"
-        />
+      <button
+        onClick={onClick}
+        className="flex items-center gap-4 flex-1"
+        aria-label={`View ${contributor.username} profile`}
+      >
+        <img src={contributor.avatar_url} alt="" className="h-10 w-10 rounded-full" />
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2">
             <p className="font-semibold">{contributor.name || contributor.username}</p>

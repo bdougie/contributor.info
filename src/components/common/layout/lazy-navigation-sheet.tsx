@@ -60,6 +60,7 @@ export function LazyNavigationSheet({
         onMouseEnter={handlePreload}
         onFocus={handlePreload}
         onTouchStart={handlePreload}
+        data-tour="navigation-menu"
       >
         <Menu className="w-5 h-5" />
       </button>

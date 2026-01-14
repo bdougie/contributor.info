@@ -1,3 +1,3 @@
-## 2024-05-24 - Icon-only Button Accessibility Pattern
-**Learning:** Icon-only buttons in this codebase sometimes rely solely on the `title` attribute for context, which is insufficient for screen reader users and touch devices. The `Tooltip` component is available and should be used instead.
-**Action:** When identifying icon-only buttons (often `size="icon"` or just containing an icon), replace `title` attributes with a wrapped `Tooltip` component and explicit `aria-label` on the button itself.
+## 2025-12-22 - Standardized Button Loading State
+**Learning:** The codebase had multiple manual implementations of loading spinners inside buttons. Standardizing this into the Button component simplifies usage and ensures consistency.
+**Action:** Use `isLoading` prop on `Button` instead of manually adding `Loader2` icons.
