@@ -6,7 +6,7 @@
   <link href="https://contributor.info/changelog-atom.xml" rel="self" type="application/atom+xml"/>
   <link href="https://contributor.info/api/websub/hub" rel="hub"/>
   <id>https://contributor.info/changelog</id>
-  <updated>2026-01-10T00:00:00.000Z</updated>
+  <updated>2026-01-14T00:00:00.000Z</updated>
   <author>
     <name>contributor.info Team</name>
     <email>team@contributor.info</email>
@@ -15,6 +15,183 @@
   <webfeeds:icon>https://contributor.info/favicon.ico</webfeeds:icon>
   <webfeeds:accentColor>3B82F6</webfeeds:accentColor>
 
+  <entry>
+    <title>Version 4.25.0 - 2026-01-14</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.24.0...v4.25.0" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-25-0</id>
+    <published>2026-01-14T00:00:00.000Z</published>
+    <updated>2026-01-14T00:00:00.000Z</updated>
+    <summary type="text">2 new features.</summary>
+    <content type="html">&lt;h2&gt;Version 4.25.0&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-14&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🚀 Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;improve accessibility in repository list ([#1531](https://github.com/bdougie/contributor.info/issues/1531)) ([0297204](https://github.com/bdougie/contributor.info/commit/029720493c875a334bb6ff15018da8565f185fd7)), closes [#1532](https://github.com/bdougie/contributor.info/issues/1532)&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([46b50fb](https://github.com/bdougie/contributor.info/commit/46b50fb2b81d3828bbfdb75eef464a8f50fb16b0))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.24.0...v4.25.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Features"/>
+  </entry>
+  <entry>
+    <title>Version 4.24.0 - 2026-01-14</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.23.1...v4.24.0" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-24-0</id>
+    <published>2026-01-14T00:00:00.000Z</published>
+    <updated>2026-01-14T00:00:00.000Z</updated>
+    <summary type="text">2 new features.</summary>
+    <content type="html">&lt;h2&gt;Version 4.24.0&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-14&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🚀 Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;**ui:** standardize tooltips for share and slack buttons ([#1509](https://github.com/bdougie/contributor.info/issues/1509)) ([94a90ca](https://github.com/bdougie/contributor.info/commit/94a90ca3deddcc83939b4dfb8ff966f6bb3cd722))&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([ef22af7](https://github.com/bdougie/contributor.info/commit/ef22af7df02fd281e9f22277fcc75fff66dd53bf))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.23.1...v4.24.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Features"/>
+  </entry>
+  <entry>
+    <title>Version 4.23.1 - 2026-01-14</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.23.0...v4.23.1" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-23-1</id>
+    <published>2026-01-14T00:00:00.000Z</published>
+    <updated>2026-01-14T00:00:00.000Z</updated>
+    <summary type="text">2 bug fixes.</summary>
+    <content type="html">&lt;h2&gt;Version 4.23.1&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-14&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;improve heading hierarchy for screen reader navigation ([#1533](https://github.com/bdougie/contributor.info/issues/1533)) ([bd102ec](https://github.com/bdougie/contributor.info/commit/bd102ecfe1be99c4d5773fc772a5a30bc4e9c5c1)), closes [#1529](https://github.com/bdougie/contributor.info/issues/1529)&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([fbee5d4](https://github.com/bdougie/contributor.info/commit/fbee5d4df70bd2eac998ae03408cd4f751c91f85))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.23.0...v4.23.1&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Bug Fixes"/>
+  </entry>
+  <entry>
+    <title>Version 4.23.0 - 2026-01-13</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.22.2...v4.23.0" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-23-0</id>
+    <published>2026-01-13T00:00:00.000Z</published>
+    <updated>2026-01-13T00:00:00.000Z</updated>
+    <summary type="text">2 performance improvements.</summary>
+    <content type="html">&lt;h2&gt;Version 4.23.0&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-13&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;optimize bot detection regex pattern matching ([#1508](https://github.com/bdougie/contributor.info/issues/1508)) ([27a55f8](https://github.com/bdougie/contributor.info/commit/27a55f811c8bd71d81aae6cedd00aec0f1c2a637))&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([5aaf9a7](https://github.com/bdougie/contributor.info/commit/5aaf9a7e8080040331559b1485a8b0b37b661e59))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.22.2...v4.23.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+  </entry>
+  <entry>
+    <title>Version 4.22.2 - 2026-01-13</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.22.1...v4.22.2" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-22-2</id>
+    <published>2026-01-13T00:00:00.000Z</published>
+    <updated>2026-01-13T00:00:00.000Z</updated>
+    <summary type="text">3 bug fixes.</summary>
+    <content type="html">&lt;h2&gt;Version 4.22.2&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-13&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;prevent xss vulnerability in sanitizeurl ([#1507](https://github.com/bdougie/contributor.info/issues/1507)) ([ba10a1c](https://github.com/bdougie/contributor.info/commit/ba10a1ce98d6dfaaa646871b9dc45325656d4ec5))&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([266ad00](https://github.com/bdougie/contributor.info/commit/266ad00080c3aa2ce49f9a144bba9a22debb8519))&lt;/li&gt;
+&lt;li&gt;replace reusable workflow with local copy including GH_TOKEN fix ([#1513](https://github.com/bdougie/contributor.info/issues/1513)) ([2afe470](https://github.com/bdougie/contributor.info/commit/2afe470184d5bb9a1769f811871307950051168d))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.22.1...v4.22.2&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Bug Fixes"/>
+  </entry>
+  <entry>
+    <title>Version 4.22.1 - 2026-01-12</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-22-1</id>
+    <published>2026-01-12T00:00:00.000Z</published>
+    <updated>2026-01-12T00:00:00.000Z</updated>
+    <summary type="text">3 bug fixes.</summary>
+    <content type="html">&lt;h2&gt;Version 4.22.1&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-12&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;package.json &amp;amp; pnpm-lock.yaml to reduce vulnerabilities ([#1496](https://github.com/bdougie/contributor.info/issues/1496)) ([cf5a344](https://github.com/bdougie/contributor.info/commit/cf5a3443904dfb79a1ff75abdfac72f1b99d76b2))&lt;/li&gt;
+&lt;li&gt;sync package-lock.json with react-router 7.12.0 upgrade ([fa957a5](https://github.com/bdougie/contributor.info/commit/fa957a5d1b0d1630fe7bc58d8edc47c73cfe7dab)), closes [#1496](https://github.com/bdougie/contributor.info/issues/1496) [#1496](https://github.com/bdougie/contributor.info/issues/1496)&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([55f392a](https://github.com/bdougie/contributor.info/commit/55f392a8a3dd19bc75bb7edd50bb278a105d1c0b))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.22.0...v4.22.1&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Bug Fixes"/>
+  </entry>
+  <entry>
+    <title>Version 4.22.0 - 2026-01-12</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-22-0</id>
+    <published>2026-01-12T00:00:00.000Z</published>
+    <updated>2026-01-12T00:00:00.000Z</updated>
+    <summary type="text">2 new features.</summary>
+    <content type="html">&lt;h2&gt;Version 4.22.0&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-12&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;🚀 Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;**security:** add rate limiting to repository tracking endpoint ([#1506](https://github.com/bdougie/contributor.info/issues/1506)) ([3449e42](https://github.com/bdougie/contributor.info/commit/3449e42c727bb5b102bdb518ae8c73ff0fa766a8))&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([ffc4b7c](https://github.com/bdougie/contributor.info/commit/ffc4b7c59df083a2aa75ecf98d53bf0984c1e10b))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.21.0...v4.22.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+    <category term="Features"/>
+  </entry>
+  <entry>
+    <title>Version 4.21.0 - 2026-01-11</title>
+    <link href="https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0" rel="alternate" type="text/html"/>
+    <id>https://contributor.info/changelog#version-4-21-0</id>
+    <published>2026-01-11T00:00:00.000Z</published>
+    <updated>2026-01-11T00:00:00.000Z</updated>
+    <summary type="text">3 performance improvements.</summary>
+    <content type="html">&lt;h2&gt;Version 4.21.0&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Released on 2026-01-11&lt;/strong&gt;&lt;/p&gt;
+&lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;memoize RepoStatsContext value in RepoView ([#1504](https://github.com/bdougie/contributor.info/issues/1504)) ([3f62dcf](https://github.com/bdougie/contributor.info/commit/3f62dcfe9b3d890bfc2f0d14884414992010c2bd))&lt;/li&gt;
+&lt;li&gt;optimize humanizeNumber with pre-calculated constants ([#1502](https://github.com/bdougie/contributor.info/issues/1502)) ([408509a](https://github.com/bdougie/contributor.info/commit/408509a6089c9d63aabdec0491921d076639d713))&lt;/li&gt;
+&lt;li&gt;update tracked repositories list [skip ci] ([710c8b1](https://github.com/bdougie/contributor.info/commit/710c8b142ddded49fd49fd6fe2fc9595bc69814e))&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.20.2...v4.21.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
+</content>
+    <author>
+      <name>contributor.info Team</name>
+      <email>team@contributor.info</email>
+    </author>
+  </entry>
   <entry>
     <title>Version 4.20.2 - 2026-01-10</title>
     <link href="https://github.com/bdougie/contributor.info/compare/v4.20.1...v4.20.2" rel="alternate" type="text/html"/>
@@ -275,194 +452,6 @@
 &lt;li&gt;update tracked repositories list [skip ci] ([cfd0c1f](https://github.com/bdougie/contributor.info/commit/cfd0c1f53f22b1df5f1fd6f51fdc2b52c02d488f))&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.13.0...v4.13.1&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Bug Fixes"/>
-  </entry>
-  <entry>
-    <title>Version 4.13.0 - 2026-01-02</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.12.0...v4.13.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-13-0</id>
-    <published>2026-01-02T00:00:00.000Z</published>
-    <updated>2026-01-02T00:00:00.000Z</updated>
-    <summary type="text">2 performance improvements.</summary>
-    <content type="html">&lt;h2&gt;Version 4.13.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2026-01-02&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;cache fetchUserOrganizations calls ([#1462](https://github.com/bdougie/contributor.info/issues/1462)) ([48e68d7](https://github.com/bdougie/contributor.info/commit/48e68d7a9dc59173430fd8c0df249b751c626aa1))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([a5cd398](https://github.com/bdougie/contributor.info/commit/a5cd39898ecc87749f01ee6b4f08e2180982051b))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.12.0...v4.13.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-  </entry>
-  <entry>
-    <title>Version 4.12.0 - 2026-01-02</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.11.0...v4.12.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-12-0</id>
-    <published>2026-01-02T00:00:00.000Z</published>
-    <updated>2026-01-02T00:00:00.000Z</updated>
-    <summary type="text">2 new features.</summary>
-    <content type="html">&lt;h2&gt;Version 4.12.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2026-01-02&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🚀 Features&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;**ui:** add tooltips to contributor tracking buttons ([#1457](https://github.com/bdougie/contributor.info/issues/1457)) ([9ce50f5](https://github.com/bdougie/contributor.info/commit/9ce50f56faddf4a923a005825c13bbc8f96a56d0))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([6caa720](https://github.com/bdougie/contributor.info/commit/6caa72050a2f4c70c8823a73c618dd225882dc4a))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.11.0...v4.12.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Features"/>
-  </entry>
-  <entry>
-    <title>Version 4.11.0 - 2026-01-02</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.10.2...v4.11.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-11-0</id>
-    <published>2026-01-02T00:00:00.000Z</published>
-    <updated>2026-01-02T00:00:00.000Z</updated>
-    <summary type="text">2 performance improvements.</summary>
-    <content type="html">&lt;h2&gt;Version 4.11.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2026-01-02&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;optimize activity feed sorting with Date.parse ([#1455](https://github.com/bdougie/contributor.info/issues/1455)) ([86e8a3b](https://github.com/bdougie/contributor.info/commit/86e8a3be16b38206334dc624902fad1ccab5341d))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([cba00cb](https://github.com/bdougie/contributor.info/commit/cba00cbffd2101ddce13e29cf013faee853fb4b7))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.10.2...v4.11.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-  </entry>
-  <entry>
-    <title>Version 4.10.2 - 2026-01-02</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.10.1...v4.10.2" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-10-2</id>
-    <published>2026-01-02T00:00:00.000Z</published>
-    <updated>2026-01-02T00:00:00.000Z</updated>
-    <summary type="text">2 bug fixes.</summary>
-    <content type="html">&lt;h2&gt;Version 4.10.2&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2026-01-02&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;fly-social-cards/package.json &amp;amp; fly-social-cards/package-lock.json to reduce vulnerabilities ([#1460](https://github.com/bdougie/contributor.info/issues/1460)) ([d2e43a5](https://github.com/bdougie/contributor.info/commit/d2e43a52d2e0d835fd0a62cf7fb6e68c2e562ba5))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([0ec430f](https://github.com/bdougie/contributor.info/commit/0ec430f9a01ebed4638c23c9325524b31fe5c7d2))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.10.1...v4.10.2&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Bug Fixes"/>
-  </entry>
-  <entry>
-    <title>Version 4.10.1 - 2025-12-30</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-10-1</id>
-    <published>2025-12-30T00:00:00.000Z</published>
-    <updated>2025-12-30T00:00:00.000Z</updated>
-    <summary type="text">2 bug fixes.</summary>
-    <content type="html">&lt;h2&gt;Version 4.10.1&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2025-12-30&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;**ui:** add missing aria-label to mobile insights sidebar toggle ([#1450](https://github.com/bdougie/contributor.info/issues/1450)) ([eb7b7ab](https://github.com/bdougie/contributor.info/commit/eb7b7aba0d8fd5e90f070c928f472841b968fee0))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([be6189a](https://github.com/bdougie/contributor.info/commit/be6189a9b5fd6dc809d4ef3f8d7917e0cdd5d391))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.10.0...v4.10.1&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Bug Fixes"/>
-  </entry>
-  <entry>
-    <title>Version 4.10.0 - 2025-12-30</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-10-0</id>
-    <published>2025-12-30T00:00:00.000Z</published>
-    <updated>2025-12-30T00:00:00.000Z</updated>
-    <summary type="text">2 new features.</summary>
-    <content type="html">&lt;h2&gt;Version 4.10.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2025-12-30&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🚀 Features&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;**a11y:** add aria-labels to icon-only buttons ([#1449](https://github.com/bdougie/contributor.info/issues/1449)) ([66e4fb2](https://github.com/bdougie/contributor.info/commit/66e4fb2ce0e42c0db92e384aeed2d4cf7e16638d))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([9644d1f](https://github.com/bdougie/contributor.info/commit/9644d1f47fd03e76102e2fd274949fa851e398ac))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.9.0...v4.10.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Features"/>
-  </entry>
-  <entry>
-    <title>Version 4.9.0 - 2025-12-28</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-9-0</id>
-    <published>2025-12-28T00:00:00.000Z</published>
-    <updated>2025-12-28T00:00:00.000Z</updated>
-    <summary type="text">1 new features, 7 bug fixes.</summary>
-    <content type="html">&lt;h2&gt;Version 4.9.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2025-12-28&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🚀 Features&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;**ui:** standardize button loading state ([49c8ea4](https://github.com/bdougie/contributor.info/commit/49c8ea41fd3950d260cf322fe64ed12687fd55ed))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;add error handling to all polar-webhook database operations ([7a6b801](https://github.com/bdougie/contributor.info/commit/7a6b8015cc4da0ec8c310c9d74176aee109735cf))&lt;/li&gt;
-&lt;li&gt;address CodeRabbit review comments for Button component ([50c0cdf](https://github.com/bdougie/contributor.info/commit/50c0cdff82082eb17c3cecf0e10c1d64cd04a499))&lt;/li&gt;
-&lt;li&gt;replace @polar-sh/adapter-utils with direct implementation ([d1bcdfb](https://github.com/bdougie/contributor.info/commit/d1bcdfb43e5044c94a4efa6dbd08b4455961fb13))&lt;/li&gt;
-&lt;li&gt;add TypeScript types to polar-webhook handlers ([7729227](https://github.com/bdougie/contributor.info/commit/77292273bb4b99d35d80c4b5d651f961a3ec960e))&lt;/li&gt;
-&lt;li&gt;remove unused @polar-sh/nextjs and add @polar-sh/adapter-utils ([4b876ef](https://github.com/bdougie/contributor.info/commit/4b876efd45ee78dd99c2ad61bfa31657f523db76))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([f3a59eb](https://github.com/bdougie/contributor.info/commit/f3a59ebd60e6a8c5c00a3fe69ae3f3efd6c59c46))&lt;/li&gt;
-&lt;li&gt;**ux:** add missing aria-labels to icon-only buttons ([#1433](https://github.com/bdougie/contributor.info/issues/1433)) ([c93f585](https://github.com/bdougie/contributor.info/commit/c93f585ccf8f4aa0ee06a3e2de01689465354dfe))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.8.0...v4.9.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
-</content>
-    <author>
-      <name>contributor.info Team</name>
-      <email>team@contributor.info</email>
-    </author>
-    <category term="Features"/>
-    <category term="Bug Fixes"/>
-  </entry>
-  <entry>
-    <title>Version 4.8.0 - 2025-12-27</title>
-    <link href="https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0" rel="alternate" type="text/html"/>
-    <id>https://contributor.info/changelog#version-4-8-0</id>
-    <published>2025-12-27T00:00:00.000Z</published>
-    <updated>2025-12-27T00:00:00.000Z</updated>
-    <summary type="text">1 bug fixes, 2 performance improvements.</summary>
-    <content type="html">&lt;h2&gt;Version 4.8.0&lt;/h2&gt;
-&lt;p&gt;&lt;strong&gt;Released on 2025-12-27&lt;/strong&gt;&lt;/p&gt;
-&lt;h3&gt;🐛 Bug Fixes&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;**ux:** add aria-label to icon-only sync buttons ([#1439](https://github.com/bdougie/contributor.info/issues/1439)) ([0a8c4a7](https://github.com/bdougie/contributor.info/commit/0a8c4a736b89502a9bc5b195ef07ab07d66ba04f))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3&gt;⚡ Performance Improvements&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;optimize findUserPullRequests from O(M*N) to O(N) ([#1445](https://github.com/bdougie/contributor.info/issues/1445)) ([0708ff3](https://github.com/bdougie/contributor.info/commit/0708ff3650096b88bfba73ab418cef57cac708e3))&lt;/li&gt;
-&lt;li&gt;update tracked repositories list [skip ci] ([dd968d1](https://github.com/bdougie/contributor.info/commit/dd968d1fbdb22256d6ecee6ded036b6ed1d4c207))&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;&lt;a href=&quot;https://github.com/bdougie/contributor.info/compare/v4.7.0...v4.8.0&quot;&gt;View full release notes on GitHub&lt;/a&gt;&lt;/p&gt;
 </content>
     <author>
       <name>contributor.info Team</name>

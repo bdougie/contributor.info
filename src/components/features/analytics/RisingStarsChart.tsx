@@ -16,6 +16,47 @@ interface RisingStarsChartProps {
   className?: string;
 }
 
+/**
+ * Generate accessible summary for rising stars chart
+ */
+function generateRisingStarsSummary(
+  data: RisingStarsData[],
+  totalContributors: number,
+  risingStars: number,
+  newContributors: number
+): string {
+  if (!data[0]?.data?.length) {
+    return 'No contributor data available.';
+  }
+
+  const contributors = data[0].data;
+  const topByActivity = [...contributors].sort(
+    (a, b) => b.contributor.totalActivity - a.contributor.totalActivity
+  )[0];
+  const topByGrowth = [...contributors]
+    .filter((c) => c.contributor.growthRate > 0)
+    .sort((a, b) => b.contributor.growthRate - a.contributor.growthRate)[0];
+
+  const summaryParts = [
+    `Rising Stars chart showing ${totalContributors} contributors.`,
+    `${risingStars} rising stars and ${newContributors} new contributors.`,
+  ];
+
+  if (topByActivity) {
+    summaryParts.push(
+      `Most active: ${topByActivity.contributor.login} with ${topByActivity.contributor.totalActivity} total activities.`
+    );
+  }
+
+  if (topByGrowth) {
+    summaryParts.push(
+      `Fastest growing: ${topByGrowth.contributor.login} with ${topByGrowth.contributor.growthRate.toFixed(0)}% growth rate.`
+    );
+  }
+
+  return summaryParts.join(' ');
+}
+
 function ContributorDetails({ contributor }: { contributor: RisingStarContributor }) {
   const contributionDays = Math.ceil(
     (new Date().getTime() - new Date(contributor.firstContributionDate).getTime()) /
@@ -209,11 +250,20 @@ export function RisingStarsChart({
           ref={chartRef}
           className="relative border rounded-lg bg-muted/10"
           style={{ height }}
-          role="img"
-          aria-label="Rising Stars activity chart showing contributors plotted by code and non-code contributions"
+          role="figure"
+          aria-labelledby="rising-stars-chart-title"
+          aria-describedby="rising-stars-chart-desc"
           onKeyDown={handleKeyDown}
           tabIndex={0}
         >
+          <span id="rising-stars-chart-title" className="sr-only">
+            Rising Stars Activity Chart
+          </span>
+          <span id="rising-stars-chart-desc" className="sr-only">
+            {generateRisingStarsSummary(chartData, totalContributors, risingStars, newContributors)}
+            Use arrow keys to navigate between contributors. Press Enter or Space to view details.
+            Press Escape to close.
+          </span>
           {/* Axes labels */}
           <div
             className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { UPlotChart, type UPlotChartProps } from './UPlotChart';
 import { getChartTheme, getSeriesColors } from './theme-config';
 import { processLabelsForUPlot, createAxisValuesFormatter, colorWithAlpha } from './chart-utils';
@@ -22,6 +22,37 @@ export interface LineChartProps extends Omit<UPlotChartProps, 'data' | 'options'
   showLegend?: boolean;
   xAxisLabel?: string;
   yAxisLabel?: string;
+  /** Accessible label for screen readers */
+  ariaLabel?: string;
+}
+
+/**
+ * Generate accessible summary for line chart data
+ */
+function generateLineChartSummary(data: LineChartProps['data']): string {
+  if (!data.labels.length || !data.datasets.length) {
+    return 'No data available.';
+  }
+
+  const summaryParts: string[] = [
+    `Line chart with ${data.labels.length} data points and ${data.datasets.length} series.`,
+  ];
+
+  data.datasets.forEach((dataset) => {
+    const values = dataset.data.filter((v): v is number => v !== null);
+    if (values.length > 0) {
+      const max = Math.max(...values);
+      const min = Math.min(...values);
+      const first = values[0];
+      const last = values[values.length - 1];
+      const trend = last > first ? 'increasing' : last < first ? 'decreasing' : 'stable';
+      summaryParts.push(
+        `${dataset.label}: ranges from ${min} to ${max}, trend is ${trend}.`
+      );
+    }
+  });
+
+  return summaryParts.join(' ');
 }
 
 /**
@@ -35,6 +66,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   showLegend = true,
   xAxisLabel,
   yAxisLabel,
+  ariaLabel,
   ...uplotProps
 }) => {
   const { chartData, chartOptions } = useMemo(() => {
@@ -155,5 +187,15 @@ export const LineChart: React.FC<LineChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel]);
 
-  return <UPlotChart data={chartData} options={chartOptions} {...uplotProps} />;
+  const accessibleSummary = useMemo(() => generateLineChartSummary(data), [data]);
+
+  return (
+    <UPlotChart
+      data={chartData}
+      options={chartOptions}
+      ariaLabel={ariaLabel || 'Line chart'}
+      ariaDescription={accessibleSummary}
+      {...uplotProps}
+    />
+  );
 };
