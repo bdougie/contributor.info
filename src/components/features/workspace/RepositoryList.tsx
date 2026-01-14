@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, humanizeNumber } from '@/lib/utils';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, KeyboardEvent } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -100,9 +100,16 @@ function formatDate(dateString: string) {
 }
 
 function getSortIcon(sortDirection: false | 'asc' | 'desc') {
-  if (sortDirection === 'asc') return <ChevronUp className="h-3 w-3" />;
-  if (sortDirection === 'desc') return <ChevronDown className="h-3 w-3" />;
-  return <ChevronsUpDown className="h-3 w-3" />;
+  if (sortDirection === 'asc') return <ChevronUp className="h-3 w-3" aria-hidden="true" />;
+  if (sortDirection === 'desc') return <ChevronDown className="h-3 w-3" aria-hidden="true" />;
+  return <ChevronsUpDown className="h-3 w-3" aria-hidden="true" />;
+}
+
+// Helper to get aria-sort value from column sort direction
+function getAriaSortValue(sortDirection: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' {
+  if (sortDirection === 'asc') return 'ascending';
+  if (sortDirection === 'desc') return 'descending';
+  return 'none';
 }
 
 export function RepositoryList({
@@ -124,19 +131,45 @@ export function RepositoryList({
     { id: 'last_activity', desc: true },
   ]);
 
+  // Handle keyboard navigation for table rows
+  const handleRowKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTableRowElement>, repo: Repository) => {
+      // Only handle Enter and Space for row activation
+      if (e.key === 'Enter' || e.key === ' ') {
+        // Don't trigger if focus is on an interactive element within the row
+        const target = e.target as HTMLElement;
+        if (
+          target.tagName === 'BUTTON' ||
+          target.tagName === 'A' ||
+          target.closest('[role="button"]') ||
+          target.closest('button')
+        ) {
+          return;
+        }
+        e.preventDefault();
+        onRepositoryClick?.(repo);
+      }
+    },
+    [onRepositoryClick]
+  );
+
   const columns = useMemo<ColumnDef<Repository, unknown>[]>(() => {
     const cols: ColumnDef<Repository, unknown>[] = [
       {
         id: 'full_name',
         accessorKey: 'full_name',
         header: ({ column }) => {
+          const sortDirection = column.getIsSorted();
           return (
             <button
-              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              type="button"
+              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+              onClick={() => column.toggleSorting(sortDirection === 'asc')}
+              aria-label={`Sort by repository name, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
+              aria-sort={getAriaSortValue(sortDirection)}
             >
               Repository
-              {getSortIcon(column.getIsSorted())}
+              {getSortIcon(sortDirection)}
             </button>
           );
         },
@@ -167,21 +200,17 @@ export function RepositoryList({
                   </span>
                   {repoStatuses && (
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onGitHubAppModalOpen?.(repo);
                       }}
-                      title={
-                        isInstalled
-                          ? 'GitHub App installed - Real-time similarity enabled'
-                          : 'Click to install GitHub App for real-time similarity'
-                      }
                       aria-label={
                         isInstalled
-                          ? 'GitHub App installed - Real-time similarity enabled'
-                          : 'Click to install GitHub App for real-time similarity'
+                          ? `GitHub App installed for ${repo.full_name} - Real-time similarity enabled`
+                          : `Install GitHub App for ${repo.full_name} to enable real-time similarity`
                       }
-                      className="flex-shrink-0 hover:opacity-80 transition-opacity"
+                      className="flex-shrink-0 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
                     >
                       <Sparkles
                         className={cn(
@@ -216,14 +245,18 @@ export function RepositoryList({
         id: 'stars',
         accessorKey: 'stars',
         header: ({ column }) => {
+          const sortDirection = column.getIsSorted();
           return (
             <button
-              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              type="button"
+              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+              onClick={() => column.toggleSorting(sortDirection === 'asc')}
+              aria-label={`Sort by stars, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
+              aria-sort={getAriaSortValue(sortDirection)}
             >
-              <Star className="h-3 w-3" />
+              <Star className="h-3 w-3" aria-hidden="true" />
               Stars
-              {getSortIcon(column.getIsSorted())}
+              {getSortIcon(sortDirection)}
             </button>
           );
         },
@@ -237,14 +270,18 @@ export function RepositoryList({
         id: 'open_prs',
         accessorKey: 'open_prs',
         header: ({ column }) => {
+          const sortDirection = column.getIsSorted();
           return (
             <button
-              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              type="button"
+              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+              onClick={() => column.toggleSorting(sortDirection === 'asc')}
+              aria-label={`Sort by open pull requests, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
+              aria-sort={getAriaSortValue(sortDirection)}
             >
-              <GitPullRequest className="h-3 w-3" />
+              <GitPullRequest className="h-3 w-3" aria-hidden="true" />
               PRs
-              {getSortIcon(column.getIsSorted())}
+              {getSortIcon(sortDirection)}
             </button>
           );
         },
@@ -257,14 +294,18 @@ export function RepositoryList({
         id: 'contributors',
         accessorKey: 'contributors',
         header: ({ column }) => {
+          const sortDirection = column.getIsSorted();
           return (
             <button
-              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              type="button"
+              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+              onClick={() => column.toggleSorting(sortDirection === 'asc')}
+              aria-label={`Sort by contributors, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
+              aria-sort={getAriaSortValue(sortDirection)}
             >
-              <Users className="h-3 w-3" />
+              <Users className="h-3 w-3" aria-hidden="true" />
               Contributors
-              {getSortIcon(column.getIsSorted())}
+              {getSortIcon(sortDirection)}
             </button>
           );
         },
@@ -277,13 +318,17 @@ export function RepositoryList({
         id: 'last_activity',
         accessorKey: 'last_activity',
         header: ({ column }) => {
+          const sortDirection = column.getIsSorted();
           return (
             <button
-              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+              type="button"
+              className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+              onClick={() => column.toggleSorting(sortDirection === 'asc')}
+              aria-label={`Sort by last activity, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
+              aria-sort={getAriaSortValue(sortDirection)}
             >
               Last Activity
-              {getSortIcon(column.getIsSorted())}
+              {getSortIcon(sortDirection)}
             </button>
           );
         },
@@ -483,16 +528,23 @@ export function RepositoryList({
                   {table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
+                      tabIndex={0}
+                      role="row"
+                      aria-label={`Repository ${row.original.full_name}${row.original.is_pinned ? ', pinned' : ''}`}
                       className={cn(
-                        'cursor-pointer hover:bg-muted/50',
+                        'cursor-pointer hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                         row.original.is_pinned && 'bg-muted/30'
                       )}
                       onClick={(e) => {
                         // Don't trigger row click if clicking on action buttons
-                        if (!(e.target as HTMLElement).closest('[role="button"]')) {
+                        if (
+                          !(e.target as HTMLElement).closest('[role="button"]') &&
+                          !(e.target as HTMLElement).closest('button')
+                        ) {
                           onRepositoryClick?.(row.original);
                         }
                       }}
+                      onKeyDown={(e) => handleRowKeyDown(e, row.original)}
                     >
                       {row.getVisibleCells().map((cell) => {
                         // Skip the hidden is_pinned column
