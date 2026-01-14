@@ -340,7 +340,11 @@ export default function RepoView() {
             </div>
           </CardHeader>
           <CardContent>
-            <nav className="space-y-4" style={{ background: 'transparent', border: 'none' }}>
+            <nav
+              className="space-y-4"
+              style={{ background: 'transparent', border: 'none' }}
+              aria-label="Repository analysis tabs"
+            >
               <Tabs
                 value={getCurrentTab()}
                 onValueChange={(value) => {
@@ -392,6 +396,7 @@ export default function RepoView() {
                             className="h-5 w-5 text-blue-600 dark:text-blue-400 animate-pulse"
                             fill="currentColor"
                             viewBox="0 0 20 20"
+                            aria-hidden="true"
                           >
                             <path
                               fillRule="evenodd"

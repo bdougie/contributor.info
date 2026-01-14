@@ -425,9 +425,9 @@ export async function fetchPullRequests(
               break;
             }
 
-            // Check if all PRs are too old to be relevant
-            const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-            if (oldestPRDate < since) {
+            // Check if all PRs are too old to be relevant (use timestamp comparison for performance)
+            const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
+            if (oldestPRTimestamp < since.getTime()) {
               break; // No point in fetching older PRs
             }
           } else {
@@ -474,10 +474,10 @@ export async function fetchPullRequests(
                 break;
               }
 
-              // Check if all PRs are too old to be relevant
+              // Check if all PRs are too old to be relevant (use timestamp comparison for performance)
               if (prs.length > 0) {
-                const oldestPRDate = new Date(prs[prs.length - 1].updated_at);
-                if (oldestPRDate < since) {
+                const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
+                if (oldestPRTimestamp < since.getTime()) {
                   break; // No point in fetching older PRs
                 }
               }
@@ -494,10 +494,10 @@ export async function fetchPullRequests(
           page++;
         }
 
-        // Filter PRs by the time range
+        // Filter PRs by the time range (use timestamp comparison for performance)
+        const sinceTimestamp = since.getTime();
         const filteredPRs = allPRs.filter((pr: GitHubPullRequest) => {
-          const prDate = new Date(pr.updated_at);
-          return prDate >= since;
+          return Date.parse(pr.updated_at) >= sinceTimestamp;
         });
 
         // Fetch additional details for each PR to get additions/deletions
@@ -848,11 +848,12 @@ export async function fetchDirectCommits(
 
     // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+    // Use timestamp comparison for performance (avoid creating Date objects in loops)
+    const sinceTimestamp = since.getTime();
     const mergedPRs = pullRequests.filter((pr) => {
       if (!pr.merged_at) return false;
       // Only include PRs merged within our time range
-      const mergedDate = new Date(pr.merged_at);
-      return mergedDate >= since;
+      return Date.parse(pr.merged_at) >= sinceTimestamp;
     });
 
     // Debug logging (can be removed in production)

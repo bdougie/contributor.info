@@ -228,7 +228,7 @@ export function PrivacyPolicyPage() {
         <aside className="hidden xl:block sticky top-8 h-fit">
           <div className="w-64 bg-card border rounded-lg p-4">
             <h4 className="font-semibold mb-3 text-sm">Contents</h4>
-            <nav className="space-y-1">
+            <nav className="space-y-1" aria-label="Table of contents">
               {privacySections.map((item) => (
                 <Button
                   key={item.id}

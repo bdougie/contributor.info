@@ -81,9 +81,10 @@ export const tourStyles: TourStyles = {
  */
 export const tourLocale = {
   back: 'Back',
-  close: 'Close',
+  close: 'Close tour',
   last: 'Connect GitHub',
   next: 'Next',
+  nextLabelWithProgress: 'Next (Step {step} of {size})',
   open: 'Open the dialog',
   skip: 'Skip tour',
 };
