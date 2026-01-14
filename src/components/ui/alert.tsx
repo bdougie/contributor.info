@@ -31,14 +31,16 @@ function Alert({ className, variant, ref, ...props }: AlertProps) {
   );
 }
 
-export interface AlertTitleProps extends HTMLAttributes<HTMLHeadingElement> {
-  ref?: Ref<HTMLParagraphElement>;
+export interface AlertTitleProps extends HTMLAttributes<HTMLDivElement> {
+  ref?: Ref<HTMLDivElement>;
 }
 
 function AlertTitle({ className, ref, ...props }: AlertTitleProps) {
   return (
-    <h5
+    <div
       ref={ref}
+      role="heading"
+      aria-level={2}
       className={cn('mb-1 font-medium leading-none tracking-tight', className)}
       {...props}
     />

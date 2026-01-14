@@ -26,11 +26,16 @@ function CardHeader({ className, ref, ...props }: CardHeaderProps) {
 
 export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   ref?: Ref<HTMLHeadingElement>;
+  /**
+   * The HTML element to render. Defaults to 'h3'.
+   * Use this to maintain proper heading hierarchy (e.g., 'h2', 'h4').
+   */
+  as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-function CardTitle({ className, ref, ...props }: CardTitleProps) {
+function CardTitle({ className, ref, as: Component = 'h3', ...props }: CardTitleProps) {
   return (
-    <h3
+    <Component
       ref={ref}
       className={cn('font-semibold leading-none tracking-tight', className)}
       {...props}

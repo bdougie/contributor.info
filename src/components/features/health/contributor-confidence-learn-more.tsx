@@ -282,7 +282,7 @@ export function ContributorConfidenceLearnMore({
                       <p className="text-muted-foreground mb-4">{factor.description}</p>
 
                       <div className="bg-muted/50 rounded-lg p-4">
-                        <h5 className="font-medium mb-2">How it's measured:</h5>
+                        <h4 className="font-medium mb-2">How it's measured:</h4>
                         <p className="text-sm text-muted-foreground">{factor.calculation}</p>
                       </div>
                     </div>
@@ -322,7 +322,7 @@ export function ContributorConfidenceLearnMore({
                     <p className="text-muted-foreground mb-4">{level.detail}</p>
 
                     <div>
-                      <h5 className="font-medium mb-2">Typical characteristics:</h5>
+                      <h4 className="font-medium mb-2">Typical characteristics:</h4>
                       <ul className="space-y-1">
                         {level.characteristics.map((char, index) => (
                           <li
