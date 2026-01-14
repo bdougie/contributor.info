@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.23.1](https://github.com/bdougie/contributor.info/compare/v4.23.0...v4.23.1) (2026-01-14)
+
+
+### 🐛 Bug Fixes
+
+* improve heading hierarchy for screen reader navigation ([#1533](https://github.com/bdougie/contributor.info/issues/1533)) ([bd102ec](https://github.com/bdougie/contributor.info/commit/bd102ecfe1be99c4d5773fc772a5a30bc4e9c5c1)), closes [#1529](https://github.com/bdougie/contributor.info/issues/1529)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([fbee5d4](https://github.com/bdougie/contributor.info/commit/fbee5d4df70bd2eac998ae03408cd4f751c91f85))
+
 ## [4.23.0](https://github.com/bdougie/contributor.info/compare/v4.22.2...v4.23.0) (2026-01-13)
 
 
