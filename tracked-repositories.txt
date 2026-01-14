@@ -10,6 +10,7 @@ atuinsh/desktop
 axios/axios
 bdougie/contributor.info
 better-auth/better-auth
+BH3Panzer/leaf-project
 BlueMatthew/WechatExporter
 Bridgetamana/pixlated
 CGCookie/retopoflow
@@ -80,6 +81,7 @@ vercel/ai
 vercel/next.js
 vitejs/vite
 vue/vue
+ziglang/zig
 zml/zml
 zulip/zulip
 zuplo/zudoku

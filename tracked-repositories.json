@@ -48,6 +48,10 @@
     "name": "better-auth"
   },
   {
+    "owner": "BH3Panzer",
+    "name": "leaf-project"
+  },
+  {
     "owner": "BlueMatthew",
     "name": "WechatExporter"
   },
@@ -326,6 +330,10 @@
   {
     "owner": "vue",
     "name": "vue"
+  },
+  {
+    "owner": "ziglang",
+    "name": "zig"
   },
   {
     "owner": "zml",
