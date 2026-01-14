@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.26.0](https://github.com/bdougie/contributor.info/compare/v4.25.0...v4.26.0) (2026-01-14)
+
+
+### ⚡ Performance Improvements
+
+* optimize calculatelotteryfactor performance ([#1519](https://github.com/bdougie/contributor.info/issues/1519)) ([4ca43cc](https://github.com/bdougie/contributor.info/commit/4ca43cc01b95c0ecba2ceac8feac023a72c29754))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([c097842](https://github.com/bdougie/contributor.info/commit/c097842d8c66c5d4fd1d0d16757dff51f5a2229d))
+
 ## [4.25.0](https://github.com/bdougie/contributor.info/compare/v4.24.0...v4.25.0) (2026-01-14)
 
 
