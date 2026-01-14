@@ -20,8 +20,7 @@ const alertVariants = cva(
 );
 
 export interface AlertProps
-  extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof alertVariants> {
+  extends HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
   ref?: Ref<HTMLDivElement>;
 }
 
@@ -33,14 +32,19 @@ function Alert({ className, variant, ref, ...props }: AlertProps) {
 
 export interface AlertTitleProps extends HTMLAttributes<HTMLDivElement> {
   ref?: Ref<HTMLDivElement>;
+  /**
+   * The aria-level for the heading. Defaults to 2.
+   * Use this to maintain proper heading hierarchy.
+   */
+  level?: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
-function AlertTitle({ className, ref, ...props }: AlertTitleProps) {
+function AlertTitle({ className, ref, level = 2, ...props }: AlertTitleProps) {
   return (
     <div
       ref={ref}
       role="heading"
-      aria-level={2}
+      aria-level={level}
       className={cn('mb-1 font-medium leading-none tracking-tight', className)}
       {...props}
     />

@@ -106,10 +106,19 @@ function getSortIcon(sortDirection: false | 'asc' | 'desc') {
 }
 
 // Helper to get aria-sort value from column sort direction
-function getAriaSortValue(sortDirection: false | 'asc' | 'desc'): 'ascending' | 'descending' | 'none' {
+function getAriaSortValue(
+  sortDirection: false | 'asc' | 'desc'
+): 'ascending' | 'descending' | 'none' {
   if (sortDirection === 'asc') return 'ascending';
   if (sortDirection === 'desc') return 'descending';
   return 'none';
+}
+
+// Helper to get accessible sort label for screen readers
+function getSortLabel(columnName: string, sortDirection: false | 'asc' | 'desc'): string {
+  if (sortDirection === 'asc') return `Sort by ${columnName}, currently ascending`;
+  if (sortDirection === 'desc') return `Sort by ${columnName}, currently descending`;
+  return `Sort by ${columnName}, currently not sorted`;
 }
 
 export function RepositoryList({
@@ -165,8 +174,7 @@ export function RepositoryList({
               type="button"
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
-              aria-label={`Sort by repository name, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
-              aria-sort={getAriaSortValue(sortDirection)}
+              aria-label={getSortLabel('repository name', sortDirection)}
             >
               Repository
               {getSortIcon(sortDirection)}
@@ -251,8 +259,7 @@ export function RepositoryList({
               type="button"
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
-              aria-label={`Sort by stars, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
-              aria-sort={getAriaSortValue(sortDirection)}
+              aria-label={getSortLabel('stars', sortDirection)}
             >
               <Star className="h-3 w-3" aria-hidden="true" />
               Stars
@@ -276,8 +283,7 @@ export function RepositoryList({
               type="button"
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
-              aria-label={`Sort by open pull requests, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
-              aria-sort={getAriaSortValue(sortDirection)}
+              aria-label={getSortLabel('open pull requests', sortDirection)}
             >
               <GitPullRequest className="h-3 w-3" aria-hidden="true" />
               PRs
@@ -300,8 +306,7 @@ export function RepositoryList({
               type="button"
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
-              aria-label={`Sort by contributors, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
-              aria-sort={getAriaSortValue(sortDirection)}
+              aria-label={getSortLabel('contributors', sortDirection)}
             >
               <Users className="h-3 w-3" aria-hidden="true" />
               Contributors
@@ -324,8 +329,7 @@ export function RepositoryList({
               type="button"
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
-              aria-label={`Sort by last activity, currently ${sortDirection ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'not sorted'}`}
-              aria-sort={getAriaSortValue(sortDirection)}
+              aria-label={getSortLabel('last activity', sortDirection)}
             >
               Last Activity
               {getSortIcon(sortDirection)}
@@ -446,7 +450,9 @@ export function RepositoryList({
         <div className="flex items-center justify-between">
           <CardTitle>Repositories</CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{repositories.length} total</Badge>
+            <Badge variant="secondary" role="status" aria-live="polite">
+              {repositories.length} total
+            </Badge>
             {onAddRepository && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -500,6 +506,7 @@ export function RepositoryList({
                         return (
                           <TableHead
                             key={header.id}
+                            aria-sort={getAriaSortValue(header.column.getIsSorted())}
                             className={cn(
                               header.column.id === 'full_name' &&
                                 'w-[40%] min-w-[180px] sm:min-w-[250px]',

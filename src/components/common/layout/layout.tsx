@@ -168,6 +168,13 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Skip to main content link - first focusable element for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        Skip to main content
+      </a>
       <header className="border-b">
         <div className="container flex h-16 items-center px-4">
           {/* Hamburger Menu - Now on all screen sizes */}
@@ -327,7 +334,11 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 bg-muted/50 dark:bg-black">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 bg-muted/50 dark:bg-black focus:outline-none"
+      >
         <div className="container px-4 py-6">
           <Outlet />
         </div>

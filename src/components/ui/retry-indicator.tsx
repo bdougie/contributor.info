@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, RefreshCw, XCircle } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import type { RetryState } from './use-retry-state';
 
-export interface RetryState {
-  isRetrying: boolean;
-  attempt: number;
-  maxAttempts: number;
-  error?: Error;
-  nextRetryIn?: number;
-}
+export type { RetryState } from './use-retry-state';
 
 interface RetryIndicatorProps {
   retryState: RetryState;
@@ -48,29 +43,73 @@ export function RetryIndicator({
   }
 
   if (compact) {
-    return (
-      <div className={cn('flex items-center gap-2 text-sm', className)}>
-        {retryState.isRetrying ? (
+    const renderCompactContent = () => {
+      if (retryState.isRetrying) {
+        return (
           <>
             <RefreshCw className="h-3 w-3 animate-spin text-yellow-600" />
             <span className="text-muted-foreground">
               Retrying... ({retryState.attempt}/{retryState.maxAttempts})
             </span>
           </>
-        ) : retryState.error ? (
+        );
+      }
+      if (retryState.error) {
+        return (
           <>
             <XCircle className="h-3 w-3 text-red-600" />
             <span className="text-muted-foreground">Failed</span>
             {onRetry && (
-              <button onClick={onRetry} className="text-xs underline hover:no-underline">
+              <button
+                onClick={onRetry}
+                className="text-xs underline hover:no-underline"
+                aria-label="Retry failed operation"
+              >
                 Retry
               </button>
             )}
           </>
-        ) : null}
+        );
+      }
+      return null;
+    };
+
+    return (
+      <div
+        className={cn('flex items-center gap-2 text-sm', className)}
+        role="status"
+        aria-live="polite"
+      >
+        {renderCompactContent()}
       </div>
     );
   }
+
+  const renderStatusIcon = () => {
+    if (retryState.isRetrying) {
+      return (
+        <RefreshCw className="h-5 w-5 animate-spin text-yellow-600 dark:text-yellow-400 mt-0.5" />
+      );
+    }
+    if (retryState.error) {
+      return <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />;
+    }
+    return <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />;
+  };
+
+  const renderStatusText = () => {
+    if (retryState.isRetrying) {
+      return (
+        <>
+          Connection attempt {retryState.attempt} of {retryState.maxAttempts}
+        </>
+      );
+    }
+    if (retryState.error) {
+      return <>Connection failed after {retryState.maxAttempts} attempts</>;
+    }
+    return <>Connecting...</>;
+  };
 
   return (
     <div
@@ -81,28 +120,14 @@ export function RetryIndicator({
         retryState.error && 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950',
         className
       )}
+      role="status"
+      aria-live="polite"
     >
       <div className="flex items-start gap-3">
-        {retryState.isRetrying ? (
-          <RefreshCw className="h-5 w-5 animate-spin text-yellow-600 dark:text-yellow-400 mt-0.5" />
-        ) : retryState.error ? (
-          <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-        ) : (
-          <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-        )}
+        {renderStatusIcon()}
 
         <div className="flex-1">
-          <div className="font-medium text-sm">
-            {retryState.isRetrying ? (
-              <>
-                Connection attempt {retryState.attempt} of {retryState.maxAttempts}
-              </>
-            ) : retryState.error ? (
-              <>Connection failed after {retryState.maxAttempts} attempts</>
-            ) : (
-              <>Connecting...</>
-            )}
-          </div>
+          <div className="font-medium text-sm">{renderStatusText()}</div>
 
           {retryState.error && (
             <p className="text-sm text-muted-foreground mt-1">{retryState.error.message}</p>
@@ -118,6 +143,7 @@ export function RetryIndicator({
             <button
               onClick={onRetry}
               className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              aria-label="Try connecting again"
             >
               Try again
             </button>
@@ -126,68 +152,4 @@ export function RetryIndicator({
       </div>
     </div>
   );
-}
-
-/**
- * Hook to manage retry state
- */
-export function useRetryState(): [RetryState, (updates: Partial<RetryState>) => void] {
-  const [state, setState] = useState<RetryState>({
-    isRetrying: false,
-    attempt: 0,
-    maxAttempts: 3,
-  });
-
-  const updateState = (updates: Partial<RetryState>) => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
-
-  return [state, updateState];
-}
-
-/**
- * Hook to integrate retry state with retry utils
- */
-export function useRetryIndicator() {
-  const [retryState, setRetryState] = useRetryState();
-
-  const createRetryHandler = (maxAttempts: number = 3) => {
-    return {
-      onRetry: (_error: Error, attempt: number) => {
-        setRetryState({
-          isRetrying: true,
-          attempt,
-          maxAttempts,
-          error: undefined,
-          nextRetryIn: Math.pow(2, attempt - 1) * 1000, // Exponential backoff
-        });
-      },
-      onSuccess: () => {
-        setRetryState({
-          isRetrying: false,
-          attempt: 0,
-          error: undefined,
-          nextRetryIn: undefined,
-        });
-      },
-      onError: (err: Error) => {
-        setRetryState({
-          isRetrying: false,
-          error: err,
-          nextRetryIn: undefined,
-        });
-      },
-    };
-  };
-
-  return {
-    retryState,
-    createRetryHandler,
-    resetRetryState: () =>
-      setRetryState({
-        isRetrying: false,
-        attempt: 0,
-        maxAttempts: 3,
-      }),
-  };
 }
