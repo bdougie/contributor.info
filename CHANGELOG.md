@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.30.2](https://github.com/bdougie/contributor.info/compare/v4.30.1...v4.30.2) (2026-01-14)
+
+
+### 🐛 Bug Fixes
+
+* improve accessibility for images, forms, and headings ([#1562](https://github.com/bdougie/contributor.info/issues/1562)) ([0297e7f](https://github.com/bdougie/contributor.info/commit/0297e7f08a2adf6b6838a96ac71072410bfcd128)), closes [#1559](https://github.com/bdougie/contributor.info/issues/1559) [#1560](https://github.com/bdougie/contributor.info/issues/1560) [#1561](https://github.com/bdougie/contributor.info/issues/1561)
+
+
+### 📚 Documentation
+
+* recommend Continue reusable workflow with GH_TOKEN support ([#1534](https://github.com/bdougie/contributor.info/issues/1534)) ([ca2c9fb](https://github.com/bdougie/contributor.info/commit/ca2c9fbb60f294801fc394c7762d340597d18e9f)), closes [continuedev/continue#9497](https://github.com/continuedev/continue/issues/9497) [#1512](https://github.com/bdougie/contributor.info/issues/1512)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([50cc2a3](https://github.com/bdougie/contributor.info/commit/50cc2a3d07941fdc5803b00765988041ce74fefb))
+
 ## [4.30.1](https://github.com/bdougie/contributor.info/compare/v4.30.0...v4.30.1) (2026-01-14)
 
 
