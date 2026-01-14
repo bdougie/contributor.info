@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { exportDiscussionsToCSV, generateExportFilename } from '@/lib/utils/csv-export';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Download,
 } from '@/components/ui/icon';
 import { Reply } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -83,21 +85,25 @@ interface WorkspaceDiscussionsTableProps {
   }>;
   selectedRepositories: string[];
   workspaceId: string;
+  workspaceName?: string;
   timeRange?: string;
   onRefresh?: () => void;
   userRole?: string | null;
   isLoggedIn?: boolean;
   onRespondClick?: (discussion: Discussion) => void;
+  onExport?: () => void;
 }
 
 export function WorkspaceDiscussionsTable({
   repositories,
   selectedRepositories,
   workspaceId,
+  workspaceName,
   onRefresh,
   userRole,
   isLoggedIn = false,
   onRespondClick,
+  onExport,
 }: WorkspaceDiscussionsTableProps) {
   // Use the new hook for automatic discussion syncing and caching
   const { discussions, loading, error, refresh } = useWorkspaceDiscussions({
@@ -229,6 +235,16 @@ export function WorkspaceDiscussionsTable({
   // Get unique categories
   const categories = Array.from(new Set(discussions.map((d) => d.category_name).filter(Boolean)));
 
+  // Internal export handler - uses external onExport if provided, otherwise exports internally
+  const handleExport = useCallback(() => {
+    if (onExport) {
+      onExport();
+    } else {
+      const filename = generateExportFilename(workspaceName || 'workspace', 'discussions');
+      exportDiscussionsToCSV(filteredDiscussions, filename);
+    }
+  }, [onExport, filteredDiscussions, workspaceName]);
+
   // Check if user has workspace access (must be logged in and have a role)
   const hasWorkspaceAccess = isLoggedIn && userRole;
   const showUpgradePrompt = !hasWorkspaceAccess;
@@ -247,6 +263,20 @@ export function WorkspaceDiscussionsTable({
             {!loading && discussions.length > 0 && (
               <LastUpdated timestamp={lastUpdated} label="Updated" size="sm" />
             )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleExport}
+                  variant="outline"
+                  size="icon"
+                  disabled={filteredDiscussions.length === 0}
+                  aria-label="Export to CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export CSV</TooltipContent>
+            </Tooltip>
             <Button
               variant="outline"
               size="icon"

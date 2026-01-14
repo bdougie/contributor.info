@@ -12,6 +12,7 @@ import {
   WorkspaceIssuesTable,
   type Issue,
 } from '@/components/features/workspace/WorkspaceIssuesTable';
+import { exportIssuesToCSV, generateExportFilename } from '@/lib/utils/csv-export';
 import { LazyAssigneeDistributionChart } from '@/components/features/workspace/charts/AssigneeDistributionChart-lazy';
 import { useWorkspaceIssues } from '@/hooks/useWorkspaceIssues';
 import type { TimeRange } from '@/components/features/workspace/TimeRangeSelector';
@@ -213,6 +214,11 @@ export function WorkspaceIssuesTab({
     return issues.filter((issue) => issue.assignees?.some((a) => a.login === selectedAssignee));
   }, [issues, selectedAssignee]);
 
+  const handleExportIssues = () => {
+    const filename = generateExportFilename(workspace?.name || 'workspace', 'issues');
+    exportIssuesToCSV(filteredIssues, filename);
+  };
+
   // Check if there are any issues with assignees
   const hasAssignees = issues.some((issue) => issue.assignees && issue.assignees.length > 0);
 
@@ -332,6 +338,7 @@ export function WorkspaceIssuesTab({
         onIssueClick={handleIssueClick}
         onRepositoryClick={handleRepositoryClick}
         onRespondClick={handleRespondClick}
+        onExport={handleExportIssues}
       />
     </div>
   );

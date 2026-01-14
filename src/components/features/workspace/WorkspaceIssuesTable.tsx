@@ -39,6 +39,7 @@ import {
   ExternalLink,
   MessageSquare,
   Sparkles,
+  Download,
 } from '@/components/ui/icon';
 import { Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -102,6 +103,7 @@ export interface WorkspaceIssuesTableProps {
   onIssueClick?: (issue: Issue) => void;
   onRepositoryClick?: (owner: string, name: string) => void;
   onRespondClick?: (issue: Issue) => void;
+  onExport?: () => void;
 }
 
 const columnHelper = createColumnHelper<Issue>();
@@ -137,6 +139,7 @@ export function WorkspaceIssuesTable({
   onIssueClick,
   onRepositoryClick,
   onRespondClick,
+  onExport,
 }: WorkspaceIssuesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -768,6 +771,22 @@ export function WorkspaceIssuesTable({
                   className="pl-10 w-full sm:w-[300px]"
                 />
               </div>
+              {onExport && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={onExport}
+                      variant="outline"
+                      size="icon"
+                      disabled={filteredIssues.length === 0}
+                      aria-label="Export to CSV"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Export CSV</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
           <IssueFilters

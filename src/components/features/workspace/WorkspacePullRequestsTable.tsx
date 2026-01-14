@@ -27,6 +27,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ExternalLink,
+  Download,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { useWorkspaceFiltersStore, type PRState } from '@/lib/workspace-filters-store';
@@ -92,6 +93,7 @@ export interface WorkspacePullRequestsTableProps {
   className?: string;
   onPullRequestClick?: (pr: PullRequest) => void;
   onRepositoryClick?: (owner: string, name: string) => void;
+  onExport?: () => void;
 }
 
 const columnHelper = createColumnHelper<PullRequest>();
@@ -129,6 +131,7 @@ export function WorkspacePullRequestsTable({
   className,
   onPullRequestClick,
   onRepositoryClick,
+  onExport,
 }: WorkspacePullRequestsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'updated_at', desc: true }]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -536,6 +539,22 @@ export function WorkspacePullRequestsTable({
                   aria-label="Search pull requests"
                 />
               </div>
+              {onExport && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={onExport}
+                      variant="outline"
+                      size="icon"
+                      disabled={filteredPullRequests.length === 0}
+                      aria-label="Export to CSV"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Export CSV</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
           <PRFilters
