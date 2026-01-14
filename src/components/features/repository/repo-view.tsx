@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import type { GitHubRepository } from '@/lib/github';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { toast } from 'sonner';
 import { RepoStatsProvider } from '@/lib/repo-stats-context';
@@ -314,17 +315,27 @@ export default function RepoView() {
                 <Suspense fallback={null}>
                   <RepositorySlackButton owner={owner || ''} repo={repo || ''} />
                 </Suspense>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="stable-button"
-                  onClick={handleShare}
-                  disabled={isGeneratingUrl}
-                  title={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
-                  aria-label={isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
-                >
-                  <Share2 className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="stable-button"
+                      onClick={handleShare}
+                      disabled={isGeneratingUrl}
+                      aria-label={
+                        isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'
+                      }
+                    >
+                      <Share2 className={`h-4 w-4 ${isGeneratingUrl ? 'animate-pulse' : ''}`} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      {isGeneratingUrl ? 'Generating short link...' : 'Copy repository link'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           </CardHeader>

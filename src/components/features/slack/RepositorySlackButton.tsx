@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -247,16 +248,24 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="icon"
-        className="stable-button"
-        onClick={() => setIsOpen(true)}
-        title={isConnected ? 'Manage Slack notifications' : 'Get monthly leaderboard in Slack'}
-        aria-label={isConnected ? 'Manage Slack notifications' : 'Connect Slack'}
-      >
-        <SlackIcon className={`h-4 w-4 ${isConnected ? 'text-green-600' : ''}`} />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="stable-button"
+            onClick={() => setIsOpen(true)}
+            aria-label={isConnected ? 'Manage Slack notifications' : 'Connect Slack'}
+          >
+            <SlackIcon className={`h-4 w-4 ${isConnected ? 'text-green-600' : ''}`} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">
+            {isConnected ? 'Manage Slack notifications' : 'Get monthly leaderboard in Slack'}
+          </p>
+        </TooltipContent>
+      </Tooltip>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent>
