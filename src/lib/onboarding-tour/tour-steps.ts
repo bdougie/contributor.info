@@ -5,9 +5,8 @@ import type { TourStep } from './types';
  *
  * These steps guide users through the key features on a repository page:
  * 1. Search for repositories
- * 2. Activity chart showing metrics and trends
- * 3. Contributor leaderboard/scatterplot
- * 4. Workspaces for organizing repositories
+ * 2. Contributor leaderboard/scatterplot
+ * 3. Workspaces for organizing repositories
  *
  * The tour is designed to start on /continuedev/continue
  */
@@ -27,14 +26,6 @@ export const DEFAULT_TOUR_STEPS: TourStep[] = [
     content:
       'Search for any GitHub repository by typing the owner/repo name. Try searching for your favorite open source project.',
     placement: 'bottom',
-    category: 'repository',
-  },
-  {
-    id: 'activity-chart',
-    target: '[data-tour="activity-chart"]',
-    content:
-      'The activity chart shows PR counts, review times, and velocity trends. Compare current metrics against the previous period.',
-    placement: 'top',
     category: 'repository',
   },
   {
