@@ -546,7 +546,7 @@ export function WorkspacePullRequestsTable({
                       onClick={onExport}
                       variant="outline"
                       size="icon"
-                      disabled={pullRequests.length === 0}
+                      disabled={filteredPullRequests.length === 0}
                       aria-label="Export to CSV"
                     >
                       <Download className="h-4 w-4" />

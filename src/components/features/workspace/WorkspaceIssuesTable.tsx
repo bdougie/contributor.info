@@ -778,7 +778,7 @@ export function WorkspaceIssuesTable({
                       onClick={onExport}
                       variant="outline"
                       size="icon"
-                      disabled={issues.length === 0}
+                      disabled={filteredIssues.length === 0}
                       aria-label="Export to CSV"
                     >
                       <Download className="h-4 w-4" />

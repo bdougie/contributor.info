@@ -85,6 +85,7 @@ interface WorkspaceDiscussionsTableProps {
   }>;
   selectedRepositories: string[];
   workspaceId: string;
+  workspaceName?: string;
   timeRange?: string;
   onRefresh?: () => void;
   userRole?: string | null;
@@ -97,6 +98,7 @@ export function WorkspaceDiscussionsTable({
   repositories,
   selectedRepositories,
   workspaceId,
+  workspaceName,
   onRefresh,
   userRole,
   isLoggedIn = false,
@@ -238,10 +240,10 @@ export function WorkspaceDiscussionsTable({
     if (onExport) {
       onExport();
     } else {
-      const filename = generateExportFilename('discussions', 'discussions');
+      const filename = generateExportFilename(workspaceName || 'workspace', 'discussions');
       exportDiscussionsToCSV(filteredDiscussions, filename);
     }
-  }, [onExport, filteredDiscussions]);
+  }, [onExport, filteredDiscussions, workspaceName]);
 
   // Check if user has workspace access (must be logged in and have a role)
   const hasWorkspaceAccess = isLoggedIn && userRole;
@@ -267,7 +269,7 @@ export function WorkspaceDiscussionsTable({
                   onClick={handleExport}
                   variant="outline"
                   size="icon"
-                  disabled={discussions.length === 0}
+                  disabled={filteredDiscussions.length === 0}
                   aria-label="Export to CSV"
                 >
                   <Download className="h-4 w-4" />

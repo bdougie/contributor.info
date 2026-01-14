@@ -8,6 +8,31 @@ import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 
+// ============================================
+// Shared Download Helper
+// ============================================
+
+/**
+ * Downloads CSV content as a file
+ */
+function downloadCSV(csvContent: string, filename: string): void {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// Contributors Export
+// ============================================
+
 export interface ContributorCSVRow {
   Username: string;
   Name: string;
@@ -40,17 +65,7 @@ export function exportContributorsToCSV(
 ): void {
   const csvData = transformContributorsToCSV(contributors);
   const csv = unparse(csvData);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCSV(csv, filename);
 }
 
 /**
@@ -108,17 +123,7 @@ export function transformIssuesToCSV(issues: Issue[]): IssueCSVRow[] {
 export function exportIssuesToCSV(issues: Issue[], filename = 'issues.csv'): void {
   const csvData = transformIssuesToCSV(issues);
   const csv = unparse(csvData);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCSV(csv, filename);
 }
 
 // ============================================
@@ -133,6 +138,8 @@ export interface PullRequestCSVRow {
   Author: string;
   'Created At': string;
   'Updated At': string;
+  'Merged At': string;
+  'Closed At': string;
   Additions: number;
   Deletions: number;
   'Changed Files': number;
@@ -153,6 +160,8 @@ export function transformPullRequestsToCSV(prs: PullRequest[]): PullRequestCSVRo
     Author: pr.author.username,
     'Created At': pr.created_at,
     'Updated At': pr.updated_at,
+    'Merged At': pr.merged_at || '',
+    'Closed At': pr.closed_at || '',
     Additions: pr.additions,
     Deletions: pr.deletions,
     'Changed Files': pr.changed_files,
@@ -168,17 +177,7 @@ export function transformPullRequestsToCSV(prs: PullRequest[]): PullRequestCSVRo
 export function exportPullRequestsToCSV(prs: PullRequest[], filename = 'pull-requests.csv'): void {
   const csvData = transformPullRequestsToCSV(prs);
   const csv = unparse(csvData);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCSV(csv, filename);
 }
 
 // ============================================
@@ -227,15 +226,5 @@ export function exportDiscussionsToCSV(
 ): void {
   const csvData = transformDiscussionsToCSV(discussions);
   const csv = unparse(csvData);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  downloadCSV(csv, filename);
 }
