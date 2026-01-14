@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.29.0](https://github.com/bdougie/contributor.info/compare/v4.28.0...v4.29.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* add interactive onboarding tour with React Joyride ([#1546](https://github.com/bdougie/contributor.info/issues/1546)) ([774018a](https://github.com/bdougie/contributor.info/commit/774018aa991a3d60d9ba1cfd7b2fdc6c21e84ed8)), closes [#522](https://github.com/bdougie/contributor.info/issues/522)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([b2d9d6e](https://github.com/bdougie/contributor.info/commit/b2d9d6e83769c9af27b719625363db410c88e03f))
+
 ## [4.28.0](https://github.com/bdougie/contributor.info/compare/v4.27.2...v4.28.0) (2026-01-14)
 
 
