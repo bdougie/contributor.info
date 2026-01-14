@@ -188,6 +188,7 @@
     "ws": ">=8.17.1",
     "sirv": ">=3.0.2",
     "js-yaml": "^4.1.1",
+    "undici": ">=6.23.0",
     "react-helmet-async": {
       "react": "^19.2.1",
       "react-dom": "^19.2.1"
@@ -195,7 +196,7 @@
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1",
+    "@actions/github": "^6.0.0",
     "@continuedev/cli": "^1.4.44",
     "@eslint/js": "^9.39.2",
     "@iarna/toml": "^2.2.5",
