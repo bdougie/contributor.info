@@ -769,6 +769,7 @@ export function WorkspaceIssuesTable({
                   value={globalFilter ?? ''}
                   onChange={(e) => setGlobalFilter(e.target.value)}
                   className="pl-10 w-full sm:w-[300px]"
+                  aria-label="Search issues"
                 />
               </div>
               {onExport && (
