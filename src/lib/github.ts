@@ -426,7 +426,7 @@ export async function fetchPullRequests(
               break;
             }
 
-            // Check if all PRs are too old to be relevant
+            // Check if all PRs are too old to be relevant (use timestamp comparison for performance)
             const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
             if (!isNaN(oldestPRTimestamp) && oldestPRTimestamp < sinceTimestamp) {
               break; // No point in fetching older PRs
@@ -475,7 +475,7 @@ export async function fetchPullRequests(
                 break;
               }
 
-              // Check if all PRs are too old to be relevant
+              // Check if all PRs are too old to be relevant (use timestamp comparison for performance)
               if (prs.length > 0) {
                 const oldestPRTimestamp = Date.parse(prs[prs.length - 1].updated_at);
                 if (!isNaN(oldestPRTimestamp) && oldestPRTimestamp < sinceTimestamp) {
@@ -495,7 +495,7 @@ export async function fetchPullRequests(
           page++;
         }
 
-        // Filter PRs by the time range
+        // Filter PRs by the time range (use timestamp comparison for performance)
         const filteredPRs = allPRs.filter((pr: GitHubPullRequest) => {
           const prTimestamp = Date.parse(pr.updated_at);
           return !isNaN(prTimestamp) && prTimestamp >= sinceTimestamp;
@@ -850,6 +850,7 @@ export async function fetchDirectCommits(
 
     // Get merged PRs for the repository in the time range to identify PR-related commits
     const pullRequests = await fetchPullRequests(owner, repo, timeRange);
+    // Use timestamp comparison for performance (avoid creating Date objects in loops)
     const mergedPRs = pullRequests.filter((pr) => {
       if (!pr.merged_at) return false;
       // Only include PRs merged within our time range

@@ -38,6 +38,11 @@
 - Pre-commit runs lint-staged; install hooks: `npm run hooks:install`.
 - PRs: include scope/summary, linked issues, screenshots for UI, test plan, and pass CI (lint, build, tests).
 
+## Package Management
+- This project uses **npm only**. Do not use pnpm, yarn, or other package managers.
+- Never create or commit `pnpm-lock.yaml` or `yarn.lock` files.
+- Use `package-lock.json` exclusively for dependency locking.
+
 ## Security & Configuration Tips
 - Copy `.env.example` to `.env`; never commit secrets.
 - After editing `index.html` or `public/_headers`, run `npm run verify:csp`.
