@@ -175,7 +175,6 @@ export function RepositoryList({
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
               aria-label={getSortLabel('repository name', sortDirection)}
-              aria-sort={getAriaSortValue(sortDirection)}
             >
               Repository
               {getSortIcon(sortDirection)}
@@ -261,7 +260,6 @@ export function RepositoryList({
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
               aria-label={getSortLabel('stars', sortDirection)}
-              aria-sort={getAriaSortValue(sortDirection)}
             >
               <Star className="h-3 w-3" aria-hidden="true" />
               Stars
@@ -286,7 +284,6 @@ export function RepositoryList({
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
               aria-label={getSortLabel('open pull requests', sortDirection)}
-              aria-sort={getAriaSortValue(sortDirection)}
             >
               <GitPullRequest className="h-3 w-3" aria-hidden="true" />
               PRs
@@ -310,7 +307,6 @@ export function RepositoryList({
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
               aria-label={getSortLabel('contributors', sortDirection)}
-              aria-sort={getAriaSortValue(sortDirection)}
             >
               <Users className="h-3 w-3" aria-hidden="true" />
               Contributors
@@ -334,7 +330,6 @@ export function RepositoryList({
               className="flex items-center gap-1 font-medium hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               onClick={() => column.toggleSorting(sortDirection === 'asc')}
               aria-label={getSortLabel('last activity', sortDirection)}
-              aria-sort={getAriaSortValue(sortDirection)}
             >
               Last Activity
               {getSortIcon(sortDirection)}
@@ -511,6 +506,7 @@ export function RepositoryList({
                         return (
                           <TableHead
                             key={header.id}
+                            aria-sort={getAriaSortValue(header.column.getIsSorted())}
                             className={cn(
                               header.column.id === 'full_name' &&
                                 'w-[40%] min-w-[180px] sm:min-w-[250px]',

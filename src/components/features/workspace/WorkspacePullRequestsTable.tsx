@@ -337,7 +337,7 @@ export function WorkspacePullRequestsTable({
                   const reviewerFilterUrl = `https://github.com/${repo.owner}/${repo.name}/pulls?q=is%3Apr+reviewed-by%3A${encodeURIComponent(reviewer.username)}`;
 
                   return (
-                    <Tooltip>
+                    <Tooltip key={reviewer.username}>
                       <TooltipTrigger asChild>
                         <a
                           href={reviewerFilterUrl}
