@@ -241,6 +241,16 @@ export function GitHubSearchInput({
             onFocus={handleInputFocus}
             className="w-full pr-8"
             autoComplete="off"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={showDropdown}
+            aria-controls="github-search-listbox"
+            aria-activedescendant={
+              selectedIndex >= 0 && results[selectedIndex]
+                ? `search-result-${results[selectedIndex].id}`
+                : undefined
+            }
+            aria-label="Search GitHub repositories"
           />
           {/* Loading spinner in input field */}
           {loading && inputValue.length > 1 && (
@@ -253,6 +263,9 @@ export function GitHubSearchInput({
           {showDropdown && (
             <div
               ref={dropdownRef}
+              id="github-search-listbox"
+              role="listbox"
+              aria-label="Search results"
               className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-200"
             >
               {loading && (
@@ -288,10 +301,13 @@ export function GitHubSearchInput({
                 results.map((repo, index) => (
                   <button
                     key={repo.id}
+                    id={`search-result-${repo.id}`}
                     type="button"
+                    role="option"
+                    aria-selected={selectedIndex === index}
                     onClick={() => handleSelectRepository(repo, index)}
                     className={cn(
-                      'w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300',
+                      'w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-colors animate-in fade-in-0 slide-in-from-top-1 duration-300',
                       selectedIndex === index && 'bg-accent'
                     )}
                     style={{ animationDelay: `${index * 50}ms` }}

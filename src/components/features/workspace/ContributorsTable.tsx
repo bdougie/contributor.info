@@ -573,13 +573,14 @@ export function ContributorsTable({
 
       {/* Table */}
       <div className="rounded-md border overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" aria-label="Workspace contributors with activity statistics">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
+                    scope="col"
                     className="px-4 py-3 text-left font-medium text-sm"
                     style={{
                       width: header.column.columnDef.size,

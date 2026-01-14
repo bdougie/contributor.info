@@ -563,13 +563,17 @@ export function WorkspacePullRequestsTable({
               </div>
             ) : (
               <div className="rounded-md border h-[600px] overflow-auto" ref={parentRef}>
-                <table className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative">
+                <table
+                  className="w-full min-w-[800px] md:min-w-[1400px] border-collapse relative"
+                  aria-label="Pull requests from tracked repositories"
+                >
                   <thead className="sticky top-0 z-10 bg-background shadow-sm">
                     {table.getHeaderGroups().map((headerGroup) => (
                       <tr key={headerGroup.id} className="border-b">
                         {headerGroup.headers.map((header) => (
                           <th
                             key={header.id}
+                            scope="col"
                             className="px-4 py-3 text-left font-medium text-sm whitespace-nowrap bg-background"
                             style={{
                               width: header.column.columnDef.size,

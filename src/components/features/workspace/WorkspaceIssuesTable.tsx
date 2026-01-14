@@ -798,13 +798,17 @@ export function WorkspaceIssuesTable({
             ) : (
               <div className="rounded-md border">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[800px]">
+                  <table
+                    className="w-full min-w-[800px]"
+                    aria-label="Issues from tracked repositories"
+                  >
                     <thead>
                       {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id} className="border-b">
                           {headerGroup.headers.map((header) => (
                             <th
                               key={header.id}
+                              scope="col"
                               className={cn(
                                 'px-4 py-3 font-medium text-sm whitespace-nowrap',
                                 header.column.id === 'comments_count' ? 'text-center' : 'text-left'
