@@ -41,8 +41,11 @@ function generateBarChartSummary(
     return 'No data available.';
   }
 
+  const xLabel = xAxisLabel ? ` X-axis: ${xAxisLabel}.` : '';
+  const yLabel = yAxisLabel ? ` Y-axis: ${yAxisLabel}.` : '';
+
   const summaryParts: string[] = [
-    `Bar chart with ${data.labels.length} categories and ${data.datasets.length} data series.`,
+    `Bar chart with ${data.labels.length} categories and ${data.datasets.length} data series.${xLabel}${yLabel}`,
   ];
 
   data.datasets.forEach((dataset) => {
