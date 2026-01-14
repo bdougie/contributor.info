@@ -171,7 +171,10 @@ export function BadgeGenerator({ config, data, className }: BadgeGeneratorProps)
           width={totalWidth}
           height={height}
           viewBox={`0 0 ${totalWidth} ${height}`}
+          role="img"
+          aria-label={`${label}: ${message}`}
         >
+          <title>{`${label}: ${message}`}</title>
           <defs>
             {styleConfig.shadow && (
               <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
