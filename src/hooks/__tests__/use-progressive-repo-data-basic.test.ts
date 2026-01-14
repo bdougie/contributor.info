@@ -19,7 +19,12 @@ vi.mock('@/lib/simple-logging', () => ({
   startSpan: vi.fn((options, fn) => fn({ setStatus: vi.fn() })),
 }));
 
-import { useProgressiveRepoData } from '../use-progressive-repo-data';
+vi.mock('@/lib/retry-utils', () => ({
+  withRetry: vi.fn((fn) => fn()),
+}));
+
+import { useProgressiveRepoData, useDataStageReady } from '../use-progressive-repo-data';
+import type { ProgressiveDataState, LoadingStage } from '../use-progressive-repo-data';
 import { setupBasicMocks, cleanupMocks, mockPRData } from './test-utils';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
 import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
@@ -79,6 +84,20 @@ describe('useProgressiveRepoData - Basic Tests', () => {
       expect(result.current.currentStage).toBe('initial');
       expect(fetchPRDataMock).not.toHaveBeenCalled();
     });
+
+    it('should not start loading with empty owner', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('', 'repo', '90d', false));
+
+      expect(result.current.currentStage).toBe('initial');
+      expect(fetchPRDataMock).not.toHaveBeenCalled();
+    });
+
+    it('should not start loading with empty repo', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', '', '90d', false));
+
+      expect(result.current.currentStage).toBe('initial');
+      expect(fetchPRDataMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('Data Status', () => {
@@ -97,5 +116,207 @@ describe('useProgressiveRepoData - Basic Tests', () => {
       expect(result.current.stageProgress.enhancement).toBe(false);
       expect(result.current.stageProgress.complete).toBe(false);
     });
+
+    it('should have dataStatus with message field as optional', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      // message is optional
+      expect(result.current.dataStatus.message).toBeUndefined();
+    });
+  });
+
+  describe('Return Value Structure', () => {
+    it('should return all expected properties', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      // Check all expected properties exist
+      expect(result.current).toHaveProperty('basicInfo');
+      expect(result.current).toHaveProperty('stats');
+      expect(result.current).toHaveProperty('lotteryFactor');
+      expect(result.current).toHaveProperty('directCommitsData');
+      expect(result.current).toHaveProperty('historicalTrends');
+      expect(result.current).toHaveProperty('currentStage');
+      expect(result.current).toHaveProperty('stageProgress');
+      expect(result.current).toHaveProperty('dataStatus');
+    });
+
+    it('should have correct stats structure', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      expect(result.current.stats).toHaveProperty('pullRequests');
+      expect(result.current.stats).toHaveProperty('loading');
+      expect(result.current.stats).toHaveProperty('error');
+      expect(Array.isArray(result.current.stats.pullRequests)).toBe(true);
+      expect(typeof result.current.stats.loading).toBe('boolean');
+    });
+
+    it('should have correct stageProgress structure', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      const stages: LoadingStage[] = ['initial', 'critical', 'full', 'enhancement', 'complete'];
+      stages.forEach((stage) => {
+        expect(result.current.stageProgress).toHaveProperty(stage);
+        expect(typeof result.current.stageProgress[stage]).toBe('boolean');
+      });
+    });
+
+    it('should have dataStatus with correct structure', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      expect(result.current.dataStatus).toHaveProperty('status');
+      expect(['success', 'pending', 'no_data', 'partial_data', 'large_repository_protected']).toContain(
+        result.current.dataStatus.status
+      );
+    });
+  });
+
+  describe('Parameter Handling', () => {
+    it('should accept all valid time ranges', () => {
+      const timeRanges = ['30d', '90d', '1y', 'all'] as const;
+
+      timeRanges.forEach((timeRange) => {
+        const { result, unmount } = renderHook(() =>
+          useProgressiveRepoData('owner', 'repo', timeRange, false)
+        );
+
+        // Should initialize without errors
+        expect(result.current.currentStage).toBe('initial');
+        unmount();
+      });
+    });
+
+    it('should accept includeBots as true', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', true));
+
+      expect(result.current.currentStage).toBe('initial');
+    });
+
+    it('should accept includeBots as false', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      expect(result.current.currentStage).toBe('initial');
+    });
+  });
+
+  describe('Hook Identity', () => {
+    it('should maintain stable reference across renders with same props', () => {
+      const { result, rerender } = renderHook(
+        ({ owner, repo, timeRange, includeBots }) =>
+          useProgressiveRepoData(owner, repo, timeRange, includeBots),
+        { initialProps: { owner: 'owner', repo: 'repo', timeRange: '90d' as const, includeBots: false } }
+      );
+
+      const initialStageProgress = result.current.stageProgress;
+
+      // Rerender with same props
+      rerender({ owner: 'owner', repo: 'repo', timeRange: '90d' as const, includeBots: false });
+
+      // stageProgress should still have the same structure
+      expect(Object.keys(result.current.stageProgress)).toEqual(Object.keys(initialStageProgress));
+    });
+  });
+
+  describe('Type Safety', () => {
+    it('should correctly type basicInfo as null initially', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      const basicInfo = result.current.basicInfo;
+      expect(basicInfo).toBeNull();
+    });
+
+    it('should correctly type lotteryFactor as null initially', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      const lotteryFactor = result.current.lotteryFactor;
+      expect(lotteryFactor).toBeNull();
+    });
+
+    it('should correctly type directCommitsData as null initially', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      const directCommitsData = result.current.directCommitsData;
+      expect(directCommitsData).toBeNull();
+    });
+
+    it('should correctly type historicalTrends as null', () => {
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+      const historicalTrends = result.current.historicalTrends;
+      expect(historicalTrends).toBeNull();
+    });
+  });
+});
+
+describe('useDataStageReady', () => {
+  it('should return false for incomplete stages', () => {
+    const mockData: ProgressiveDataState = {
+      basicInfo: null,
+      stats: { pullRequests: [], loading: true, error: null },
+      lotteryFactor: null,
+      directCommitsData: null,
+      historicalTrends: null,
+      currentStage: 'initial',
+      stageProgress: {
+        initial: true,
+        critical: false,
+        full: false,
+        enhancement: false,
+        complete: false,
+      },
+      dataStatus: { status: 'pending' },
+    };
+
+    expect(useDataStageReady(mockData, 'critical')).toBe(false);
+    expect(useDataStageReady(mockData, 'full')).toBe(false);
+    expect(useDataStageReady(mockData, 'enhancement')).toBe(false);
+    expect(useDataStageReady(mockData, 'complete')).toBe(false);
+  });
+
+  it('should return true for completed stages', () => {
+    const mockData: ProgressiveDataState = {
+      basicInfo: { prCount: 10, contributorCount: 5, topContributors: [] },
+      stats: { pullRequests: [], loading: false, error: null },
+      lotteryFactor: null,
+      directCommitsData: null,
+      historicalTrends: null,
+      currentStage: 'complete',
+      stageProgress: {
+        initial: true,
+        critical: true,
+        full: true,
+        enhancement: true,
+        complete: true,
+      },
+      dataStatus: { status: 'success' },
+    };
+
+    expect(useDataStageReady(mockData, 'initial')).toBe(true);
+    expect(useDataStageReady(mockData, 'critical')).toBe(true);
+    expect(useDataStageReady(mockData, 'full')).toBe(true);
+    expect(useDataStageReady(mockData, 'enhancement')).toBe(true);
+    expect(useDataStageReady(mockData, 'complete')).toBe(true);
+  });
+
+  it('should handle partial progress', () => {
+    const mockData: ProgressiveDataState = {
+      basicInfo: { prCount: 10, contributorCount: 5, topContributors: [] },
+      stats: { pullRequests: [], loading: true, error: null },
+      lotteryFactor: null,
+      directCommitsData: null,
+      historicalTrends: null,
+      currentStage: 'full',
+      stageProgress: {
+        initial: true,
+        critical: true,
+        full: false,
+        enhancement: false,
+        complete: false,
+      },
+      dataStatus: { status: 'pending' },
+    };
+
+    expect(useDataStageReady(mockData, 'initial')).toBe(true);
+    expect(useDataStageReady(mockData, 'critical')).toBe(true);
+    expect(useDataStageReady(mockData, 'full')).toBe(false);
   });
 });
