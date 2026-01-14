@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.27.0](https://github.com/bdougie/contributor.info/compare/v4.26.0...v4.27.0) (2026-01-14)
+
+
+### 🚀 Features
+
+* add screen reader support to chart components ([#1536](https://github.com/bdougie/contributor.info/issues/1536)) ([5873956](https://github.com/bdougie/contributor.info/commit/5873956ca9a015922568a919f693a1c0a30868c0)), closes [#1530](https://github.com/bdougie/contributor.info/issues/1530)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a22193c](https://github.com/bdougie/contributor.info/commit/a22193c365d9ab84e1a8c63c0b2233d10d23d02a))
+
 ## [4.26.0](https://github.com/bdougie/contributor.info/compare/v4.25.0...v4.26.0) (2026-01-14)
 
 
