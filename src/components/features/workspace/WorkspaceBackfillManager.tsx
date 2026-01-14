@@ -328,10 +328,10 @@ export function WorkspaceBackfillManager({
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
+              id="select-all-repos"
               checked={selectedRepos.size === repositories.length}
               onChange={handleSelectAll}
               className="h-4 w-4 rounded border-gray-300"
-              aria-label="Select all repositories"
             />
             <span className="text-sm text-muted-foreground">
               {selectedRepos.size} of {repositories.length} selected
@@ -376,6 +376,7 @@ export function WorkspaceBackfillManager({
                     <TableCell>
                       <input
                         type="checkbox"
+                        id={`select-repo-${repo.id}`}
                         checked={selectedRepos.has(repo.full_name)}
                         onChange={() => handleToggleRepository(repo.full_name)}
                         disabled={isBackfilling}

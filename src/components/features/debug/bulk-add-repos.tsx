@@ -366,17 +366,19 @@ nestjs/nest
             )}
 
             <div className="mb-4 space-y-3">
-              <label className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  id="include-backfill-checkbox"
                   checked={includeBackfill}
                   onChange={(e) => setIncludeBackfill(e.target.checked)}
                   className="rounded"
                   disabled={isProcessing}
-                  aria-label="Include historical PR data backfill"
                 />
-                <span className="text-sm">Fetch historical PR data (recommended)</span>
-              </label>
+                <label htmlFor="include-backfill-checkbox" className="text-sm">
+                  Fetch historical PR data (recommended)
+                </label>
+              </div>
               {includeBackfill && (
                 <>
                   <div className="ml-6 space-y-3">

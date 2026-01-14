@@ -349,7 +349,11 @@ export function WorkspaceIssuesTable({
                 className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
               >
                 {repo.avatar_url && (
-                  <img src={repo.avatar_url} alt={repo.owner} className="h-5 w-5 rounded" />
+                  <img
+                    src={repo.avatar_url}
+                    alt={`${repo.owner}'s avatar`}
+                    className="h-5 w-5 rounded"
+                  />
                 )}
                 <span>{repo.name}</span>
               </button>
@@ -398,7 +402,7 @@ export function WorkspaceIssuesTable({
                 >
                   <img
                     src={author.avatar_url}
-                    alt={author.username}
+                    alt={`${author.username}'s avatar`}
                     className="h-6 w-6 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all"
                   />
                 </a>
@@ -462,7 +466,7 @@ export function WorkspaceIssuesTable({
                       >
                         <img
                           src={assignee.avatar_url}
-                          alt={assignee.login}
+                          alt={`${assignee.login}'s avatar`}
                           className="h-6 w-6 rounded-full border-2 border-background hover:ring-2 hover:ring-primary transition-all"
                         />
                       </a>

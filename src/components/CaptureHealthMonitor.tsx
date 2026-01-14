@@ -176,16 +176,16 @@ export function CaptureHealthMonitor() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Capture Health Monitor</h2>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
+              id="auto-refresh-checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="rounded"
-              aria-label="Enable auto-refresh"
             />
-            Auto-refresh
-          </label>
+            <label htmlFor="auto-refresh-checkbox">Auto-refresh</label>
+          </div>
           <button
             onClick={() => Promise.all([fetchStats(), fetchRecentJobs()])}
             className="p-2 hover:bg-gray-100 rounded"

@@ -139,7 +139,7 @@ export function DataStateIndicator({
         <div className="flex items-start space-x-3">
           <div className={cn('mt-0.5', indicator.color)}>{indicator.icon}</div>
           <div className="flex-1">
-            <h4 className={cn('text-sm font-medium', indicator.color)}>{indicator.title}</h4>
+            <p className={cn('text-sm font-medium', indicator.color)}>{indicator.title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{indicator.description}</p>
             {metadata?.dataCompleteness !== undefined && metadata.dataCompleteness < 100 && (
               <div className="mt-2">

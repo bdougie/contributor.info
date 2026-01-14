@@ -107,7 +107,7 @@ class DialogErrorBoundary extends Component<
           />
           <div className="fixed z-50 w-full max-w-lg p-6 bg-background border rounded-lg shadow-lg">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-destructive">Failed to load dialog</h3>
+              <p className="text-lg font-semibold text-destructive">Failed to load dialog</p>
               <p className="text-sm text-muted-foreground">
                 There was an error loading this dialog. Please try refreshing the page.
               </p>

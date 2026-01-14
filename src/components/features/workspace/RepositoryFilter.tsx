@@ -113,7 +113,7 @@ export function RepositoryFilter({
             {repo.avatar_url && (
               <img
                 src={repo.avatar_url}
-                alt={repo.owner}
+                alt={`${repo.owner}'s avatar`}
                 className="h-4 w-4 rounded flex-shrink-0"
               />
             )}
@@ -212,7 +212,7 @@ export function RepositoryFilter({
                         {repo.avatar_url && (
                           <img
                             src={repo.avatar_url}
-                            alt={repo.owner}
+                            alt={`${repo.owner}'s avatar`}
                             className="h-5 w-5 rounded flex-shrink-0"
                           />
                         )}
@@ -319,7 +319,7 @@ export function SingleRepositoryFilter({
               {selectedRepo.avatar_url && (
                 <img
                   src={selectedRepo.avatar_url}
-                  alt={selectedRepo.owner}
+                  alt={`${selectedRepo.owner}'s avatar`}
                   className="h-4 w-4 rounded flex-shrink-0"
                 />
               )}
@@ -386,7 +386,7 @@ export function SingleRepositoryFilter({
                         {repo.avatar_url && (
                           <img
                             src={repo.avatar_url}
-                            alt={repo.owner}
+                            alt={`${repo.owner}'s avatar`}
                             className="h-5 w-5 rounded flex-shrink-0"
                           />
                         )}

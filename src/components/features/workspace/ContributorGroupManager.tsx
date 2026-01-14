@@ -371,7 +371,7 @@ export function ContributorGroupManager({
                             >
                               <img
                                 src={contributor.avatar_url}
-                                alt={contributor.username}
+                                alt={`${contributor.username}'s avatar`}
                                 className="h-6 w-6 rounded-full"
                               />
                               <span className="text-sm">@{contributor.username}</span>

@@ -270,7 +270,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
         {item.user.avatar_url ? (
           <img
             src={item.user.avatar_url}
-            alt={item.user.username}
+            alt={`${item.user.username}'s avatar`}
             className="h-8 w-8 rounded-full"
           />
         ) : (
