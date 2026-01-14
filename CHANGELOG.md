@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.27.1](https://github.com/bdougie/contributor.info/compare/v4.27.0...v4.27.1) (2026-01-14)
+
+
+### 🐛 Bug Fixes
+
+* comprehensive accessibility improvements for wcag compliance ([#1542](https://github.com/bdougie/contributor.info/issues/1542)) ([909d14b](https://github.com/bdougie/contributor.info/commit/909d14becfb7f34dc20ed3a1cd8147bd3d0b4563)), closes [#1520](https://github.com/bdougie/contributor.info/issues/1520) [#1521](https://github.com/bdougie/contributor.info/issues/1521) [#1523](https://github.com/bdougie/contributor.info/issues/1523) [#1524](https://github.com/bdougie/contributor.info/issues/1524) [#1525](https://github.com/bdougie/contributor.info/issues/1525) [#1526](https://github.com/bdougie/contributor.info/issues/1526) [#1528](https://github.com/bdougie/contributor.info/issues/1528) [#1527](https://github.com/bdougie/contributor.info/issues/1527) [#1520](https://github.com/bdougie/contributor.info/issues/1520) [#1521](https://github.com/bdougie/contributor.info/issues/1521) [#1522](https://github.com/bdougie/contributor.info/issues/1522) [#1523](https://github.com/bdougie/contributor.info/issues/1523) [#1524](https://github.com/bdougie/contributor.info/issues/1524) [#1525](https://github.com/bdougie/contributor.info/issues/1525) [#1526](https://github.com/bdougie/contributor.info/issues/1526) [#1527](https://github.com/bdougie/contributor.info/issues/1527) [#1528](https://github.com/bdougie/contributor.info/issues/1528)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([bdb1220](https://github.com/bdougie/contributor.info/commit/bdb122006f790610a5616081ae8eb20f5f4a110e))
+
 ## [4.27.0](https://github.com/bdougie/contributor.info/compare/v4.26.0...v4.27.0) (2026-01-14)
 
 
