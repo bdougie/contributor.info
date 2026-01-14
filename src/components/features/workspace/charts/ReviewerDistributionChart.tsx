@@ -26,6 +26,31 @@ import type { ContributorStats } from '@/lib/types';
 import { getRecentPRsForReviewer } from '@/lib/workspace-hover-card-utils';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
+/**
+ * Generate accessible summary for reviewer distribution chart
+ */
+function generateReviewerChartSummary(
+  reviewerData: ReviewerData[],
+  viewMode: 'total' | 'approved' | 'pending'
+): string {
+  if (reviewerData.length === 0) {
+    return 'No reviewer distribution data available.';
+  }
+
+  const totalPRs = reviewerData.reduce((sum, r) => sum + r.totalPRs, 0);
+  const totalApproved = reviewerData.reduce((sum, r) => sum + r.approvedPRs, 0);
+  const totalPending = reviewerData.reduce((sum, r) => sum + r.pendingPRs, 0);
+  const topReviewer = reviewerData[0];
+
+  const viewModeLabel = viewMode === 'total' ? 'all reviews' : viewMode === 'approved' ? 'approved reviews' : 'pending reviews';
+
+  return (
+    `Reviewer distribution chart showing ${reviewerData.length} reviewers, filtered by ${viewModeLabel}. ` +
+    `Total reviews: ${totalPRs} (${totalApproved} approved, ${totalPending} pending). ` +
+    `Top reviewer: ${topReviewer.username} with ${topReviewer.totalPRs} reviews.`
+  );
+}
+
 interface ReviewerData {
   username: string;
   avatar_url: string;
@@ -320,7 +345,11 @@ export function ReviewerDistributionChart({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            role="list"
+            aria-label={`${title} showing ${reviewerData.length} reviewers`}
+          >
             {visibleReviewers.map((reviewer) => {
               const count = getCount(reviewer);
               const githubUrl = getGitHubPRsUrl(reviewer);
@@ -328,8 +357,10 @@ export function ReviewerDistributionChart({
               return (
                 <div
                   key={reviewer.username}
+                  role="listitem"
                   className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
                   onClick={() => handleReviewerClick(reviewer)}
+                  aria-label={`${reviewer.username}: ${count} ${viewMode === 'approved' ? 'approved' : viewMode === 'pending' ? 'pending' : 'total'} reviews (${reviewer.percentage.toFixed(1)}%)`}
                 >
                   {/* Avatar */}
                   {(() => {
@@ -458,6 +489,11 @@ export function ReviewerDistributionChart({
                 )}
               </Button>
             )}
+          </div>
+
+          {/* Accessible summary for screen readers */}
+          <div className="sr-only" aria-live="polite">
+            {generateReviewerChartSummary(reviewerData, viewMode)}
           </div>
 
           {/* Summary stats and controls */}

@@ -12,6 +12,28 @@ import { ContributorHoverCard } from '@/components/features/contributor/contribu
 import type { ContributorStats, RecentIssue } from '@/lib/types';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
+/**
+ * Generate accessible summary for assignee distribution chart
+ */
+function generateAssigneeChartSummary(
+  assigneeData: AssigneeData[],
+  totalIssues: number
+): string {
+  if (assigneeData.length === 0) {
+    return 'No issue assignee data available.';
+  }
+
+  const totalAssigned = assigneeData.reduce((sum, a) => sum + a.count, 0);
+  const topAssignee = assigneeData[0];
+  const avgPerAssignee = Math.round(totalAssigned / assigneeData.length);
+
+  return (
+    `Issue assignee distribution chart showing ${assigneeData.length} assignees across ${totalIssues} open issues. ` +
+    `Top assignee: ${topAssignee.login} with ${topAssignee.count} issues (${topAssignee.percentage.toFixed(1)}%). ` +
+    `Average issues per assignee: ${avgPerAssignee}.`
+  );
+}
+
 interface AssigneeData {
   login: string;
   avatar_url: string;
@@ -195,7 +217,11 @@ export function AssigneeDistributionChart({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            role="list"
+            aria-label={`${title} showing ${assigneeData.length} assignees`}
+          >
             {visibleAssignees.map((assignee) => {
               const githubUrl = getGitHubIssuesUrl(assignee);
 
@@ -278,8 +304,10 @@ export function AssigneeDistributionChart({
               return (
                 <div
                   key={assignee.login}
+                  role="listitem"
                   className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
                   onClick={() => handleAssigneeClick(assignee)}
+                  aria-label={`${assignee.login}: ${assignee.count} issues assigned (${assignee.percentage.toFixed(1)}%)`}
                 >
                   {/* Avatar */}
                   {renderAvatar()}
@@ -357,6 +385,14 @@ export function AssigneeDistributionChart({
                   </>
                 )}
               </Button>
+            )}
+          </div>
+
+          {/* Accessible summary for screen readers */}
+          <div className="sr-only" aria-live="polite">
+            {generateAssigneeChartSummary(
+              assigneeData,
+              issues.filter((issue) => issue.state === 'open').length
             )}
           </div>
 

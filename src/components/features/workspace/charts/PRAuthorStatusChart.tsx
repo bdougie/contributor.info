@@ -26,6 +26,39 @@ import { ContributorHoverCard } from '@/components/features/contributor/contribu
 import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
 
+/**
+ * Generate accessible summary for PR author status chart
+ */
+function generatePRAuthorSummary(
+  authorStatusData: AuthorStatus[],
+  totals: {
+    totalBlocked: number;
+    totalApproved: number;
+    totalPending: number;
+  },
+  statusFilter: StatusFilter
+): string {
+  if (authorStatusData.length === 0) {
+    return 'No pull request author data available.';
+  }
+
+  const topAuthor = authorStatusData[0];
+  const filterLabel =
+    statusFilter === 'blocked'
+      ? 'blocked PRs'
+      : statusFilter === 'approved'
+        ? 'approved PRs'
+        : statusFilter === 'pending'
+          ? 'pending review'
+          : 'all PRs';
+
+  return (
+    `Pull request author status chart showing ${authorStatusData.length} authors, filtered by ${filterLabel}. ` +
+    `Status breakdown: ${totals.totalBlocked} blocked, ${totals.totalApproved} approved, ${totals.totalPending} pending. ` +
+    `Top author: ${topAuthor.username} with ${topAuthor.totalOpenPRs} open PRs.`
+  );
+}
+
 interface AuthorStatus {
   username: string;
   avatar_url: string;
@@ -284,15 +317,21 @@ export function PRAuthorStatusChart({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div
+            className="space-y-3"
+            role="list"
+            aria-label={`${title} showing ${authorStatusData.length} authors`}
+          >
             {visibleAuthors.map((author) => {
               const githubUrl = getGitHubAuthorUrl(author);
 
               return (
                 <div
                   key={author.username}
+                  role="listitem"
                   className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
                   onClick={() => handleAuthorClick(author)}
+                  aria-label={`${author.username}: ${author.totalOpenPRs} open PRs (${author.blockedPRs} blocked, ${author.approvedPRs} approved, ${author.pendingPRs} pending)`}
                 >
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
@@ -451,6 +490,11 @@ export function PRAuthorStatusChart({
                 )}
               </Button>
             )}
+          </div>
+
+          {/* Accessible summary for screen readers */}
+          <div className="sr-only" aria-live="polite">
+            {generatePRAuthorSummary(authorStatusData, totals, statusFilter)}
           </div>
 
           {/* Summary stats and controls */}
