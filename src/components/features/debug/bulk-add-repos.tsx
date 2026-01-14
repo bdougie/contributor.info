@@ -373,6 +373,7 @@ nestjs/nest
                   onChange={(e) => setIncludeBackfill(e.target.checked)}
                   className="rounded"
                   disabled={isProcessing}
+                  aria-label="Include historical PR data backfill"
                 />
                 <span className="text-sm">Fetch historical PR data (recommended)</span>
               </label>
@@ -380,9 +381,12 @@ nestjs/nest
                 <>
                   <div className="ml-6 space-y-3">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Maximum number of PRs to fetch:</label>
+                      <label htmlFor="max-prs-range" className="text-sm font-medium">
+                        Maximum number of PRs to fetch:
+                      </label>
                       <div className="flex items-center gap-4">
                         <input
+                          id="max-prs-range"
                           type="range"
                           min="100"
                           max="1000"
@@ -391,15 +395,19 @@ nestjs/nest
                           onChange={(e) => setMaxPRs(Number(e.target.value))}
                           className="flex-1"
                           disabled={isProcessing}
+                          aria-label="Maximum number of PRs to fetch"
                         />
                         <span className="text-sm font-medium w-20">{maxPRs} PRs</span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Time window (days):</label>
+                      <label htmlFor="backfill-days-range" className="text-sm font-medium">
+                        Time window (days):
+                      </label>
                       <div className="flex items-center gap-4">
                         <input
+                          id="backfill-days-range"
                           type="range"
                           min="7"
                           max="30"
@@ -407,6 +415,7 @@ nestjs/nest
                           onChange={(e) => setBackfillDays(Number(e.target.value))}
                           className="flex-1"
                           disabled={isProcessing}
+                          aria-label="Backfill time window in days"
                         />
                         <span className="text-sm font-medium w-16">{backfillDays} days</span>
                       </div>

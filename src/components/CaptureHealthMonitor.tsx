@@ -182,6 +182,7 @@ export function CaptureHealthMonitor() {
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
               className="rounded"
+              aria-label="Enable auto-refresh"
             />
             Auto-refresh
           </label>
