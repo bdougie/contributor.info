@@ -4,24 +4,24 @@
 - **Total Issues Found:** 7
 - **Critical:** 0
 - **High:** 1
-- **Medium:** 3
-- **Low:** 3
+- **Medium:** 4
+- **Low:** 2
 
 ## Issues by WCAG Level
-- **Level A:** 6 issues
-- **Level AA:** 1 issue
+- **Level A:** 5 issues
+- **Level AA:** 2 issues
 - **Level AAA:** 0 issues
 
-## New Issues Created
+## Tracked GitHub Issues
 
-### Previously Tracked (From Earlier Scans)
-| Issue # | Title | Severity | Status |
-|---------|-------|----------|--------|
-| #1559 | [A11Y] [High] Images missing alt text in workspace components | High | Open |
-| #1560 | [A11Y] [Medium] Form inputs missing accessible labels | Medium | Open |
-| #1561 | [A11Y] [Low] Heading hierarchy improvements needed | Low | Open |
-| #1566 | [A11Y] [Medium] Clickable divs missing keyboard accessibility in chart components | Medium | Open |
-| #1567 | [A11Y] [Low] Avatar images missing descriptive alt text in distribution charts | Low | Open |
+| Issue # | Title | WCAG Level | Severity | Status |
+|---------|-------|------------|----------|--------|
+| [#1559](https://github.com/bdougie/contributor.info/issues/1559) | Images missing alt text in workspace components | A | High | Open |
+| [#1560](https://github.com/bdougie/contributor.info/issues/1560) | Form inputs missing accessible labels | A | Medium | Open |
+| [#1561](https://github.com/bdougie/contributor.info/issues/1561) | Heading hierarchy improvements needed | A | Low | Open |
+| [#1566](https://github.com/bdougie/contributor.info/issues/1566) | Clickable divs missing keyboard accessibility in chart components | A | Medium | Open |
+| [#1567](https://github.com/bdougie/contributor.info/issues/1567) | Avatar images missing descriptive alt text in distribution charts | A | Low | Open |
+| [#1570](https://github.com/bdougie/contributor.info/issues/1570) | Color contrast concerns in chart overlays | AA | Medium | Open |
 
 ## Scan Findings
 
@@ -70,15 +70,16 @@
 
 ### Category 4: Color Contrast (WCAG AA)
 
-**Status:** Review Recommended
+**Status:** Tracked in Issue #1570
 
-**Potential Concerns:**
+**Concerns Identified:**
 - Chart bar overlays with text that changes color based on bar width (e.g., `text-white` when bar > 80%)
 - Low opacity elements (e.g., `opacity: 0.6` on gray squares in contribution charts)
 
-**Files to Review:**
-- `src/components/features/workspace/charts/AssigneeDistributionChartOptimized.tsx` (line ~249)
+**Files Affected:**
+- `src/components/features/workspace/charts/AssigneeDistributionChartOptimized.tsx` (line ~259)
 - `src/components/features/workspace/charts/ReviewerDistributionChart.tsx` (line ~358)
+- `src/components/features/workspace/charts/PRAuthorStatusChart.tsx` (line ~395)
 - `src/components/features/activity/contributions.tsx` (gray squares with opacity 0.6)
 
 ### Category 5: Semantic HTML (WCAG A)
@@ -144,13 +145,13 @@
 ### Medium Priority
 2. **Add keyboard accessibility to chart rows** (Issue #1566) - Add `tabIndex`, `role`, `onKeyDown` to clickable divs
 3. **Label form inputs** (Issue #1560) - Associate labels with all form inputs
+4. **Fix color contrast in chart overlays** (Issue #1570) - Ensure text contrast ratio meets 4.5:1 minimum
 
 ### Low Priority
-4. **Improve avatar alt text** (Issue #1567) - Add contextual information to avatar alt text
-5. **Review heading hierarchy** (Issue #1561) - Ensure heading levels don't skip
+5. **Improve avatar alt text** (Issue #1567) - Add contextual information to avatar alt text
+6. **Review heading hierarchy** (Issue #1561) - Ensure heading levels don't skip
 
 ### Future Considerations
-6. **Color contrast audit** - Manual testing with contrast checkers recommended for chart elements
 7. **Screen reader testing** - Manual testing with NVDA/VoiceOver for chart navigation
 
 ## Testing Tools Used
@@ -166,7 +167,7 @@
 ## Next Steps
 
 1. Address High severity issues first (Issue #1559)
-2. Follow up with Medium severity issues (#1566, #1560)
+2. Follow up with Medium severity issues (#1566, #1560, #1570)
 3. Schedule manual screen reader testing after fixes
 4. Run Lighthouse accessibility audit after fixes
 
