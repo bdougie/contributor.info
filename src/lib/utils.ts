@@ -101,24 +101,42 @@ export function calculateLotteryFactor(
   // Use the provided time range
   const daysAgo = new Date();
   daysAgo.setDate(daysAgo.getDate() - parseInt(timeRange));
+  const daysAgoTimestamp = daysAgo.getTime();
 
-  // Filter by time range and optionally by bot status
-  const recentPRs = prs.filter((pr) => {
-    const isRecent = new Date(pr.created_at) > daysAgo;
-    const isBot = detectBot({ githubUser: pr.user }).isBot;
-
-    // If includeBots is false, filter out bots
-    if (!includeBots && isBot) {
-      return false;
-    }
-
-    return isRecent;
-  });
+  // Return empty result if date is invalid (matching original behavior where filter returned empty)
+  if (isNaN(daysAgoTimestamp)) {
+    return {
+      topContributorsCount: 2,
+      totalContributors: 0,
+      topContributorsPercentage: 0,
+      contributors: [],
+      riskLevel: 'Low',
+    };
+  }
 
   // Count PRs per contributor and collect their recent PRs
   const contributorMap = new Map<string, ContributorStats>();
+  let totalPRs = 0;
 
-  recentPRs.forEach((pr) => {
+  for (let i = 0; i < prs.length; i++) {
+    const pr = prs[i];
+    const prTimestamp = Date.parse(pr.created_at);
+
+    // Optimization: Check recency first to short-circuit
+    // Also skip invalid dates (NaN) to match original behavior
+    if (isNaN(prTimestamp) || prTimestamp <= daysAgoTimestamp) {
+      continue;
+    }
+
+    // Optimization: Check bot status only if recent
+    if (!includeBots) {
+      if (detectBot({ githubUser: pr.user }).isBot) {
+        continue;
+      }
+    }
+
+    totalPRs++;
+
     const existing = contributorMap.get(pr.user.login);
     if (existing) {
       existing.pullRequests += 1;
@@ -139,10 +157,9 @@ export function calculateLotteryFactor(
         organizations: pr.organizations,
       });
     }
-  });
+  }
 
   // Calculate percentages and sort by contribution count
-  const totalPRs = recentPRs.length;
   const contributors = Array.from(contributorMap.values())
     .map((contributor) => ({
       ...contributor,
