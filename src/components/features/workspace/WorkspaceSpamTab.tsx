@@ -133,16 +133,28 @@ export function WorkspaceSpamTab({
               <CardDescription>Distribution</CardDescription>
               <div className="grid grid-cols-2 gap-1 mt-1">
                 {[
-                  { label: 'clean', value: stats.distribution.legitimate, variant: 'default' as const },
-                  { label: 'warn', value: stats.distribution.warning, variant: 'secondary' as const },
-                  { label: 'likely', value: stats.distribution.likelySpam, variant: 'secondary' as const },
-                  { label: 'spam', value: stats.distribution.definiteSpam, variant: 'destructive' as const },
+                  {
+                    label: 'clean',
+                    value: stats.distribution.legitimate,
+                    variant: 'default' as const,
+                  },
+                  {
+                    label: 'warn',
+                    value: stats.distribution.warning,
+                    variant: 'secondary' as const,
+                  },
+                  {
+                    label: 'likely',
+                    value: stats.distribution.likelySpam,
+                    variant: 'secondary' as const,
+                  },
+                  {
+                    label: 'spam',
+                    value: stats.distribution.definiteSpam,
+                    variant: 'destructive' as const,
+                  },
                 ].map((item) => (
-                  <Badge
-                    key={item.label}
-                    variant="outline"
-                    className="text-xs justify-center"
-                  >
+                  <Badge key={item.label} variant="outline" className="text-xs justify-center">
                     {item.value} {item.label}
                   </Badge>
                 ))}
@@ -307,9 +319,9 @@ export function WorkspaceSpamTab({
                                 size="sm"
                                 onClick={() => handleMarkAsSpam(pr)}
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                title="Mark as spam"
+                                aria-label={`Mark PR #${pr.number} as spam`}
                               >
-                                <X className="h-4 w-4" />
+                                <X className="h-4 w-4" aria-hidden="true" />
                               </Button>
                             )}
                             {pr.is_spam && (
@@ -318,9 +330,9 @@ export function WorkspaceSpamTab({
                                 size="sm"
                                 onClick={() => handleMarkAsLegitimate(pr)}
                                 className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                                title="Mark as legitimate"
+                                aria-label={`Mark PR #${pr.number} as legitimate`}
                               >
-                                <Check className="h-4 w-4" />
+                                <Check className="h-4 w-4" aria-hidden="true" />
                               </Button>
                             )}
                           </div>

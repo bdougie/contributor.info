@@ -181,6 +181,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="colleague@example.com"
                 required
+                aria-required="true"
                 disabled={!canInviteMore}
               />
               <p className="text-xs text-muted-foreground">

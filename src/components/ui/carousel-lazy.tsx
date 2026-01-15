@@ -62,18 +62,19 @@ export default function CarouselLazy({ workspaces }: CarouselLazyProps) {
         <CarouselNext className="-right-12 hidden sm:flex" />
       </Carousel>
       {/* Clickable dots indicator */}
-      <div className="flex justify-center mt-4 gap-2">
-        {workspaces.map((_, index) => (
+      <div className="flex justify-center mt-4 gap-2" aria-label="Workspace carousel navigation">
+        {workspaces.map((workspace, index) => (
           <button
             key={index}
             onClick={() => scrollTo(index)}
             className={cn(
-              'h-2 w-2 rounded-full transition-all',
+              'h-2 w-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               current === index + 1
                 ? 'bg-primary w-6'
                 : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
             )}
-            aria-label={`Go to workspace ${index + 1}`}
+            aria-label={`Go to workspace ${workspace.name || index + 1}`}
+            aria-current={current === index + 1 ? 'true' : undefined}
           />
         ))}
       </div>

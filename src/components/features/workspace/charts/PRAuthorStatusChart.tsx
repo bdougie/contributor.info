@@ -291,8 +291,18 @@ export function PRAuthorStatusChart({
               return (
                 <div
                   key={author.username}
-                  className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                  className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   onClick={() => handleAuthorClick(author)}
+                  onKeyDown={(e) => {
+                    if (e.currentTarget !== e.target) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAuthorClick(author);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select ${author.username}, ${author.totalOpenPRs} open PRs`}
                 >
                   <div className="flex items-center gap-3">
                     {/* Avatar */}
@@ -320,7 +330,7 @@ export function PRAuthorStatusChart({
                             author.avatar_url ||
                             `https://github.com/${encodeURIComponent(author.username)}.png`
                           }
-                          alt={author.username}
+                          alt={`${author.username}'s avatar - ${author.totalOpenPRs} open PRs`}
                           className="h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all"
                           onError={(e) => {
                             e.currentTarget.src = `https://github.com/${encodeURIComponent(author.username)}.png`;
@@ -414,9 +424,9 @@ export function PRAuthorStatusChart({
                           <span
                             className={cn(
                               'text-xs font-medium',
-                              // Use contrasting color when bar is more than 80% width
-                              author.totalOpenPRs / maxCount > 0.8
-                                ? 'text-white'
+                              // Use contrasting color when bar is more than 60% width for better accessibility
+                              author.totalOpenPRs / maxCount > 0.6
+                                ? 'text-white dark:text-black'
                                 : 'text-foreground'
                             )}
                           >

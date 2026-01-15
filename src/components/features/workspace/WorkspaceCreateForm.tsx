@@ -102,6 +102,8 @@ export function WorkspaceCreateForm({
           value={formData.name}
           onChange={(e) => handleInputChange('name', e.target.value)}
           disabled={loading}
+          required
+          aria-required="true"
           aria-invalid={!!validationErrors.name}
           aria-describedby={validationErrors.name ? 'name-error' : undefined}
         />
@@ -183,16 +185,14 @@ export function WorkspaceCreateForm({
 
       <div className="flex gap-3 pt-4">
         <Button type="submit" disabled={loading || !formData.name.trim()} className="flex-1">
-          {loading ? (
+          {loading && (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               {mode === 'create' ? 'Creating...' : 'Saving...'}
             </>
-          ) : mode === 'create' ? (
-            'Create Workspace'
-          ) : (
-            'Save Changes'
           )}
+          {!loading && mode === 'create' && 'Create Workspace'}
+          {!loading && mode !== 'create' && 'Save Changes'}
         </Button>
         {onCancel && (
           <Button

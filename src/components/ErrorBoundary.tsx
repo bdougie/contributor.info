@@ -78,6 +78,8 @@ export class ErrorBoundary extends Component<Props, State> {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
+                  focusable="false"
                 >
                   <path
                     strokeLinecap="round"
@@ -146,6 +148,8 @@ export const ErrorFallback: React.FC<{
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
+            focusable="false"
           >
             <path
               strokeLinecap="round"

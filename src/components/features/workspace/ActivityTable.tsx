@@ -31,6 +31,22 @@ export interface ActivityTableProps {
 type SortField = 'created_at' | 'type' | 'author' | 'repository';
 type SortOrder = 'asc' | 'desc';
 
+// Helper functions to avoid nested ternaries
+function getAriaSortValue(
+  sortField: SortField,
+  field: SortField,
+  sortOrder: SortOrder
+): 'ascending' | 'descending' | undefined {
+  if (sortField !== field) return undefined;
+  return sortOrder === 'asc' ? 'ascending' : 'descending';
+}
+
+function getSortStatusText(sortField: SortField, field: SortField, sortOrder: SortOrder): string {
+  if (sortField !== field) return ', click to sort';
+  const direction = sortOrder === 'asc' ? 'ascending' : 'descending';
+  return `, sorted ${direction}`;
+}
+
 // Memoized row component to isolate hooks and prevent reconciliation issues with virtualization
 interface ActivityRowProps {
   activity: ActivityItem;
@@ -88,11 +104,12 @@ const ActivityRow = memo(function ActivityRow({
         height: `${virtualItemSize}px`,
         transform: `translateY(${virtualItemStart}px)`,
       }}
+      role="row"
     >
       <div className="flex items-center px-2 sm:px-4 py-2 border-b min-w-[1100px]">
         <div className="flex items-center gap-3 w-full">
           {/* Type */}
-          <div className="flex-shrink-0 w-16 sm:w-24">
+          <div className="flex-shrink-0 w-16 sm:w-24" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
@@ -115,7 +132,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Activity */}
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1 min-w-[250px]" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 {activity.url ? (
@@ -143,7 +160,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Author */}
-          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
+          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2" role="cell">
             <ContributorHoverCard contributor={contributorStats}>
               <a
                 href={`https://github.com/${activity.author.username}`}
@@ -170,7 +187,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Repository */}
-          <div className="hidden md:block flex-shrink-0 w-44">
+          <div className="hidden md:block flex-shrink-0 w-44" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <a
@@ -190,7 +207,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Status - always render Tooltip to maintain consistent hook count */}
-          <div className="hidden sm:block flex-shrink-0 w-36">
+          <div className="hidden sm:block flex-shrink-0 w-36" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -229,7 +246,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Date */}
-          <div className="flex-shrink-0 w-44">
+          <div className="flex-shrink-0 w-44" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <p className="text-sm text-muted-foreground">
@@ -246,18 +263,22 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Link */}
-          <div className="w-8 sm:w-12">
+          <div className="w-8 sm:w-12" role="cell">
             {activity.url ? (
               <a
                 href={activity.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+                aria-label={`Open ${activity.title} in new tab`}
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
               </a>
             ) : (
-              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
+              <span
+                className="text-muted-foreground/30 inline-flex items-center justify-center"
+                aria-hidden="true"
+              >
                 <ExternalLink className="h-4 w-4" />
               </span>
             )}
@@ -381,7 +402,12 @@ export function ActivityTable({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div
+        className="flex items-center justify-center p-8"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
         <div className="text-muted-foreground">Loading activities...</div>
       </div>
     );
@@ -392,17 +418,24 @@ export function ActivityTable({
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
           <Input
             placeholder="Search activities..."
+            aria-label="Search activities"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 min-h-[44px]"
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
-            <SelectValue />
+          <SelectTrigger
+            className="w-full sm:w-40 min-h-[44px]"
+            aria-label="Filter by activity type"
+          >
+            <SelectValue placeholder="Filter type" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
@@ -418,12 +451,16 @@ export function ActivityTable({
       </div>
 
       {/* Table with virtualization */}
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-md border overflow-x-auto" role="table" aria-label="Activity feed">
         {/* Table Header */}
-        <div className="border-b bg-muted/50 min-w-[1100px]">
-          <div className="flex items-center px-4 py-3">
+        <div className="border-b bg-muted/50 min-w-[1100px]" role="rowgroup">
+          <div className="flex items-center px-4 py-3" role="row">
             <div className="flex items-center gap-3 w-full">
-              <div className="flex-shrink-0 w-16 sm:w-24">
+              <div
+                className="flex-shrink-0 w-16 sm:w-24"
+                role="columnheader"
+                aria-sort={getAriaSortValue(sortField, 'type', sortOrder)}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -432,12 +469,17 @@ export function ActivityTable({
                 >
                   Type
                   {renderSortIcon('type')}
+                  <span className="sr-only">{getSortStatusText(sortField, 'type', sortOrder)}</span>
                 </Button>
               </div>
-              <div className="flex-1 min-w-[250px]">
+              <div className="flex-1 min-w-[250px]" role="columnheader">
                 <span className="font-medium text-sm">Activity</span>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-40">
+              <div
+                className="hidden sm:block flex-shrink-0 w-40"
+                role="columnheader"
+                aria-sort={getAriaSortValue(sortField, 'author', sortOrder)}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -446,9 +488,16 @@ export function ActivityTable({
                 >
                   Author
                   {renderSortIcon('author')}
+                  <span className="sr-only">
+                    {getSortStatusText(sortField, 'author', sortOrder)}
+                  </span>
                 </Button>
               </div>
-              <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
+              <div
+                className="hidden md:block flex-shrink-0 min-w-[8rem]"
+                role="columnheader"
+                aria-sort={getAriaSortValue(sortField, 'repository', sortOrder)}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -457,10 +506,19 @@ export function ActivityTable({
                 >
                   Repo
                   {renderSortIcon('repository')}
+                  <span className="sr-only">
+                    {getSortStatusText(sortField, 'repository', sortOrder)}
+                  </span>
                 </Button>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-36">Status</div>
-              <div className="flex-shrink-0 w-44">
+              <div className="hidden sm:block flex-shrink-0 w-36" role="columnheader">
+                Status
+              </div>
+              <div
+                className="flex-shrink-0 w-44"
+                role="columnheader"
+                aria-sort={getAriaSortValue(sortField, 'created_at', sortOrder)}
+              >
                 <Button
                   variant="ghost"
                   size="sm"
@@ -469,16 +527,23 @@ export function ActivityTable({
                 >
                   Date
                   {renderSortIcon('created_at')}
+                  <span className="sr-only">
+                    {getSortStatusText(sortField, 'created_at', sortOrder)}
+                  </span>
                 </Button>
               </div>
-              <div className="w-8 sm:w-12"></div>
+              <div className="w-8 sm:w-12" role="columnheader">
+                <span className="sr-only">Link</span>
+              </div>
             </div>
           </div>
         </div>
         {/* Table Body */}
-        <div>
+        <div role="rowgroup">
           {paginatedActivities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No activities found</div>
+            <div className="text-center py-8 text-muted-foreground" role="row">
+              <span role="cell">No activities found</span>
+            </div>
           ) : (
             <div
               ref={parentRef}
@@ -518,7 +583,12 @@ export function ActivityTable({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          <p
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             Showing {page * pageSize + 1} to{' '}
             {Math.min((page + 1) * pageSize, processedActivities.length)} of{' '}
             {processedActivities.length} activities
