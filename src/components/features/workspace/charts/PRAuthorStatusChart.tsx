@@ -294,6 +294,7 @@ export function PRAuthorStatusChart({
                   className="group cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   onClick={() => handleAuthorClick(author)}
                   onKeyDown={(e) => {
+                    if (e.currentTarget !== e.target) return;
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       handleAuthorClick(author);

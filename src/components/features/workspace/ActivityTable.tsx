@@ -104,11 +104,12 @@ const ActivityRow = memo(function ActivityRow({
         height: `${virtualItemSize}px`,
         transform: `translateY(${virtualItemStart}px)`,
       }}
+      role="row"
     >
       <div className="flex items-center px-2 sm:px-4 py-2 border-b min-w-[1100px]">
         <div className="flex items-center gap-3 w-full">
           {/* Type */}
-          <div className="flex-shrink-0 w-16 sm:w-24">
+          <div className="flex-shrink-0 w-16 sm:w-24" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
@@ -131,7 +132,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Activity */}
-          <div className="flex-1 min-w-[250px]">
+          <div className="flex-1 min-w-[250px]" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 {activity.url ? (
@@ -159,7 +160,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Author */}
-          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2">
+          <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2" role="cell">
             <ContributorHoverCard contributor={contributorStats}>
               <a
                 href={`https://github.com/${activity.author.username}`}
@@ -186,7 +187,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Repository */}
-          <div className="hidden md:block flex-shrink-0 w-44">
+          <div className="hidden md:block flex-shrink-0 w-44" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <a
@@ -206,7 +207,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Status - always render Tooltip to maintain consistent hook count */}
-          <div className="hidden sm:block flex-shrink-0 w-36">
+          <div className="hidden sm:block flex-shrink-0 w-36" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -245,7 +246,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Date */}
-          <div className="flex-shrink-0 w-44">
+          <div className="flex-shrink-0 w-44" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
                 <p className="text-sm text-muted-foreground">
@@ -262,7 +263,7 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Link */}
-          <div className="w-8 sm:w-12">
+          <div className="w-8 sm:w-12" role="cell">
             {activity.url ? (
               <a
                 href={activity.url}
