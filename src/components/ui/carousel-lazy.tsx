@@ -62,11 +62,7 @@ export default function CarouselLazy({ workspaces }: CarouselLazyProps) {
         <CarouselNext className="-right-12 hidden sm:flex" />
       </Carousel>
       {/* Clickable dots indicator */}
-      <div
-        className="flex justify-center mt-4 gap-2"
-        role="tablist"
-        aria-label="Workspace carousel navigation"
-      >
+      <div className="flex justify-center mt-4 gap-2" aria-label="Workspace carousel navigation">
         {workspaces.map((workspace, index) => (
           <button
             key={index}
@@ -79,8 +75,6 @@ export default function CarouselLazy({ workspaces }: CarouselLazyProps) {
             )}
             aria-label={`Go to workspace ${workspace.name || index + 1}`}
             aria-current={current === index + 1 ? 'true' : undefined}
-            role="tab"
-            aria-selected={current === index + 1}
           />
         ))}
       </div>
