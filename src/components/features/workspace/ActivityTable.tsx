@@ -232,6 +232,7 @@ const ActivityRow = memo(function ActivityRow({
             </Tooltip>
           </div>
 
+          {/* accessibility-fix: issue-1573 - External link missing accessible name */}
           {/* Link */}
           <div className="w-8 sm:w-12">
             {activity.url ? (
@@ -240,15 +241,17 @@ const ActivityRow = memo(function ActivityRow({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer inline-flex items-center justify-center"
+                aria-label={`Open ${activity.title} in new tab`}
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
               </a>
             ) : (
-              <span className="text-muted-foreground/30 inline-flex items-center justify-center">
+              <span className="text-muted-foreground/30 inline-flex items-center justify-center" aria-hidden="true">
                 <ExternalLink className="h-4 w-4" />
               </span>
             )}
           </div>
+          {/* /accessibility-fix */}
         </div>
       </div>
     </div>
@@ -416,31 +419,43 @@ export function ActivityTable({
     );
   };
 
+  // accessibility-fix: issue-1577 - Loading state not announced to screen readers
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div
+        className="flex items-center justify-center p-8"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
         <div className="text-muted-foreground">Loading activities...</div>
       </div>
     );
   }
+  // /accessibility-fix
 
   return (
     <div className={cn('space-y-4 w-full', className)} data-testid="activity-table">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
+        {/* accessibility-fix: issue-1574 - Search input missing associated label */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             placeholder="Search activities..."
+            aria-label="Search activities"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 min-h-[44px]"
           />
         </div>
+        {/* /accessibility-fix */}
+        {/* accessibility-fix: issue-1578 - Select component missing aria-label */}
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
-            <SelectValue />
+          <SelectTrigger className="w-full sm:w-40 min-h-[44px]" aria-label="Filter by activity type">
+            <SelectValue placeholder="Filter type" />
           </SelectTrigger>
+          {/* /accessibility-fix */}
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="pr">Pull Requests</SelectItem>
@@ -454,13 +469,15 @@ export function ActivityTable({
         </Select>
       </div>
 
+      {/* accessibility-fix: issue-1575 - Data table using divs instead of semantic table markup */}
+      {/* accessibility-fix: issue-1576 - Sort button state not announced to screen readers */}
       {/* Table with virtualization */}
-      <div className="rounded-md border overflow-x-auto">
+      <div className="rounded-md border overflow-x-auto" role="table" aria-label="Activity feed">
         {/* Table Header */}
-        <div className="border-b bg-muted/50 min-w-[1100px]">
-          <div className="flex items-center px-4 py-3">
+        <div className="border-b bg-muted/50 min-w-[1100px]" role="rowgroup">
+          <div className="flex items-center px-4 py-3" role="row">
             <div className="flex items-center gap-3 w-full">
-              <div className="flex-shrink-0 w-16 sm:w-24">
+              <div className="flex-shrink-0 w-16 sm:w-24" role="columnheader" aria-sort={sortField === 'type' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -471,10 +488,10 @@ export function ActivityTable({
                   {renderSortIcon('type')}
                 </Button>
               </div>
-              <div className="flex-1 min-w-[250px]">
+              <div className="flex-1 min-w-[250px]" role="columnheader">
                 <span className="font-medium text-sm">Activity</span>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-40">
+              <div className="hidden sm:block flex-shrink-0 w-40" role="columnheader" aria-sort={sortField === 'author' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -485,7 +502,7 @@ export function ActivityTable({
                   {renderSortIcon('author')}
                 </Button>
               </div>
-              <div className="hidden md:block flex-shrink-0 min-w-[8rem]">
+              <div className="hidden md:block flex-shrink-0 min-w-[8rem]" role="columnheader" aria-sort={sortField === 'repository' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -496,8 +513,8 @@ export function ActivityTable({
                   {renderSortIcon('repository')}
                 </Button>
               </div>
-              <div className="hidden sm:block flex-shrink-0 w-36">Status</div>
-              <div className="flex-shrink-0 w-44">
+              <div className="hidden sm:block flex-shrink-0 w-36" role="columnheader">Status</div>
+              <div className="flex-shrink-0 w-44" role="columnheader" aria-sort={sortField === 'created_at' ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -508,10 +525,11 @@ export function ActivityTable({
                   {renderSortIcon('created_at')}
                 </Button>
               </div>
-              <div className="w-8 sm:w-12"></div>
+              <div className="w-8 sm:w-12" role="columnheader" aria-label="Actions"></div>
             </div>
           </div>
         </div>
+        {/* /accessibility-fix */}
         {/* Table Body */}
         <div>
           {paginatedActivities.length === 0 ? (
@@ -555,11 +573,18 @@ export function ActivityTable({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+          {/* accessibility-fix: issue-1579 - Pagination results announcement missing */}
+          <p
+            className="text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             Showing {page * pageSize + 1} to{' '}
             {Math.min((page + 1) * pageSize, processedActivities.length)} of{' '}
             {processedActivities.length} activities
           </p>
+          {/* /accessibility-fix */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
