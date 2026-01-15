@@ -332,11 +332,11 @@ export function WorkspaceBackfillManager({
               checked={selectedRepos.size === repositories.length}
               onChange={handleSelectAll}
               className="h-4 w-4 rounded border-gray-300"
-              aria-label="Select all repositories for backfill"
             />
-            <span className="text-sm text-muted-foreground">
+            <label htmlFor="select-all-repos" className="text-sm text-muted-foreground cursor-pointer">
+              <span className="sr-only">Select all repositories for backfill. </span>
               {selectedRepos.size} of {repositories.length} selected
-            </span>
+            </label>
           </div>
 
           <Button
