@@ -110,15 +110,16 @@ export const UPlotChartDemo: React.FC = () => {
             Regenerate Data
           </button>
 
-          <label className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <input
               type="checkbox"
+              id="responsive-toggle"
               checked={isResponsive}
               onChange={(e) => setIsResponsive(e.target.checked)}
               className="rounded"
             />
-            <span>Responsive</span>
-          </label>
+            <label htmlFor="responsive-toggle">Responsive</label>
+          </div>
         </div>
       </div>
 

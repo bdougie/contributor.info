@@ -342,8 +342,9 @@ export function SyncTrackedRepos() {
               const isSelected = selectedRepos.has(repo.repository_id);
 
               return (
-                <div
+                <label
                   key={repo.repository_id}
+                  htmlFor={`repo-${repo.repository_id}`}
                   className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
                     isSelected ? 'bg-muted border-primary' : 'hover:bg-muted/50'
                   }`}
@@ -352,13 +353,18 @@ export function SyncTrackedRepos() {
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
+                      id={`repo-${repo.repository_id}`}
                       checked={isSelected}
-                      onChange={() => {}}
+                      onChange={() => toggleRepoSelection(repo.repository_id)}
                       className="h-4 w-4"
+                      aria-describedby={`repo-desc-${repo.repository_id}`}
                     />
                     <div>
                       <div className="font-medium">{fullName}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div
+                        id={`repo-desc-${repo.repository_id}`}
+                        className="text-sm text-muted-foreground"
+                      >
                         Last sync: {formatLastSync(repo.last_sync_at)}
                       </div>
                     </div>
@@ -370,7 +376,7 @@ export function SyncTrackedRepos() {
                   >
                     {status.label}
                   </Badge>
-                </div>
+                </label>
               );
             })}
         </div>
