@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.30.3](https://github.com/bdougie/contributor.info/compare/v4.30.2...v4.30.3) (2026-01-15)
+
+
+### 🐛 Bug Fixes
+
+* improve WCAG accessibility across components ([#1566](https://github.com/bdougie/contributor.info/issues/1566)-1588) ([#1589](https://github.com/bdougie/contributor.info/issues/1589)) ([37a53a8](https://github.com/bdougie/contributor.info/commit/37a53a81879ee5c2063a21a9b5e44957ae58ac24)), closes [#1566-1588](https://github.com/bdougie/contributor.info/issues/1566-1588) [#1566-1588](https://github.com/bdougie/contributor.info/issues/1566-1588) [#1593](https://github.com/bdougie/contributor.info/issues/1593)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([cc7e610](https://github.com/bdougie/contributor.info/commit/cc7e610256c73a7d6bb0ad7756c565c7c0e83f3a))
+
 ## [4.30.2](https://github.com/bdougie/contributor.info/compare/v4.30.1...v4.30.2) (2026-01-14)
 
 
