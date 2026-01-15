@@ -328,8 +328,17 @@ export function ReviewerDistributionChart({
               return (
                 <div
                   key={reviewer.username}
-                  className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                  className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   onClick={() => handleReviewerClick(reviewer)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleReviewerClick(reviewer);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select ${reviewer.username}, ${reviewer.totalPRs} PRs reviewed`}
                 >
                   {/* Avatar */}
                   {(() => {
@@ -352,7 +361,7 @@ export function ReviewerDistributionChart({
                     const avatarImg = (
                       <img
                         src={reviewer.avatar_url}
-                        alt={reviewer.username}
+                        alt={`${reviewer.username}'s avatar - ${reviewer.totalPRs} PRs reviewed`}
                         className={
                           githubUrl
                             ? 'h-8 w-8 rounded-full hover:ring-2 hover:ring-primary transition-all'
@@ -424,8 +433,10 @@ export function ReviewerDistributionChart({
                         <span
                           className={cn(
                             'text-xs font-medium',
-                            // Use contrasting color when bar is more than 80% width
-                            count / maxCount > 0.8 ? 'text-white' : 'text-foreground'
+                            // Use contrasting color when bar is more than 60% width for better accessibility
+                            count / maxCount > 0.6
+                              ? 'text-white dark:text-black'
+                              : 'text-foreground'
                           )}
                         >
                           {showPercentage ? `${reviewer.percentage.toFixed(1)}%` : count}

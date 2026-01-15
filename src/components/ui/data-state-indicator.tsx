@@ -139,7 +139,13 @@ export function DataStateIndicator({
         <div className="flex items-start space-x-3">
           <div className={cn('mt-0.5', indicator.color)}>{indicator.icon}</div>
           <div className="flex-1">
-            <h4 className={cn('text-sm font-medium', indicator.color)}>{indicator.title}</h4>
+            <div
+              role="heading"
+              aria-level={4}
+              className={cn('text-sm font-medium', indicator.color)}
+            >
+              {indicator.title}
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">{indicator.description}</p>
             {metadata?.dataCompleteness !== undefined && metadata.dataCompleteness < 100 && (
               <div className="mt-2">
@@ -157,26 +163,25 @@ export function DataStateIndicator({
             )}
           </div>
         </div>
-        {(onRefresh || (metadata?.owner && metadata?.repo)) &&
-          status !== 'pending' &&
-          (metadata?.owner && metadata?.repo ? (
-            <UnifiedSyncButton
-              owner={metadata.owner}
-              repo={metadata.repo}
-              repositoryId={metadata.repositoryId}
-              lastUpdated={metadata.lastUpdate}
-              variant="ghost"
-              size="sm"
-              className="ml-4"
-              showLabel={true}
-              autoTriggerOnLoad={false}
-            />
-          ) : onRefresh ? (
-            <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-4">
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </Button>
-          ) : null)}
+        {status !== 'pending' && metadata?.owner && metadata?.repo && (
+          <UnifiedSyncButton
+            owner={metadata.owner}
+            repo={metadata.repo}
+            repositoryId={metadata.repositoryId}
+            lastUpdated={metadata.lastUpdate}
+            variant="ghost"
+            size="sm"
+            className="ml-4"
+            showLabel={true}
+            autoTriggerOnLoad={false}
+          />
+        )}
+        {status !== 'pending' && !(metadata?.owner && metadata?.repo) && onRefresh && (
+          <Button variant="ghost" size="sm" onClick={onRefresh} className="ml-4">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+        )}
       </div>
       {status === 'partial_data' &&
         metadata?.dataCompleteness !== undefined &&

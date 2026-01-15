@@ -190,7 +190,7 @@ export function AssigneeDistributionChartOptimized({
                 const avatarImg = (
                   <img
                     src={assignee.avatar_url}
-                    alt={assignee.login}
+                    alt={`${assignee.login}'s avatar - ${assignee.issue_count} assigned issues`}
                     className={avatarClassName}
                     loading="lazy"
                   />
@@ -226,8 +226,17 @@ export function AssigneeDistributionChartOptimized({
               return (
                 <div
                   key={assignee.login}
-                  className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors"
+                  className="group flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   onClick={() => handleAssigneeClick(assignee.login)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleAssigneeClick(assignee.login);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select ${assignee.login}, ${assignee.issue_count} assigned issues`}
                 >
                   {/* Avatar */}
                   {renderAvatar()}
@@ -270,8 +279,8 @@ export function AssigneeDistributionChartOptimized({
                         <span
                           className={cn(
                             'text-xs font-medium',
-                            // Use contrasting color when bar is more than 80% width
-                            assignee.issue_count / maxCount > 0.8
+                            // Use contrasting color when bar is more than 60% width for better accessibility
+                            assignee.issue_count / maxCount > 0.6
                               ? 'text-white dark:text-black'
                               : 'text-foreground'
                           )}

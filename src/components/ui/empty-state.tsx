@@ -23,8 +23,14 @@ export function EmptyState({ icon, title, description, action, className }: Empt
         className
       )}
     >
-      {icon && <div className="mb-2 text-muted-foreground">{icon}</div>}
-      <h3 className="font-semibold text-foreground">{title}</h3>
+      {icon && (
+        <div className="mb-2 text-muted-foreground" aria-hidden="true">
+          {icon}
+        </div>
+      )}
+      <div role="heading" aria-level={3} className="font-semibold text-foreground">
+        {title}
+      </div>
       {description && <p className="text-sm text-muted-foreground max-w-md">{description}</p>}
       {action && (
         <>
