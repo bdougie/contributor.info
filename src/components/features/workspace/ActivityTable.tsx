@@ -17,8 +17,7 @@ import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ActivityItem } from './AnalyticsDashboard';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
-import type { ContributorStats } from '@/lib/types';
-import { getRecentActivitiesForContributor } from '@/lib/workspace-hover-card-utils';
+import type { ContributorStats, RecentActivity } from '@/lib/types';
 import { TYPE_ICONS, TYPE_COLORS, STATUS_COLORS } from './components/activity-table-constants';
 
 export interface ActivityTableProps {
@@ -50,14 +49,14 @@ function getSortStatusText(sortField: SortField, field: SortField, sortOrder: So
 // Memoized row component to isolate hooks and prevent reconciliation issues with virtualization
 interface ActivityRowProps {
   activity: ActivityItem;
-  activities: ActivityItem[];
+  contributorStats: ContributorStats | undefined;
   virtualItemSize: number;
   virtualItemStart: number;
 }
 
 const ActivityRow = memo(function ActivityRow({
   activity,
-  activities,
+  contributorStats,
   virtualItemSize,
   virtualItemStart,
 }: ActivityRowProps) {
@@ -73,26 +72,14 @@ const ActivityRow = memo(function ActivityRow({
     }
   })();
 
-  // Build contributor stats for hover card
-  const contributorStats: ContributorStats = useMemo(() => {
-    const recentActivities = getRecentActivitiesForContributor(
-      activity.author.username,
-      activities
-    );
-    const contributorActivities = activities.filter(
-      (a) => a.author.username === activity.author.username
-    );
-    const pullRequestsCount = contributorActivities.filter((a) => a.type === 'pr').length;
-
-    return {
-      login: activity.author.username,
-      avatar_url:
-        activity.author.avatar_url || `https://github.com/${activity.author.username}.png`,
-      pullRequests: pullRequestsCount,
-      percentage: 0,
-      recentActivities,
-    };
-  }, [activities, activity.author.username, activity.author.avatar_url]);
+  // Use pre-calculated stats or fallback to minimal stats if not found
+  const stats: ContributorStats = contributorStats || {
+    login: activity.author.username,
+    avatar_url: activity.author.avatar_url || `https://github.com/${activity.author.username}.png`,
+    pullRequests: 0,
+    percentage: 0,
+    recentActivities: [],
+  };
 
   return (
     <div
@@ -161,7 +148,7 @@ const ActivityRow = memo(function ActivityRow({
 
           {/* Author */}
           <div className="hidden sm:flex flex-shrink-0 w-40 items-center gap-2" role="cell">
-            <ContributorHoverCard contributor={contributorStats}>
+            <ContributorHoverCard contributor={stats}>
               <a
                 href={`https://github.com/${activity.author.username}`}
                 target="_blank"
@@ -302,6 +289,56 @@ export function ActivityTable({
   const [page, setPage] = useState(0);
 
   const parentRef = useRef<HTMLDivElement>(null);
+
+  // Pre-calculate contributor stats efficiently (O(N) instead of O(N*M))
+  const contributorStatsMap = useMemo(() => {
+    const statsMap = new Map<string, ContributorStats>();
+    const activitiesByAuthor = new Map<string, ActivityItem[]>();
+
+    // 1. Group activities by author (Single Pass)
+    for (const activity of activities) {
+      const username = activity.author.username;
+      // Using lowercase for consistent key lookups if needed, but keeping it simple for now as per original logic which relied on exact match
+      const key = username;
+      if (!activitiesByAuthor.has(key)) {
+        activitiesByAuthor.set(key, []);
+      }
+      activitiesByAuthor.get(key)!.push(activity);
+    }
+
+    // 2. Process each author to build stats
+    for (const [username, userActivities] of activitiesByAuthor) {
+      // Sort by date descending
+      userActivities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // Get top 5 recent activities
+      const recentActivities: RecentActivity[] = userActivities.slice(0, 5).map(a => ({
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        created_at: a.created_at,
+        status: a.status,
+        repository: a.repository,
+        url: a.url
+      }));
+
+      // Calculate stats
+      const pullRequests = userActivities.filter(a => a.type === 'pr').length;
+
+      // Use the first activity to get avatar url
+      const avatar_url = userActivities[0].author.avatar_url || `https://github.com/${username}.png`;
+
+      statsMap.set(username, {
+        login: username,
+        avatar_url,
+        pullRequests,
+        percentage: 0, // Default as per original code
+        recentActivities
+      });
+    }
+
+    return statsMap;
+  }, [activities]);
 
   // Filter and sort activities
   const processedActivities = useMemo(() => {
@@ -568,7 +605,7 @@ export function ActivityTable({
                     <ActivityRow
                       key={`${activity.type}-${activity.id}`}
                       activity={activity}
-                      activities={activities}
+                      contributorStats={contributorStatsMap.get(activity.author.username)}
                       virtualItemSize={virtualItem.size}
                       virtualItemStart={virtualItem.start}
                     />
