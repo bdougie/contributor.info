@@ -305,6 +305,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                aria-hidden="true"
               >
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
                 <path d="m16 6-4-4-4 4" />
@@ -564,6 +565,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
+                                aria-hidden="true"
                               >
                                 <circle cx="18" cy="18" r="3" />
                                 <circle cx="6" cy="6" r="3" />
@@ -577,6 +579,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
+                                aria-hidden="true"
                               >
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
@@ -591,6 +594,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
+                                aria-hidden="true"
                               >
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
@@ -603,6 +607,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
+                                aria-hidden="true"
                               >
                                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                                 <polyline points="22 4 12 14.01 9 11.01" />
