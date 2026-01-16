@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.32.0](https://github.com/bdougie/contributor.info/compare/v4.31.3...v4.32.0) (2026-01-16)
+
+
+### ⚡ Performance Improvements
+
+* optimize activity table rendering performance ([#1572](https://github.com/bdougie/contributor.info/issues/1572)) ([320ea57](https://github.com/bdougie/contributor.info/commit/320ea57e167a0253ec664d81953107cb43ea1a13))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6534854](https://github.com/bdougie/contributor.info/commit/6534854403b3ad60055a71d50c17a6b496f57be9))
+
 ## [4.31.3](https://github.com/bdougie/contributor.info/compare/v4.31.2...v4.31.3) (2026-01-16)
 
 
