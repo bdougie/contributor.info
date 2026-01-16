@@ -3,9 +3,44 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useParams } from 'react-router';
+import { ChevronRight } from '@/components/ui/icon';
 
 interface RepoViewSkeletonProps {
   className?: string;
+}
+
+/**
+ * Static breadcrumbs that match the real Breadcrumbs component exactly
+ * Uses useParams to show actual owner/repo values - no CLS
+ */
+function StaticBreadcrumbs() {
+  const { owner, repo } = useParams();
+
+  return (
+    <nav aria-label="breadcrumb" className="hidden md:flex mb-4">
+      <ol className="flex flex-wrap items-center gap-1 break-words text-xs text-muted-foreground">
+        {/* Home */}
+        <li className="inline-flex items-center gap-1">
+          <span className="transition-colors hover:text-foreground">home</span>
+        </li>
+        <li role="presentation" aria-hidden="true" className="[&>svg]:size-3 opacity-50">
+          <ChevronRight />
+        </li>
+        {/* Owner */}
+        <li className="inline-flex items-center gap-1">
+          <span className="transition-colors hover:text-foreground">{owner || 'owner'}</span>
+        </li>
+        <li role="presentation" aria-hidden="true" className="[&>svg]:size-3 opacity-50">
+          <ChevronRight />
+        </li>
+        {/* Repo (current page) */}
+        <li className="inline-flex items-center gap-1">
+          <span className="font-normal text-muted-foreground">{repo || 'repo'}</span>
+        </li>
+      </ol>
+    </nav>
+  );
 }
 
 /**
@@ -65,10 +100,13 @@ function StaticSearchSection() {
 export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
   return (
     <div
-      className={cn('container mx-auto py-2 skeleton-container', className)}
+      className={cn('skeleton-container', className)}
       aria-label="Loading repository view..."
       aria-busy="true"
     >
+      {/* Breadcrumbs - static, uses URL params for pixel-perfect match */}
+      <StaticBreadcrumbs />
+
       {/* Search Bar Section - static, no DB dependency */}
       <StaticSearchSection />
 
