@@ -6,6 +6,7 @@
 import { env } from './env';
 
 let sentryLoaded = false;
+let sentryInitialized = false;
 let sentryLoadPromise: Promise<typeof import('@sentry/react')> | null = null;
 
 /**
@@ -13,6 +14,12 @@ let sentryLoadPromise: Promise<typeof import('@sentry/react')> | null = null;
  * This runs asynchronously and won't block the main thread
  */
 export async function lazyInitSentry() {
+  // Prevent duplicate initialization (guard against React StrictMode double-mounting)
+  if (sentryInitialized) {
+    return sentryLoadPromise;
+  }
+  sentryInitialized = true;
+
   // Skip in local environment for production builds
   // Allow in development for testing
   const isLocal = import.meta.env.PROD && window.location.hostname === 'localhost';
