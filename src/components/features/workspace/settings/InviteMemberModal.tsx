@@ -182,9 +182,10 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
                 placeholder="colleague@example.com"
                 required
                 aria-required="true"
+                aria-describedby="email-hint"
                 disabled={!canInviteMore}
               />
-              <p className="text-xs text-muted-foreground">
+              <p id="email-hint" className="text-xs text-muted-foreground">
                 We'll send an invitation email to this address. The invitation will expire in 7 days
                 if not accepted.
               </p>
