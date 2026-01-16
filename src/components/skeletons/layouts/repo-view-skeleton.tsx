@@ -1,39 +1,114 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useParams } from 'react-router';
+import { ChevronRight } from '@/components/ui/icon';
 
 interface RepoViewSkeletonProps {
   className?: string;
 }
 
 /**
+ * Static breadcrumbs that match the real Breadcrumbs component exactly
+ * Uses useParams to show actual owner/repo values - no CLS
+ */
+function StaticBreadcrumbs() {
+  const { owner, repo } = useParams();
+
+  return (
+    <nav aria-label="breadcrumb" className="hidden md:flex mb-4">
+      <ol className="flex flex-wrap items-center gap-1 break-words text-xs text-muted-foreground">
+        {/* Home */}
+        <li className="inline-flex items-center gap-1">
+          <span className="transition-colors hover:text-foreground">home</span>
+        </li>
+        <li role="presentation" aria-hidden="true" className="[&>svg]:size-3 opacity-50">
+          <ChevronRight />
+        </li>
+        {/* Owner */}
+        <li className="inline-flex items-center gap-1">
+          <span className="transition-colors hover:text-foreground">{owner || 'owner'}</span>
+        </li>
+        <li role="presentation" aria-hidden="true" className="[&>svg]:size-3 opacity-50">
+          <ChevronRight />
+        </li>
+        {/* Repo (current page) */}
+        <li className="inline-flex items-center gap-1">
+          <span className="font-normal text-muted-foreground">{repo || 'repo'}</span>
+        </li>
+      </ol>
+    </nav>
+  );
+}
+
+/**
+ * Static search section that renders immediately (no DB dependency)
+ * Shows real UI elements in disabled state rather than animated skeletons
+ */
+function StaticSearchSection() {
+  const exampleRepos = [
+    'continuedev/continue',
+    'argoproj/argo-cd',
+    'TanStack/table',
+    'vitejs/vite',
+    'etcd-io/etcd',
+    'better-auth/better-auth',
+  ];
+
+  return (
+    <Card className="mb-8">
+      <CardContent className="pt-6">
+        <div className="flex gap-4 mb-4">
+          <Input
+            disabled
+            placeholder="Search another repository (e.g., facebook/react)"
+            className="flex-1"
+          />
+          <Button disabled variant="default">
+            Search
+          </Button>
+        </div>
+        <div className="mt-4 w-full">
+          <div className="text-sm text-muted-foreground mb-2">Popular examples:</div>
+          <div className="flex flex-wrap gap-2">
+            {exampleRepos.map((repo) => (
+              <Button
+                key={repo}
+                variant="outline"
+                size="sm"
+                disabled
+                className="text-xs sm:text-sm"
+              >
+                {repo}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * RepoViewSkeleton component for displaying placeholder layout for repository view pages
  *
  * @param className - Additional CSS classes to apply
- * @returns A skeleton layout with search bar and main content areas
+ * @returns A skeleton layout with static search bar and loading content areas
  */
 export function RepoViewSkeleton({ className }: RepoViewSkeletonProps) {
   return (
     <div
-      className={cn('container mx-auto py-2 skeleton-container', className)}
+      className={cn('skeleton-container', className)}
       aria-label="Loading repository view..."
       aria-busy="true"
     >
-      {/* Search Bar Section */}
-      <Card className="mb-8 animate-pulse skeleton-optimized" aria-label="Loading search bar">
-        <CardContent className="pt-6">
-          <div className="flex gap-4 mb-4">
-            <Skeleton className="flex-1 h-10" />
-            <Skeleton className="w-24 h-10" />
-          </div>
-          {/* Example repos skeleton */}
-          <div className="flex flex-wrap gap-2" aria-label="Loading example repositories">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={`example-repo-${i}`} className="h-6 w-24" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Breadcrumbs - static, uses URL params for pixel-perfect match */}
+      <StaticBreadcrumbs />
+
+      {/* Search Bar Section - static, no DB dependency */}
+      <StaticSearchSection />
 
       {/* Main Content Section */}
       <div className="grid gap-8" aria-label="Loading main content">

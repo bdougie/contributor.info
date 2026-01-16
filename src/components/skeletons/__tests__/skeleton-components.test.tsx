@@ -18,7 +18,7 @@ describe('Skeleton Components', () => {
   describe('RepoViewSkeleton', () => {
     it('renders without crashing', () => {
       render(<RepoViewSkeleton />);
-      expect(document.querySelector('.container')).toBeInTheDocument();
+      expect(document.querySelector('.skeleton-container')).toBeInTheDocument();
     });
 
     it('renders with custom className', () => {

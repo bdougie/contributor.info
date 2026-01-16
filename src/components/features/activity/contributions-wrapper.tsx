@@ -28,6 +28,20 @@ const ContributionsChart = lazy(() => {
   return import('./contributions').then((module) => ({ default: module.default }));
 });
 
+/**
+ * Minimal skeleton that reserves space for the chart
+ * Height matches actual chart: 400px desktop, 280px mobile
+ */
+function ContributionsChartSkeleton() {
+  return (
+    <div
+      className="h-[280px] md:h-[400px] w-full animate-pulse rounded-lg bg-muted/30"
+      aria-label="Loading contributions chart..."
+      aria-busy="true"
+    />
+  );
+}
+
 export default function ContributionsWrapper() {
   const { owner, repo } = useParams();
 
@@ -50,13 +64,7 @@ export default function ContributionsWrapper() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          <Suspense
-            fallback={
-              <div className="h-[400px] w-full flex items-center justify-center">
-                <span className="text-muted-foreground">Loading chart...</span>
-              </div>
-            }
-          >
+          <Suspense fallback={<ContributionsChartSkeleton />}>
             <ContributionsChart />
           </Suspense>
         </CardContent>

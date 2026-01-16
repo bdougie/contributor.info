@@ -248,7 +248,7 @@ const PageSkeleton = () => {
   }
 
   // For repo routes, show the repo-specific skeleton that matches the actual layout
-  // This prevents layout mismatch jarring when RepoView loads
+  // MUST match Layout component's structure exactly for zero CLS
   if (isRepoRoute()) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -258,8 +258,11 @@ const PageSkeleton = () => {
             <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
           </div>
         </header>
-        <main className="flex-1 max-w-7xl mx-auto w-full px-4">
-          <RepoViewSkeleton />
+        {/* Match Layout's main structure exactly */}
+        <main className="flex-1 bg-muted/50 dark:bg-black focus:outline-none">
+          <div className="container px-4 py-6">
+            <RepoViewSkeleton />
+          </div>
         </main>
       </div>
     );
