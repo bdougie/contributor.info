@@ -131,16 +131,26 @@ async function verifyWebhookSignature(
     new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign'],
+    ['verify'],
   );
 
-  const signatureBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+  // Convert hex signature to Uint8Array
+  const hexToBytes = (hex: string) => {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    }
+    return bytes;
+  };
 
-  const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  const signatureBytes = hexToBytes(sigHashAlg);
 
-  return sigHashAlg === expectedSignature;
+  return await crypto.subtle.verify(
+    'HMAC',
+    key,
+    signatureBytes,
+    new TextEncoder().encode(body),
+  );
 }
 
 serve(async (req) => {
