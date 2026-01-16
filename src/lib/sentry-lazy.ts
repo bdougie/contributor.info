@@ -77,7 +77,10 @@ export async function lazyInitSentry() {
       });
 
       sentryLoaded = true;
-      console.log('[Sentry] Successfully initialized');
+      // Log asynchronously to avoid blocking critical path
+      queueMicrotask(() => {
+        console.log('[Sentry] Successfully initialized');
+      });
       return Sentry;
     })
     .catch((error) => {

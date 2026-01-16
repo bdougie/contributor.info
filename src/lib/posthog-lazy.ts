@@ -269,11 +269,14 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
 
       posthogInstance = posthog as PostHogInstance;
 
-      // Log initialization success (only once, handled by posthogInitStarted guard)
-      console.log('[PostHog] Initialized successfully for %s', window.location.hostname);
-      if (window.location.hostname === 'localhost') {
-        console.log('[PostHog] Note: Events may not be sent in development mode');
-      }
+      // Log initialization success asynchronously to avoid blocking critical path
+      // Uses queueMicrotask to defer logging without affecting performance metrics
+      queueMicrotask(() => {
+        console.log('[PostHog] Initialized successfully for %s', window.location.hostname);
+        if (window.location.hostname === 'localhost') {
+          console.log('[PostHog] Note: Events may not be sent in development mode');
+        }
+      });
 
       return posthog as PostHogInstance;
     })
