@@ -15,7 +15,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Check, Copy } from '@/components/ui/icon';
+import { Trash2, Check } from '@/components/ui/icon';
+import { CopyButton } from '@/components/ui/copy-button';
 import { MembersTab } from './MembersTab';
 import { WorkspaceService } from '@/services/workspace.service';
 import { WorkspacePermissionService } from '@/services/workspace-permissions.service';
@@ -327,19 +328,13 @@ export function WorkspaceSettings({
               <Label className="text-muted-foreground">Workspace ID</Label>
               <div className="flex items-center gap-2 mt-1">
                 <code className="text-sm bg-muted px-2 py-1 rounded font-mono">{workspace.id}</code>
-                <Button
+                <CopyButton
+                  value={workspace.id}
                   size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    navigator.clipboard.writeText(workspace.id);
-                    toast({
-                      title: 'Copied',
-                      description: 'Workspace ID copied to clipboard',
-                    });
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+                  iconClassName="h-3 w-3"
+                  successMessage="Workspace ID copied to clipboard"
+                  label="Copy Workspace ID"
+                />
               </div>
             </div>
 
@@ -349,19 +344,13 @@ export function WorkspaceSettings({
                 <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
                   {workspace.slug}
                 </code>
-                <Button
+                <CopyButton
+                  value={workspace.slug}
                   size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    navigator.clipboard.writeText(workspace.slug);
-                    toast({
-                      title: 'Copied',
-                      description: 'Workspace slug copied to clipboard',
-                    });
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+                  iconClassName="h-3 w-3"
+                  successMessage="Workspace slug copied to clipboard"
+                  label="Copy Workspace Slug"
+                />
               </div>
             </div>
 
@@ -371,19 +360,13 @@ export function WorkspaceSettings({
                 <code className="text-sm bg-muted px-2 py-1 rounded font-mono text-xs">
                   {workspace.owner_id}
                 </code>
-                <Button
+                <CopyButton
+                  value={workspace.owner_id}
                   size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    navigator.clipboard.writeText(workspace.owner_id);
-                    toast({
-                      title: 'Copied',
-                      description: 'Owner ID copied to clipboard',
-                    });
-                  }}
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
+                  iconClassName="h-3 w-3"
+                  successMessage="Owner ID copied to clipboard"
+                  label="Copy Owner ID"
+                />
               </div>
             </div>
 
