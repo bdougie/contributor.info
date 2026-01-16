@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.2](https://github.com/bdougie/contributor.info/compare/v4.31.1...v4.31.2) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* prevent duplicate PostHog and Sentry SDK initializations ([#1603](https://github.com/bdougie/contributor.info/issues/1603)) ([815b451](https://github.com/bdougie/contributor.info/commit/815b4514e319fbdf3ba56ee1eb4851a7e8f7c589)), closes [#1601](https://github.com/bdougie/contributor.info/issues/1601)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6bd03f0](https://github.com/bdougie/contributor.info/commit/6bd03f04167f0004d13f3eb9b60e9ee4218a4fff))
+
 ## [4.31.1](https://github.com/bdougie/contributor.info/compare/v4.31.0...v4.31.1) (2026-01-16)
 
 
