@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link, TrendingUp, TrendingDown } from '@/components/ui/icon';
-import { toast } from 'sonner';
 import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
 import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
+import { CopyButton } from '@/components/ui/copy-button';
 import { PrCountCard } from '../activity/pr-count-card';
 import { AvgTimeCard } from '../activity/avg-time-card';
 import { VelocityCard } from '../activity/velocity-card';
@@ -116,15 +115,11 @@ export function WorkspaceMetricsAndTrends({
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
   const [trends, setTrends] = useState<TrendData[]>([]);
+  const [currentUrl, setCurrentUrl] = useState('');
 
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
-    } catch {
-      toast.error('Failed to copy link');
-    }
-  };
+  useEffect(() => {
+    setCurrentUrl(typeof window !== 'undefined' ? window.location.href : '');
+  }, []);
 
   const calculateMetrics = useCallback(async () => {
     setLoading(true);
@@ -300,16 +295,15 @@ export function WorkspaceMetricsAndTrends({
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button
+            <CopyButton
+              value={currentUrl}
               variant="outline"
               size="icon"
-              onClick={handleCopyLink}
               className="h-8 w-8"
-              title="Copy page link"
-              aria-label="Copy page link"
-            >
-              <Link className="h-4 w-4" />
-            </Button>
+              icon={Link}
+              label="Copy page link"
+              successMessage="Link copied to clipboard!"
+            />
           </div>
         </div>
       </CardHeader>
