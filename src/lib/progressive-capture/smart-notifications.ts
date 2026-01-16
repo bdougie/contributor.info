@@ -19,6 +19,7 @@ export class SmartDataNotifications {
   private static checkedRepositories = new Set<string>();
   private static notificationCooldown = new Map<string, number>();
   private static queuedJobs = new Map<string, number>(); // Track when jobs were last queued
+  private static failedAutoFix = new Set<string>(); // Track repos that failed auto-fix (e.g., RLS errors)
   private static readonly COOLDOWN_DURATION = 10 * 60 * 1000; // 10 minutes
   private static readonly QUEUE_COOLDOWN = 5 * 60 * 1000; // 5 minutes between queue jobs
 
@@ -431,6 +432,14 @@ export class SmartDataNotifications {
     try {
       const repoKey = `${owner}/${repo}`;
 
+      // Skip if previous auto-fix attempts failed (e.g., RLS policy errors for unauthenticated users)
+      if (this.failedAutoFix.has(repoKey)) {
+        if (import.meta.env?.DEV) {
+          console.log(`⏭️ Skipping ${repoKey} - previous auto-fix attempt failed`);
+        }
+        return;
+      }
+
       // Check if we recently queued jobs for this repository to prevent hot reload duplicates
       const lastQueued = this.queuedJobs.get(repoKey);
       if (lastQueued && Date.now() - lastQueued < this.QUEUE_COOLDOWN) {
@@ -591,8 +600,15 @@ export class SmartDataNotifications {
       if (import.meta.env?.DEV) {
         console.log('✅ Auto-fix jobs queued for %s/%s:', owner, repo, results);
       }
-    } catch (error) {
-      console.warn('Could not auto-fix data for %s/%s:', owner, repo, error);
+    } catch {
+      const repoKey = `${owner}/${repo}`;
+      // Track failed attempts to prevent retry spam
+      this.failedAutoFix.add(repoKey);
+
+      // Only log in development - RLS errors are expected for unauthenticated users
+      if (import.meta.env?.DEV) {
+        console.log('[Smart Notifications] Auto-fix skipped for %s (auth required)', repoKey);
+      }
     }
   }
 
@@ -665,6 +681,7 @@ export class SmartDataNotifications {
     this.checkedRepositories.clear();
     this.notificationCooldown.clear();
     this.queuedJobs.clear();
+    this.failedAutoFix.clear();
   }
 
   /**
@@ -685,7 +702,11 @@ export class SmartDataNotifications {
   /**
    * Get debug info about current state
    */
-  static getDebugInfo(): { checkedRepositories: string[]; cooldowns: Record<string, number> } {
+  static getDebugInfo(): {
+    checkedRepositories: string[];
+    cooldowns: Record<string, number>;
+    failedAutoFix: string[];
+  } {
     const cooldowns: Record<string, number> = {};
     this.notificationCooldown.forEach((timestamp, repo) => {
       const minutesAgo = Math.floor((Date.now() - timestamp) / 1000 / 60);
@@ -695,6 +716,7 @@ export class SmartDataNotifications {
     return {
       checkedRepositories: Array.from(this.checkedRepositories),
       cooldowns,
+      failedAutoFix: Array.from(this.failedAutoFix),
     };
   }
 }
