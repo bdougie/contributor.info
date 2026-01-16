@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.30.4](https://github.com/bdougie/contributor.info/compare/v4.30.3...v4.30.4) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* improve accessibility for checkboxes, avatars, and form hints ([#1592](https://github.com/bdougie/contributor.info/issues/1592), [#1594](https://github.com/bdougie/contributor.info/issues/1594), [#1595](https://github.com/bdougie/contributor.info/issues/1595)) ([#1596](https://github.com/bdougie/contributor.info/issues/1596)) ([7db7d3e](https://github.com/bdougie/contributor.info/commit/7db7d3eb850a0d4840999aa42fd4f823e8403182))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a7f650c](https://github.com/bdougie/contributor.info/commit/a7f650c9217d2af00293e61584b25d62bcdd2316))
+
 ## [4.30.3](https://github.com/bdougie/contributor.info/compare/v4.30.2...v4.30.3) (2026-01-15)
 
 
