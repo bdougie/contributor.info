@@ -30,12 +30,12 @@ const ContributionsChart = lazy(() => {
 
 /**
  * Minimal skeleton that reserves space for the chart
- * Keeps it simple to avoid layout shifts
+ * Height matches actual chart: 400px desktop, 280px mobile
  */
 function ContributionsChartSkeleton() {
   return (
     <div
-      className="h-[500px] w-full animate-pulse rounded-lg bg-muted/30"
+      className="h-[280px] md:h-[400px] w-full animate-pulse rounded-lg bg-muted/30"
       aria-label="Loading contributions chart..."
       aria-busy="true"
     />
