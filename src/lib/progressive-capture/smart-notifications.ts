@@ -19,9 +19,11 @@ export class SmartDataNotifications {
   private static checkedRepositories = new Set<string>();
   private static notificationCooldown = new Map<string, number>();
   private static queuedJobs = new Map<string, number>(); // Track when jobs were last queued
-  private static failedAutoFix = new Set<string>(); // Track repos that failed auto-fix (e.g., RLS errors)
+  // Track repos that failed auto-fix with backoff (not permanent block)
+  private static failedAutoFix = new Map<string, { timestamp: number; attempts: number }>();
   private static readonly COOLDOWN_DURATION = 10 * 60 * 1000; // 10 minutes
   private static readonly QUEUE_COOLDOWN = 5 * 60 * 1000; // 5 minutes between queue jobs
+  private static readonly FAILED_BACKOFF_BASE = 5 * 60 * 1000; // 5 minute base backoff for failed attempts
 
   /**
    * Check workspace for missing data and queue capture jobs for all repositories
@@ -432,12 +434,31 @@ export class SmartDataNotifications {
     try {
       const repoKey = `${owner}/${repo}`;
 
-      // Skip if previous auto-fix attempts failed (e.g., RLS policy errors for unauthenticated users)
-      if (this.failedAutoFix.has(repoKey)) {
-        if (import.meta.env?.DEV) {
-          console.log(`⏭️ Skipping ${repoKey} - previous auto-fix attempt failed`);
+      // Check if previous auto-fix attempts failed - use backoff instead of permanent block
+      const failedInfo = this.failedAutoFix.get(repoKey);
+      if (failedInfo) {
+        // Calculate backoff: base * 2^(attempts-1), capped at 30 minutes
+        const backoffMs = Math.min(
+          this.FAILED_BACKOFF_BASE * Math.pow(2, failedInfo.attempts - 1),
+          30 * 60 * 1000
+        );
+        const timeSinceFailure = Date.now() - failedInfo.timestamp;
+
+        if (timeSinceFailure < backoffMs) {
+          if (import.meta.env?.DEV) {
+            const remainingSec = Math.ceil((backoffMs - timeSinceFailure) / 1000);
+            console.log(
+              `⏭️ Skipping ${repoKey} - in backoff (attempt ${failedInfo.attempts}, retry in ${remainingSec}s)`
+            );
+          }
+          return;
         }
-        return;
+        // Backoff expired, allow retry
+        if (import.meta.env?.DEV) {
+          console.log(
+            `🔄 Retrying ${repoKey} - backoff expired (attempt ${failedInfo.attempts + 1})`
+          );
+        }
       }
 
       // Check if we recently queued jobs for this repository to prevent hot reload duplicates
@@ -602,12 +623,21 @@ export class SmartDataNotifications {
       }
     } catch {
       const repoKey = `${owner}/${repo}`;
-      // Track failed attempts to prevent retry spam
-      this.failedAutoFix.add(repoKey);
+      // Track failed attempts with exponential backoff
+      const existing = this.failedAutoFix.get(repoKey);
+      this.failedAutoFix.set(repoKey, {
+        timestamp: Date.now(),
+        attempts: (existing?.attempts || 0) + 1,
+      });
 
       // Only log in development - RLS errors are expected for unauthenticated users
       if (import.meta.env?.DEV) {
-        console.log('[Smart Notifications] Auto-fix skipped for %s (auth required)', repoKey);
+        const attempts = (existing?.attempts || 0) + 1;
+        console.log(
+          '[Smart Notifications] Auto-fix failed for %s (attempt %d, will retry with backoff)',
+          repoKey,
+          attempts
+        );
       }
     }
   }
@@ -685,15 +715,19 @@ export class SmartDataNotifications {
   }
 
   /**
-   * Force check a repository (bypass cooldown)
+   * Force check a repository (bypass cooldown and failed backoff)
    */
   static async forceCheck(owner: string, repo: string): Promise<void> {
     const repoKey = `${owner}/${repo}`;
     this.checkedRepositories.delete(repoKey);
     this.notificationCooldown.delete(repoKey);
+    this.failedAutoFix.delete(repoKey); // Also clear failed backoff
 
     if (import.meta.env?.DEV) {
-      console.log('🔄 Force checking %s (bypassing cooldown and already-checked status)', repoKey);
+      console.log(
+        '🔄 Force checking %s (bypassing cooldown, already-checked, and failed backoff)',
+        repoKey
+      );
     }
 
     await this.checkRepositoryAndNotify(owner, repo);
@@ -705,7 +739,7 @@ export class SmartDataNotifications {
   static getDebugInfo(): {
     checkedRepositories: string[];
     cooldowns: Record<string, number>;
-    failedAutoFix: string[];
+    failedAutoFix: Record<string, { attempts: number; backoffRemainingSec: number }>;
   } {
     const cooldowns: Record<string, number> = {};
     this.notificationCooldown.forEach((timestamp, repo) => {
@@ -713,10 +747,23 @@ export class SmartDataNotifications {
       cooldowns[repo] = minutesAgo;
     });
 
+    const failedAutoFix: Record<string, { attempts: number; backoffRemainingSec: number }> = {};
+    this.failedAutoFix.forEach((info, repo) => {
+      const backoffMs = Math.min(
+        this.FAILED_BACKOFF_BASE * Math.pow(2, info.attempts - 1),
+        30 * 60 * 1000
+      );
+      const remaining = Math.max(0, backoffMs - (Date.now() - info.timestamp));
+      failedAutoFix[repo] = {
+        attempts: info.attempts,
+        backoffRemainingSec: Math.ceil(remaining / 1000),
+      };
+    });
+
     return {
       checkedRepositories: Array.from(this.checkedRepositories),
       cooldowns,
-      failedAutoFix: Array.from(this.failedAutoFix),
+      failedAutoFix,
     };
   }
 }
