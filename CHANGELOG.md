@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.3](https://github.com/bdougie/contributor.info/compare/v4.31.2...v4.31.3) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* prevent RLS policy error spam for unauthenticated users ([#1605](https://github.com/bdougie/contributor.info/issues/1605)) ([15ecd64](https://github.com/bdougie/contributor.info/commit/15ecd64d7daf40e713e51a33c7573ac04c1106e3)), closes [#1600](https://github.com/bdougie/contributor.info/issues/1600)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([09ca3c3](https://github.com/bdougie/contributor.info/commit/09ca3c338ef1c86317e5ad4f6e721e6fab50e002))
+
 ## [4.31.2](https://github.com/bdougie/contributor.info/compare/v4.31.1...v4.31.2) (2026-01-16)
 
 
