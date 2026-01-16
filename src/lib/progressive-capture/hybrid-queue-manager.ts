@@ -285,6 +285,7 @@ export class HybridQueueManager {
 
   /**
    * Create a job record in the database
+   * Returns a local-only job if user is not authenticated (RLS will block insert)
    */
   private async createJobRecord(
     jobType: string,
@@ -292,6 +293,29 @@ export class HybridQueueManager {
     processor: 'inngest' | 'github_actions',
     rolloutApplied: boolean = false
   ): Promise<HybridJob> {
+    // Check authentication before attempting insert to avoid RLS errors
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      // User is not authenticated - RLS will block the insert
+      // Return a local-only job without attempting database insert
+      if (import.meta.env?.DEV) {
+        logger.log(
+          '[HybridQueue] Skipping job record creation for unauthenticated user: %s',
+          data.repositoryName
+        );
+      }
+      return {
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        jobType,
+        data,
+        processor,
+        status: 'pending',
+      };
+    }
+
     const { data: job, error } = await supabase
       .from('progressive_capture_jobs')
       .insert({
