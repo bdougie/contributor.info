@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.1](https://github.com/bdougie/contributor.info/compare/v4.31.0...v4.31.1) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* add skeleton loader for Contributor Distribution chart ([#1602](https://github.com/bdougie/contributor.info/issues/1602)) ([5166bdd](https://github.com/bdougie/contributor.info/commit/5166bdde0c100e3332309530eddc853ea1d725ef)), closes [#1599](https://github.com/bdougie/contributor.info/issues/1599)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([5d3cc46](https://github.com/bdougie/contributor.info/commit/5d3cc46eddfac5dae33c3682908c3f049fea2674))
+
 ## [4.31.0](https://github.com/bdougie/contributor.info/compare/v4.30.4...v4.31.0) (2026-01-16)
 
 
