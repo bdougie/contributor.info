@@ -27,6 +27,7 @@ interface PostHogInstance {
 // PostHog instance cache
 let posthogInstance: PostHogInstance | null = null;
 let posthogLoadPromise: Promise<PostHogInstance | null> | null = null;
+let posthogInitStarted = false;
 
 // Track if session recording has been enabled (deferred for LCP improvement)
 let sessionRecordingEnabled = false;
@@ -192,11 +193,7 @@ const POSTHOG_CONFIG = {
     distinctID: undefined, // Will be set on init
   },
   loaded: () => {
-    // Callback when PostHog is loaded
-    console.log('[PostHog] Initialized successfully for', window.location.hostname);
-    if (window.location.hostname === 'localhost') {
-      console.log('[PostHog] Note: Events may not be sent in development mode');
-    }
+    // Callback when PostHog is loaded - logging handled by loadPostHog() to prevent duplicates
   },
 };
 
@@ -245,6 +242,13 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
     return posthogInstance;
   }
 
+  // Prevent duplicate initialization (guard against React StrictMode double-mounting)
+  // This is more strict than just checking posthogLoadPromise to prevent race conditions
+  if (posthogInitStarted) {
+    return posthogLoadPromise;
+  }
+  posthogInitStarted = true;
+
   // Return existing load promise if in progress
   if (posthogLoadPromise) {
     return posthogLoadPromise;
@@ -264,11 +268,22 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
       // Note: We only call posthog.identify() after user login/signup
 
       posthogInstance = posthog as PostHogInstance;
+
+      // Log initialization success asynchronously to avoid blocking critical path
+      // Uses queueMicrotask to defer logging without affecting performance metrics
+      queueMicrotask(() => {
+        console.log('[PostHog] Initialized successfully for %s', window.location.hostname);
+        if (window.location.hostname === 'localhost') {
+          console.log('[PostHog] Note: Events may not be sent in development mode');
+        }
+      });
+
       return posthog as PostHogInstance;
     })
     .catch((error) => {
       console.error('Failed to load PostHog:', error);
       posthogLoadPromise = null; // Reset so we can retry
+      posthogInitStarted = false; // Reset guard to allow retries
       return null;
     });
 
@@ -799,12 +814,12 @@ export async function enableSessionRecording(): Promise<void> {
     }
   } catch (error) {
     sessionRecordingEnabled = false;
-    
+
     // Log the error in development for debugging
     if (env.DEV) {
       console.error('[PostHog] Failed to enable session recording:', error);
     }
-    
+
     // Track error using centralized error tracking (handles type conversion and PostHog reporting)
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await trackError(errorObj, {
