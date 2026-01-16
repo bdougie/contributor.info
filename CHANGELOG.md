@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.32.2](https://github.com/bdougie/contributor.info/compare/v4.32.1...v4.32.2) (2026-01-16)
+
+
+### 🐛 Bug Fixes
+
+* add defensive fallback for useParams in RepoViewSkeleton ([#1607](https://github.com/bdougie/contributor.info/issues/1607)) ([45b65a7](https://github.com/bdougie/contributor.info/commit/45b65a7468d79288f03c4d36dfe08c6385943124)), closes [#1604](https://github.com/bdougie/contributor.info/issues/1604)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([924c5da](https://github.com/bdougie/contributor.info/commit/924c5da52fa1da568cee8a30e6599643afb81129))
+
 ## [4.32.1](https://github.com/bdougie/contributor.info/compare/v4.32.0...v4.32.1) (2026-01-16)
 
 
