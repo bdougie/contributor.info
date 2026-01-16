@@ -15,7 +15,8 @@ interface RepoViewSkeletonProps {
  * Uses useParams to show actual owner/repo values - no CLS
  */
 function StaticBreadcrumbs() {
-  const { owner, repo } = useParams();
+  const params = useParams() || {};
+  const { owner, repo } = params;
 
   return (
     <nav aria-label="breadcrumb" className="hidden md:flex mb-4">
