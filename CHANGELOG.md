@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.31.0](https://github.com/bdougie/contributor.info/compare/v4.30.4...v4.31.0) (2026-01-16)
+
+
+### 🚀 Features
+
+* **ui:** add CopyButton component and update WorkspaceSettings ([#1580](https://github.com/bdougie/contributor.info/issues/1580)) ([309db88](https://github.com/bdougie/contributor.info/commit/309db8854cbc2b7bdbac196a2a1bea29ab4780fe))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([5d9735c](https://github.com/bdougie/contributor.info/commit/5d9735c6ab6749a7bda925f6fcf1e2d091aa96f3))
+
 ## [4.30.4](https://github.com/bdougie/contributor.info/compare/v4.30.3...v4.30.4) (2026-01-16)
 
 
