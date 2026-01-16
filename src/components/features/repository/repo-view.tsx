@@ -530,7 +530,7 @@ export function ContributionsRoute() {
             </div>
           }
         >
-          <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+          <Suspense fallback={null}>
             <LazyContributions />
           </Suspense>
         </ErrorBoundary>
