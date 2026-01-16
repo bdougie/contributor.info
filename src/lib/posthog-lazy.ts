@@ -270,7 +270,7 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
       posthogInstance = posthog as PostHogInstance;
 
       // Log initialization success (only once, handled by posthogInitStarted guard)
-      console.log('[PostHog] Initialized successfully for', window.location.hostname);
+      console.log('[PostHog] Initialized successfully for %s', window.location.hostname);
       if (window.location.hostname === 'localhost') {
         console.log('[PostHog] Note: Events may not be sent in development mode');
       }
@@ -280,6 +280,7 @@ async function loadPostHog(): Promise<PostHogInstance | null> {
     .catch((error) => {
       console.error('Failed to load PostHog:', error);
       posthogLoadPromise = null; // Reset so we can retry
+      posthogInitStarted = false; // Reset guard to allow retries
       return null;
     });
 
@@ -810,12 +811,12 @@ export async function enableSessionRecording(): Promise<void> {
     }
   } catch (error) {
     sessionRecordingEnabled = false;
-    
+
     // Log the error in development for debugging
     if (env.DEV) {
       console.error('[PostHog] Failed to enable session recording:', error);
     }
-    
+
     // Track error using centralized error tracking (handles type conversion and PostHog reporting)
     const errorObj = error instanceof Error ? error : new Error(String(error));
     await trackError(errorObj, {

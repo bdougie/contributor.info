@@ -82,6 +82,8 @@ export async function lazyInitSentry() {
     })
     .catch((error) => {
       console.error('Failed to load Sentry:', error);
+      sentryInitialized = false; // Reset guard to allow retries
+      sentryLoadPromise = null; // Reset promise to allow retries
       throw error;
     });
 
