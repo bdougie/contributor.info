@@ -295,11 +295,9 @@ export function ActivityTable({
     const statsMap = new Map<string, ContributorStats>();
     const activitiesByAuthor = new Map<string, ActivityItem[]>();
 
-    // 1. Group activities by author (Single Pass)
+    // 1. Group activities by author (Single Pass) - use lowercase for case-insensitive matching
     for (const activity of activities) {
-      const username = activity.author.username;
-      // Using lowercase for consistent key lookups if needed, but keeping it simple for now as per original logic which relied on exact match
-      const key = username;
+      const key = activity.author.username.toLowerCase();
       if (!activitiesByAuthor.has(key)) {
         activitiesByAuthor.set(key, []);
       }
@@ -307,33 +305,37 @@ export function ActivityTable({
     }
 
     // 2. Process each author to build stats
-    for (const [username, userActivities] of activitiesByAuthor) {
-      // Sort by date descending
-      userActivities.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    for (const [key, userActivities] of activitiesByAuthor) {
+      // Sort by date descending (non-mutating to preserve original array)
+      const sortedActivities = [...userActivities].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
 
       // Get top 5 recent activities
-      const recentActivities: RecentActivity[] = userActivities.slice(0, 5).map(a => ({
+      const recentActivities: RecentActivity[] = sortedActivities.slice(0, 5).map((a) => ({
         id: a.id,
         type: a.type,
         title: a.title,
         created_at: a.created_at,
         status: a.status,
         repository: a.repository,
-        url: a.url
+        url: a.url,
       }));
 
       // Calculate stats
-      const pullRequests = userActivities.filter(a => a.type === 'pr').length;
+      const pullRequests = sortedActivities.filter((a) => a.type === 'pr').length;
 
-      // Use the first activity to get avatar url
-      const avatar_url = userActivities[0].author.avatar_url || `https://github.com/${username}.png`;
+      // Use the first activity to get avatar url and original username casing
+      const originalUsername = sortedActivities[0].author.username;
+      const avatar_url =
+        sortedActivities[0].author.avatar_url || `https://github.com/${originalUsername}.png`;
 
-      statsMap.set(username, {
-        login: username,
+      statsMap.set(key, {
+        login: originalUsername,
         avatar_url,
         pullRequests,
         percentage: 0, // Default as per original code
-        recentActivities
+        recentActivities,
       });
     }
 
@@ -605,7 +607,9 @@ export function ActivityTable({
                     <ActivityRow
                       key={`${activity.type}-${activity.id}`}
                       activity={activity}
-                      contributorStats={contributorStatsMap.get(activity.author.username)}
+                      contributorStats={contributorStatsMap.get(
+                        activity.author.username.toLowerCase()
+                      )}
                       virtualItemSize={virtualItem.size}
                       virtualItemStart={virtualItem.start}
                     />
