@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
 import { trackInngestFailure, trackTrackingFailure } from './lib/server-tracking.mts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
@@ -85,7 +86,6 @@ export default async (req: Request, context: Context) => {
 
     if (authHeader && supabaseUrl && supabaseAnonKey) {
       try {
-        const { createClient } = await import('@supabase/supabase-js');
         const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
 
         const token = authHeader.replace('Bearer ', '');
@@ -396,9 +396,6 @@ export default async (req: Request, context: Context) => {
     // Directly insert repository into database instead of relying on Inngest
     // (Inngest discovery function is not processing events in production)
     try {
-      // Import Supabase admin client
-      const { createClient } = await import('@supabase/supabase-js');
-
       if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
 
