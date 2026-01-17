@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.33.0](https://github.com/bdougie/contributor.info/compare/v4.32.2...v4.33.0) (2026-01-17)
+
+
+### 🚀 Features
+
+* **ui:** enhance CopyButton feedback and standardize usage ([#1610](https://github.com/bdougie/contributor.info/issues/1610)) ([f20884b](https://github.com/bdougie/contributor.info/commit/f20884b5203352bfaf215d60392f8fa1eeb3fb2f))
+
+
+### 🐛 Bug Fixes
+
+* resolve auth bypass and shared rate limit in track-repository ([#1608](https://github.com/bdougie/contributor.info/issues/1608)) ([e0d643d](https://github.com/bdougie/contributor.info/commit/e0d643dcfa9eaafbb12ecdbc6eb13a7caeddb758))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([861ea42](https://github.com/bdougie/contributor.info/commit/861ea4293cf68d559868ddf3b95707bb4a78e0ec))
+
 ## [4.32.2](https://github.com/bdougie/contributor.info/compare/v4.32.1...v4.32.2) (2026-01-16)
 
 
