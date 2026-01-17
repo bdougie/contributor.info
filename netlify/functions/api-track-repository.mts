@@ -1,4 +1,5 @@
 import type { Context } from '@netlify/functions';
+import { createClient } from '@supabase/supabase-js';
 import { trackInngestFailure, trackTrackingFailure } from './lib/server-tracking.mts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
 
@@ -77,11 +78,31 @@ export default async (req: Request, context: Context) => {
   // Rate Limiting Logic
   let rateLimitResult;
   let isAuthenticated = false;
+  let userId: string | undefined;
 
   try {
-    // Check if user is authenticated
+    // Check if user is authenticated by validating the JWT
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
-    isAuthenticated = !!authHeader;
+
+    if (authHeader && supabaseUrl && supabaseAnonKey) {
+      try {
+        const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+
+        const token = authHeader.replace('Bearer ', '');
+        const {
+          data: { user },
+          error,
+        } = await supabaseAnon.auth.getUser(token);
+
+        if (!error && user) {
+          isAuthenticated = true;
+          userId = user.id;
+        }
+      } catch (authError) {
+        console.error('Auth check failed:', authError);
+        // Treat as unauthenticated
+      }
+    }
 
     if (supabaseUrl && supabaseKey) {
       const limiter = new RateLimiter(supabaseUrl, supabaseKey, {
@@ -89,7 +110,8 @@ export default async (req: Request, context: Context) => {
         windowMs: 60 * 1000,
       });
 
-      const rateLimitKey = getRateLimitKey(req, isAuthenticated ? 'authenticated-user' : undefined);
+      // Use real userId if authenticated, otherwise undefined (falls back to IP)
+      const rateLimitKey = getRateLimitKey(req, userId);
       rateLimitResult = await limiter.checkLimit(rateLimitKey);
 
       if (!rateLimitResult.allowed) {
@@ -374,9 +396,6 @@ export default async (req: Request, context: Context) => {
     // Directly insert repository into database instead of relying on Inngest
     // (Inngest discovery function is not processing events in production)
     try {
-      // Import Supabase admin client
-      const { createClient } = await import('@supabase/supabase-js');
-
       if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
 
@@ -406,7 +425,7 @@ export default async (req: Request, context: Context) => {
                 owner,
                 repo,
                 source: 'user-tracking',
-                userId: isAuthenticated ? 'authenticated-user' : null,
+                userId: userId || null,
                 timestamp: new Date().toISOString(),
               },
             }),

@@ -16,3 +16,14 @@ This journal records critical security learnings and vulnerability patterns foun
 3. Be wary of functions named "sanitize" that don't specify *what* they sanitize against (e.g., valid URL vs safe URL).
 
 **Resolution:** The duplicate in `validation-utils.ts` now wraps the canonical secure implementation from `url-validation.ts`, ensuring a single source of truth for URL security validation.
+
+## 2025-05-23 - Shared Rate Limit Bucket for Authenticated Users
+
+**Vulnerability:** The `api-track-repository` endpoint utilized a shared rate limit bucket for all "authenticated" users by using a static key `'authenticated-user'`. It also relied on the mere presence of an Authorization header for authentication without validating the token.
+
+**Learning:** Rate limiting keys must identify the specific user to be effective. Trusting the presence of a header without validation leads to easy bypasses and potential DoS attacks where one user can exhaust the quota for everyone.
+
+**Prevention:**
+1. Always validate JWT tokens using the auth provider (e.g., `supabase.auth.getUser(token)`).
+2. Use the unique `user.id` as the rate limiting identifier.
+3. Fall back to secure defaults (e.g., unauthenticated IP-based limits) if validation fails.
