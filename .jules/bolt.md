@@ -1,3 +1,7 @@
+## 2026-01-13 - Decoupled Data Fetching from View Filtering
+**Learning:** Including view filters (like `includeBots`) in data fetching cache keys can cause unnecessary network requests when the user toggles the filter. If the filter only applies to post-processing (e.g. `calculateLotteryFactor`), it should be applied on the cached data instead.
+**Action:** When designing hooks that fetch and process data, separate the fetch parameters (cache key) from the processing parameters. On cache hit, re-apply the processing logic with the current parameters.
+
 ## 2026-01-13 - Date Object Allocation in Loops
 **Learning:** Creating `new Date()` objects inside tight loops (like filtering thousands of PRs) significantly impacts performance. ISO 8601 strings can be parsed faster using `Date.parse()` (or comparing timestamps directly), avoiding object allocation overhead.
 **Action:** When filtering or sorting by date in large lists, convert reference dates to timestamps outside the loop and use `Date.parse()` or timestamp comparison inside the loop.

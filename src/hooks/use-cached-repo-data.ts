@@ -99,19 +99,27 @@ export function useCachedRepoData(
         dataSource: 'cache',
       });
 
-      // Create cache key
-      const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+      // Create cache key - independent of includeBots since that's a post-processing filter
+      const cacheKey = `${owner}/${repo}/${timeRange}`;
       const now = Date.now();
       const cachedData = repoDataCache[cacheKey];
 
       // Check if we have valid cached data
       if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
+        // Recalculate lottery factor based on current includeBots setting
+        // This avoids network requests when just toggling the bot filter
+        const currentLotteryFactor = calculateLotteryFactor(
+          cachedData.stats.pullRequests,
+          timeRange,
+          includeBots
+        );
+
         // Track cache hit
         trackCacheOperation(
           'repo-data-cache-hit',
           () => {
             setStats(cachedData.stats);
-            setLotteryFactor(cachedData.lotteryFactor);
+            setLotteryFactor(currentLotteryFactor);
             setDirectCommitsData(cachedData.directCommitsData);
             return Promise.resolve();
           },
