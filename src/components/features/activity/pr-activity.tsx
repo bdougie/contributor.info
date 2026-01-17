@@ -11,6 +11,7 @@ import { useFastPRData } from '@/hooks/use-fast-pr-data';
 import { usePRActivityStore } from '@/lib/pr-activity-store';
 import { useTimeRange } from '@/lib/time-range-store';
 import { useCombinedActivity } from '@/hooks/use-combined-activity';
+import { ContributorRolesProvider } from '@/hooks/useContributorRoles';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -148,12 +149,15 @@ export default function PRActivity() {
           Showing {visibleActivities.length} of {filteredActivities.length} activities
         </div>
 
-        <PullRequestActivityFeed
-          activities={visibleActivities}
-          loading={loading}
-          error={error}
-          selectedTypes={selectedTypes}
-        />
+        {/* Wrap Feed in ContributorRolesProvider to batch fetch roles */}
+        <ContributorRolesProvider owner={owner || ''} repo={repo || ''}>
+          <PullRequestActivityFeed
+            activities={visibleActivities}
+            loading={loading}
+            error={error}
+            selectedTypes={selectedTypes}
+          />
+        </ContributorRolesProvider>
 
         {hasMore && (
           <div className="mt-4 flex justify-center">
