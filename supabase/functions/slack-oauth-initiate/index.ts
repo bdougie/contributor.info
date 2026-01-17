@@ -7,10 +7,11 @@
  *
  * Flow:
  * 1. Client requests OAuth initiation with workspace_id
- * 2. Generate secure state token
- * 3. Store state in database with expiration
- * 4. Return Slack OAuth URL with state
- * 5. User is redirected to Slack for app authorization
+ * 2. Authenticate user and verify workspace membership
+ * 3. Generate secure state token
+ * 4. Store state in database with expiration
+ * 5. Return Slack OAuth URL with state
+ * 6. User is redirected to Slack for app authorization
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -20,6 +21,7 @@ const SLACK_CLIENT_ID = Deno.env.get('SLACK_CLIENT_ID');
 const SLACK_REDIRECT_URI = Deno.env.get('SLACK_REDIRECT_URI');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 interface RequestBody {
   workspace_id: string;
@@ -94,6 +96,15 @@ serve(async (req) => {
       );
     }
 
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Authorization required' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
     // Parse request body
     const body: RequestBody = await req.json();
     const { workspace_id } = body;
@@ -111,8 +122,50 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Authenticate user
+    const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
+
+    if (authError || !authUser) {
+      console.error('Authentication failed:', authError);
+      return new Response(JSON.stringify({ error: 'Authentication failed' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
+    // Create Admin Supabase client for checks and updates
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Verify workspace membership
+    const { data: member, error: memberError } = await supabaseAdmin
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', workspace_id)
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (memberError || !member) {
+      console.error('Authorization failed: User not a member of workspace', {
+        userId: authUser.id,
+        workspaceId: workspace_id,
+        error: memberError
+      });
+      return new Response(JSON.stringify({ error: 'Not authorized for this workspace' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
 
     // Generate secure state token
     const state = generateStateToken();
@@ -121,7 +174,7 @@ serve(async (req) => {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
     // Store state in database
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('oauth_states')
       .insert({
         state,
@@ -146,7 +199,7 @@ serve(async (req) => {
 
     // Clean up old expired states (older than 1 hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    await supabase
+    await supabaseAdmin
       .from('oauth_states')
       .delete()
       .lt('expires_at', oneHourAgo);
