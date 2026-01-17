@@ -1,6 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import handler from './api-track-repository.mts';
-import { getRateLimitKey } from './lib/rate-limiter.mts';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import type { Context } from '@netlify/functions';
+import handler from '../api-track-repository.mts';
+import { getRateLimitKey } from '../lib/rate-limiter.mts';
 
 // Mock dependencies
 const mockGetUser = vi.fn();
@@ -27,7 +28,7 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 // Mock rate limiter
-vi.mock('./lib/rate-limiter.mts', async () => {
+vi.mock('../lib/rate-limiter.mts', async () => {
   return {
     RateLimiter: vi.fn().mockImplementation(() => ({
       checkLimit: vi.fn().mockResolvedValue({
@@ -37,8 +38,8 @@ vi.mock('./lib/rate-limiter.mts', async () => {
       }),
     })),
     getRateLimitKey: vi.fn().mockImplementation((req, userId) => {
-        if (userId) return `user:${userId}`;
-        return 'ip:127.0.0.1';
+      if (userId) return `user:${userId}`;
+      return 'ip:127.0.0.1';
     }),
     applyRateLimitHeaders: vi.fn((res) => res),
   };
@@ -56,7 +57,7 @@ describe('api-track-repository handler', () => {
     process.env.GITHUB_TOKEN = 'mock-github-token';
 
     // Mock GitHub API response
-    (global.fetch as any).mockResolvedValue({
+    (global.fetch as Mock).mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
@@ -86,7 +87,7 @@ describe('api-track-repository handler', () => {
       error: null,
     });
 
-    await handler(req, {} as any);
+    await handler(req, {} as Context);
 
     // Verify getUser was called with the token
     expect(mockGetUser).toHaveBeenCalledWith('valid-token');
@@ -111,7 +112,7 @@ describe('api-track-repository handler', () => {
       error: { message: 'Invalid token' },
     });
 
-    await handler(req, {} as any);
+    await handler(req, {} as Context);
 
     // Verify getUser was called
     expect(mockGetUser).toHaveBeenCalledWith('invalid-token');
@@ -129,7 +130,7 @@ describe('api-track-repository handler', () => {
       body: JSON.stringify({ owner: 'test-owner', repo: 'test-repo' }),
     });
 
-    await handler(req, {} as any);
+    await handler(req, {} as Context);
 
     // getUser should NOT be called
     expect(mockGetUser).not.toHaveBeenCalled();
