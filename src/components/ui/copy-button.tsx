@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Copy, Check } from '@/components/ui/icon';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export interface CopyButtonProps extends ButtonProps {
@@ -9,6 +9,7 @@ export interface CopyButtonProps extends ButtonProps {
   label?: string;
   successMessage?: string;
   iconClassName?: string;
+  icon?: React.ElementType;
 }
 
 export function CopyButton({
@@ -20,10 +21,10 @@ export function CopyButton({
   variant = 'ghost',
   size = 'icon',
   onClick,
+  icon: Icon = Copy,
   ...props
 }: CopyButtonProps) {
   const [hasCopied, setHasCopied] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (hasCopied) {
@@ -41,16 +42,13 @@ export function CopyButton({
     try {
       await navigator.clipboard.writeText(value);
       setHasCopied(true);
-      toast({
-        title: 'Copied',
+      toast.success('Copied', {
         description: successMessage,
       });
     } catch (error) {
       console.error('Failed to copy text:', error);
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: 'Failed to copy to clipboard',
-        variant: 'destructive',
       });
     }
   };
@@ -67,7 +65,7 @@ export function CopyButton({
       {hasCopied ? (
         <Check className={cn('h-4 w-4', iconClassName)} />
       ) : (
-        <Copy className={cn('h-4 w-4', iconClassName)} />
+        <Icon className={cn('h-4 w-4', iconClassName)} />
       )}
       <span className="sr-only">{label}</span>
     </Button>
