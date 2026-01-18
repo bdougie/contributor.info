@@ -38,7 +38,7 @@ export default async (req: Request, context: Context) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
+    // 'Access-Control-Allow-Credentials': 'true', // SECURITY: Violates CORS spec with wildcard origin
   };
 
   // Handle preflight
@@ -144,7 +144,11 @@ export default async (req: Request, context: Context) => {
     const { owner, repo } = body;
 
     // Validate repository parameters
-    const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
+    const isValidRepoName = (name: string): boolean => {
+      // Prevent path traversal attempts
+      if (name === '.' || name === '..') return false;
+      return /^[a-zA-Z0-9._-]+$/.test(name);
+    };
 
     if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') {
       return withHeaders(
