@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { WindowVirtualizedGrid } from '@/components/ui/virtualized-list';
+import { WindowVirtualizedGrid, WindowVirtualizedList } from '@/components/ui/virtualized-list';
 import {
   X,
   Search,
@@ -66,6 +66,8 @@ export interface ContributorsListProps {
 const VIRTUALIZATION_CONFIG = {
   ITEM_HEIGHT: 280,
   GAP: 16,
+  LIST_ITEM_HEIGHT: 88,
+  LIST_GAP: 12,
   RESIZE_DEBOUNCE_MS: 150,
 } as const;
 
@@ -344,7 +346,9 @@ export function ContributorsList({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [updateLayout]);
+    // Extract boolean expression to a variable to satisfy linter
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateLayout, view, loading, contributors.length > 0]);
 
   // Single debounced resize handler for window
   useEffect(() => {
@@ -398,6 +402,23 @@ export function ContributorsList({
       onContributorClick,
       onAddToGroup,
     ]
+  );
+
+  const renderListItem = useCallback(
+    (contributor: Contributor) => {
+      const isTracked = trackedContributors.includes(contributor.id);
+      return (
+        <ContributorListItem
+          key={contributor.id}
+          contributor={contributor}
+          isTracked={isTracked}
+          onTrack={() => onTrackContributor?.(contributor.id)}
+          onUntrack={() => onUntrackContributor?.(contributor.id)}
+          onClick={() => onContributorClick?.(contributor)}
+        />
+      );
+    },
+    [trackedContributors, onTrackContributor, onUntrackContributor, onContributorClick]
   );
 
   if (loading) {
@@ -466,21 +487,14 @@ export function ContributorsList({
           />
         )}
         {filteredContributors.length > 0 && view === 'list' && (
-          <div className="space-y-3">
-            {filteredContributors.map((contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
-              return (
-                <ContributorListItem
-                  key={contributor.id}
-                  contributor={contributor}
-                  isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
-                />
-              );
-            })}
-          </div>
+          <WindowVirtualizedList
+            ref={listRef}
+            items={filteredContributors}
+            scrollMargin={scrollMargin}
+            itemHeight={VIRTUALIZATION_CONFIG.LIST_ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.LIST_GAP}
+            renderItem={renderListItem}
+          />
         )}
       </div>
     );
@@ -539,21 +553,14 @@ export function ContributorsList({
           />
         )}
         {filteredContributors.length > 0 && view === 'list' && (
-          <div className="space-y-3">
-            {filteredContributors.map((contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
-              return (
-                <ContributorListItem
-                  key={contributor.id}
-                  contributor={contributor}
-                  isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
-                />
-              );
-            })}
-          </div>
+          <WindowVirtualizedList
+            ref={listRef}
+            items={filteredContributors}
+            scrollMargin={scrollMargin}
+            itemHeight={VIRTUALIZATION_CONFIG.LIST_ITEM_HEIGHT}
+            gap={VIRTUALIZATION_CONFIG.LIST_GAP}
+            renderItem={renderListItem}
+          />
         )}
       </CardContent>
     </Card>
