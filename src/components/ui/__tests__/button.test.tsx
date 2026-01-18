@@ -20,8 +20,11 @@ describe('Button', () => {
     const button = screen.getByRole('button'); // It might still have text "Click me"
 
     expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'true');
     // Check for spinner
     expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    // Check for sr-only text
+    expect(screen.getByText('Loading')).toHaveClass('sr-only');
   });
 
   it('does not show spinner when isLoading is false', () => {
@@ -29,7 +32,9 @@ describe('Button', () => {
     const button = screen.getByRole('button', { name: /click me/i });
 
     expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute('aria-busy', 'false');
     expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
   });
 
   it('disables button in asChild mode when isLoading is true', () => {
@@ -43,6 +48,7 @@ describe('Button', () => {
     // Note: Spinner is not shown in asChild mode due to Slot limitations (single child requirement)
     // Loading state is indicated through disabled attribute only
     expect(link).toHaveAttribute('disabled');
+    expect(link).toHaveAttribute('aria-busy', 'true');
     expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
   });
 });
