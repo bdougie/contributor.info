@@ -38,7 +38,6 @@ export default async (req: Request, context: Context) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
   };
 
   // Handle preflight
@@ -144,7 +143,9 @@ export default async (req: Request, context: Context) => {
     const { owner, repo } = body;
 
     // Validate repository parameters
-    const isValidRepoName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
+    // Explicitly reject '.' and '..' to prevent path traversal issues in downstream API calls
+    const isValidRepoName = (name: string): boolean =>
+      /^[a-zA-Z0-9._-]+$/.test(name) && name !== '.' && name !== '..';
 
     if (!owner || !repo || typeof owner !== 'string' || typeof repo !== 'string') {
       return withHeaders(

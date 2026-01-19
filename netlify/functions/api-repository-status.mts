@@ -70,7 +70,9 @@ export default async (req: Request, _context: Context) => {
   }
 
   // Validate format
-  const isValidName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
+  // Explicitly reject '.' and '..' to prevent path traversal issues
+  const isValidName = (name: string): boolean =>
+    /^[a-zA-Z0-9._-]+$/.test(name) && name !== '.' && name !== '..';
   if (!isValidName(owner) || !isValidName(repo)) {
     return new Response(
       JSON.stringify({
