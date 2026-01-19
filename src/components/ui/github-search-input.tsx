@@ -39,6 +39,7 @@ interface GitHubSearchInputProps {
   showButton?: boolean;
   buttonText?: string;
   searchLocation?: 'header' | 'homepage' | 'trending';
+  id?: string;
 }
 
 // Language color mapping (subset of common languages)
@@ -74,6 +75,7 @@ export function GitHubSearchInput({
   showButton = true,
   buttonText = 'Search',
   searchLocation = 'homepage',
+  id,
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -233,6 +235,7 @@ export function GitHubSearchInput({
       <form onSubmit={handleSubmit} className="flex gap-4">
         <div className="flex-1 relative">
           <Input
+            id={id}
             ref={inputRef}
             placeholder={placeholder}
             value={inputValue}

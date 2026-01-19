@@ -62,8 +62,10 @@ interface StagedRepository extends GitHubRepository {
 }
 
 // Extend existing GitHubRepository type for workspace context
-interface ExistingRepository
-  extends Omit<GitHubRepository, 'id' | 'owner' | 'private' | 'pushed_at'> {
+interface ExistingRepository extends Omit<
+  GitHubRepository,
+  'id' | 'owner' | 'private' | 'pushed_at'
+> {
   id: string; // Database stores ID as string
   owner: string; // Simplified from GitHubRepository's owner object
   workspace_repo_id?: string;
@@ -539,8 +541,11 @@ export function AddRepositoryModal({
 
         {/* Search Section */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Search GitHub</label>
+          <label htmlFor="github-search-input" className="text-sm font-medium">
+            Search GitHub
+          </label>
           <GitHubSearchInput
+            id="github-search-input"
             placeholder="Search for repositories (e.g., facebook/react)"
             onSearch={(query) => {
               // This is for manual search submission
@@ -714,10 +719,10 @@ export function AddRepositoryModal({
             onClick={handleSubmit}
             disabled={submitting || stagedRepos.length === 0 || loading}
             className="gap-2"
+            isLoading={submitting}
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
                 Adding {stagedRepos.length}{' '}
                 {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}...
               </>
