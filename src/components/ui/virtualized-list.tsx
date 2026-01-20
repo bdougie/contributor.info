@@ -33,7 +33,10 @@ export function VirtualizedList<T>({
     count: items.length,
     getScrollElement: () => parentRef.current,
     estimateSize:
-      estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
+      estimateSize ||
+      (typeof itemHeight === 'function'
+        ? (i) => itemHeight(i) + gap
+        : () => (itemHeight as number) + gap),
     overscan,
   });
 
@@ -56,8 +59,8 @@ export function VirtualizedList<T>({
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+                height: `${virtualItem.size - gap}px`,
+                transform: `translateY(${virtualItem.start}px)`,
               }}
               className={className}
             >
@@ -162,6 +165,7 @@ export function VirtualizedGrid<T>({
 
 export interface WindowVirtualizedListProps<T> extends VirtualizedListProps<T> {
   ref?: Ref<HTMLDivElement>;
+  scrollMargin?: number;
 }
 
 /**
@@ -177,13 +181,18 @@ export function WindowVirtualizedList<T>({
   estimateSize,
   gap = 0,
   ref,
+  scrollMargin = 0,
 }: WindowVirtualizedListProps<T>) {
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
     estimateSize:
-      estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
+      estimateSize ||
+      (typeof itemHeight === 'function'
+        ? (i) => itemHeight(i) + gap
+        : () => (itemHeight as number) + gap),
     overscan,
+    scrollMargin,
   });
 
   return (
@@ -205,8 +214,8 @@ export function WindowVirtualizedList<T>({
                 top: 0,
                 left: 0,
                 width: '100%',
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+                height: `${virtualItem.size - gap}px`,
+                transform: `translateY(${virtualItem.start}px)`,
               }}
               className={className}
             >
