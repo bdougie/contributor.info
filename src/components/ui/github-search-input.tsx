@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/utils';
 import { useGitHubSearch } from '@/hooks/use-github-search';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
@@ -39,6 +40,7 @@ interface GitHubSearchInputProps {
   showButton?: boolean;
   buttonText?: string;
   searchLocation?: 'header' | 'homepage' | 'trending';
+  shortcut?: boolean;
 }
 
 // Language color mapping (subset of common languages)
@@ -74,6 +76,7 @@ export function GitHubSearchInput({
   showButton = true,
   buttonText = 'Search',
   searchLocation = 'homepage',
+  shortcut = false,
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -101,6 +104,25 @@ export function GitHubSearchInput({
   useEffect(() => {
     setQuery(inputValue);
   }, [inputValue, setQuery]);
+
+  // Handle global keyboard shortcut
+  useEffect(() => {
+    if (!shortcut) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Focus on "/"
+      if (
+        e.key === '/' &&
+        !['INPUT', 'TEXTAREA'].includes((document.activeElement as Element)?.tagName || '')
+      ) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [shortcut]);
 
   // PLG Tracking: Debounced query tracking
   const trackQueryDebounced = useDebouncedCallback((query: string, hasResults: boolean) => {
@@ -239,9 +261,10 @@ export function GitHubSearchInput({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
-            className="w-full pr-8"
+            className="w-full pr-8 peer"
             autoComplete="off"
             role="combobox"
+            aria-keyshortcuts={shortcut ? '/' : undefined}
             aria-autocomplete="list"
             aria-expanded={showDropdown}
             aria-controls={showDropdown ? 'github-search-listbox' : undefined}
@@ -253,10 +276,18 @@ export function GitHubSearchInput({
             aria-label="Search GitHub repositories"
           />
           {/* Loading spinner in input field */}
-          {loading && inputValue.length > 1 && (
+          {loading && inputValue.length > 1 ? (
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
+          ) : (
+            /* Keyboard shortcut hint */
+            shortcut &&
+            !inputValue && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none peer-focus:hidden">
+                <Kbd>/</Kbd>
+              </div>
+            )
           )}
 
           {/* Dropdown with search results */}
