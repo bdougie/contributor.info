@@ -529,9 +529,13 @@ export function WorkspaceIssuesTable({
                 {prs.length > 2 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-sm text-muted-foreground cursor-help">
+                      <button
+                        type="button"
+                        className="text-sm text-muted-foreground cursor-help hover:text-foreground transition-colors"
+                        aria-label={`Show ${prs.length - 2} more pull request${prs.length - 2 === 1 ? '' : 's'}`}
+                      >
                         +{prs.length - 2}
-                      </span>
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="flex flex-col gap-1">
