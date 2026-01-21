@@ -68,7 +68,7 @@ export function SpamLeaderboardPage() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-orange-500" />
-                Known Spammer Leaderboard
+                Known Spammer List
               </CardTitle>
               <CardDescription className="mt-2">
                 Community-verified spam contributors. Help keep open source clean by reporting spam
