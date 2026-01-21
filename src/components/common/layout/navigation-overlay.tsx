@@ -33,10 +33,15 @@ export function NavigationOverlay({ isOpen, onOpenChange, children }: Navigation
     (returnFocus = true) => {
       onOpenChange(false);
       if (returnFocus && previousActiveElement.current) {
-        // Return focus to the trigger button after animation
-        setTimeout(() => {
-          previousActiveElement.current?.focus();
-        }, 100);
+        // Return focus to the trigger button after animation using rAF for reliable timing
+        requestAnimationFrame(() => {
+          try {
+            previousActiveElement.current?.focus();
+          } catch {
+            // Fallback: focus document body if focus fails
+            document.body.focus();
+          }
+        });
       }
     },
     [onOpenChange]
@@ -57,10 +62,14 @@ export function NavigationOverlay({ isOpen, onOpenChange, children }: Navigation
         'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
       );
       if (focusableElements.length > 0) {
-        // Small delay to allow animation to start
-        setTimeout(() => {
-          focusableElements[0]?.focus();
-        }, 100);
+        // Use rAF for reliable timing with browser rendering
+        requestAnimationFrame(() => {
+          try {
+            focusableElements[0]?.focus();
+          } catch {
+            // Focus management failed silently - menu still usable
+          }
+        });
       }
     }
   }, [isOpen]);

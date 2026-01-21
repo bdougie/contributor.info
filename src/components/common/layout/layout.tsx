@@ -146,7 +146,7 @@ export default function Layout() {
         });
         subscription = data.subscription;
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        console.error('Failed to initialize auth: %s', error);
         if (isMounted) {
           setIsLoggedIn(false);
         }
