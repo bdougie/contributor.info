@@ -205,6 +205,14 @@ export default function Layout() {
                   >
                     View Demo
                   </NavLink>
+                  <NavLink
+                    onClick={() => {
+                      navigate('/spam');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Report Spam
+                  </NavLink>
                 </NavSection>
 
                 {/* Resources */}

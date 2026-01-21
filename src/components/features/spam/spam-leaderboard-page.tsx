@@ -10,6 +10,7 @@ import { Link } from 'react-router';
 import { AlertTriangle, ExternalLink, Trophy, Users, Plus, Lock } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -75,12 +76,16 @@ export function SpamLeaderboardPage() {
                 PRs.
               </CardDescription>
             </div>
-            <Button asChild>
-              <Link to="/spam/new">
-                <Plus className="mr-2 h-4 w-4" />
-                Report Spam
-              </Link>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild size="icon">
+                  <Link to="/spam/new" aria-label="Report Spam">
+                    <Plus className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Report Spam</TooltipContent>
+            </Tooltip>
           </div>
         </CardHeader>
 
