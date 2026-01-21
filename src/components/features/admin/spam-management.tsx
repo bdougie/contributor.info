@@ -73,6 +73,8 @@ export function SpamManagement() {
   >('all');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [activeTab, setActiveTab] = useState<'detections' | 'spammers'>('detections');
+  // Track which items are currently being acted upon (prevents double-clicks)
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const adminGitHubId = useAdminGitHubId();
 
   useEffect(() => {
@@ -141,8 +143,9 @@ export function SpamManagement() {
   };
 
   const removeSpammer = async (spammer: KnownSpammer) => {
-    if (!adminGitHubId) return;
+    if (!adminGitHubId || actionInProgress) return;
 
+    setActionInProgress(spammer.id);
     try {
       const supabase = await getSupabase();
       const { error: deleteError } = await supabase
@@ -164,6 +167,8 @@ export function SpamManagement() {
     } catch (err) {
       console.error('Error removing spammer:', err);
       setError(err instanceof Error ? err.message : 'Failed to remove spammer');
+    } finally {
+      setActionInProgress(null);
     }
   };
 
@@ -171,8 +176,9 @@ export function SpamManagement() {
     spammer: KnownSpammer,
     newStatus: 'unverified' | 'verified' | 'appealed'
   ) => {
-    if (!adminGitHubId) return;
+    if (!adminGitHubId || actionInProgress) return;
 
+    setActionInProgress(spammer.id);
     try {
       const supabase = await getSupabase();
       const { error: updateError } = await supabase
@@ -198,6 +204,8 @@ export function SpamManagement() {
     } catch (err) {
       console.error('Error updating spammer status:', err);
       setError(err instanceof Error ? err.message : 'Failed to update spammer status');
+    } finally {
+      setActionInProgress(null);
     }
   };
 
@@ -666,8 +674,13 @@ export function SpamManagement() {
                                 onClick={() => updateSpammerStatus(spammer, 'unverified')}
                                 variant="outline"
                                 size="sm"
+                                disabled={actionInProgress !== null}
                               >
-                                <XCircle className="h-3 w-3 mr-1" />
+                                {actionInProgress === spammer.id ? (
+                                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                )}
                                 Unverify
                               </Button>
                             )}
@@ -676,8 +689,13 @@ export function SpamManagement() {
                                 onClick={() => updateSpammerStatus(spammer, 'verified')}
                                 variant="destructive"
                                 size="sm"
+                                disabled={actionInProgress !== null}
                               >
-                                <CheckCircle className="h-3 w-3 mr-1" />
+                                {actionInProgress === spammer.id ? (
+                                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                )}
                                 Verify
                               </Button>
                             )}
@@ -686,8 +704,13 @@ export function SpamManagement() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive"
+                              disabled={actionInProgress !== null}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              {actionInProgress === spammer.id ? (
+                                <RefreshCw className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3 w-3" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

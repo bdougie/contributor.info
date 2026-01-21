@@ -15,6 +15,15 @@ import type {
 import { parseGitHubPRUrl } from './types/spam-report.types';
 
 /**
+ * Validates that the data from the rate limit RPC matches our expected shape
+ */
+function isValidRateLimitResult(data: unknown): data is RateLimitResult {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return typeof obj.allowed === 'boolean';
+}
+
+/**
  * Check rate limits before allowing a spam report submission
  */
 export async function checkRateLimit(userId?: string): Promise<RateLimitResult> {
@@ -34,7 +43,16 @@ export async function checkRateLimit(userId?: string): Promise<RateLimitResult> 
     };
   }
 
-  return data as RateLimitResult;
+  // Validate the response shape at runtime
+  if (!isValidRateLimitResult(data)) {
+    logger.error('Invalid rate limit response shape', { data });
+    return {
+      allowed: false,
+      message: 'Unable to verify rate limit. Please try again.',
+    };
+  }
+
+  return data;
 }
 
 /**

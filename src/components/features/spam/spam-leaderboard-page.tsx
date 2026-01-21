@@ -5,7 +5,7 @@
  * Shows #1 spammer publicly, requires login to view full list
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
 import { AlertTriangle, ExternalLink, Trophy, Users, Plus, Lock } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,11 @@ export function SpamLeaderboardPage() {
     loadSpammers();
   }, []);
 
-  const totalSpamPRs = spammers.reduce((sum, s) => sum + s.spam_pr_count, 0);
+  // Memoize expensive calculation to avoid recalculating on every render
+  const totalSpamPRs = useMemo(
+    () => spammers.reduce((sum, s) => sum + s.spam_pr_count, 0),
+    [spammers]
+  );
 
   // Show only #1 to non-logged-in users
   const visibleSpammers = isLoggedIn ? spammers : spammers.slice(0, 1);
@@ -158,9 +162,10 @@ export function SpamLeaderboardPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 hover:underline"
+                            aria-label={`View ${spammer.github_login}'s latest spam PR on GitHub (opens in new tab)`}
                           >
                             {spammer.github_login}
-                            <ExternalLink className="h-3 w-3" />
+                            <ExternalLink className="h-3 w-3" aria-hidden="true" />
                           </a>
                         ) : (
                           <span>{spammer.github_login}</span>
