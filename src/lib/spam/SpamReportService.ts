@@ -10,8 +10,18 @@ import type {
   SpamReportSubmitResult,
   RateLimitResult,
   SpamReport,
+  KnownSpammer,
 } from './types/spam-report.types';
 import { parseGitHubPRUrl } from './types/spam-report.types';
+
+/**
+ * Validates that the data from the rate limit RPC matches our expected shape
+ */
+function isValidRateLimitResult(data: unknown): data is RateLimitResult {
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return typeof obj.allowed === 'boolean';
+}
 
 /**
  * Check rate limits before allowing a spam report submission
@@ -33,7 +43,16 @@ export async function checkRateLimit(userId?: string): Promise<RateLimitResult> 
     };
   }
 
-  return data as RateLimitResult;
+  // Validate the response shape at runtime
+  if (!isValidRateLimitResult(data)) {
+    logger.error('Invalid rate limit response shape', { data });
+    return {
+      allowed: false,
+      message: 'Unable to verify rate limit. Please try again.',
+    };
+  }
+
+  return data;
 }
 
 /**
@@ -283,4 +302,64 @@ export async function getUserReports(userId: string): Promise<SpamReport[]> {
   }
 
   return data || [];
+}
+
+export interface SpammerWithLatestPR extends KnownSpammer {
+  latest_pr_url: string | null;
+}
+
+/**
+ * Get verified spammers for the public leaderboard
+ */
+export async function getVerifiedSpammers(): Promise<{
+  data: SpammerWithLatestPR[];
+  error: string | null;
+}> {
+  const supabase = await getSupabase();
+
+  // Fetch verified spammers
+  const { data: spammers, error } = await supabase
+    .from('known_spammers')
+    .select('*')
+    .eq('verification_status', 'verified')
+    .order('spam_pr_count', { ascending: false })
+    .limit(100);
+
+  if (error) {
+    logger.error('Error fetching verified spammers', { error });
+    return {
+      data: [],
+      error: 'Failed to load spammer data. Please try again later.',
+    };
+  }
+
+  if (!spammers || spammers.length === 0) {
+    return { data: [], error: null };
+  }
+
+  // Fetch latest verified PR for each spammer
+  const logins = spammers.map((s) => s.github_login);
+  const { data: latestPRs } = await supabase
+    .from('spam_reports')
+    .select('contributor_github_login, pr_url, created_at')
+    .in('contributor_github_login', logins)
+    .eq('status', 'verified')
+    .order('created_at', { ascending: false });
+
+  // Map latest PR to each spammer (take first match per login)
+  const prByLogin = new Map<string, string>();
+  if (latestPRs) {
+    for (const pr of latestPRs) {
+      if (pr.contributor_github_login && !prByLogin.has(pr.contributor_github_login)) {
+        prByLogin.set(pr.contributor_github_login, pr.pr_url);
+      }
+    }
+  }
+
+  const spammersWithPR: SpammerWithLatestPR[] = spammers.map((s) => ({
+    ...s,
+    latest_pr_url: prByLogin.get(s.github_login) || null,
+  }));
+
+  return { data: spammersWithPR, error: null };
 }

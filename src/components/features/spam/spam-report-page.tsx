@@ -48,16 +48,26 @@ export function SpamReportPage() {
 
   // Load user info and check rate limit on mount
   useEffect(() => {
+    let isMounted = true;
+
     async function init() {
       const { user } = await safeGetSession();
+      if (!isMounted) return;
+
       if (user) {
         setUserId(user.id);
         setUserEmail(user.email || null);
       }
       const limit = await checkRateLimit(user?.id);
-      setRateLimit(limit);
+      if (isMounted) {
+        setRateLimit(limit);
+      }
     }
     init();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,9 +106,9 @@ export function SpamReportPage() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
+      <Button variant="ghost" onClick={() => navigate('/spam')} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
+        Back to Leaderboard
       </Button>
 
       <Card>

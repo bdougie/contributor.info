@@ -125,6 +125,9 @@ const TermsPage = lazy(() =>
 const SpamReportPage = lazy(() =>
   import('@/components/features/spam').then((m) => ({ default: m.SpamReportPage }))
 );
+const SpamLeaderboardPage = lazy(() =>
+  import('@/components/features/spam').then((m) => ({ default: m.SpamLeaderboardPage }))
+);
 
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
@@ -547,7 +550,8 @@ function App() {
                         <Route path="/privacy" element={<PrivacyPolicyPage />} />
                         <Route path="/privacy/data-request" element={<DataRequestPage />} />
                         <Route path="/terms" element={<TermsPage />} />
-                        <Route path="/spam" element={<SpamReportPage />} />
+                        <Route path="/spam" element={<SpamLeaderboardPage />} />
+                        <Route path="/spam/new" element={<SpamReportPage />} />
 
                         {/* Debug routes with Layout */}
                         <Route
