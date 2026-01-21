@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.36.0](https://github.com/bdougie/contributor.info/compare/v4.35.1...v4.36.0) (2026-01-21)
+
+
+### 🚀 Features
+
+* known spammer community database - phase 1 ([#1624](https://github.com/bdougie/contributor.info/issues/1624)) ([11194e7](https://github.com/bdougie/contributor.info/commit/11194e7a1ff7df216a482b251969dcf687bb01de)), closes [#1622](https://github.com/bdougie/contributor.info/issues/1622) [#1625](https://github.com/bdougie/contributor.info/issues/1625)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0787b12](https://github.com/bdougie/contributor.info/commit/0787b127c14921cd4ef2f2412ab266909cc01e99))
+
 ## [4.35.1](https://github.com/bdougie/contributor.info/compare/v4.35.0...v4.35.1) (2026-01-21)
 
 
