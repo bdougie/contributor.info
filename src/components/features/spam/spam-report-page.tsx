@@ -96,9 +96,9 @@ export function SpamReportPage() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
-      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
+      <Button variant="ghost" onClick={() => navigate('/spam')} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
+        Back to Leaderboard
       </Button>
 
       <Card>

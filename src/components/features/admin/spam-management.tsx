@@ -9,6 +9,8 @@ import {
   RefreshCw,
   Eye,
   Ban,
+  Trash2,
+  Users,
 } from '@/components/ui/icon';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,8 +60,21 @@ interface SpamDetection {
   };
 }
 
+interface KnownSpammer {
+  id: string;
+  github_login: string;
+  github_id: number | null;
+  spam_pr_count: number;
+  first_reported_at: string;
+  last_reported_at: string;
+  verification_status: 'unverified' | 'verified' | 'appealed';
+  notes: string | null;
+  created_at: string;
+}
+
 export function SpamManagement() {
   const [detections, setDetections] = useState<SpamDetection[]>([]);
+  const [knownSpammers, setKnownSpammers] = useState<KnownSpammer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,10 +82,12 @@ export function SpamManagement() {
     'all' | 'pending' | 'confirmed' | 'false_positive'
   >('all');
   const [filterScore, setFilterScore] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [activeTab, setActiveTab] = useState<'detections' | 'spammers'>('detections');
   const adminGitHubId = useAdminGitHubId();
 
   useEffect(() => {
     fetchSpamDetections();
+    fetchKnownSpammers();
   }, []);
 
   const fetchSpamDetections = async () => {
@@ -109,6 +126,85 @@ export function SpamManagement() {
       setError(err instanceof Error ? err.message : 'Failed to fetch spam detections');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchKnownSpammers = async () => {
+    try {
+      const supabase = await getSupabase();
+      const { data, error: fetchError } = await supabase
+        .from('known_spammers')
+        .select('*')
+        .order('spam_pr_count', { ascending: false });
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setKnownSpammers(data || []);
+    } catch (err) {
+      console.error('Error fetching known spammers:', err);
+    }
+  };
+
+  const removeSpammer = async (spammer: KnownSpammer) => {
+    if (!adminGitHubId) return;
+
+    try {
+      const supabase = await getSupabase();
+      const { error: deleteError } = await supabase
+        .from('known_spammers')
+        .delete()
+        .eq('id', spammer.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      await logAdminAction(adminGitHubId, 'spammer_removed', 'known_spammer', spammer.id, {
+        github_login: spammer.github_login,
+        spam_pr_count: spammer.spam_pr_count,
+        verification_status: spammer.verification_status,
+      });
+
+      setKnownSpammers(knownSpammers.filter((s) => s.id !== spammer.id));
+    } catch (err) {
+      console.error('Error removing spammer:', err);
+      setError(err instanceof Error ? err.message : 'Failed to remove spammer');
+    }
+  };
+
+  const updateSpammerStatus = async (
+    spammer: KnownSpammer,
+    newStatus: 'unverified' | 'verified' | 'appealed'
+  ) => {
+    if (!adminGitHubId) return;
+
+    try {
+      const supabase = await getSupabase();
+      const { error: updateError } = await supabase
+        .from('known_spammers')
+        .update({ verification_status: newStatus })
+        .eq('id', spammer.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      await logAdminAction(adminGitHubId, 'spammer_status_updated', 'known_spammer', spammer.id, {
+        github_login: spammer.github_login,
+        old_status: spammer.verification_status,
+        new_status: newStatus,
+      });
+
+      setKnownSpammers(
+        knownSpammers.map((s) =>
+          s.id === spammer.id ? { ...s, verification_status: newStatus } : s
+        )
+      );
+    } catch (err) {
+      console.error('Error updating spammer status:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update spammer status');
     }
   };
 
@@ -287,201 +383,330 @@ export function SpamManagement() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by contributor, PR title, or repository..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select
-              value={filterStatus}
-              onValueChange={(value: 'all' | 'pending' | 'confirmed' | 'false_positive') =>
-                setFilterStatus(value)
-              }
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="false_positive">False Positive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={filterScore}
-              onValueChange={(value: 'all' | 'high' | 'medium' | 'low') => setFilterScore(value)}
-            >
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by score" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Scores</SelectItem>
-                <SelectItem value="high">High (≥80%)</SelectItem>
-                <SelectItem value="medium">Medium (50-79%)</SelectItem>
-                <SelectItem value="low">Low (&lt;50%)</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={fetchSpamDetections} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <Button
+          variant={activeTab === 'detections' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('detections')}
+        >
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          Spam Detections
+        </Button>
+        <Button
+          variant={activeTab === 'spammers' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('spammers')}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Known Spammers ({knownSpammers.filter((s) => s.verification_status === 'verified').length}
+          )
+        </Button>
+      </div>
 
-      {/* Spam Detections Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Spam Detections ({filteredDetections.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contributor</TableHead>
-                  <TableHead>Pull Request</TableHead>
-                  <TableHead>Spam Score</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Detected</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredDetections.map((detection) => (
-                  <TableRow key={detection.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={detection.contributors?.avatar_url}
-                            alt={detection.contributors?.username}
-                          />
-                          <AvatarFallback>
-                            {detection.contributors?.username.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{detection.contributors?.username}</span>
-                            <Link
-                              to={`https://github.com/${detection.contributors?.username}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                            </Link>
+      {activeTab === 'detections' && (
+        <>
+          {/* Filters */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Filters</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by contributor, PR title, or repository..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select
+                  value={filterStatus}
+                  onValueChange={(value: 'all' | 'pending' | 'confirmed' | 'false_positive') =>
+                    setFilterStatus(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="false_positive">False Positive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={filterScore}
+                  onValueChange={(value: 'all' | 'high' | 'medium' | 'low') =>
+                    setFilterScore(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by score" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Scores</SelectItem>
+                    <SelectItem value="high">High (≥80%)</SelectItem>
+                    <SelectItem value="medium">Medium (50-79%)</SelectItem>
+                    <SelectItem value="low">Low (&lt;50%)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={fetchSpamDetections} variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Spam Detections Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Spam Detections ({filteredDetections.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contributor</TableHead>
+                      <TableHead>Pull Request</TableHead>
+                      <TableHead>Spam Score</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Detected</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDetections.map((detection) => (
+                      <TableRow key={detection.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage
+                                src={detection.contributors?.avatar_url}
+                                alt={detection.contributors?.username}
+                              />
+                              <AvatarFallback>
+                                {detection.contributors?.username.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">
+                                  {detection.contributors?.username}
+                                </span>
+                                <Link
+                                  to={`https://github.com/${detection.contributors?.username}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                </Link>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium truncate max-w-[200px]">
+                                {detection.pull_requests?.title}
+                              </span>
+                              {detection.pull_requests?.html_url && (
+                                <Link
+                                  to={detection.pull_requests.html_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                </Link>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {detection.pull_requests?.repository?.full_name}
+                            </p>
+                            <div className="mt-1">
+                              {detection.detection_reasons.map((reason, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs mr-1">
+                                  {reason}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getScoreBadgeVariant(detection.spam_score)}>
+                            {Math.round(detection.spam_score * 100)}%
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusBadgeVariant(detection.status)}>
+                            {detection.status === 'false_positive'
+                              ? 'False Positive'
+                              : detection.status.charAt(0).toUpperCase() +
+                                detection.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {new Date(detection.detected_at).toLocaleDateString()}
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(detection.detected_at).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {detection.status === 'pending' && (
+                              <>
+                                <Button
+                                  onClick={() => updateSpamStatus(detection, 'confirmed')}
+                                  variant="destructive"
+                                  size="sm"
+                                >
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Confirm Spam
+                                </Button>
+                                <Button
+                                  onClick={() => updateSpamStatus(detection, 'false_positive')}
+                                  variant="default"
+                                  size="sm"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Not Spam
+                                </Button>
+                              </>
+                            )}
+                            {detection.status !== 'pending' && (
+                              <Button
+                                onClick={() => {
+                                  if (detection.pull_requests?.html_url) {
+                                    window.open(detection.pull_requests.html_url, '_blank');
+                                  }
+                                }}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Review
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {activeTab === 'spammers' && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Known Spammers ({knownSpammers.length})</CardTitle>
+              <Button onClick={fetchKnownSpammers} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>GitHub User</TableHead>
+                    <TableHead>Spam PRs</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>First Reported</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {knownSpammers.map((spammer) => (
+                    <TableRow key={spammer.id}>
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium truncate max-w-[200px]">
-                            {detection.pull_requests?.title}
-                          </span>
-                          {detection.pull_requests?.html_url && (
-                            <Link
-                              to={detection.pull_requests.html_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                            </Link>
-                          )}
+                          <span className="font-medium">{spammer.github_login}</span>
+                          <a
+                            href={`https://github.com/${spammer.github_login}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </a>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {detection.pull_requests?.repository?.full_name}
-                        </p>
-                        <div className="mt-1">
-                          {detection.detection_reasons.map((reason, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs mr-1">
-                              {reason}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getScoreBadgeVariant(detection.spam_score)}>
-                        {Math.round(detection.spam_score * 100)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadgeVariant(detection.status)}>
-                        {detection.status === 'false_positive'
-                          ? 'False Positive'
-                          : detection.status.charAt(0).toUpperCase() + detection.status.slice(1)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {new Date(detection.detected_at).toLocaleDateString()}
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(detection.detected_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {detection.status === 'pending' && (
-                          <>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{spammer.spam_pr_count}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            spammer.verification_status === 'verified' ? 'destructive' : 'outline'
+                          }
+                        >
+                          {spammer.verification_status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(spammer.first_reported_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {spammer.verification_status === 'verified' && (
                             <Button
-                              onClick={() => updateSpamStatus(detection, 'confirmed')}
-                              variant="destructive"
+                              onClick={() => updateSpammerStatus(spammer, 'unverified')}
+                              variant="outline"
                               size="sm"
                             >
                               <XCircle className="h-3 w-3 mr-1" />
-                              Confirm Spam
+                              Unverify
                             </Button>
+                          )}
+                          {spammer.verification_status === 'unverified' && (
                             <Button
-                              onClick={() => updateSpamStatus(detection, 'false_positive')}
-                              variant="default"
+                              onClick={() => updateSpammerStatus(spammer, 'verified')}
+                              variant="destructive"
                               size="sm"
                             >
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              Not Spam
+                              Verify
                             </Button>
-                          </>
-                        )}
-                        {detection.status !== 'pending' && (
+                          )}
                           <Button
-                            onClick={() => {
-                              if (detection.pull_requests?.html_url) {
-                                window.open(detection.pull_requests.html_url, '_blank');
-                              }
-                            }}
-                            variant="outline"
+                            onClick={() => removeSpammer(spammer)}
+                            variant="ghost"
                             size="sm"
+                            className="text-destructive hover:text-destructive"
                           >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Review
+                            <Trash2 className="h-3 w-3" />
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {knownSpammers.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No known spammers found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
