@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.39.0](https://github.com/bdougie/contributor.info/compare/v4.38.0...v4.39.0) (2026-01-21)
+
+
+### 🚀 Features
+
+* add CSV export button to spam leaderboard ([#1630](https://github.com/bdougie/contributor.info/issues/1630)) ([7d63e1d](https://github.com/bdougie/contributor.info/commit/7d63e1d9172abc7fb9dd34c4d89e69a1b0b24b8d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a9bd73a](https://github.com/bdougie/contributor.info/commit/a9bd73a0eb16aefcdc808a8dcf9d6893b7633669))
+
 ## [4.38.0](https://github.com/bdougie/contributor.info/compare/v4.37.0...v4.38.0) (2026-01-21)
 
 
