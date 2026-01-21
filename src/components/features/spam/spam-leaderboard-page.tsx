@@ -7,7 +7,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router';
-import { AlertTriangle, ExternalLink, Trophy, Users, Plus, Lock } from '@/components/ui/icon';
+import {
+  AlertTriangle,
+  ExternalLink,
+  Trophy,
+  Users,
+  Plus,
+  Lock,
+  Download,
+} from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,6 +30,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getVerifiedSpammers, type SpammerWithLatestPR } from '@/lib/spam/SpamReportService';
+import { exportSpammersToCSV } from '@/lib/utils/csv-export';
 import { useAuth } from '@/hooks/use-auth';
 
 function getRankColor(index: number): string {
@@ -61,6 +70,12 @@ export function SpamLeaderboardPage() {
   const visibleSpammers = isLoggedIn ? spammers : spammers.slice(0, 1);
   const hiddenCount = spammers.length - visibleSpammers.length;
 
+  const handleExportCSV = () => {
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `verified-spammers_${date}.csv`;
+    exportSpammersToCSV(visibleSpammers, filename);
+  };
+
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       <Card>
@@ -76,16 +91,32 @@ export function SpamLeaderboardPage() {
                 PRs.
               </CardDescription>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button asChild size="icon">
-                  <Link to="/spam/new" aria-label="Report Spam">
-                    <Plus className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Report Spam</TooltipContent>
-            </Tooltip>
+            <div className="flex items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleExportCSV}
+                    variant="outline"
+                    size="icon"
+                    disabled={visibleSpammers.length === 0 || isLoading}
+                    aria-label="Export to CSV"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Export CSV</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild size="icon">
+                    <Link to="/spam/new" aria-label="Report Spam">
+                      <Plus className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Report Spam</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </CardHeader>
 
