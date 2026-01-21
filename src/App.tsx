@@ -176,6 +176,11 @@ const FailedJobsDashboard = lazy(() =>
     default: m.FailedJobsDashboard,
   }))
 );
+const SpamReportsVerification = lazy(() =>
+  import('@/components/features/admin/spam-reports-verification').then((m) => ({
+    default: m.SpamReportsVerification,
+  }))
+);
 const LLMCitationDashboard = lazy(() =>
   import('@/components/features/analytics/llm-citation-dashboard').then((m) => ({
     default: m.LLMCitationDashboard,
@@ -666,6 +671,14 @@ function App() {
                           element={
                             <AdminRoute>
                               <BulkSpamAnalysis />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/spam-reports"
+                          element={
+                            <AdminRoute>
+                              <SpamReportsVerification />
                             </AdminRoute>
                           }
                         />

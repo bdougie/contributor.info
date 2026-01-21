@@ -109,11 +109,19 @@ async function getOrCreateReporter(userId: string | null): Promise<string | null
     return existing.id;
   }
 
+  // Get user's GitHub login from auth metadata
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const githubLogin =
+    user?.user_metadata?.user_name || user?.user_metadata?.preferred_username || null;
+
   // Create new reporter record
   const { data: newReporter, error } = await supabase
     .from('spam_reporters')
     .insert({
       user_id: userId,
+      github_login: githubLogin,
       total_reports: 0,
       reports_today: 0,
       reports_this_hour: 0,
