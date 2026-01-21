@@ -121,6 +121,11 @@ const TermsPage = lazy(() =>
   import('@/components/features/privacy/terms-page').then((m) => ({ default: m.TermsPage }))
 );
 
+// Spam report page (public)
+const SpamReportPage = lazy(() =>
+  import('@/components/features/spam').then((m) => ({ default: m.SpamReportPage }))
+);
+
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
@@ -217,6 +222,7 @@ function isRepoRoute(): boolean {
     '/billing',
     '/invitation',
     '/signup',
+    '/spam',
   ];
   if (excludedPaths.some((p) => path.startsWith(p))) {
     return false;
@@ -536,6 +542,7 @@ function App() {
                         <Route path="/privacy" element={<PrivacyPolicyPage />} />
                         <Route path="/privacy/data-request" element={<DataRequestPage />} />
                         <Route path="/terms" element={<TermsPage />} />
+                        <Route path="/spam" element={<SpamReportPage />} />
 
                         {/* Debug routes with Layout */}
                         <Route
