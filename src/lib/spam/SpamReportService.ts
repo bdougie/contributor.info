@@ -14,43 +14,23 @@ import type {
 import { parseGitHubPRUrl } from './types/spam-report.types';
 
 /**
- * Generate a hash of the client IP for anonymous rate limiting
- * Uses a simple hash that can be computed client-side
- */
-async function generateIpHash(): Promise<string> {
-  // In production, this would be done server-side with the actual IP
-  // For now, we use a fingerprint-based approach
-  const fingerprint = [
-    navigator.userAgent,
-    navigator.language,
-    new Date().getTimezoneOffset(),
-    screen.width,
-    screen.height,
-  ].join('|');
-
-  const encoder = new TextEncoder();
-  const data = encoder.encode(fingerprint);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
  * Check rate limits before allowing a spam report submission
  */
 export async function checkRateLimit(userId?: string): Promise<RateLimitResult> {
   const supabase = await getSupabase();
-  const ipHash = userId ? null : await generateIpHash();
 
   const { data, error } = await supabase.rpc('check_spam_report_rate_limit', {
     p_user_id: userId || null,
-    p_ip_hash: ipHash,
+    p_ip_hash: null,
   });
 
   if (error) {
     logger.error('Error checking rate limit', { error });
-    // Default to allowing if rate limit check fails
-    return { allowed: true };
+    // Fail-closed: deny on error to prevent abuse during outages
+    return {
+      allowed: false,
+      message: 'Unable to verify rate limit. Please try again.',
+    };
   }
 
   return data as RateLimitResult;
@@ -66,6 +46,9 @@ async function fetchPRAuthor(
   githubToken: string | null
 ): Promise<string | null> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
     };
@@ -77,11 +60,18 @@ async function fetchPRAuthor(
 
     const response = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
-      { headers }
+      { headers, signal: controller.signal }
     );
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      logger.warn('Failed to fetch PR info', { owner, repo, prNumber, status: response.status });
+      logger.warn('Failed to fetch PR info', {
+        owner,
+        repo,
+        prNumber,
+        status: response.status,
+        rateLimited: response.status === 403,
+      });
       return null;
     }
 
@@ -94,24 +84,26 @@ async function fetchPRAuthor(
 }
 
 /**
- * Get or create a spam reporter record
+ * Get or create a spam reporter record (requires authenticated user)
  */
 async function getOrCreateReporter(userId: string | null): Promise<string | null> {
-  const supabase = await getSupabase();
-  const ipHash = userId ? null : await generateIpHash();
-
-  // Try to find existing reporter
-  let query = supabase.from('spam_reporters').select('id');
-
-  if (userId) {
-    query = query.eq('user_id', userId);
-  } else if (ipHash) {
-    query = query.eq('ip_hash', ipHash);
-  } else {
+  if (!userId) {
     return null;
   }
 
-  const { data: existing } = await query.maybeSingle();
+  const supabase = await getSupabase();
+
+  // Try to find existing reporter
+  const { data: existing, error: lookupError } = await supabase
+    .from('spam_reporters')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (lookupError) {
+    logger.error('Error fetching reporter record', { error: lookupError });
+    return null;
+  }
 
   if (existing) {
     return existing.id;
@@ -122,7 +114,6 @@ async function getOrCreateReporter(userId: string | null): Promise<string | null
     .from('spam_reporters')
     .insert({
       user_id: userId,
-      ip_hash: ipHash,
       total_reports: 0,
       reports_today: 0,
       reports_this_hour: 0,
@@ -188,8 +179,7 @@ export async function submitSpamReport(
   );
 
   // Get or create reporter record
-  const reporterId = await getOrCreateReporter(userId || null);
-  const ipHash = userId ? null : await generateIpHash();
+  const reporterId = await getOrCreateReporter(userId);
 
   // Check for existing report (duplicate detection)
   const { data: existingReport } = await supabase
@@ -201,14 +191,10 @@ export async function submitSpamReport(
     .maybeSingle();
 
   if (existingReport) {
-    // Increment report count for duplicate
-    const { error: updateError } = await supabase
-      .from('spam_reports')
-      .update({
-        report_count: existingReport.report_count + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingReport.id);
+    // Atomically increment report count for duplicate
+    const { error: updateError } = await supabase.rpc('increment_spam_report_count', {
+      p_report_id: existingReport.id,
+    });
 
     if (updateError) {
       logger.error('Error updating duplicate report', { error: updateError });
@@ -237,8 +223,7 @@ export async function submitSpamReport(
       contributor_github_login: contributorLogin,
       spam_category: input.spam_category,
       description: input.description || null,
-      reporter_id: userId || null,
-      reporter_ip_hash: ipHash,
+      reporter_id: userId,
       spam_reporter_id: reporterId,
       status: 'pending',
     })

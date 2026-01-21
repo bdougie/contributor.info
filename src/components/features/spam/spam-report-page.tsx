@@ -247,13 +247,15 @@ export function SpamReportPage() {
                 </div>
 
                 {/* Rate limit info */}
-                {rateLimit?.allowed && (
-                  <div className="text-xs text-muted-foreground">
-                    Reports remaining: {rateLimit.remaining_hourly}/hour,{' '}
-                    {rateLimit.remaining_daily}
-                    /day
-                  </div>
-                )}
+                {rateLimit?.allowed &&
+                  rateLimit.remaining_hourly !== undefined &&
+                  rateLimit.remaining_daily !== undefined && (
+                    <div className="text-xs text-muted-foreground">
+                      Reports remaining: {rateLimit.remaining_hourly}/hour,{' '}
+                      {rateLimit.remaining_daily}
+                      /day
+                    </div>
+                  )}
 
                 {/* Submit Button */}
                 <Button type="submit" className="w-full" disabled={!canSubmit || isRateLimited}>
