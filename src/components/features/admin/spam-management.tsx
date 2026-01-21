@@ -36,6 +36,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router';
 import { logAdminAction, useAdminGitHubId } from '@/hooks/use-admin-auth';
+import type { KnownSpammer } from '@/lib/spam/types/spam-report.types';
 
 interface SpamDetection {
   id: string;
@@ -60,22 +61,11 @@ interface SpamDetection {
   };
 }
 
-interface KnownSpammer {
-  id: string;
-  github_login: string;
-  github_id: number | null;
-  spam_pr_count: number;
-  first_reported_at: string;
-  last_reported_at: string;
-  verification_status: 'unverified' | 'verified' | 'appealed';
-  notes: string | null;
-  created_at: string;
-}
-
 export function SpamManagement() {
   const [detections, setDetections] = useState<SpamDetection[]>([]);
   const [knownSpammers, setKnownSpammers] = useState<KnownSpammer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [spammersLoading, setSpammersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<
@@ -131,6 +121,7 @@ export function SpamManagement() {
 
   const fetchKnownSpammers = async () => {
     try {
+      setSpammersLoading(true);
       const supabase = await getSupabase();
       const { data, error: fetchError } = await supabase
         .from('known_spammers')
@@ -144,6 +135,8 @@ export function SpamManagement() {
       setKnownSpammers(data || []);
     } catch (err) {
       console.error('Error fetching known spammers:', err);
+    } finally {
+      setSpammersLoading(false);
     }
   };
 
@@ -619,91 +612,98 @@ export function SpamManagement() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>GitHub User</TableHead>
-                    <TableHead>Spam PRs</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>First Reported</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {knownSpammers.map((spammer) => (
-                    <TableRow key={spammer.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{spammer.github_login}</span>
-                          <a
-                            href={`https://github.com/${spammer.github_login}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                          </a>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{spammer.spam_pr_count}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            spammer.verification_status === 'verified' ? 'destructive' : 'outline'
-                          }
-                        >
-                          {spammer.verification_status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(spammer.first_reported_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {spammer.verification_status === 'verified' && (
-                            <Button
-                              onClick={() => updateSpammerStatus(spammer, 'unverified')}
-                              variant="outline"
-                              size="sm"
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Unverify
-                            </Button>
-                          )}
-                          {spammer.verification_status === 'unverified' && (
-                            <Button
-                              onClick={() => updateSpammerStatus(spammer, 'verified')}
-                              variant="destructive"
-                              size="sm"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verify
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() => removeSpammer(spammer)}
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {knownSpammers.length === 0 && (
+            {spammersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+                <span className="text-muted-foreground">Loading spammers...</span>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No known spammers found
-                      </TableCell>
+                      <TableHead>GitHub User</TableHead>
+                      <TableHead>Spam PRs</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>First Reported</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {knownSpammers.map((spammer) => (
+                      <TableRow key={spammer.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{spammer.github_login}</span>
+                            <a
+                              href={`https://github.com/${spammer.github_login}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            </a>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{spammer.spam_pr_count}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              spammer.verification_status === 'verified' ? 'destructive' : 'outline'
+                            }
+                          >
+                            {spammer.verification_status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(spammer.first_reported_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {spammer.verification_status === 'verified' && (
+                              <Button
+                                onClick={() => updateSpammerStatus(spammer, 'unverified')}
+                                variant="outline"
+                                size="sm"
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Unverify
+                              </Button>
+                            )}
+                            {spammer.verification_status === 'unverified' && (
+                              <Button
+                                onClick={() => updateSpammerStatus(spammer, 'verified')}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verify
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => removeSpammer(spammer)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {knownSpammers.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No known spammers found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

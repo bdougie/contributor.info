@@ -1,11 +1,13 @@
 /**
  * Spam Leaderboard - Public display of verified known spammers
  * Issue #1622: Known Spammer Community Database
+ *
+ * Shows #1 spammer publicly, requires login to view full list
  */
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { AlertTriangle, ExternalLink, Trophy, Users, Plus } from '@/components/ui/icon';
+import { AlertTriangle, ExternalLink, Trophy, Users, Plus, Lock } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -19,6 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getVerifiedSpammers, type SpammerWithLatestPR } from '@/lib/spam/SpamReportService';
+import { useAuth } from '@/hooks/use-auth';
 
 function getRankColor(index: number): string {
   if (index === 0) return 'text-yellow-500';
@@ -30,6 +33,7 @@ export function SpamLeaderboardPage() {
   const [spammers, setSpammers] = useState<SpammerWithLatestPR[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isLoggedIn, login } = useAuth();
 
   useEffect(() => {
     async function loadSpammers() {
@@ -47,6 +51,10 @@ export function SpamLeaderboardPage() {
   }, []);
 
   const totalSpamPRs = spammers.reduce((sum, s) => sum + s.spam_pr_count, 0);
+
+  // Show only #1 to non-logged-in users
+  const visibleSpammers = isLoggedIn ? spammers : spammers.slice(0, 1);
+  const hiddenCount = spammers.length - visibleSpammers.length;
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -106,7 +114,7 @@ export function SpamLeaderboardPage() {
           {/* Loading State */}
           {isLoading && (
             <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
+              {Array.from({ length: 5 }, (_, i) => (
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
@@ -134,7 +142,7 @@ export function SpamLeaderboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {spammers.map((spammer, index) => (
+                  {visibleSpammers.map((spammer, index) => (
                     <TableRow key={spammer.id}>
                       <TableCell className="font-medium">
                         {index < 3 ? (
@@ -177,6 +185,45 @@ export function SpamLeaderboardPage() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Login prompt for non-authenticated users */}
+              {!isLoggedIn && hiddenCount > 0 && (
+                <div className="relative mt-4">
+                  {/* Blurred preview of hidden rows */}
+                  <div className="blur-sm pointer-events-none select-none opacity-50">
+                    <Table>
+                      <TableBody>
+                        {spammers.slice(1, 4).map((spammer, index) => (
+                          <TableRow key={spammer.id}>
+                            <TableCell className="font-medium w-16">#{index + 2}</TableCell>
+                            <TableCell>{spammer.github_login}</TableCell>
+                            <TableCell className="text-right font-mono">
+                              {spammer.spam_pr_count}
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">-</TableCell>
+                            <TableCell className="hidden sm:table-cell">-</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Login overlay */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-lg">
+                    <Lock className="h-8 w-8 text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Login to see all {spammers.length} verified spammers
+                    </p>
+                    <Button
+                      onClick={() => login()}
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      Login with GitHub
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="mt-8 pt-6 border-t text-center">
                 <p className="text-sm text-muted-foreground">
                   See something suspicious?{' '}
