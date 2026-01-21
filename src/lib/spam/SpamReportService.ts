@@ -57,21 +57,27 @@ export async function checkRateLimit(userId?: string): Promise<RateLimitResult> 
 }
 
 /**
- * Fetch PR author information from GitHub
+ * Fetch PR author information from GitHub using the user's authenticated token
  */
 async function fetchPRAuthor(
   owner: string,
   repo: string,
-  prNumber: number
+  prNumber: number,
+  githubToken: string | null
 ): Promise<string | null> {
   try {
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+    };
+
+    // Use user's GitHub token from Supabase OAuth
+    if (githubToken) {
+      headers.Authorization = `token ${githubToken}`;
+    }
+
     const response = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/pulls/${prNumber}`,
-      {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-        },
-      }
+      { headers }
     );
 
     if (!response.ok) {
@@ -149,6 +155,12 @@ export async function submitSpamReport(
 
   const supabase = await getSupabase();
 
+  // Get the user's GitHub token from Supabase session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const githubToken = session?.provider_token || null;
+
   // Parse and validate the PR URL
   const prInfo = parseGitHubPRUrl(input.pr_url);
   if (!prInfo) {
@@ -167,8 +179,13 @@ export async function submitSpamReport(
     };
   }
 
-  // Fetch PR author from GitHub
-  const contributorLogin = await fetchPRAuthor(prInfo.owner, prInfo.repo, prInfo.number);
+  // Fetch PR author from GitHub using user's authenticated token
+  const contributorLogin = await fetchPRAuthor(
+    prInfo.owner,
+    prInfo.repo,
+    prInfo.number,
+    githubToken
+  );
 
   // Get or create reporter record
   const reporterId = await getOrCreateReporter(userId || null);
