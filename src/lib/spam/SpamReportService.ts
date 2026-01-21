@@ -139,6 +139,14 @@ export async function submitSpamReport(
   input: SpamReportInput,
   userId?: string
 ): Promise<SpamReportSubmitResult> {
+  // Require authentication for spam reports
+  if (!userId) {
+    return {
+      success: false,
+      error: 'Authentication required. Please sign in to submit spam reports.',
+    };
+  }
+
   const supabase = await getSupabase();
 
   // Parse and validate the PR URL
