@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.38.0](https://github.com/bdougie/contributor.info/compare/v4.37.0...v4.38.0) (2026-01-21)
+
+
+### 🚀 Features
+
+* add public spam leaderboard and admin spammer management ([#1629](https://github.com/bdougie/contributor.info/issues/1629)) ([e9fe8fc](https://github.com/bdougie/contributor.info/commit/e9fe8fc25ed123d37e9416c6aeb06dc271e02fa7)), closes [#1](https://github.com/bdougie/contributor.info/issues/1)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a51416b](https://github.com/bdougie/contributor.info/commit/a51416b598d872e091bcaac1683e1864d11a2c4e))
+
 ## [4.37.0](https://github.com/bdougie/contributor.info/compare/v4.36.0...v4.37.0) (2026-01-21)
 
 
