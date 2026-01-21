@@ -194,7 +194,7 @@ export function NavigationOverlay({ isOpen, onOpenChange, children }: Navigation
             'transition-all duration-300 ease-in-out',
             isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
           )}
-          aria-hidden={!isOpen}
+          inert={!isOpen ? true : undefined}
         >
           {children}
         </div>
