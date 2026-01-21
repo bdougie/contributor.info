@@ -251,6 +251,7 @@ export function NavLink({ children, onClick, href, external, className, icon }: 
         >
           {icon}
           {children}
+          <span className="sr-only"> (opens in new tab)</span>
         </a>
       </li>
     );

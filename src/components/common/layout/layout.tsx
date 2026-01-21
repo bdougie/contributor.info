@@ -264,12 +264,13 @@ export default function Layout() {
                   </div>
                 </div>
 
-                {/* Footer Links */}
-                <div className="pt-4 mt-4 border-t border-border/50">
-                  <nav
-                    className="flex space-x-4 text-xs text-muted-foreground"
-                    aria-label="Legal links"
-                  >
+                {/* Footer Links - using div instead of nested nav to avoid landmark confusion */}
+                <div
+                  className="pt-4 mt-4 border-t border-border/50"
+                  role="group"
+                  aria-label="Legal links"
+                >
+                  <div className="flex space-x-4 text-xs text-muted-foreground">
                     <Link
                       to="/privacy"
                       onClick={() => setIsMenuOpen(false)}
@@ -284,7 +285,7 @@ export default function Layout() {
                     >
                       Terms
                     </Link>
-                  </nav>
+                  </div>
                 </div>
               </nav>
             </NavigationOverlay>
@@ -293,6 +294,7 @@ export default function Layout() {
               onClick={() => navigate('/')}
               className="text-xl font-bold hover:text-primary transition-colors"
               data-tour="home-button"
+              aria-label="contributor.info - Go to home page"
             >
               contributor.info
             </button>
