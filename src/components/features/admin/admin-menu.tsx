@@ -104,6 +104,15 @@ export function AdminMenu() {
       variant: 'warning' as const,
     },
     {
+      title: 'Community Spam Reports',
+      description:
+        'Verify community-submitted spam reports, manage known spammers, and handle reporter reputation.',
+      icon: Shield,
+      href: '/admin/spam-reports',
+      badge: 'Phase 2',
+      variant: 'success' as const,
+    },
+    {
       title: 'Spam Test Tool',
       description:
         'Test spam detection on individual PRs and provide manual feedback for training.',
