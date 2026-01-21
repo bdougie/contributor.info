@@ -142,7 +142,7 @@ serve(async (req: Request) => {
   const url = new URL(req.url);
   const method = req.method;
 
-  console.log(`${method} ${url.pathname}${url.search}`);
+  console.log('%s %s%s', method, url.pathname, url.search);
 
   // Handle CORS preflight
   if (method === 'OPTIONS') {
