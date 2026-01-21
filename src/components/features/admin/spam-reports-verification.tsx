@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Shield,
   Search,
@@ -146,7 +146,7 @@ export function SpamReportsVerification() {
 
       setReports(data || []);
     } catch (err) {
-      console.error('Error fetching spam reports:', err);
+      console.error('Error fetching spam reports: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to fetch spam reports');
     } finally {
       setLoading(false);
@@ -170,7 +170,7 @@ export function SpamReportsVerification() {
 
       setReporters(data || []);
     } catch (err) {
-      console.error('Error fetching reporters:', err);
+      console.error('Error fetching reporters: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to fetch reporters');
     } finally {
       setLoading(false);
@@ -212,7 +212,7 @@ export function SpamReportsVerification() {
         )
       );
     } catch (err) {
-      console.error('Error verifying report:', err);
+      console.error('Error verifying report: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to verify report');
     }
   };
@@ -245,7 +245,7 @@ export function SpamReportsVerification() {
       setSelectedReports(new Set());
       setBulkActionDialog(false);
     } catch (err) {
-      console.error('Error bulk verifying:', err);
+      console.error('Error bulk verifying: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to bulk verify');
     }
   };
@@ -276,7 +276,7 @@ export function SpamReportsVerification() {
         setError(null);
       }
     } catch (err) {
-      console.error('Error auto-verifying:', err);
+      console.error('Error auto-verifying: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to auto-verify');
     }
   };
@@ -315,7 +315,7 @@ export function SpamReportsVerification() {
       setSelectedReporter(null);
       setBanReason('');
     } catch (err) {
-      console.error('Error managing reporter:', err);
+      console.error('Error managing reporter: %s', err instanceof Error ? err.message : err);
       setError(err instanceof Error ? err.message : 'Failed to manage reporter');
     }
   };
@@ -330,42 +330,58 @@ export function SpamReportsVerification() {
     setSelectedReports(newSelected);
   };
 
+  // Memoized filtered reports for performance with large datasets
+  const filteredReports = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase();
+    return reports.filter((report) => {
+      const matchesSearch =
+        report.contributor_github_login?.toLowerCase().includes(searchLower) ||
+        report.pr_url.toLowerCase().includes(searchLower) ||
+        report.pr_repo.toLowerCase().includes(searchLower);
+
+      const matchesStatus = filterStatus === 'all' || report.status === filterStatus;
+      const matchesCategory = filterCategory === 'all' || report.spam_category === filterCategory;
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [reports, searchTerm, filterStatus, filterCategory]);
+
+  // Memoized filtered reporters for performance with large datasets
+  const filteredReporters = useMemo(() => {
+    if (!searchTerm) return reporters;
+    const searchLower = searchTerm.toLowerCase();
+    return reporters.filter((reporter) =>
+      reporter.github_login?.toLowerCase().includes(searchLower)
+    );
+  }, [reporters, searchTerm]);
+
+  // Memoized stats to avoid recalculating on every render
+  const stats = useMemo(
+    () => ({
+      total: reports.length,
+      pending: reports.filter((r) => r.status === 'pending').length,
+      verified: reports.filter((r) => r.status === 'verified').length,
+      rejected: reports.filter((r) => r.status === 'rejected').length,
+      autoVerifyEligible: reports.filter((r) => r.status === 'pending' && r.report_count >= 3)
+        .length,
+    }),
+    [reports]
+  );
+
+  // Memoized reporter stats
+  const reporterStats = useMemo(
+    () => ({
+      total: reporters.length,
+      trusted: reporters.filter((r) => r.is_trusted).length,
+      banned: reporters.filter((r) => r.is_banned).length,
+      lowAccuracy: reporters.filter((r) => r.accuracy_score < 50 && r.total_reports >= 5).length,
+    }),
+    [reporters]
+  );
+
   const selectAllPending = () => {
     const pendingIds = filteredReports.filter((r) => r.status === 'pending').map((r) => r.id);
     setSelectedReports(new Set(pendingIds));
-  };
-
-  // Filter reports
-  const filteredReports = reports.filter((report) => {
-    const matchesSearch =
-      report.contributor_github_login?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.pr_url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.pr_repo.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = filterStatus === 'all' || report.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || report.spam_category === filterCategory;
-
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
-
-  // Filter reporters
-  const filteredReporters = reporters.filter((reporter) => {
-    return reporter.github_login?.toLowerCase().includes(searchTerm.toLowerCase()) || !searchTerm;
-  });
-
-  const stats = {
-    total: reports.length,
-    pending: reports.filter((r) => r.status === 'pending').length,
-    verified: reports.filter((r) => r.status === 'verified').length,
-    rejected: reports.filter((r) => r.status === 'rejected').length,
-    autoVerifyEligible: reports.filter((r) => r.status === 'pending' && r.report_count >= 3).length,
-  };
-
-  const reporterStats = {
-    total: reporters.length,
-    trusted: reporters.filter((r) => r.is_trusted).length,
-    banned: reporters.filter((r) => r.is_banned).length,
-    lowAccuracy: reporters.filter((r) => r.accuracy_score < 50 && r.total_reports >= 5).length,
   };
 
   const getStatusBadgeVariant = (status: string) => {
