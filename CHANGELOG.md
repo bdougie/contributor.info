@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.35.0](https://github.com/bdougie/contributor.info/compare/v4.34.0...v4.35.0) (2026-01-21)
+
+
+### 🚀 Features
+
+* add accessibility tooltips to linked PRs in issues table ([#1612](https://github.com/bdougie/contributor.info/issues/1612)) ([8e907f1](https://github.com/bdougie/contributor.info/commit/8e907f1103c830c0ebf005d2c72d31c0fddda51b))
+
+
+### ⚡ Performance Improvements
+
+* eliminate N+1 fetching in activity feed with ContributorRolesProvider ([#1613](https://github.com/bdougie/contributor.info/issues/1613)) ([03118cf](https://github.com/bdougie/contributor.info/commit/03118cfa48b5b461482d24085995695300444f84))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3d07fec](https://github.com/bdougie/contributor.info/commit/3d07fec7d6d3cb1762a49e0c4c74bb52b629e2ad))
+
 ## [4.34.0](https://github.com/bdougie/contributor.info/compare/v4.33.0...v4.34.0) (2026-01-21)
 
 
