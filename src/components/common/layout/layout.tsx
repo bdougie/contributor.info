@@ -12,13 +12,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { LazyNavigationSheet } from './lazy-navigation-sheet';
+import { NavigationOverlay, NavSection, NavLink } from './navigation-overlay';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { NotificationDropdown } from '@/components/notifications';
 import { TourTriggerButton } from '@/components/features/onboarding';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { useTimeRangeStore } from '@/lib/time-range-store';
-import { usePrefetchOnIntent, prefetchCriticalRoutes } from '@/lib/route-prefetch';
+import { prefetchCriticalRoutes } from '@/lib/route-prefetch';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { trackEvent } from '@/lib/posthog-lazy';
@@ -50,10 +50,6 @@ export default function Layout() {
 
   // PLG Tracking: First page view tracking
   const { trackFirstPageView } = useAnalytics();
-
-  // Prefetch handlers for navigation links
-  const trendingPrefetch = usePrefetchOnIntent('/trending');
-  const changelogPrefetch = usePrefetchOnIntent('/changelog');
 
   // Check if current page needs time range controls
   const needsTimeRange = () => {
@@ -150,7 +146,7 @@ export default function Layout() {
         });
         subscription = data.subscription;
       } catch (error) {
-        console.error('Failed to initialize auth:', error);
+        console.error('Failed to initialize auth: %s', error);
         if (isMounted) {
           setIsLoggedIn(false);
         }
@@ -179,65 +175,76 @@ export default function Layout() {
       </a>
       <header className="border-b">
         <div className="container flex h-16 items-center px-4">
-          {/* Hamburger Menu - Now on all screen sizes */}
+          {/* Navigation Menu - Modern overlay with accessibility */}
           <div className="flex items-center space-x-4">
-            <LazyNavigationSheet isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}>
-              <nav className="flex flex-col space-y-4 mt-6" aria-label="Main navigation">
-                <button
-                  onClick={() => {
-                    navigate('/');
-                    setIsMenuOpen(false);
-                  }}
-                  className="text-lg font-semibold hover:text-primary transition-colors text-left"
-                >
-                  Home
-                </button>
-                <Link
-                  to="/trending"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-base hover:text-primary transition-colors"
-                  {...trendingPrefetch}
-                >
-                  🔥 Trending
-                </Link>
-                <Link
-                  to="/i/demo"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-base hover:text-primary transition-colors flex items-center gap-2"
-                >
-                  ✨ View Demo
-                </Link>
-                <Link
-                  to="/changelog"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-base hover:text-primary transition-colors"
-                  {...changelogPrefetch}
-                >
-                  Changelog
-                </Link>
-                <Link
-                  to="/billing"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-base hover:text-primary transition-colors"
-                >
-                  Pricing
-                </Link>
-                <a
-                  href="https://docs.contributor.info"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-base hover:text-primary transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Docs
-                </a>
+            <NavigationOverlay isOpen={isMenuOpen} onOpenChange={setIsMenuOpen}>
+              <nav className="flex flex-col" aria-label="Main navigation">
+                {/* Primary Navigation */}
+                <NavSection title="Navigation" titleId="nav-section-main">
+                  <NavLink
+                    onClick={() => {
+                      navigate('/');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Home
+                  </NavLink>
+                  <NavLink
+                    onClick={() => {
+                      navigate('/trending');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Trending
+                  </NavLink>
+                  <NavLink
+                    onClick={() => {
+                      navigate('/i/demo');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    View Demo
+                  </NavLink>
+                </NavSection>
+
+                {/* Resources */}
+                <NavSection title="Resources" titleId="nav-section-resources">
+                  <NavLink
+                    onClick={() => {
+                      navigate('/changelog');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Changelog
+                  </NavLink>
+                  <NavLink
+                    onClick={() => {
+                      navigate('/billing');
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Pricing
+                  </NavLink>
+                  <NavLink
+                    href="https://docs.contributor.info"
+                    external
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Docs
+                  </NavLink>
+                </NavSection>
 
                 {/* Time Range - only on relevant pages */}
                 {isLoggedIn && needsTimeRange() && (
-                  <section className="pt-4 border-t">
-                    <label className="text-sm font-medium mb-2 block">Time Range</label>
+                  <div className="mb-6 pt-4 border-t border-border/50">
+                    <label
+                      htmlFor="time-range-select"
+                      className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 block"
+                    >
+                      Time Range
+                    </label>
                     <Select value={timeRange} onValueChange={setTimeRange}>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger id="time-range-select" className="w-full">
                         <SelectValue placeholder="Select time range" />
                       </SelectTrigger>
                       <SelectContent>
@@ -246,44 +253,48 @@ export default function Layout() {
                         <SelectItem value="90">Last 90 days</SelectItem>
                       </SelectContent>
                     </Select>
-                  </section>
+                  </div>
                 )}
 
-                <section className="pt-4 border-t space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Theme</span>
+                {/* Settings */}
+                <div className="pt-4 border-t border-border/50 space-y-4">
+                  <div className="flex items-center justify-between px-3 -mx-3">
+                    <span className="text-sm font-medium">Theme</span>
                     <ModeToggle />
                   </div>
-                </section>
+                </div>
 
-                <section className="pt-4 border-t">
-                  <nav
-                    className="flex space-x-4 text-xs text-muted-foreground"
-                    aria-label="Footer links"
-                  >
+                {/* Footer Links - using div instead of nested nav to avoid landmark confusion */}
+                <div
+                  className="pt-4 mt-4 border-t border-border/50"
+                  role="group"
+                  aria-label="Legal links"
+                >
+                  <div className="flex space-x-4 text-xs text-muted-foreground">
                     <Link
                       to="/privacy"
                       onClick={() => setIsMenuOpen(false)}
-                      className="hover:text-primary transition-colors"
+                      className="hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                     >
                       Privacy
                     </Link>
                     <Link
                       to="/terms"
                       onClick={() => setIsMenuOpen(false)}
-                      className="hover:text-primary transition-colors"
+                      className="hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                     >
                       Terms
                     </Link>
-                  </nav>
-                </section>
+                  </div>
+                </div>
               </nav>
-            </LazyNavigationSheet>
+            </NavigationOverlay>
 
             <button
               onClick={() => navigate('/')}
               className="text-xl font-bold hover:text-primary transition-colors"
               data-tour="home-button"
+              aria-label="contributor.info - Go to home page"
             >
               contributor.info
             </button>
