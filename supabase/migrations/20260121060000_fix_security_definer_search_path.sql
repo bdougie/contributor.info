@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION public.check_spam_report_rate_limit(
 )
 RETURNS JSONB AS $$
 DECLARE
-  v_reporter spam_reporters%ROWTYPE;
+  v_reporter public.spam_reporters%ROWTYPE;
   v_hourly_limit INTEGER := 10;
   v_daily_limit INTEGER := 50;
   v_trusted_hourly_limit INTEGER := 50;
