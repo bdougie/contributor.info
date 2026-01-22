@@ -1,11 +1,12 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase clients
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-
-const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+// Lazy initialization helper - env vars are read at runtime
+function getSupabaseAnon() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export const handler: Handler = async (event) => {
   const headers = {
@@ -28,6 +29,9 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Initialize client lazily
+    const supabaseAnon = getSupabaseAnon();
+
     // Verify user authentication
     const authHeader = event.headers.authorization;
     if (!authHeader) {

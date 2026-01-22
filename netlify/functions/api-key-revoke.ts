@@ -3,19 +3,24 @@ import { Unkey } from '@unkey/api';
 import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
 
-// Initialize Unkey client
-const unkey = new Unkey({
-  rootKey: process.env.UNKEY_ROOT_KEY || '',
-});
+// Lazy initialization helpers - env vars are read at runtime
+function getUnkeyClient() {
+  return new Unkey({
+    rootKey: process.env.UNKEY_ROOT_KEY || '',
+  });
+}
 
-// Initialize Supabase clients
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+function getSupabaseClients() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+  const supabaseServiceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+  return {
+    admin: createClient(supabaseUrl, supabaseServiceKey),
+    anon: createClient(supabaseUrl, supabaseAnonKey),
+  };
+}
 
 export const handler: Handler = async (event) => {
   const headers = {
@@ -38,6 +43,22 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Verify required environment variables
+    if (!process.env.UNKEY_ROOT_KEY) {
+      console.error('Missing Unkey configuration:', {
+        hasRootKey: !!process.env.UNKEY_ROOT_KEY,
+      });
+      return {
+        statusCode: 503,
+        headers,
+        body: JSON.stringify({ error: 'API key service not configured' }),
+      };
+    }
+
+    // Initialize clients lazily
+    const unkey = getUnkeyClient();
+    const { admin: supabaseAdmin, anon: supabaseAnon } = getSupabaseClients();
+
     // Verify user authentication
     const authHeader = event.headers.authorization;
     if (!authHeader) {
