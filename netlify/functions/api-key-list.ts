@@ -1,11 +1,17 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 
-// Lazy initialization helper - env vars are read at runtime
-function getSupabaseAnon() {
+// Create Supabase client with auth header for RLS
+function getSupabaseWithAuth(authHeader: string) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-  return createClient(supabaseUrl, supabaseAnonKey);
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: authHeader,
+      },
+    },
+  });
 }
 
 export const handler: Handler = async (event) => {
@@ -29,10 +35,7 @@ export const handler: Handler = async (event) => {
   }
 
   try {
-    // Initialize client lazily
-    const supabaseAnon = getSupabaseAnon();
-
-    // Verify user authentication
+    // Verify auth header exists
     const authHeader = event.headers.authorization;
     if (!authHeader) {
       return {
@@ -42,10 +45,14 @@ export const handler: Handler = async (event) => {
       };
     }
 
+    // Create client with auth header for RLS to work
+    const supabase = getSupabaseWithAuth(authHeader);
+
+    // Verify user authentication
     const {
       data: { user },
       error: authError,
-    } = await supabaseAnon.auth.getUser(authHeader.replace('Bearer ', ''));
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -56,7 +63,7 @@ export const handler: Handler = async (event) => {
     }
 
     // Fetch user's API keys from Supabase using RLS
-    const { data: keys, error: dbError } = await supabaseAnon
+    const { data: keys, error: dbError } = await supabase
       .from('api_keys')
       .select(
         'id, unkey_key_id, name, prefix, last_four, created_at, last_used_at, revoked_at, expires_at'
