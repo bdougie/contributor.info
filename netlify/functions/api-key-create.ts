@@ -1,0 +1,171 @@
+import { Handler } from '@netlify/functions';
+import { Unkey } from '@unkey/api';
+import { createClient } from '@supabase/supabase-js';
+import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
+
+// Initialize Unkey client
+const unkey = new Unkey({
+  rootKey: process.env.UNKEY_ROOT_KEY || '',
+});
+
+// Initialize Supabase clients
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey);
+
+const UNKEY_API_ID = process.env.UNKEY_API_ID || '';
+
+export const handler: Handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
+  }
+
+  try {
+    // Verify user authentication
+    const authHeader = event.headers.authorization;
+    if (!authHeader) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Missing authorization header' }),
+      };
+    }
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAnon.auth.getUser(authHeader.replace('Bearer ', ''));
+
+    if (authError || !user) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
+
+    // Parse request body
+    const body = JSON.parse(event.body || '{}');
+    const { name, expiresInDays } = body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Key name is required' }),
+      };
+    }
+
+    // Calculate expiration if provided
+    let expires: number | undefined;
+    if (expiresInDays && typeof expiresInDays === 'number' && expiresInDays > 0) {
+      expires = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
+    }
+
+    // Create key with Unkey
+    const createResult = await unkey.keys.create({
+      apiId: UNKEY_API_ID,
+      prefix: 'ck_live',
+      ownerId: user.id,
+      name: name.trim(),
+      expires,
+      meta: {
+        userId: user.id,
+        email: user.email,
+        createdAt: new Date().toISOString(),
+      },
+      ratelimit: {
+        type: 'consistent',
+        limit: 100,
+        refillRate: 100,
+        refillInterval: 60000, // 1 minute
+      },
+    });
+
+    if (createResult.error) {
+      console.error('Unkey create error:', createResult.error);
+      throw new Error(`Failed to create key: ${createResult.error.message}`);
+    }
+
+    const { keyId, key } = createResult.result;
+
+    // Extract prefix and last 4 characters for display
+    const keyParts = key.split('_');
+    const prefix = keyParts.length >= 2 ? `${keyParts[0]}_${keyParts[1]}` : key.substring(0, 7);
+    const lastFour = key.slice(-4);
+
+    // Store key metadata in Supabase
+    const { error: dbError } = await supabaseAdmin.from('api_keys').insert({
+      user_id: user.id,
+      unkey_key_id: keyId,
+      name: name.trim(),
+      prefix,
+      last_four: lastFour,
+      expires_at: expires ? new Date(expires).toISOString() : null,
+    });
+
+    if (dbError) {
+      console.error('Database error storing key metadata:', dbError);
+      // Try to delete the key from Unkey since we couldn't store it
+      await unkey.keys.delete({ keyId });
+      throw new Error('Failed to store key metadata');
+    }
+
+    await trackServerEvent(
+      'api_key_created',
+      {
+        key_name: name.trim(),
+        has_expiry: !!expires,
+      },
+      user.id
+    );
+
+    return {
+      statusCode: 201,
+      headers,
+      body: JSON.stringify({
+        keyId,
+        key, // Only returned once on creation
+        name: name.trim(),
+        prefix,
+        lastFour,
+        expiresAt: expires ? new Date(expires).toISOString() : null,
+      }),
+    };
+  } catch (error) {
+    console.error('Error creating API key:', error);
+
+    await captureServerException(error instanceof Error ? error : new Error(String(error)), {
+      level: 'error',
+      tags: { type: 'api_key_create_failed' },
+    });
+
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to create API key',
+        details: 'An unexpected error occurred while processing your request',
+      }),
+    };
+  }
+};
