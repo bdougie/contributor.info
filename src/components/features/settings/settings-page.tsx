@@ -12,7 +12,7 @@ import { LastUpdated } from '@/components/ui/last-updated';
 import { usePageTimestamp } from '@/hooks/use-data-timestamp';
 import { SubscriptionService, SUBSCRIPTION_TIERS } from '@/services/polar/subscription.service';
 import { UserSlackIntegrationsCard } from '@/components/features/slack';
-import { ApiKeysSection } from '@/components/features/settings/api-keys-section';
+import { LazyApiKeysSection } from '@/components/features/settings/api-keys-section-lazy';
 
 interface EmailPreferences {
   welcome_emails: boolean;
@@ -218,7 +218,7 @@ export function SettingsPage() {
         </section>
 
         <section className="border-t pt-8">
-          <ApiKeysSection />
+          <LazyApiKeysSection />
         </section>
 
         <section className="border-t pt-8">
