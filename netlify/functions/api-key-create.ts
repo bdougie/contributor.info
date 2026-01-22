@@ -44,15 +44,37 @@ export const handler: Handler = async (event) => {
 
   try {
     // Verify required environment variables
-    if (!process.env.UNKEY_ROOT_KEY || !process.env.UNKEY_API_ID) {
-      console.error('Missing Unkey configuration:', {
-        hasRootKey: !!process.env.UNKEY_ROOT_KEY,
-        hasApiId: !!process.env.UNKEY_API_ID,
-      });
+    const hasUnkeyRootKey = !!process.env.UNKEY_ROOT_KEY;
+    const hasUnkeyApiId = !!process.env.UNKEY_API_ID;
+    const hasSupabaseUrl = !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+    const hasServiceKey = !!(
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+    );
+    const hasAnonKey = !!(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+
+    console.log('Environment check:', {
+      hasUnkeyRootKey,
+      hasUnkeyApiId,
+      hasSupabaseUrl,
+      hasServiceKey,
+      hasAnonKey,
+    });
+
+    if (!hasUnkeyRootKey || !hasUnkeyApiId) {
+      console.error('Missing Unkey configuration');
       return {
         statusCode: 503,
         headers,
         body: JSON.stringify({ error: 'API key service not configured' }),
+      };
+    }
+
+    if (!hasSupabaseUrl || !hasServiceKey || !hasAnonKey) {
+      console.error('Missing Supabase configuration');
+      return {
+        statusCode: 503,
+        headers,
+        body: JSON.stringify({ error: 'Database service not configured' }),
       };
     }
 
@@ -103,6 +125,7 @@ export const handler: Handler = async (event) => {
     }
 
     // Create key with Unkey
+    console.log('Creating key with Unkey, apiId:', UNKEY_API_ID);
     const createResult = await unkey.keys.create({
       apiId: UNKEY_API_ID,
       prefix: 'ck_live',
@@ -123,9 +146,17 @@ export const handler: Handler = async (event) => {
     });
 
     if (createResult.error) {
-      console.error('Unkey create error:', createResult.error);
-      throw new Error(`Failed to create key: ${createResult.error.message}`);
+      console.error('Unkey create error:', JSON.stringify(createResult.error));
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to create API key with provider',
+          code: createResult.error.code,
+        }),
+      };
     }
+    console.log('Unkey key created successfully, keyId:', createResult.result.keyId);
 
     const { keyId, key } = createResult.result;
 
@@ -135,6 +166,7 @@ export const handler: Handler = async (event) => {
     const lastFour = key.slice(-4);
 
     // Store key metadata in Supabase
+    console.log('Storing key metadata in database for user:', user.id);
     const { error: dbError } = await supabaseAdmin.from('api_keys').insert({
       user_id: user.id,
       unkey_key_id: keyId,
@@ -145,11 +177,19 @@ export const handler: Handler = async (event) => {
     });
 
     if (dbError) {
-      console.error('Database error storing key metadata:', dbError);
+      console.error('Database error storing key metadata:', JSON.stringify(dbError));
       // Try to delete the key from Unkey since we couldn't store it
       await unkey.keys.delete({ keyId });
-      throw new Error('Failed to store key metadata');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to store API key metadata',
+          code: dbError.code,
+        }),
+      };
     }
+    console.log('Key metadata stored successfully');
 
     await trackServerEvent(
       'api_key_created',
