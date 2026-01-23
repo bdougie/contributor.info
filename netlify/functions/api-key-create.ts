@@ -167,7 +167,6 @@ export const handler: Handler = async (event) => {
       expires,
       meta: {
         userId: user.id,
-        email: user.email,
         createdAt: new Date().toISOString(),
       },
       ratelimit: {
