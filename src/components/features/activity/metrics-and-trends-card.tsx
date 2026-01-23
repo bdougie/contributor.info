@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, TrendingDown } from '@/components/ui/icon';
+import { TrendingUp, TrendingDown, Link } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { CopyButton } from '@/components/ui/copy-button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { calculateTrendMetrics, type TrendData } from '@/lib/insights/trends-metrics';
@@ -112,15 +113,6 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
   const [loading, setLoading] = useState(true);
   const [trends, setTrends] = useState<TrendData[]>([]);
   const [metrics, setMetrics] = useState<ActivityMetrics | null>(null);
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard!');
-    } catch {
-      toast.error('Failed to copy link');
-    }
-  };
 
   /**
    * Loads trend metrics and PR activity metrics for the repository.
@@ -290,28 +282,14 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Button
+            <CopyButton
+              value={window.location.href}
               variant="outline"
               size="icon"
-              onClick={handleCopyLink}
               className="h-8 w-8"
-              title="Share page link"
-            >
-              <svg
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                <path d="m16 6-4-4-4 4" />
-                <path d="M12 2v15" />
-              </svg>
-            </Button>
+              icon={Link}
+              label="Share page link"
+            />
           </div>
         </div>
       </CardHeader>
