@@ -106,15 +106,48 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    // Parse request body with error handling
+    let body: { name?: unknown; expiresInDays?: unknown };
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid request body' }),
+      };
+    }
     const { name, expiresInDays } = body;
+
+    // Input validation constants
+    const MAX_KEY_NAME_LENGTH = 100;
+    const VALID_NAME_PATTERN = /^[a-zA-Z0-9\s\-_.]+$/;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'Key name is required' }),
+      };
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName.length > MAX_KEY_NAME_LENGTH) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Key name too long (max 100 characters)' }),
+      };
+    }
+
+    if (!VALID_NAME_PATTERN.test(trimmedName)) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error:
+            'Key name contains invalid characters. Use only letters, numbers, spaces, hyphens, underscores, and periods.',
+        }),
       };
     }
 
@@ -125,12 +158,12 @@ export const handler: Handler = async (event) => {
     }
 
     // Create key with Unkey
-    console.log('Creating key with Unkey, apiId:', UNKEY_API_ID);
+    console.log('Creating key with Unkey, apiId: %s', UNKEY_API_ID);
     const createResult = await unkey.keys.create({
       apiId: UNKEY_API_ID,
       prefix: 'ck_live',
       ownerId: user.id,
-      name: name.trim(),
+      name: trimmedName,
       expires,
       meta: {
         userId: user.id,
@@ -146,7 +179,7 @@ export const handler: Handler = async (event) => {
     });
 
     if (createResult.error) {
-      console.error('Unkey create error:', JSON.stringify(createResult.error));
+      console.error('Unkey create error: %s', JSON.stringify(createResult.error));
       return {
         statusCode: 500,
         headers,
@@ -156,7 +189,7 @@ export const handler: Handler = async (event) => {
         }),
       };
     }
-    console.log('Unkey key created successfully, keyId:', createResult.result.keyId);
+    console.log('Unkey key created successfully, keyId: %s', createResult.result.keyId);
 
     const { keyId, key } = createResult.result;
 
@@ -166,28 +199,37 @@ export const handler: Handler = async (event) => {
     const lastFour = key.slice(-4);
 
     // Store key metadata in Supabase
-    console.log('Storing key metadata in database for user:', user.id);
+    console.log('Storing key metadata in database for user: %s', user.id);
     const { error: dbError } = await supabaseAdmin.from('api_keys').insert({
       user_id: user.id,
       unkey_key_id: keyId,
-      name: name.trim(),
+      name: trimmedName,
       prefix,
       last_four: lastFour,
       expires_at: expires ? new Date(expires).toISOString() : null,
     });
 
     if (dbError) {
-      console.error('Database error storing key metadata:', JSON.stringify(dbError));
+      console.error('Database error storing key metadata: %s', JSON.stringify(dbError));
       // Try to delete the key from Unkey since we couldn't store it
       const deleteResult = await unkey.keys.delete({ keyId });
       if (deleteResult.error) {
         console.error(
-          'Failed to cleanup Unkey key after db error (orphaned key):',
+          'Failed to cleanup Unkey key after db error (orphaned key): %s keyId: %s',
           JSON.stringify(deleteResult.error),
-          'keyId:',
           keyId
         );
+        return {
+          statusCode: 500,
+          headers,
+          body: JSON.stringify({
+            error: 'Failed to store API key metadata and cleanup failed',
+            code: dbError.code,
+            orphanedKeyId: keyId,
+          }),
+        };
       }
+      console.log('Successfully cleaned up Unkey key after db error: %s', keyId);
       return {
         statusCode: 500,
         headers,
@@ -202,7 +244,7 @@ export const handler: Handler = async (event) => {
     await trackServerEvent(
       'api_key_created',
       {
-        key_name: name.trim(),
+        key_name: trimmedName,
         has_expiry: !!expires,
       },
       user.id
@@ -214,14 +256,17 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({
         keyId,
         key, // Only returned once on creation
-        name: name.trim(),
+        name: trimmedName,
         prefix,
         lastFour,
         expiresAt: expires ? new Date(expires).toISOString() : null,
       }),
     };
   } catch (error) {
-    console.error('Error creating API key:', error);
+    console.error(
+      'Error creating API key: %s',
+      error instanceof Error ? error.message : String(error)
+    );
 
     await captureServerException(error instanceof Error ? error : new Error(String(error)), {
       level: 'error',

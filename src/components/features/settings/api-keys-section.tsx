@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Key, Plus, Copy, Trash2, Loader2, Check, AlertCircle } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ interface NewKeyResponse {
 
 export function ApiKeysSection() {
   const { toast } = useToast();
+  const toastRef = useRef(toast);
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -47,6 +48,11 @@ export function ApiKeysSection() {
   const [copied, setCopied] = useState(false);
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
   const [revoking, setRevoking] = useState(false);
+
+  // Keep toast ref up to date
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const fetchKeys = useCallback(async () => {
     try {
@@ -74,7 +80,7 @@ export function ApiKeysSection() {
       setKeys(data.keys);
     } catch (error) {
       console.error('Error fetching API keys:', error);
-      toast({
+      toastRef.current({
         title: 'Error',
         description: 'Failed to load API keys. Please try again.',
         variant: 'destructive',
@@ -82,7 +88,7 @@ export function ApiKeysSection() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchKeys();

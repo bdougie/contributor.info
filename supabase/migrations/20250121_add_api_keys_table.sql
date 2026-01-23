@@ -43,6 +43,8 @@ CREATE POLICY "Users can update own api_keys"
     USING (auth.uid() = user_id);
 
 -- Grant permissions to authenticated users
+-- NOTE: DELETE intentionally omitted - keys are soft-deleted via revoked_at column
+-- This prevents accidental data loss and maintains audit trail of key usage
 GRANT SELECT, INSERT, UPDATE ON public.api_keys TO authenticated;
 
 -- Grant permissions to service role for admin operations

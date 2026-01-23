@@ -82,8 +82,17 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Parse request body
-    const body = JSON.parse(event.body || '{}');
+    // Parse request body with error handling
+    let body: { keyId?: unknown };
+    try {
+      body = JSON.parse(event.body || '{}');
+    } catch {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Invalid request body' }),
+      };
+    }
     const { keyId } = body;
 
     if (!keyId || typeof keyId !== 'string') {
@@ -104,7 +113,7 @@ export const handler: Handler = async (event) => {
       .maybeSingle();
 
     if (dbError) {
-      console.error('Database error verifying key ownership:', dbError);
+      console.error('Database error verifying key ownership: %s', JSON.stringify(dbError));
       throw new Error('Internal database error');
     }
 
@@ -120,7 +129,7 @@ export const handler: Handler = async (event) => {
     const deleteResult = await unkey.keys.delete({ keyId });
 
     if (deleteResult.error) {
-      console.error('Unkey delete error:', deleteResult.error);
+      console.error('Unkey delete error: %s', JSON.stringify(deleteResult.error));
       // Continue to mark as revoked in our database even if Unkey fails
       // The key may have already been deleted in Unkey
     }
@@ -132,7 +141,7 @@ export const handler: Handler = async (event) => {
       .eq('id', keyRecord.id);
 
     if (updateError) {
-      console.error('Database error marking key as revoked:', updateError);
+      console.error('Database error marking key as revoked: %s', JSON.stringify(updateError));
       throw new Error('Failed to revoke key');
     }
 
@@ -153,7 +162,10 @@ export const handler: Handler = async (event) => {
       }),
     };
   } catch (error) {
-    console.error('Error revoking API key:', error);
+    console.error(
+      'Error revoking API key: %s',
+      error instanceof Error ? error.message : String(error)
+    );
 
     await captureServerException(error instanceof Error ? error : new Error(String(error)), {
       level: 'error',
