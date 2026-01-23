@@ -179,7 +179,15 @@ export const handler: Handler = async (event) => {
     if (dbError) {
       console.error('Database error storing key metadata:', JSON.stringify(dbError));
       // Try to delete the key from Unkey since we couldn't store it
-      await unkey.keys.delete({ keyId });
+      const deleteResult = await unkey.keys.delete({ keyId });
+      if (deleteResult.error) {
+        console.error(
+          'Failed to cleanup Unkey key after db error (orphaned key):',
+          JSON.stringify(deleteResult.error),
+          'keyId:',
+          keyId
+        );
+      }
       return {
         statusCode: 500,
         headers,
