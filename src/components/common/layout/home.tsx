@@ -112,6 +112,7 @@ export default function Home() {
                 onSelect={handleSelectRepository}
                 buttonText="Analyze"
                 searchLocation="homepage"
+                shortcut="/"
               />
             </section>
             <aside>
