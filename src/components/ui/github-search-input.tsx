@@ -9,6 +9,12 @@ import { useTimeFormatter } from '@/hooks/use-time-formatter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
+import { Kbd } from '@/components/ui/kbd';
+import {
+  useKeyboardShortcuts,
+  formatShortcut,
+  type ShortcutHandler,
+} from '@/hooks/useKeyboardShortcuts';
 
 // Debounce utility for search query tracking
 function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
@@ -39,6 +45,7 @@ interface GitHubSearchInputProps {
   showButton?: boolean;
   buttonText?: string;
   searchLocation?: 'header' | 'homepage' | 'trending';
+  globalShortcut?: Omit<ShortcutHandler, 'handler'>;
 }
 
 // Language color mapping (subset of common languages)
@@ -74,10 +81,12 @@ export function GitHubSearchInput({
   showButton = true,
   buttonText = 'Search',
   searchLocation = 'homepage',
+  globalShortcut,
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
@@ -96,6 +105,21 @@ export function GitHubSearchInput({
     minQueryLength: 2,
     maxResults: 8,
   });
+
+  // Register global shortcut if provided
+  useKeyboardShortcuts(
+    globalShortcut
+      ? [
+          {
+            ...globalShortcut,
+            handler: () => {
+              inputRef.current?.focus();
+            },
+          },
+        ]
+      : [],
+    !!globalShortcut
+  );
 
   // Update search query when input changes
   useEffect(() => {
@@ -140,6 +164,15 @@ export function GitHubSearchInput({
       hasTrackedFocusRef.current = true;
       trackRepoSearchInitiated(searchLocation);
     }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    handleInputFocus();
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
   };
 
   // Handle form submission
@@ -238,7 +271,8 @@ export function GitHubSearchInput({
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            onFocus={handleInputFocus}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             className="w-full pr-8"
             autoComplete="off"
             role="combobox"
@@ -256,6 +290,13 @@ export function GitHubSearchInput({
           {loading && inputValue.length > 1 && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Keyboard shortcut hint */}
+          {!loading && !inputValue && !isFocused && globalShortcut && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Kbd>{formatShortcut(globalShortcut)}</Kbd>
             </div>
           )}
 
