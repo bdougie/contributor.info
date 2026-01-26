@@ -1,7 +1,7 @@
 {
   "name": "contributor-info",
   "private": true,
-  "version": "4.39.0",
+  "version": "4.40.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",

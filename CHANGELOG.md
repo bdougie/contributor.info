@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.0](https://github.com/bdougie/contributor.info/compare/v4.39.0...v4.40.0) (2026-01-26)
+
+
+### 🚀 Features
+
+* Unkey API key management UI and backend ([#1633](https://github.com/bdougie/contributor.info/issues/1633)) ([1781e4f](https://github.com/bdougie/contributor.info/commit/1781e4fd1e8caaec073f08bbb09bf94363d523df)), closes [open-source-ready/gh-datapipe#246](https://github.com/open-source-ready/gh-datapipe/issues/246)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0325c86](https://github.com/bdougie/contributor.info/commit/0325c8609b6862a32ddfecd9f763475a158be12d))
+
 ## [4.39.0](https://github.com/bdougie/contributor.info/compare/v4.38.0...v4.39.0) (2026-01-21)
 
 
