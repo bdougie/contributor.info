@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.40.1](https://github.com/bdougie/contributor.info/compare/v4.40.0...v4.40.1) (2026-01-26)
+
+
+### 🐛 Bug Fixes
+
+* disable API key create button when name is empty and improve error logging ([#1639](https://github.com/bdougie/contributor.info/issues/1639)) ([1f8ed0f](https://github.com/bdougie/contributor.info/commit/1f8ed0ff561c462082a2b2cef060e4c762f8d7bf))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([70d7348](https://github.com/bdougie/contributor.info/commit/70d734836a66877e5ae5d660c343aff2b16030ad))
+
 ## [4.40.0](https://github.com/bdougie/contributor.info/compare/v4.39.0...v4.40.0) (2026-01-26)
 
 
