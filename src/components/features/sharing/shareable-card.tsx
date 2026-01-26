@@ -1,6 +1,7 @@
 import { useState, useRef, ReactNode } from 'react';
 import { Download, Share2, Copy } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useLocation as useRouterLocation } from 'react-router';
@@ -209,39 +210,57 @@ export function ShareableCard({
             isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
           )}
         >
-          <Button
-            size="icon"
-            variant="secondary"
-            className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
-            onClick={() => handleCapture('copy')}
-            title="Copy chart as image"
-            aria-label="Copy chart as image"
-            disabled={isCapturing}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
-            onClick={() => handleCapture('download')}
-            title="Download chart"
-            aria-label="Download chart"
-            disabled={isCapturing}
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
-            onClick={() => handleCapture('share')}
-            title="Share chart"
-            aria-label="Share chart"
-            disabled={isCapturing}
-          >
-            <Share2 className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+                onClick={() => handleCapture('copy')}
+                aria-label="Copy chart as image"
+                disabled={isCapturing}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Copy chart as image</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="hidden sm:flex h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+                onClick={() => handleCapture('download')}
+                aria-label="Download chart"
+                disabled={isCapturing}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Download chart</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="secondary"
+                className="sm:hidden h-8 w-8 bg-primary-white-overlay backdrop-blur-sm"
+                onClick={() => handleCapture('share')}
+                aria-label="Share chart"
+                disabled={isCapturing}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Share chart</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       )}
     </div>
