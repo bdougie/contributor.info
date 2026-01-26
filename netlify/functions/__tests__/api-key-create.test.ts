@@ -73,6 +73,7 @@ describe('api-key-create handler', () => {
   let mockUnkeyCreate: ReturnType<typeof vi.fn>;
   let mockUnkeyDelete: ReturnType<typeof vi.fn>;
   let mockSupabaseInsert: ReturnType<typeof vi.fn>;
+  let mockSupabaseCount: ReturnType<typeof vi.fn>;
   let mockSupabaseGetUser: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -91,6 +92,7 @@ describe('api-key-create handler', () => {
 
     // Setup Supabase mock
     mockSupabaseInsert = vi.fn().mockResolvedValue({ error: null });
+    mockSupabaseCount = vi.fn().mockResolvedValue({ count: 0, error: null });
     mockSupabaseGetUser = vi.fn().mockResolvedValue({
       data: { user: { id: 'user-123', email: 'test@example.com' } },
       error: null,
@@ -100,6 +102,11 @@ describe('api-key-create handler', () => {
       admin: {
         from: vi.fn().mockReturnValue({
           insert: mockSupabaseInsert,
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: mockSupabaseCount,
+            }),
+          }),
         }),
       },
       anon: {
@@ -260,6 +267,67 @@ describe('api-key-create handler', () => {
       expect(result?.statusCode).toBe(400);
       const body = JSON.parse(result?.body || '{}');
       expect(body.error).toContain('cannot exceed 365 days');
+    });
+  });
+
+  describe('Key limit enforcement', () => {
+    it('should return 429 when user has reached the maximum number of keys', async () => {
+      mockSupabaseCount.mockResolvedValue({ count: 50, error: null });
+
+      const event = createMockEvent({ body: JSON.stringify({ name: 'Test Key' }) });
+      const result = await handler(event, mockContext);
+
+      expect(result?.statusCode).toBe(429);
+      const body = JSON.parse(result?.body || '{}');
+      expect(body.error).toContain('Maximum number of API keys reached');
+      expect(body.limit).toBe(50);
+      expect(body.current).toBe(50);
+    });
+
+    it('should return 429 when user has exceeded the maximum (edge case)', async () => {
+      mockSupabaseCount.mockResolvedValue({ count: 100, error: null });
+
+      const event = createMockEvent({ body: JSON.stringify({ name: 'Test Key' }) });
+      const result = await handler(event, mockContext);
+
+      expect(result?.statusCode).toBe(429);
+    });
+
+    it('should allow key creation when user is under the limit', async () => {
+      mockSupabaseCount.mockResolvedValue({ count: 49, error: null });
+      mockUnkeyCreate.mockResolvedValue({
+        result: { keyId: 'key-123', key: 'ck_live_abc123xyz789' },
+        error: null,
+      });
+
+      const event = createMockEvent({ body: JSON.stringify({ name: 'Test Key' }) });
+      const result = await handler(event, mockContext);
+
+      expect(result?.statusCode).toBe(201);
+    });
+
+    it('should allow key creation when user has no keys', async () => {
+      mockSupabaseCount.mockResolvedValue({ count: 0, error: null });
+      mockUnkeyCreate.mockResolvedValue({
+        result: { keyId: 'key-123', key: 'ck_live_abc123xyz789' },
+        error: null,
+      });
+
+      const event = createMockEvent({ body: JSON.stringify({ name: 'Test Key' }) });
+      const result = await handler(event, mockContext);
+
+      expect(result?.statusCode).toBe(201);
+    });
+
+    it('should return 500 when count query fails', async () => {
+      mockSupabaseCount.mockResolvedValue({ count: null, error: { message: 'Database error' } });
+
+      const event = createMockEvent({ body: JSON.stringify({ name: 'Test Key' }) });
+      const result = await handler(event, mockContext);
+
+      expect(result?.statusCode).toBe(500);
+      const body = JSON.parse(result?.body || '{}');
+      expect(body.error).toBe('Failed to verify key limit');
     });
   });
 

@@ -145,6 +145,34 @@ export const handler: Handler = async (event) => {
       expires = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
     }
 
+    // Check if user has reached the maximum number of API keys
+    const { count, error: countError } = await supabaseAdmin
+      .from('api_keys')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('revoked_at', null);
+
+    if (countError) {
+      console.error('Database error counting user keys: %s', JSON.stringify(countError));
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to verify key limit' }),
+      };
+    }
+
+    if (count !== null && count >= API_KEY_VALIDATION.MAX_KEYS_PER_USER) {
+      return {
+        statusCode: 429,
+        headers,
+        body: JSON.stringify({
+          error: `Maximum number of API keys reached (${API_KEY_VALIDATION.MAX_KEYS_PER_USER})`,
+          limit: API_KEY_VALIDATION.MAX_KEYS_PER_USER,
+          current: count,
+        }),
+      };
+    }
+
     // Create key with Unkey
     // Note: We intentionally omit email from metadata to avoid transmitting PII to third parties
     const createResult = await unkey.keys.create({
