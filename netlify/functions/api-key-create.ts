@@ -34,7 +34,11 @@ export const handler: Handler = async (event) => {
     const supabaseConfig = hasSupabaseConfig();
 
     if (!unkeyConfig.hasRootKey || !unkeyConfig.hasApiId) {
-      console.error('Missing Unkey configuration');
+      console.error(
+        'Missing Unkey configuration - hasRootKey: %s, hasApiId: %s',
+        unkeyConfig.hasRootKey,
+        unkeyConfig.hasApiId
+      );
       return {
         statusCode: 503,
         headers,
@@ -194,13 +198,19 @@ export const handler: Handler = async (event) => {
     });
 
     if (createResult.error) {
-      console.error('Unkey create error: %s', JSON.stringify(createResult.error));
+      console.error(
+        'Unkey create error - code: %s, message: %s, full: %s',
+        createResult.error.code,
+        createResult.error.message,
+        JSON.stringify(createResult.error)
+      );
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
           error: 'Failed to create API key with provider',
           code: createResult.error.code,
+          message: createResult.error.message,
         }),
       };
     }
