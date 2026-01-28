@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Copy, Check } from '@/components/ui/icon';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -54,20 +55,28 @@ export function CopyButton({
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      className={cn(className)}
-      onClick={handleCopy}
-      aria-label={hasCopied ? 'Copied' : label}
-      {...props}
-    >
-      {hasCopied ? (
-        <Check className={cn('h-4 w-4', iconClassName)} />
-      ) : (
-        <Icon className={cn('h-4 w-4', iconClassName)} />
-      )}
-      <span className="sr-only">{label}</span>
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant={variant}
+            size={size}
+            className={cn(className)}
+            onClick={handleCopy}
+            aria-label={hasCopied ? 'Copied' : label}
+            {...props}
+          >
+            {hasCopied ? (
+              <Check className={cn('h-4 w-4', iconClassName)} />
+            ) : (
+              <Icon className={cn('h-4 w-4', iconClassName)} />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{hasCopied ? 'Copied!' : label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
