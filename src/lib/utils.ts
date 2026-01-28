@@ -25,7 +25,37 @@ const LOG_1000 = Math.log(1000);
 export function humanizeNumber(num: number): string {
   if (num === 0) return '0';
 
-  const order = Math.floor(Math.log(Math.abs(num)) / LOG_1000);
+  const absNum = Math.abs(num);
+
+  // Optimized path for common numbers (0-999)
+  // This avoids Math.log/pow overhead for the most frequent cases
+  if (absNum < 1000) {
+    return Math.round(num).toString();
+  }
+
+  // Optimized path for thousands (1K - 999K)
+  // Checking < 1,000,000 covers the vast majority of remaining cases
+  if (absNum < 1000000) {
+    const value = Math.round(num / 1000);
+    // Handle edge case where rounding pushes it to next unit (e.g. 999999 -> 1000K)
+    // The original implementation allowed 1000K, keeping for compatibility
+    return value + 'K';
+  }
+
+  // Optimized path for millions (1M - 999M)
+  if (absNum < 1000000000) {
+    const value = Math.round(num / 1000000);
+    return value + 'M';
+  }
+
+  // Optimized path for billions (1B - 999B)
+  if (absNum < 1000000000000) {
+    const value = Math.round(num / 1000000000);
+    return value + 'B';
+  }
+
+  // Fallback to original logic for Trillions and beyond, or very specific edge cases
+  const order = Math.floor(Math.log(absNum) / LOG_1000);
   const unitname = UNITS[order];
   const value = Math.round(num / Math.pow(1000, order));
   return value + unitname;
