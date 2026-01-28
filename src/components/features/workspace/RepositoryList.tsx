@@ -33,8 +33,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Kbd } from '@/components/ui/kbd';
 import { cn, humanizeNumber } from '@/lib/utils';
-import { useState, useMemo, useCallback, KeyboardEvent } from 'react';
+import { useState, useMemo, useCallback, KeyboardEvent, useRef, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -139,6 +140,25 @@ export function RepositoryList({
     { id: 'is_pinned', desc: true },
     { id: 'last_activity', desc: true },
   ]);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      // Focus search on '/' or 'Cmd+K'
+      if (
+        (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) ||
+        ((e.metaKey || e.ctrlKey) && e.key === 'k')
+      ) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Handle keyboard navigation for table rows
   const handleRowKeyDown = useCallback(
@@ -479,12 +499,16 @@ export function RepositoryList({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
+              ref={searchInputRef}
               placeholder="Search repositories..."
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-9"
+              className="pl-9 pr-10"
               aria-label="Search repositories"
             />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <Kbd>/</Kbd>
+            </div>
           </div>
         </div>
 
