@@ -12,6 +12,7 @@ import { useAnalytics } from '@/hooks/use-analytics';
 import type { GitHubRepository } from '@/lib/github';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
+import { GLOBAL_SHORTCUTS } from '@/hooks/useKeyboardShortcuts';
 
 // Lazy load components that are only shown for logged-in users or on interaction
 const CarouselLazy = lazy(() => import('@/components/ui/carousel-lazy'));
@@ -112,6 +113,7 @@ export default function Home() {
                 onSelect={handleSelectRepository}
                 buttonText="Analyze"
                 searchLocation="homepage"
+                globalShortcut={GLOBAL_SHORTCUTS.COMMAND_PALETTE}
               />
             </section>
             <aside>
