@@ -34,9 +34,7 @@ export function VirtualizedList<T>({
     getScrollElement: () => parentRef.current,
     estimateSize:
       estimateSize ||
-      (typeof itemHeight === 'function'
-        ? (i) => itemHeight(i) + gap
-        : () => (itemHeight as number) + gap),
+      (typeof itemHeight === 'function' ? (i) => itemHeight(i) + gap : () => (itemHeight as number) + gap),
     overscan,
   });
 
@@ -188,9 +186,7 @@ export function WindowVirtualizedList<T>({
     getScrollElement: () => (typeof window !== 'undefined' ? document.documentElement : null),
     estimateSize:
       estimateSize ||
-      (typeof itemHeight === 'function'
-        ? (i) => itemHeight(i) + gap
-        : () => (itemHeight as number) + gap),
+      (typeof itemHeight === 'function' ? (i) => itemHeight(i) + gap : () => (itemHeight as number) + gap),
     overscan,
     scrollMargin,
   });

@@ -16,6 +16,7 @@ import {
   convertDatabasePRsToActivities,
   sortActivitiesByTimestamp,
 } from '@/lib/api/pr-activity-adapter';
+import { ContributorRolesProvider } from '@/hooks/useContributorRoles';
 
 export default function FilteredPRActivity() {
   const { owner, repo: repoName } = useParams<{ owner: string; repo: string }>();
@@ -136,24 +137,26 @@ export default function FilteredPRActivity() {
         </div>
 
         {/* Activity Feed */}
-        <div className="space-y-2">
-          {visibleActivities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {spamStats && spamStats.spamCount === 0 ? (
-                <div>
-                  <p className="font-medium">No spam detected in this repository</p>
-                  <p className="text-sm mt-1">All pull requests appear to be legitimate</p>
-                </div>
-              ) : (
-                <p>No pull requests match your filter criteria</p>
-              )}
-            </div>
-          ) : (
-            visibleActivities.map((activity) => (
-              <SpamAwareActivityItem key={activity.id} activity={activity} />
-            ))
-          )}
-        </div>
+        <ContributorRolesProvider owner={owner || ''} repo={repoName || ''}>
+          <div className="space-y-2">
+            {visibleActivities.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {spamStats && spamStats.spamCount === 0 ? (
+                  <div>
+                    <p className="font-medium">No spam detected in this repository</p>
+                    <p className="text-sm mt-1">All pull requests appear to be legitimate</p>
+                  </div>
+                ) : (
+                  <p>No pull requests match your filter criteria</p>
+                )}
+              </div>
+            ) : (
+              visibleActivities.map((activity) => (
+                <SpamAwareActivityItem key={activity.id} activity={activity} />
+              ))
+            )}
+          </div>
+        </ContributorRolesProvider>
 
         {hasMore && (
           <div className="mt-4 flex justify-center">

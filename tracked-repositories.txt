@@ -1,3 +1,4 @@
+AAChartModel/AAChartCore-Kotlin
 Ad-Astra-Innovia/frontend
 analogjs/analog
 angular/angular

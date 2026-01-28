@@ -501,24 +501,48 @@ export function WorkspaceIssuesTable({
             return (
               <div className="flex items-center gap-1 flex-wrap">
                 {prs.slice(0, 2).map((pr) => (
-                  <a
-                    key={pr.number}
-                    href={pr.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                      'text-sm font-medium hover:underline',
-                      pr.state === 'merged' && 'text-purple-600 dark:text-purple-400',
-                      pr.state === 'open' && 'text-green-600 dark:text-green-400',
-                      pr.state === 'closed' && 'text-red-600 dark:text-red-400'
-                    )}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    #{pr.number}
-                  </a>
+                  <Tooltip key={pr.number}>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={pr.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(
+                          'text-sm font-medium hover:underline',
+                          pr.state === 'merged' && 'text-purple-600 dark:text-purple-400',
+                          pr.state === 'open' && 'text-green-600 dark:text-green-400',
+                          pr.state === 'closed' && 'text-red-600 dark:text-red-400'
+                        )}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Pull request #${pr.number} (${pr.state})`}
+                      >
+                        #{pr.number}
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Pull Request #{pr.number} • <span className="capitalize">{pr.state}</span>
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
                 {prs.length > 2 && (
-                  <span className="text-sm text-muted-foreground">+{prs.length - 2}</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm text-muted-foreground cursor-help">
+                        +{prs.length - 2}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="flex flex-col gap-1">
+                        {prs.slice(2).map((pr) => (
+                          <span key={pr.number} className="text-xs">
+                            #{pr.number} (<span className="capitalize">{pr.state}</span>)
+                          </span>
+                        ))}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             );

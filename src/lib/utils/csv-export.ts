@@ -228,3 +228,56 @@ export function exportDiscussionsToCSV(
   const csv = unparse(csvData);
   downloadCSV(csv, filename);
 }
+
+// ============================================
+// Spammers Export
+// ============================================
+
+export interface SpammerCSVRow {
+  Rank: number;
+  'GitHub Username': string;
+  'GitHub Profile': string;
+  'Spam PR Count': number;
+  'First Reported': string;
+  'Last Reported': string;
+  'Verification Status': string;
+  'Latest Spam PR': string;
+}
+
+/** Minimal interface for spammer data needed for CSV export */
+export interface SpammerExportData {
+  github_login: string;
+  spam_pr_count: number;
+  first_reported_at: string;
+  last_reported_at: string;
+  verification_status: string;
+  latest_pr_url: string | null;
+}
+
+/**
+ * Transforms spammer data into CSV-compatible format
+ */
+export function transformSpammersToCSV(spammers: SpammerExportData[]): SpammerCSVRow[] {
+  return spammers.map((spammer, index) => ({
+    Rank: index + 1,
+    'GitHub Username': spammer.github_login,
+    'GitHub Profile': `https://github.com/${spammer.github_login}`,
+    'Spam PR Count': spammer.spam_pr_count,
+    'First Reported': new Date(spammer.first_reported_at).toLocaleDateString(),
+    'Last Reported': new Date(spammer.last_reported_at).toLocaleDateString(),
+    'Verification Status': spammer.verification_status,
+    'Latest Spam PR': spammer.latest_pr_url || '',
+  }));
+}
+
+/**
+ * Exports spammers to CSV file
+ */
+export function exportSpammersToCSV(
+  spammers: SpammerExportData[],
+  filename = 'verified-spammers.csv'
+): void {
+  const csvData = transformSpammersToCSV(spammers);
+  const csv = unparse(csvData);
+  downloadCSV(csv, filename);
+}

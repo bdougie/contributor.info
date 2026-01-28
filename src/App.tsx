@@ -121,6 +121,14 @@ const TermsPage = lazy(() =>
   import('@/components/features/privacy/terms-page').then((m) => ({ default: m.TermsPage }))
 );
 
+// Spam report page (public)
+const SpamReportPage = lazy(() =>
+  import('@/components/features/spam').then((m) => ({ default: m.SpamReportPage }))
+);
+const SpamLeaderboardPage = lazy(() =>
+  import('@/components/features/spam').then((m) => ({ default: m.SpamLeaderboardPage }))
+);
+
 // Workspace components
 const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
@@ -171,6 +179,11 @@ const FailedJobsDashboard = lazy(() =>
     default: m.FailedJobsDashboard,
   }))
 );
+const SpamReportsVerification = lazy(() =>
+  import('@/components/features/admin/spam-reports-verification').then((m) => ({
+    default: m.SpamReportsVerification,
+  }))
+);
 const LLMCitationDashboard = lazy(() =>
   import('@/components/features/analytics/llm-citation-dashboard').then((m) => ({
     default: m.LLMCitationDashboard,
@@ -217,6 +230,7 @@ function isRepoRoute(): boolean {
     '/billing',
     '/invitation',
     '/signup',
+    '/spam',
   ];
   if (excludedPaths.some((p) => path.startsWith(p))) {
     return false;
@@ -536,6 +550,8 @@ function App() {
                         <Route path="/privacy" element={<PrivacyPolicyPage />} />
                         <Route path="/privacy/data-request" element={<DataRequestPage />} />
                         <Route path="/terms" element={<TermsPage />} />
+                        <Route path="/spam" element={<SpamLeaderboardPage />} />
+                        <Route path="/spam/new" element={<SpamReportPage />} />
 
                         {/* Debug routes with Layout */}
                         <Route
@@ -659,6 +675,14 @@ function App() {
                           element={
                             <AdminRoute>
                               <BulkSpamAnalysis />
+                            </AdminRoute>
+                          }
+                        />
+                        <Route
+                          path="/admin/spam-reports"
+                          element={
+                            <AdminRoute>
+                              <SpamReportsVerification />
                             </AdminRoute>
                           }
                         />
