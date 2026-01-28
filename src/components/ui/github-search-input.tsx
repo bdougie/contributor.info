@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
+import { SearchIcon, Star, Clock, GitBranch, Loader2, X } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Kbd } from '@/components/ui/kbd';
@@ -250,6 +250,13 @@ export function GitHubSearchInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleClear = () => {
+    setInputValue('');
+    setSelectedIndex(-1);
+    setShowDropdown(false);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className={cn('relative', className)}>
       <form onSubmit={handleSubmit} className="flex gap-4">
@@ -261,7 +268,10 @@ export function GitHubSearchInput({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
-            className="w-full pr-8 peer"
+            className={cn(
+              'w-full pr-8 peer',
+              loading && inputValue.length > 0 && 'pr-14'
+            )}
             autoComplete="off"
             role="combobox"
             aria-keyshortcuts={shortcut ? '/' : undefined}
@@ -276,18 +286,35 @@ export function GitHubSearchInput({
             aria-label="Search GitHub repositories"
           />
           {/* Loading spinner in input field */}
-          {loading && inputValue.length > 1 ? (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          {loading && inputValue.length > 1 && (
+            <div
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 pointer-events-none',
+                inputValue.length > 0 ? 'right-8' : 'right-2'
+              )}
+            >
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          ) : (
-            /* Keyboard shortcut hint */
-            shortcut &&
-            !inputValue && (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none peer-focus:hidden">
-                <Kbd>/</Kbd>
-              </div>
-            )
+          )}
+
+          {/* Clear button */}
+          {inputValue.length > 0 && !loading && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none p-1 rounded-sm hover:bg-muted"
+              aria-label="Clear search"
+              data-testid="clear-button"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+
+          {/* Keyboard shortcut hint */}
+          {shortcut && !inputValue && !loading && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none peer-focus:hidden">
+              <Kbd>/</Kbd>
+            </div>
           )}
 
           {/* Dropdown with search results */}

@@ -1,5 +1,9 @@
 [
   {
+    "owner": "AAChartModel",
+    "name": "AAChartCore-Kotlin"
+  },
+  {
     "owner": "Ad-Astra-Innovia",
     "name": "frontend"
   },
