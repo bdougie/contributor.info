@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.41.0](https://github.com/bdougie/contributor.info/compare/v4.40.1...v4.41.0) (2026-01-28)
+
+
+### 🚀 Features
+
+* **ui:** add clear button to GitHub search input ([#1641](https://github.com/bdougie/contributor.info/issues/1641)) ([ed78651](https://github.com/bdougie/contributor.info/commit/ed78651a8f9bdf57460756a0df503660f67598e2))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([5ea1f76](https://github.com/bdougie/contributor.info/commit/5ea1f76be4add73e739d7789aef0a674b70f7b7c))
+
 ## [4.40.1](https://github.com/bdougie/contributor.info/compare/v4.40.0...v4.40.1) (2026-01-26)
 
 
