@@ -174,6 +174,8 @@ export function WorkspacePreviewCard({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-center"
+                      aria-label={`View ${repo.name} on GitHub`}
+                      title="View on GitHub"
                     >
                       <ExternalLink className="h-3 w-3" />
                     </a>
