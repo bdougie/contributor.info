@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/utils';
 import { useGitHubSearch } from '@/hooks/use-github-search';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
@@ -39,6 +40,7 @@ interface GitHubSearchInputProps {
   showButton?: boolean;
   buttonText?: string;
   searchLocation?: 'header' | 'homepage' | 'trending';
+  shortcut?: string;
 }
 
 // Language color mapping (subset of common languages)
@@ -74,6 +76,7 @@ export function GitHubSearchInput({
   showButton = true,
   buttonText = 'Search',
   searchLocation = 'homepage',
+  shortcut,
 }: GitHubSearchInputProps) {
   const [inputValue, setInputValue] = useState(value);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -228,6 +231,35 @@ export function GitHubSearchInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle global shortcut
+  useEffect(() => {
+    if (!shortcut) return;
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if modifier keys are pressed
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+
+      // Ignore if user is already typing in an input
+      const activeElement = document.activeElement as HTMLElement;
+      if (
+        activeElement &&
+        (activeElement.tagName === 'INPUT' ||
+          activeElement.tagName === 'TEXTAREA' ||
+          activeElement.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.key === shortcut) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [shortcut]);
+
   return (
     <div className={cn('relative', className)}>
       <form onSubmit={handleSubmit} className="flex gap-4">
@@ -239,7 +271,7 @@ export function GitHubSearchInput({
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleInputFocus}
-            className="w-full pr-8"
+            className="w-full pr-8 peer"
             autoComplete="off"
             role="combobox"
             aria-autocomplete="list"
@@ -252,6 +284,13 @@ export function GitHubSearchInput({
             }
             aria-label="Search GitHub repositories"
           />
+          {/* Keyboard shortcut hint */}
+          {shortcut && !inputValue && (
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none peer-focus:hidden">
+              <Kbd>{shortcut}</Kbd>
+            </div>
+          )}
+
           {/* Loading spinner in input field */}
           {loading && inputValue.length > 1 && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2">
