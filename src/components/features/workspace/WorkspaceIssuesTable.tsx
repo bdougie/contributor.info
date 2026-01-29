@@ -14,7 +14,7 @@ import {
 } from '@tanstack/react-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,7 +30,6 @@ import {
   Circle,
   CheckCircle2,
   XCircle,
-  Search,
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
@@ -786,16 +785,15 @@ export function WorkspaceIssuesTable({
           <div className="flex items-center justify-between">
             <CardTitle className="hidden sm:block">Issues</CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:flex-initial">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search issues..."
-                  value={globalFilter ?? ''}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-10 w-full sm:w-[300px]"
-                  aria-label="Search issues"
-                />
-              </div>
+              <SearchInput
+                placeholder="Search issues..."
+                value={globalFilter ?? ''}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                onClear={() => setGlobalFilter('')}
+                className="w-full sm:w-[300px]"
+                wrapperClassName="flex-1 sm:flex-initial"
+                aria-label="Search issues"
+              />
               {onExport && (
                 <Tooltip>
                   <TooltipTrigger asChild>

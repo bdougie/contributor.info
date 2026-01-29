@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LastUpdated } from '@/components/ui/last-updated';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -22,7 +22,6 @@ import { useWorkspaceDiscussions } from '@/hooks/useWorkspaceDiscussions';
 import {
   MessageSquare,
   CheckCircle2,
-  Search,
   ExternalLink,
   ChevronUp,
   RefreshCw,
@@ -297,19 +296,14 @@ export function WorkspaceDiscussionsTable({
         <div className="mb-6 space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
-            <div className="flex-1 relative">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                placeholder="Search discussions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                aria-label="Search discussions"
-              />
-            </div>
+            <SearchInput
+              placeholder="Search discussions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClear={() => setSearchTerm('')}
+              wrapperClassName="flex-1"
+              aria-label="Search discussions"
+            />
 
             {/* Sort */}
             <div className="flex gap-2" role="group" aria-label="Sort discussions">

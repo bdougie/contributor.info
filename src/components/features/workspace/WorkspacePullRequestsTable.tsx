@@ -13,7 +13,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { InlineCodeDiff } from '@/components/ui/code-diff';
@@ -22,7 +22,6 @@ import {
   GitBranch,
   XCircle,
   GitPullRequestDraft,
-  Search,
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
@@ -526,19 +525,15 @@ export function WorkspacePullRequestsTable({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle className="text-lg font-semibold">Pull Requests</CardTitle>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:flex-initial">
-                <Search
-                  className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Input
-                  placeholder="Search pull requests..."
-                  value={globalFilter ?? ''}
-                  onChange={(e) => setGlobalFilter(e.target.value)}
-                  className="pl-10 w-full sm:w-[300px] min-h-[44px]"
-                  aria-label="Search pull requests"
-                />
-              </div>
+              <SearchInput
+                placeholder="Search pull requests..."
+                value={globalFilter ?? ''}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                onClear={() => setGlobalFilter('')}
+                className="w-full sm:w-[300px] min-h-[44px]"
+                wrapperClassName="flex-1 sm:flex-initial"
+                aria-label="Search pull requests"
+              />
               {onExport && (
                 <Tooltip>
                   <TooltipTrigger asChild>

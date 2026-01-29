@@ -5,3 +5,7 @@
 ## 2026-01-27 - Clear Button for Search Input
 **Learning:** Adding a clear button to search inputs significantly improves usability on mobile and desktop. When adding icons to input fields that already have other indicators (like loaders), dynamic positioning logic is required to prevent overlap while maintaining consistent padding.
 **Action:** Implemented a clear button in `GitHubSearchInput` with dynamic positioning logic to coexist with the loading spinner.
+
+## 2026-01-29 - Reusable Search Input Component
+**Learning:** Consolidating search input logic (search icon, input field, clear button) into a single reusable component prevents code duplication and ensures consistent UX (padding, focus states, accessibility) across the application.
+**Action:** Created `SearchInput` component and refactored workspace tables to use it.
