@@ -63,6 +63,7 @@ function RepoSearchSection({ onSearch, onSelect, onExampleSelect }: RepoSearchSe
             placeholder="Search another repository (e.g., facebook/react)"
             onSearch={onSearch}
             onSelect={onSelect}
+            shortcut={true}
           />
           <aside>
             <ExampleRepos onSelect={onExampleSelect} />
