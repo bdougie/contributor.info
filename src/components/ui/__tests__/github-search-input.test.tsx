@@ -55,6 +55,14 @@ vi.mock('@/components/ui/icon', () => ({
   X: (props: any) => <span data-testid="x-icon" {...props} />,
 }));
 
+// Mock Tooltip components to avoid needing Provider in tests
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('GitHubSearchInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
