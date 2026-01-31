@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.41.1](https://github.com/bdougie/contributor.info/compare/v4.41.0...v4.41.1) (2026-01-31)
+
+
+### 🐛 Bug Fixes
+
+* upgrade @supabase/supabase-js from 2.89.0 to 2.90.1 ([#1645](https://github.com/bdougie/contributor.info/issues/1645)) ([fe466de](https://github.com/bdougie/contributor.info/commit/fe466deb10231ab51e6798cc516ff532752731a1))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6ba46b2](https://github.com/bdougie/contributor.info/commit/6ba46b2397bb2411139dc9500cc68ab19836e0f7))
+
 ## [4.41.0](https://github.com/bdougie/contributor.info/compare/v4.40.1...v4.41.0) (2026-01-28)
 
 
