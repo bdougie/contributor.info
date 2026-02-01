@@ -285,7 +285,7 @@ export class AutoRetryService {
           .from('repositories')
           .select('owner, name')
           .eq('id', originalJob.repository_id)
-          .single();
+          .maybeSingle();
 
         if (error || !repo) {
           console.error('[AutoRetry] Failed to fetch repository details:', {
