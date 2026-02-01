@@ -179,28 +179,28 @@ export const MultiLineDiff: React.FC<MultiLineDiffProps> = ({
       )}
     >
       {lines.map((line, index) => {
-        const bgColor =
-          line.type === 'addition'
-            ? 'bg-green-50 dark:bg-green-950/20'
-            : line.type === 'deletion'
-              ? 'bg-red-50 dark:bg-red-950/20'
-              : 'bg-white dark:bg-gray-900';
+        const getBgColor = () => {
+          if (line.type === 'addition') return 'bg-green-50 dark:bg-green-950/20';
+          if (line.type === 'deletion') return 'bg-red-50 dark:bg-red-950/20';
+          return 'bg-white dark:bg-gray-900';
+        };
+        const bgColor = getBgColor();
 
-        const borderColor =
-          line.type === 'addition'
-            ? 'border-green-500'
-            : line.type === 'deletion'
-              ? 'border-red-500'
-              : 'border-transparent';
+        const getBorderColor = () => {
+          if (line.type === 'addition') return 'border-green-500';
+          if (line.type === 'deletion') return 'border-red-500';
+          return 'border-transparent';
+        };
+        const borderColor = getBorderColor();
 
         const symbol = getDiffSymbol(line.type);
 
-        const symbolColor =
-          line.type === 'addition'
-            ? 'text-green-600 dark:text-green-400'
-            : line.type === 'deletion'
-              ? 'text-red-600 dark:text-red-400'
-              : 'text-gray-400';
+        const getSymbolColor = () => {
+          if (line.type === 'addition') return 'text-green-600 dark:text-green-400';
+          if (line.type === 'deletion') return 'text-red-600 dark:text-red-400';
+          return 'text-gray-400';
+        };
+        const symbolColor = getSymbolColor();
 
         return (
           <div
