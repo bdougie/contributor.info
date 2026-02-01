@@ -1,11 +1,10 @@
 // Mock @react-spring/web to prevent ES module issues
 import { vi } from 'vitest';
-import { createElement, ReactNode, CSSProperties } from 'react';
+import { createElement, ReactNode, CSSProperties, AllHTMLAttributes } from 'react';
 
-interface AnimatedProps {
+interface AnimatedProps extends Omit<AllHTMLAttributes<HTMLElement>, 'style'> {
   children?: ReactNode;
   style?: Record<string, AnimatedValue | CSSProperties[keyof CSSProperties]>;
-  [key: string]: unknown;
 }
 
 interface AnimatedValue {
