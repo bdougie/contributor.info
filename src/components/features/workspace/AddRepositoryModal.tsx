@@ -62,8 +62,10 @@ interface StagedRepository extends GitHubRepository {
 }
 
 // Extend existing GitHubRepository type for workspace context
-interface ExistingRepository
-  extends Omit<GitHubRepository, 'id' | 'owner' | 'private' | 'pushed_at'> {
+interface ExistingRepository extends Omit<
+  GitHubRepository,
+  'id' | 'owner' | 'private' | 'pushed_at'
+> {
   id: string; // Database stores ID as string
   owner: string; // Simplified from GitHubRepository's owner object
   workspace_repo_id?: string;

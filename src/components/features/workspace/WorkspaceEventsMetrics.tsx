@@ -267,8 +267,8 @@ export function WorkspaceEventsMetrics({
         <ShareableCard
           title="Event Analytics"
           contextInfo={{
-            repository: "Workspace Events",
-            metric: "event analytics"
+            repository: 'Workspace Events',
+            metric: 'event analytics',
           }}
           chartType="event-analytics"
           hideLogo={true}
@@ -335,11 +335,18 @@ export function WorkspaceEventsMetrics({
                     <span className="text-sm font-medium">Stars</span>
                   </div>
                   <p className="text-3xl font-bold">{metrics?.stars.total ?? 0}</p>
-                  {metrics?.stars.percentChange !== 0 && metrics?.stars.percentChange !== undefined && (
-                    <p className={cn("text-xs font-medium", metrics.stars.percentChange > 0 ? "text-green-500" : "text-red-500")}>
-                      {metrics.stars.percentChange > 0 ? '+' : ''}{metrics.stars.percentChange}%
-                    </p>
-                  )}
+                  {metrics?.stars.percentChange !== 0 &&
+                    metrics?.stars.percentChange !== undefined && (
+                      <p
+                        className={cn(
+                          'text-xs font-medium',
+                          metrics.stars.percentChange > 0 ? 'text-green-500' : 'text-red-500'
+                        )}
+                      >
+                        {metrics.stars.percentChange > 0 ? '+' : ''}
+                        {metrics.stars.percentChange}%
+                      </p>
+                    )}
                 </div>
                 {/* Forks */}
                 <div className="rounded-lg border bg-card p-4 text-center">
@@ -348,11 +355,18 @@ export function WorkspaceEventsMetrics({
                     <span className="text-sm font-medium">Forks</span>
                   </div>
                   <p className="text-3xl font-bold">{metrics?.forks.total ?? 0}</p>
-                  {metrics?.forks.percentChange !== 0 && metrics?.forks.percentChange !== undefined && (
-                    <p className={cn("text-xs font-medium", metrics.forks.percentChange > 0 ? "text-green-500" : "text-red-500")}>
-                      {metrics.forks.percentChange > 0 ? '+' : ''}{metrics.forks.percentChange}%
-                    </p>
-                  )}
+                  {metrics?.forks.percentChange !== 0 &&
+                    metrics?.forks.percentChange !== undefined && (
+                      <p
+                        className={cn(
+                          'text-xs font-medium',
+                          metrics.forks.percentChange > 0 ? 'text-green-500' : 'text-red-500'
+                        )}
+                      >
+                        {metrics.forks.percentChange > 0 ? '+' : ''}
+                        {metrics.forks.percentChange}%
+                      </p>
+                    )}
                 </div>
                 {/* Activity */}
                 <div className="rounded-lg border bg-card p-4 text-center">
@@ -362,8 +376,12 @@ export function WorkspaceEventsMetrics({
                   </div>
                   <p className="text-3xl font-bold">{metrics?.activity.totalEvents ?? 0}</p>
                   <div className="flex justify-center gap-4 mt-1">
-                    <p className="text-xs text-muted-foreground">{metrics?.activity.uniqueActors ?? 0} contributors</p>
-                    <p className="text-xs text-muted-foreground">Score: {metrics?.activity.activityScore ?? 0}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {metrics?.activity.uniqueActors ?? 0} contributors
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Score: {metrics?.activity.activityScore ?? 0}
+                    </p>
                   </div>
                 </div>
               </div>

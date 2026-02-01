@@ -16,7 +16,6 @@ import { cleanup } from '@testing-library/react';
 
 // Store original implementations for restoration
 const originalConsole = global.console;
-const originalFetch = global.fetch;
 
 // Mock fetch globally - simple and synchronous
 global.fetch = vi.fn(() =>
@@ -39,14 +38,14 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(() => ({
   disconnect: vi.fn(),
   observe: vi.fn(),
   unobserve: vi.fn(),
-})) as any;
+})) as unknown as typeof ResizeObserver;
 
 // Mock matchMedia
 global.matchMedia = vi.fn((query: string) => ({
@@ -148,16 +147,17 @@ vi.mock('@/lib/supabase', () => {
 
 // Mock utility functions
 vi.mock('@/lib/utils', () => ({
-  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+  cn: (...classes: Array<string | undefined | null | false>) => classes.filter(Boolean).join(' '),
 }));
 
 // Mock lucide-react icons
 vi.mock('lucide-react', async (importOriginal) => {
   const React = (await import('react')).default;
-  const createIcon = () => (props: any) => React.createElement('svg', { ...props }, null);
+  const createIcon = () => (props: Record<string, unknown>) =>
+    React.createElement('svg', { ...props }, null);
 
   // Get the actual module to preserve any exports we don't explicitly mock
-  const actual = (await importOriginal()) as any;
+  const actual = (await importOriginal()) as Record<string, unknown>;
 
   return {
     ...actual,
@@ -205,17 +205,25 @@ vi.mock('lucide-react', async (importOriginal) => {
 });
 
 // Mock UI components to ensure they render in tests
+interface ComponentProps {
+  children?: React.ReactNode;
+  className?: string;
+  role?: string;
+  [key: string]: unknown;
+}
+
 vi.mock('@/components/ui/card', async () => {
   const React = (await import('react')).default;
   return {
-    Card: ({ children, className, role, ...props }: any) =>
+    Card: ({ children, className, role, ...props }: ComponentProps) =>
       React.createElement('div', { className, role, ...props }, children),
-    CardContent: ({ children, className }: any) =>
+    CardContent: ({ children, className }: ComponentProps) =>
       React.createElement('div', { className }, children),
-    CardHeader: ({ children, className }: any) =>
+    CardHeader: ({ children, className }: ComponentProps) =>
       React.createElement('div', { className }, children),
-    CardTitle: ({ children, className }: any) => React.createElement('h3', { className }, children),
-    CardDescription: ({ children, className }: any) =>
+    CardTitle: ({ children, className }: ComponentProps) =>
+      React.createElement('h3', { className }, children),
+    CardDescription: ({ children, className }: ComponentProps) =>
       React.createElement('p', { className }, children),
   };
 });
@@ -223,7 +231,7 @@ vi.mock('@/components/ui/card', async () => {
 vi.mock('@/components/ui/badge', async () => {
   const React = (await import('react')).default;
   return {
-    Badge: ({ children, className, variant }: any) =>
+    Badge: ({ children, className }: ComponentProps) =>
       React.createElement('span', { className }, children),
   };
 });
@@ -232,11 +240,11 @@ vi.mock('@/components/ui/badge', async () => {
 vi.mock('react-router', async () => {
   const React = (await import('react')).default;
   return {
-    BrowserRouter: ({ children }: any) => React.createElement('div', null, children),
-    Router: ({ children }: any) => React.createElement('div', null, children),
-    MemoryRouter: ({ children }: any) => React.createElement('div', null, children),
-    Routes: ({ children }: any) => React.createElement('div', null, children),
-    Route: ({ children }: any) => React.createElement('div', null, children),
+    BrowserRouter: ({ children }: ComponentProps) => React.createElement('div', null, children),
+    Router: ({ children }: ComponentProps) => React.createElement('div', null, children),
+    MemoryRouter: ({ children }: ComponentProps) => React.createElement('div', null, children),
+    Routes: ({ children }: ComponentProps) => React.createElement('div', null, children),
+    Route: ({ children }: ComponentProps) => React.createElement('div', null, children),
     useParams: vi.fn(() => ({})),
     useNavigate: vi.fn(() => vi.fn()),
     useLocation: vi.fn(() => ({
@@ -250,9 +258,9 @@ vi.mock('react-router', async () => {
     useOutletContext: vi.fn(() => ({})),
     Outlet: () => null,
     Navigate: ({ to }: { to: string }) => React.createElement('div', null, `Navigate to ${to}`),
-    Link: ({ children, to, ...props }: any) =>
+    Link: ({ children, to, ...props }: ComponentProps & { to?: string }) =>
       React.createElement('a', { href: to, ...props }, children),
-    NavLink: ({ children, to, ...props }: any) =>
+    NavLink: ({ children, to, ...props }: ComponentProps & { to?: string }) =>
       React.createElement('a', { href: to, ...props }, children),
   };
 });
@@ -261,7 +269,7 @@ vi.mock('react-router', async () => {
 vi.mock('@nivo/scatterplot', () => ({ default: () => null }));
 vi.mock('@nivo/core', () => ({
   default: () => null,
-  ResponsiveWrapper: ({ children }: any) => children,
+  ResponsiveWrapper: ({ children }: ComponentProps) => children,
 }));
 vi.mock('d3-interpolate', () => ({
   default: vi.fn(),
