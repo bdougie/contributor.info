@@ -26,15 +26,16 @@ vi.mock('@/hooks/useSimilarIssues', () => ({
 
 // Mock supabase-lazy
 vi.mock('@/lib/supabase-lazy', () => ({
-  getSupabase: async () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          in: () => Promise.resolve({ data: [], error: null }),
+  getSupabase: () =>
+    Promise.resolve({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: () => Promise.resolve({ data: [], error: null }),
+          }),
         }),
       }),
     }),
-  }),
   setSupabaseInstance: vi.fn(),
 }));
 
@@ -91,5 +92,23 @@ describe('WorkspaceIssuesTable', () => {
     // Check overflow
     const overflow = screen.getByText('+1');
     expect(overflow).toBeInTheDocument();
+  });
+
+  it('renders action buttons with correct aria-labels', () => {
+    const onRespondClick = vi.fn();
+    render(
+      <TooltipProvider>
+        <WorkspaceIssuesTable issues={[mockIssue]} onRespondClick={onRespondClick} />
+      </TooltipProvider>
+    );
+
+    // Check "Open issue in GitHub" link
+    const externalLinks = screen.getAllByLabelText('Open issue in GitHub');
+    expect(externalLinks.length).toBeGreaterThan(0);
+    expect(externalLinks[0]).toHaveAttribute('href', 'http://issue/101');
+
+    // Check "Mark as responded" button
+    const respondButton = screen.getByLabelText('Mark as responded');
+    expect(respondButton).toBeInTheDocument();
   });
 });
