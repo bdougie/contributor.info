@@ -66,6 +66,7 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
   const [loadingChannels, setLoadingChannels] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   // Define callbacks before useEffects that depend on them
   const loadExistingIntegration = useCallback(async () => {
@@ -218,6 +219,7 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
   async function handleDisconnect() {
     if (!integration) return;
 
+    setIsDisconnecting(true);
     try {
       await deleteUserSlackIntegration(integration.id);
       setIntegration(null);
@@ -235,6 +237,8 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
         description: 'Failed to disconnect Slack',
         variant: 'destructive',
       });
+    } finally {
+      setIsDisconnecting(false);
     }
   }
 
@@ -297,7 +301,12 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
                   )}
                 </div>
 
-                <Button variant="destructive" onClick={handleDisconnect} className="w-full">
+                <Button
+                  variant="destructive"
+                  onClick={handleDisconnect}
+                  className="w-full"
+                  isLoading={isDisconnecting}
+                >
                   Disconnect Slack
                 </Button>
               </div>
@@ -334,9 +343,10 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
                 <Button
                   onClick={handleSaveChannel}
                   disabled={!selectedChannel || isSaving}
+                  isLoading={isSaving}
                   className="w-full"
                 >
-                  {isSaving ? 'Saving...' : 'Enable Notifications'}
+                  Enable Notifications
                 </Button>
               </div>
             )}
@@ -354,15 +364,14 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
                   </p>
                 </div>
 
-                <Button onClick={handleConnectSlack} disabled={isConnecting} className="w-full">
-                  {isConnecting ? (
-                    'Connecting...'
-                  ) : (
-                    <>
-                      <SlackIcon className="h-4 w-4 mr-2" />
-                      Connect to Slack
-                    </>
-                  )}
+                <Button
+                  onClick={handleConnectSlack}
+                  disabled={isConnecting}
+                  isLoading={isConnecting}
+                  className="w-full"
+                >
+                  <SlackIcon className="h-4 w-4 mr-2" />
+                  Connect to Slack
                 </Button>
               </div>
             )}
