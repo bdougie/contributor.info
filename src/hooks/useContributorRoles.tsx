@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -24,6 +24,44 @@ export interface ContributorRoleWithStats extends ContributorRole {
 interface UseContributorRolesOptions {
   enableRealtime?: boolean;
   minimumConfidence?: number;
+  skip?: boolean;
+}
+
+// Context to share contributor roles across components to avoid N+1 fetching
+interface ContributorRolesContextType {
+  roles: ContributorRoleWithStats[];
+  loading: boolean;
+  error: Error | null;
+  owner: string;
+  repo: string;
+}
+
+const ContributorRolesContext = createContext<ContributorRolesContextType | null>(null);
+
+export function useContributorRolesContext() {
+  return useContext(ContributorRolesContext);
+}
+
+interface ContributorRolesProviderProps {
+  children: ReactNode;
+  owner: string;
+  repo: string;
+  options?: UseContributorRolesOptions;
+}
+
+export function ContributorRolesProvider({
+  children,
+  owner,
+  repo,
+  options,
+}: ContributorRolesProviderProps) {
+  const { roles, loading, error } = useContributorRoles(owner, repo, options);
+
+  return (
+    <ContributorRolesContext.Provider value={{ roles, loading, error, owner, repo }}>
+      {children}
+    </ContributorRolesContext.Provider>
+  );
 }
 
 export function useContributorRoles(
@@ -31,13 +69,19 @@ export function useContributorRoles(
   repo: string,
   options: UseContributorRolesOptions = {}
 ) {
-  const { enableRealtime = false, minimumConfidence = 0 } = options;
+  const { enableRealtime = false, minimumConfidence = 0, skip = false } = options;
   const [roles, setRoles] = useState<ContributorRoleWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!skip);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    if (skip) {
+      setLoading(false);
+      return;
+    }
+
     let channel: RealtimeChannel | null = null;
+    let isMounted = true;
 
     const fetchRoles = async () => {
       try {
@@ -60,27 +104,39 @@ export function useContributorRoles(
 
         if (fetchError) throw fetchError;
 
-        // Enhance with additional computed properties
-        const enhancedRoles = (data || []).map((role) => ({
-          ...role,
-          is_bot: checkIfBot(role.user_id),
-          activity_level: getActivityLevel(role.permission_events_count),
-          days_since_last_active: getDaysSinceLastActive(role.last_verified),
-        }));
+        if (isMounted) {
+          // Enhance with additional computed properties
+          const enhancedRoles = (data || []).map((role) => ({
+            ...role,
+            is_bot: checkIfBot(role.user_id),
+            activity_level: getActivityLevel(role.permission_events_count),
+            days_since_last_active: getDaysSinceLastActive(role.last_verified),
+          }));
 
-        setRoles(enhancedRoles);
+          setRoles(enhancedRoles);
+        }
       } catch (err) {
-        setError(err as Error);
+        if (isMounted) {
+          setError(err as Error);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchRoles();
+    if (owner && repo) {
+      fetchRoles();
+    } else {
+      setLoading(false);
+    }
 
     // Set up real-time subscription
-    if (enableRealtime) {
+    if (enableRealtime && owner && repo) {
       getSupabase().then((supabase) => {
+        if (!isMounted) return;
+
         channel = supabase
           .channel(`roles:${owner}/${repo}`)
           .on(
@@ -125,11 +181,12 @@ export function useContributorRoles(
     }
 
     return () => {
+      isMounted = false;
       if (channel) {
         getSupabase().then((sb) => sb.removeChannel(channel!));
       }
     };
-  }, [owner, repo, enableRealtime, minimumConfidence]);
+  }, [owner, repo, enableRealtime, minimumConfidence, skip]);
 
   return { roles, loading, error };
 }
@@ -157,10 +214,26 @@ function getDaysSinceLastActive(lastVerified: string): number {
 
 // Hook to get role for a specific contributor
 export function useContributorRole(owner: string, repo: string, userId: string) {
-  const { roles, loading, error } = useContributorRoles(owner, repo);
-  const role = roles.find((r) => r.user_id === userId);
+  // Try to get data from context first to avoid N+1 fetches
+  const context = useContributorRolesContext();
 
-  return { role, loading, error };
+  // Check if context is available and matches the requested repo
+  const hasContext = context !== null && context.owner === owner && context.repo === repo;
+
+  // Use the hook but skip fetching if context is available
+  const {
+    roles: fetchedRoles,
+    loading: fetchedLoading,
+    error: fetchedError,
+  } = useContributorRoles(owner, repo, { skip: hasContext });
+
+  if (hasContext) {
+    const role = context.roles.find((r) => r.user_id === userId);
+    return { role, loading: context.loading, error: context.error };
+  }
+
+  const role = fetchedRoles.find((r) => r.user_id === userId);
+  return { role, loading: fetchedLoading, error: fetchedError };
 }
 
 // Hook to get role statistics

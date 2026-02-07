@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabase } from './supabase-lazy';
 import type { PullRequest } from './types';
 import { env } from './env';
 import { githubApiRequest } from './github-rate-limit';
@@ -124,7 +124,8 @@ export async function searchGitHubRepositories(
     Accept: 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
+  // Try to get user's GitHub token from Supabase session (lazy loaded)
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -345,7 +346,8 @@ export async function fetchPullRequests(
     Accept: 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
+  // Try to get user's GitHub token from Supabase session (lazy loaded)
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -612,7 +614,8 @@ export async function fetchRepositoryInfo(
     Accept: 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
+  // Try to get user's GitHub token from Supabase session (lazy loaded)
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -674,6 +677,8 @@ export async function fetchRepositoryStargazers(
     Accept: 'application/vnd.github.v3.star+json', // This gives us starred_at timestamps
   };
 
+  // Lazy load Supabase to defer bundle loading
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -731,6 +736,8 @@ export async function fetchRepositoryCommitActivity(
     Accept: 'application/vnd.github.v3+json',
   };
 
+  // Lazy load Supabase to defer bundle loading
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -819,7 +826,8 @@ export async function fetchDirectCommits(
     Accept: 'application/vnd.github.v3+json',
   };
 
-  // Try to get user's GitHub token from Supabase session
+  // Try to get user's GitHub token from Supabase session (lazy loaded)
+  const supabase = await getSupabase();
   const {
     data: { session },
   } = await supabase.auth.getSession();

@@ -1,5 +1,9 @@
 [
   {
+    "owner": "AAChartModel",
+    "name": "AAChartCore-Kotlin"
+  },
+  {
     "owner": "Ad-Astra-Innovia",
     "name": "frontend"
   },
@@ -10,6 +14,10 @@
   {
     "owner": "angular",
     "name": "angular"
+  },
+  {
+    "owner": "anomalyco",
+    "name": "opencode"
   },
   {
     "owner": "anthropics",
@@ -210,6 +218,10 @@
   {
     "owner": "ollama",
     "name": "ollama"
+  },
+  {
+    "owner": "openclaw",
+    "name": "openclaw"
   },
   {
     "owner": "open-sauced",
