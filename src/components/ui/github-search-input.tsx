@@ -296,7 +296,22 @@ export function GitHubSearchInput({
           {/* Keyboard shortcut hint */}
           {!loading && !inputValue && !isFocused && globalShortcut && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Kbd>{formatShortcut(globalShortcut)}</Kbd>
+              {(() => {
+                const shortcut = formatShortcut(globalShortcut);
+                const isMac = shortcut.includes('⌘');
+                return (
+                  <Kbd className={cn(isMac && 'gap-0.5')}>
+                    {isMac ? (
+                      <>
+                        <span className="text-xs">⌘</span>
+                        {shortcut.replace('⌘', '')}
+                      </>
+                    ) : (
+                      shortcut
+                    )}
+                  </Kbd>
+                );
+              })()}
             </div>
           )}
 
