@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.44.2](https://github.com/bdougie/contributor.info/compare/v4.44.1...v4.44.2) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* **a11y:** add accessible name to external link button ([#1642](https://github.com/bdougie/contributor.info/issues/1642)) ([a871891](https://github.com/bdougie/contributor.info/commit/a87189136a4a6c91e0cdf39be4654f5f29fb5689))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([86f94e5](https://github.com/bdougie/contributor.info/commit/86f94e513c89f7f26dd39b281d8701708228c742))
+
 ## [4.44.1](https://github.com/bdougie/contributor.info/compare/v4.44.0...v4.44.1) (2026-02-07)
 
 
