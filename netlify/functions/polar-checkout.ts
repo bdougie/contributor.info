@@ -58,7 +58,7 @@ export const handler: Handler = async (event) => {
     const checkout = await polar.checkouts.create({
       products: [productPriceId],
       successUrl: `${baseUrl}/billing?success=true`,
-      // @ts-ignore - Polar SDK type mismatch for cancelUrl/returnUrl
+      // @ts-expect-error - Polar SDK type mismatch for cancelUrl/returnUrl
       returnUrl: `${baseUrl}/billing?canceled=true`,
       customerEmail,
       metadata,

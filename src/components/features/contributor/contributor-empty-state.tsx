@@ -153,11 +153,9 @@ export function ContributorEmptyState({ type, message, suggestion, className }: 
                   content.severity === 'info' && 'bg-blue-500 hover:bg-blue-600 text-white'
                 )}
               >
-                {content.severity === 'error'
-                  ? '⚠️ Error'
-                  : content.severity === 'warning'
-                    ? '💡 Note'
-                    : '✨ Tip'}
+                {content.severity === 'error' && '⚠️ Error'}
+                {content.severity === 'warning' && '💡 Note'}
+                {content.severity === 'info' && '✨ Tip'}
               </Badge>
               <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                 {content.suggestionText}

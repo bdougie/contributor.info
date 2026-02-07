@@ -33,14 +33,13 @@ export class ProgressiveCaptureNotifications {
     estimatedTime?: number,
     githubActionsUrl?: string
   ) {
-    const processorText =
-      processor === 'inngest'
-        ? 'Real-time processing'
-        : processor === 'github_actions'
-          ? 'Bulk processing'
-          : processor === 'hybrid'
-            ? 'Hybrid processing'
-            : 'Processing';
+    const getProcessorText = () => {
+      if (processor === 'inngest') return 'Real-time processing';
+      if (processor === 'github_actions') return 'Bulk processing';
+      if (processor === 'hybrid') return 'Hybrid processing';
+      return 'Processing';
+    };
+    const processorText = getProcessorText();
 
     const timeText = estimatedTime ? ` (~${Math.round(estimatedTime / 1000)}s)` : '';
     const completionTime = estimatedTime
@@ -106,14 +105,13 @@ export class ProgressiveCaptureNotifications {
     // Show success notification
     const features = updatedFeatures.length > 0 ? updatedFeatures.join(', ') : 'repository data';
 
-    const processorText =
-      processor === 'inngest'
-        ? 'Real-time'
-        : processor === 'github_actions'
-          ? 'Bulk'
-          : processor === 'hybrid'
-            ? 'Hybrid'
-            : '';
+    const getProcessorText = () => {
+      if (processor === 'inngest') return 'Real-time';
+      if (processor === 'github_actions') return 'Bulk';
+      if (processor === 'hybrid') return 'Hybrid';
+      return '';
+    };
+    const processorText = getProcessorText();
 
     const processorSuffix = processorText ? ` • ${processorText} processing complete` : '';
 
@@ -191,7 +189,7 @@ export class ProgressiveCaptureNotifications {
   /**
    * Show notification about missing data with action to fix
    */
-  static showMissingDataNotification(repository: string, _missingTypes: string[]) {
+  static showMissingDataNotification(repository: string) {
     toast.info(`Updating ${repository}...`, {
       description: 'We are fetching data in the background',
       duration: 4000,

@@ -44,8 +44,9 @@ function AvatarImage({
   );
 }
 
-export interface AvatarFallbackProps
-  extends ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> {
+export interface AvatarFallbackProps extends ComponentPropsWithoutRef<
+  typeof AvatarPrimitive.Fallback
+> {
   ref?: Ref<ElementRef<typeof AvatarPrimitive.Fallback>>;
 }
 

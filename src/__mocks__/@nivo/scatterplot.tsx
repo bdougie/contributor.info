@@ -1,9 +1,11 @@
 // Mock @nivo/scatterplot to avoid ES module issues in tests
 import { vi } from 'vitest';
-import { createElement } from 'react';
+import { createElement, ComponentType } from 'react';
 
 interface MockDataPoint {
-  [key: string]: any;
+  x: number;
+  y: number;
+  [key: string]: string | number | boolean | null;
 }
 
 interface MockSeries {
@@ -11,15 +13,27 @@ interface MockSeries {
   data?: MockDataPoint[];
 }
 
+interface MockNodeProps {
+  node: {
+    data: MockDataPoint;
+    x: number;
+    y: number;
+  };
+  style: {
+    x: { to: () => number };
+    y: { to: () => number };
+    size: { to: () => number };
+  };
+}
+
+interface ScatterPlotProps {
+  nodeComponent?: ComponentType<MockNodeProps>;
+  data?: MockSeries[];
+  [key: string]: unknown;
+}
+
 export const ResponsiveScatterPlot = vi.fn(
-  ({
-    nodeComponent,
-    data = [] as MockSeries[],
-    margin = {},
-    xScale = {},
-    yScale = {},
-    ...props
-  }: any) => {
+  ({ nodeComponent, data = [] as MockSeries[], ...props }: ScatterPlotProps) => {
     // Simulate rendering nodes if nodeComponent is provided
     const nodes = data.flatMap(
       (series: MockSeries, seriesIndex: number) =>
@@ -62,14 +76,7 @@ export const ResponsiveScatterPlot = vi.fn(
 );
 
 export const ScatterPlot = vi.fn(
-  ({
-    nodeComponent,
-    data = [] as MockSeries[],
-    margin = {},
-    xScale = {},
-    yScale = {},
-    ...props
-  }: any) => {
+  ({ nodeComponent, data = [] as MockSeries[], ...props }: ScatterPlotProps) => {
     // Similar implementation as ResponsiveScatterPlot
     const nodes = data.flatMap(
       (series: MockSeries, seriesIndex: number) =>

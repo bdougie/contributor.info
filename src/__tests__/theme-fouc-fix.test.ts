@@ -26,9 +26,9 @@ describe('Theme Detection FOUC Fix', () => {
 
   beforeEach(() => {
     localStorageMock.clear();
-    // @ts-ignore
+    // @ts-expect-error - Mock localStorage for testing
     global.localStorage = localStorageMock;
-    // @ts-ignore
+    // @ts-expect-error - Mock matchMedia for testing
     global.matchMedia = matchMediaMock;
   });
 

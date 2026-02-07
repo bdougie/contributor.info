@@ -215,10 +215,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
     return { chartData, chartOptions };
   }, [data, isDark, showGrid, showLegend, xAxisLabel, yAxisLabel, stacked]);
 
-  const accessibleSummary = useMemo(
-    () => generateAreaChartSummary(data, stacked),
-    [data, stacked]
-  );
+  const accessibleSummary = useMemo(() => generateAreaChartSummary(data, stacked), [data, stacked]);
 
   return (
     <UPlotChart

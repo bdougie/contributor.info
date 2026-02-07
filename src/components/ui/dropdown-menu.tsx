@@ -16,8 +16,9 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
-export interface DropdownMenuSubTriggerProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> {
+export interface DropdownMenuSubTriggerProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.SubTrigger
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.SubTrigger>>;
   inset?: boolean;
 }
@@ -45,8 +46,9 @@ function DropdownMenuSubTrigger({
   );
 }
 
-export interface DropdownMenuSubContentProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent> {
+export interface DropdownMenuSubContentProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.SubContent
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.SubContent>>;
 }
 
@@ -63,8 +65,9 @@ function DropdownMenuSubContent({ className, ref, ...props }: DropdownMenuSubCon
   );
 }
 
-export interface DropdownMenuContentProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> {
+export interface DropdownMenuContentProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.Content>>;
 }
 
@@ -90,8 +93,9 @@ function DropdownMenuContent({
   );
 }
 
-export interface DropdownMenuItemProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> {
+export interface DropdownMenuItemProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.Item
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.Item>>;
   inset?: boolean;
 }
@@ -110,8 +114,9 @@ function DropdownMenuItem({ className, inset, ref, ...props }: DropdownMenuItemP
   );
 }
 
-export interface DropdownMenuCheckboxItemProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem> {
+export interface DropdownMenuCheckboxItemProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.CheckboxItem
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>>;
 }
 
@@ -142,8 +147,9 @@ function DropdownMenuCheckboxItem({
   );
 }
 
-export interface DropdownMenuRadioItemProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem> {
+export interface DropdownMenuRadioItemProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.RadioItem
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.RadioItem>>;
 }
 
@@ -167,8 +173,9 @@ function DropdownMenuRadioItem({ className, children, ref, ...props }: DropdownM
   );
 }
 
-export interface DropdownMenuLabelProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> {
+export interface DropdownMenuLabelProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.Label
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.Label>>;
   inset?: boolean;
 }
@@ -183,8 +190,9 @@ function DropdownMenuLabel({ className, inset, ref, ...props }: DropdownMenuLabe
   );
 }
 
-export interface DropdownMenuSeparatorProps
-  extends ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator> {
+export interface DropdownMenuSeparatorProps extends ComponentPropsWithoutRef<
+  typeof DropdownMenuPrimitive.Separator
+> {
   ref?: Ref<ElementRef<typeof DropdownMenuPrimitive.Separator>>;
 }
 
