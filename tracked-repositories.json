@@ -16,6 +16,10 @@
     "name": "angular"
   },
   {
+    "owner": "anomalyco",
+    "name": "opencode"
+  },
+  {
     "owner": "anthropics",
     "name": "claude-code"
   },
@@ -214,6 +218,10 @@
   {
     "owner": "ollama",
     "name": "ollama"
+  },
+  {
+    "owner": "openclaw",
+    "name": "openclaw"
   },
   {
     "owner": "open-sauced",

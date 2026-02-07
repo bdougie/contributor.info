@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.43.0](https://github.com/bdougie/contributor.info/compare/v4.42.1...v4.43.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* add character counters to workspace creation form ([#1646](https://github.com/bdougie/contributor.info/issues/1646)) ([281d6df](https://github.com/bdougie/contributor.info/commit/281d6df0c1becbed05d5846591657577a1d78ffc))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([37a6a6c](https://github.com/bdougie/contributor.info/commit/37a6a6cbba93d23ea01b67e2b24992de72bbe7fe))
+
+## [4.42.1](https://github.com/bdougie/contributor.info/compare/v4.42.0...v4.42.1) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* actions/continue-docs-review/package.json & actions/continue-docs-review/package-lock.json to reduce vulnerabilities ([#1647](https://github.com/bdougie/contributor.info/issues/1647)) ([6b81057](https://github.com/bdougie/contributor.info/commit/6b81057ffc577ec238e0ba77ce0fc79ab1f16a31))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([23138b4](https://github.com/bdougie/contributor.info/commit/23138b44de8e39e4acefe69b42c6cb873410e2d4))
+
+## [4.42.0](https://github.com/bdougie/contributor.info/compare/v4.41.1...v4.42.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* **ui:** add tooltips to icon-only buttons in ShareableCard ([#1654](https://github.com/bdougie/contributor.info/issues/1654)) ([4199a7e](https://github.com/bdougie/contributor.info/commit/4199a7ed923cbec12724b9acea9b06df7a44a591))
+* **ui:** standardize loading state in RepositorySlackButton ([#1652](https://github.com/bdougie/contributor.info/issues/1652)) ([f7b4b3f](https://github.com/bdougie/contributor.info/commit/f7b4b3f5ab350b0fd00d1902d21052f541b7d426))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d2807d9](https://github.com/bdougie/contributor.info/commit/d2807d99bbc56f7b9d00b78ede4487685c0c7070))
+
+## [4.41.1](https://github.com/bdougie/contributor.info/compare/v4.41.0...v4.41.1) (2026-01-31)
+
+
+### 🐛 Bug Fixes
+
+* upgrade @supabase/supabase-js from 2.89.0 to 2.90.1 ([#1645](https://github.com/bdougie/contributor.info/issues/1645)) ([fe466de](https://github.com/bdougie/contributor.info/commit/fe466deb10231ab51e6798cc516ff532752731a1))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6ba46b2](https://github.com/bdougie/contributor.info/commit/6ba46b2397bb2411139dc9500cc68ab19836e0f7))
+
 ## [4.41.0](https://github.com/bdougie/contributor.info/compare/v4.40.1...v4.41.0) (2026-01-28)
 
 
