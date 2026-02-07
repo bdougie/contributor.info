@@ -1,7 +1,11 @@
 // Mock d3-interpolate to prevent ES module issues
 import { vi } from 'vitest';
 
-type InterpolatableValue = string | number | boolean | null | object;
+type InterpolatablePrimitive = string | number | boolean | null;
+type InterpolatableValue =
+  | InterpolatablePrimitive
+  | InterpolatableValue[]
+  | Record<string, InterpolatableValue>;
 
 export const interpolate = vi.fn(
   <T extends InterpolatableValue>(_a: T, b: T) =>
@@ -17,7 +21,7 @@ export const interpolateArray = vi.fn(
     () =>
       b
 );
-export const interpolateObject = vi.fn(<T extends Record<string, unknown>>(_a: T, b: T) => () => ({
+export const interpolateObject = vi.fn(<T extends Record<string, InterpolatableValue>>(_a: T, b: T) => () => ({
   ...b,
 }));
 
