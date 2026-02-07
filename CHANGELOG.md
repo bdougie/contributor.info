@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.44.1](https://github.com/bdougie/contributor.info/compare/v4.44.0...v4.44.1) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* systematic lint error reduction (91 errors fixed) ([#1648](https://github.com/bdougie/contributor.info/issues/1648)) ([b8b28cd](https://github.com/bdougie/contributor.info/commit/b8b28cdb5a0c282fcc4d36e5095f046f8217915e))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([e218e57](https://github.com/bdougie/contributor.info/commit/e218e57f776838df3c2461d421d1aaec383afbb1))
+
 ## [4.44.0](https://github.com/bdougie/contributor.info/compare/v4.43.0...v4.44.0) (2026-02-07)
 
 
