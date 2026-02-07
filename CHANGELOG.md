@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.0](https://github.com/bdougie/contributor.info/compare/v4.41.1...v4.42.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* **ui:** add tooltips to icon-only buttons in ShareableCard ([#1654](https://github.com/bdougie/contributor.info/issues/1654)) ([4199a7e](https://github.com/bdougie/contributor.info/commit/4199a7ed923cbec12724b9acea9b06df7a44a591))
+* **ui:** standardize loading state in RepositorySlackButton ([#1652](https://github.com/bdougie/contributor.info/issues/1652)) ([f7b4b3f](https://github.com/bdougie/contributor.info/commit/f7b4b3f5ab350b0fd00d1902d21052f541b7d426))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d2807d9](https://github.com/bdougie/contributor.info/commit/d2807d99bbc56f7b9d00b78ede4487685c0c7070))
+
 ## [4.41.1](https://github.com/bdougie/contributor.info/compare/v4.41.0...v4.41.1) (2026-01-31)
 
 

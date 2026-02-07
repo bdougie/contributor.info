@@ -6,6 +6,6 @@
 **Learning:** Adding a clear button to search inputs significantly improves usability on mobile and desktop. When adding icons to input fields that already have other indicators (like loaders), dynamic positioning logic is required to prevent overlap while maintaining consistent padding.
 **Action:** Implemented a clear button in `GitHubSearchInput` with dynamic positioning logic to coexist with the loading spinner.
 
-## 2026-02-03 - Character Limit Visibility
-**Learning:** Users were silently restricted by character limits in textareas without feedback until validation. Combining `maxLength` attributes with a visual "current/max" counter provides immediate constraints and feedback, preventing frustration.
-**Action:** When enforcing text limits, always pair `maxLength` with a visible character counter component.
+## 2025-05-21 - Tooltips for Icon-Only Buttons
+**Learning:** Icon-only buttons relying solely on `title` attributes provide poor accessibility and visual feedback. Replacing `title` with proper `Tooltip` components enhances both keyboard accessibility and visual polish.
+**Action:** Replaced `title` attributes with `Tooltip` components in `ShareableCard` for Copy, Download, and Share actions.
