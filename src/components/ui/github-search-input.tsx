@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2, X } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useGitHubSearch } from '@/hooks/use-github-search';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
@@ -276,15 +277,22 @@ export function GitHubSearchInput({
 
           {/* Clear button */}
           {inputValue.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none p-1 rounded-sm hover:bg-muted"
-              aria-label="Clear search"
-              data-testid="clear-button"
-            >
-              <X className="h-3 w-3" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 p-1 rounded-sm hover:bg-accent transition-colors"
+                  aria-label="Clear search"
+                  data-testid="clear-button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear search</p>
+              </TooltipContent>
+            </Tooltip>
           )}
 
           {/* Dropdown with search results */}
