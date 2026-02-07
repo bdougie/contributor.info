@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.42.1](https://github.com/bdougie/contributor.info/compare/v4.42.0...v4.42.1) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* actions/continue-docs-review/package.json & actions/continue-docs-review/package-lock.json to reduce vulnerabilities ([#1647](https://github.com/bdougie/contributor.info/issues/1647)) ([6b81057](https://github.com/bdougie/contributor.info/commit/6b81057ffc577ec238e0ba77ce0fc79ab1f16a31))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([23138b4](https://github.com/bdougie/contributor.info/commit/23138b44de8e39e4acefe69b42c6cb873410e2d4))
+
 ## [4.42.0](https://github.com/bdougie/contributor.info/compare/v4.41.1...v4.42.0) (2026-02-07)
 
 
