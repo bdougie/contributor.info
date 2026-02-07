@@ -28,6 +28,17 @@ export interface SyncResult {
   message?: string;
 }
 
+// Type-safe payload definitions for function calls
+type SupabaseFunctionPayloads = {
+  'repository-sync': { owner: string; name: string } & SyncOptions;
+  'repository-sync-graphql': { owner: string; name: string; cursor?: string } & SyncOptions;
+  'pr-details-batch': { repository: string; prNumbers: number[] } & SyncOptions;
+};
+
+type NetlifyFunctionPayloads = {
+  'sync-router': { action: string; repository: string; options: SyncOptions };
+};
+
 // Known large repositories that need Supabase Edge Functions
 const LARGE_REPOS = new Set([
   'pytorch/pytorch',
@@ -223,9 +234,9 @@ export class SyncService {
     return response.json();
   }
 
-  private static async callSupabaseFunction(
-    functionName: string,
-    payload: Record<string, unknown>
+  private static async callSupabaseFunction<K extends keyof SupabaseFunctionPayloads>(
+    functionName: K,
+    payload: SupabaseFunctionPayloads[K]
   ): Promise<SyncResult> {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('Supabase functions not configured. This is expected in deploy previews.');
@@ -270,9 +281,9 @@ export class SyncService {
     return { ...result, router: 'supabase' };
   }
 
-  private static async callNetlifyFunction(
-    functionName: string,
-    payload: Record<string, unknown>
+  private static async callNetlifyFunction<K extends keyof NetlifyFunctionPayloads>(
+    functionName: K,
+    payload: NetlifyFunctionPayloads[K]
   ): Promise<SyncResult> {
     const response = await fetch(`/.netlify/functions/${functionName}`, {
       method: 'POST',
