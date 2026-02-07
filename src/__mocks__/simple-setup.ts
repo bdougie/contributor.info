@@ -33,19 +33,29 @@ global.fetch = vi.fn(() =>
 );
 
 // Mock IntersectionObserver - simple and synchronous
-global.IntersectionObserver = vi.fn(() => ({
-  disconnect: vi.fn(),
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  takeRecords: vi.fn(() => []),
-})) as unknown as typeof IntersectionObserver;
+global.IntersectionObserver = vi.fn(
+  (
+    _callback: IntersectionObserverCallback,
+    _options?: IntersectionObserverInit
+  ): IntersectionObserver => ({
+    disconnect: vi.fn(),
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    takeRecords: vi.fn(() => []),
+    root: null,
+    rootMargin: '',
+    thresholds: [],
+  })
+) as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn(() => ({
-  disconnect: vi.fn(),
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-})) as unknown as typeof ResizeObserver;
+global.ResizeObserver = vi.fn(
+  (_callback: ResizeObserverCallback): ResizeObserver => ({
+    disconnect: vi.fn(),
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+  })
+) as unknown as typeof ResizeObserver;
 
 // Mock matchMedia
 global.matchMedia = vi.fn((query: string) => ({
@@ -153,11 +163,11 @@ vi.mock('@/lib/utils', () => ({
 // Mock lucide-react icons
 vi.mock('lucide-react', async (importOriginal) => {
   const React = (await import('react')).default;
-  const createIcon = () => (props: Record<string, unknown>) =>
+  const createIcon = () => (props: React.SVGProps<SVGSVGElement>) =>
     React.createElement('svg', { ...props }, null);
 
   // Get the actual module to preserve any exports we don't explicitly mock
-  const actual = (await importOriginal()) as Record<string, unknown>;
+  const actual = (await importOriginal()) as typeof import('lucide-react');
 
   return {
     ...actual,
@@ -205,11 +215,8 @@ vi.mock('lucide-react', async (importOriginal) => {
 });
 
 // Mock UI components to ensure they render in tests
-interface ComponentProps {
+interface ComponentProps extends React.HTMLAttributes<HTMLElement> {
   children?: React.ReactNode;
-  className?: string;
-  role?: string;
-  [key: string]: unknown;
 }
 
 vi.mock('@/components/ui/card', async () => {
