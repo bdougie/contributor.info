@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.46.0](https://github.com/bdougie/contributor.info/compare/v4.45.0...v4.46.0) (2026-02-08)
+
+
+### 🚀 Features
+
+* add keyboard shortcut to github search input ([#1638](https://github.com/bdougie/contributor.info/issues/1638)) ([94dbc31](https://github.com/bdougie/contributor.info/commit/94dbc3104a598558975de56bd5ab85a7237acc47))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d83db21](https://github.com/bdougie/contributor.info/commit/d83db2170643441d803582ee92793c1a1106e392))
+
 ## [4.45.0](https://github.com/bdougie/contributor.info/compare/v4.44.2...v4.45.0) (2026-02-08)
 
 
