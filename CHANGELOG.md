@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.45.0](https://github.com/bdougie/contributor.info/compare/v4.44.2...v4.45.0) (2026-02-08)
+
+
+### 🚀 Features
+
+* add accessibility labels to issue table actions ([#1650](https://github.com/bdougie/contributor.info/issues/1650)) ([e0fe733](https://github.com/bdougie/contributor.info/commit/e0fe7339e2152e410e27e4b2737b132047c5b5fc))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3c1b0b7](https://github.com/bdougie/contributor.info/commit/3c1b0b7d1765e75821ef05f5c6560cc1371ebcd1))
+
 ## [4.44.2](https://github.com/bdougie/contributor.info/compare/v4.44.1...v4.44.2) (2026-02-07)
 
 
