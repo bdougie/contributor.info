@@ -1,14 +1,23 @@
 // Mock @react-spring/web to prevent ES module issues
 import { vi } from 'vitest';
-import { createElement } from 'react';
+import { createElement, ReactNode, CSSProperties, AllHTMLAttributes } from 'react';
+
+interface AnimatedProps extends Omit<AllHTMLAttributes<HTMLElement>, 'style'> {
+  children?: ReactNode;
+  style?: Record<string, AnimatedValue | CSSProperties[keyof CSSProperties]>;
+}
+
+interface AnimatedValue {
+  to?: (t: number) => number | string;
+}
 
 export const animated = new Proxy(
   {},
   {
     get(_target, prop) {
-      return vi.fn(({ children, style, ...props }: any) => {
+      return vi.fn(({ children, style, ...props }: AnimatedProps) => {
         // Convert animated style to regular style
-        const processedStyle: Record<string, any> = {};
+        const processedStyle: Record<string, number | string> = {};
         if (style) {
           Object.keys(style).forEach((key) => {
             const value = style[key];

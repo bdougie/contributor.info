@@ -45,10 +45,12 @@ function generateLineChartSummary(data: LineChartProps['data']): string {
       const min = Math.min(...values);
       const first = values[0];
       const last = values[values.length - 1];
-      const trend = last > first ? 'increasing' : last < first ? 'decreasing' : 'stable';
-      summaryParts.push(
-        `${dataset.label}: ranges from ${min} to ${max}, trend is ${trend}.`
-      );
+      const getTrend = () => {
+        if (last > first) return 'increasing';
+        if (last < first) return 'decreasing';
+        return 'stable';
+      };
+      summaryParts.push(`${dataset.label}: ranges from ${min} to ${max}, trend is ${getTrend()}.`);
     }
   });
 

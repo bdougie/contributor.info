@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { SearchIcon, Star, Clock, GitBranch, Loader2 } from '@/components/ui/icon';
+import { SearchIcon, Star, Clock, GitBranch, Loader2, X } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useGitHubSearch } from '@/hooks/use-github-search';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
@@ -261,6 +262,13 @@ export function GitHubSearchInput({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleClear = () => {
+    setInputValue('');
+    setSelectedIndex(-1);
+    setShowDropdown(false);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className={cn('relative', className)}>
       <form onSubmit={handleSubmit} className="flex gap-4">
@@ -273,7 +281,7 @@ export function GitHubSearchInput({
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            className="w-full pr-8"
+            className={cn('w-full pr-8', loading && inputValue.length > 0 && 'pr-14')}
             autoComplete="off"
             role="combobox"
             aria-autocomplete="list"
@@ -288,7 +296,12 @@ export function GitHubSearchInput({
           />
           {/* Loading spinner in input field */}
           {loading && inputValue.length > 1 && (
-            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <div
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 pointer-events-none',
+                inputValue.length > 0 ? 'right-8' : 'right-2'
+              )}
+            >
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
@@ -313,6 +326,26 @@ export function GitHubSearchInput({
                 );
               })()}
             </div>
+          )}
+
+          {/* Clear button */}
+          {inputValue.length > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 p-1 rounded-sm hover:bg-accent transition-colors"
+                  aria-label="Clear search"
+                  data-testid="clear-button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Clear search</p>
+              </TooltipContent>
+            </Tooltip>
           )}
 
           {/* Dropdown with search results */}

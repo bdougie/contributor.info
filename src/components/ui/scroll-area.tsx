@@ -23,8 +23,9 @@ function ScrollArea({ className, children, ref, ...props }: ScrollAreaProps) {
   );
 }
 
-export interface ScrollBarProps
-  extends ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar> {
+export interface ScrollBarProps extends ComponentPropsWithoutRef<
+  typeof ScrollAreaPrimitive.ScrollAreaScrollbar
+> {
   ref?: Ref<ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>>;
 }
 

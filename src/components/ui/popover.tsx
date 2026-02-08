@@ -9,8 +9,9 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 
 const PopoverAnchor = PopoverPrimitive.Anchor;
 
-export interface PopoverContentProps
-  extends ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> {
+export interface PopoverContentProps extends ComponentPropsWithoutRef<
+  typeof PopoverPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof PopoverPrimitive.Content>>;
 }
 

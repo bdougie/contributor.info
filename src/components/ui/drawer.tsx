@@ -22,8 +22,9 @@ const DrawerPortal = DrawerPrimitive.Portal;
 
 const DrawerClose = DrawerPrimitive.Close;
 
-export interface DrawerOverlayProps
-  extends ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay> {
+export interface DrawerOverlayProps extends ComponentPropsWithoutRef<
+  typeof DrawerPrimitive.Overlay
+> {
   ref?: Ref<ElementRef<typeof DrawerPrimitive.Overlay>>;
 }
 
@@ -37,8 +38,9 @@ function DrawerOverlay({ className, ref, ...props }: DrawerOverlayProps) {
   );
 }
 
-export interface DrawerContentProps
-  extends ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> {
+export interface DrawerContentProps extends ComponentPropsWithoutRef<
+  typeof DrawerPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof DrawerPrimitive.Content>>;
 }
 
@@ -83,8 +85,9 @@ function DrawerTitle({ className, ref, ...props }: DrawerTitleProps) {
   );
 }
 
-export interface DrawerDescriptionProps
-  extends ComponentPropsWithoutRef<typeof DrawerPrimitive.Description> {
+export interface DrawerDescriptionProps extends ComponentPropsWithoutRef<
+  typeof DrawerPrimitive.Description
+> {
   ref?: Ref<ElementRef<typeof DrawerPrimitive.Description>>;
 }
 

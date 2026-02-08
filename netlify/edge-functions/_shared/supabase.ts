@@ -580,9 +580,9 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
   // TODO: Implement RPC function get_workspace_contributor_count(workspace_id UUID)
   //       This function should:
   //       1. Join workspace_repositories with repository_contributors
-  //       2. Count DISTINCT contributor_id across all workspace repositories  
+  //       2. Count DISTINCT contributor_id across all workspace repositories
   //       3. Return scalar integer count
-  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id) 
+  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id)
   //            FROM workspace_repositories wr
   //            JOIN repository_contributors rc ON wr.repository_id = rc.repository_id
   //            WHERE wr.workspace_id = $1
@@ -612,7 +612,8 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
     tier: workspace.tier,
     owner_id: workspace.owner_id,
     created_at: workspace.created_at,
-    visibility: (workspace as { visibility?: string }).visibility as 'public' | 'private' || 'private',
+    visibility:
+      ((workspace as { visibility?: string }).visibility as 'public' | 'private') || 'private',
     repository_count: repoCountResult.count || 0,
     member_count: memberCountResult.count || 0,
     contributor_count: contributorCount,

@@ -180,7 +180,8 @@ export const sendSlackAssigneeReportCron = inngest.createFunction(
               .maybeSingle();
 
             if (recentLog) {
-              console.log('Skipping integration %s - report sent recently at %s',
+              console.log(
+                'Skipping integration %s - report sent recently at %s',
                 integration.id,
                 recentLog.created_at
               );

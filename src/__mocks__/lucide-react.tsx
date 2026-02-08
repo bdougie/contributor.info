@@ -2,11 +2,17 @@
  * Complete mock for lucide-react icons
  * This provides ALL icons used in the codebase to avoid test failures
  */
-import React from 'react';
+import React, { SVGAttributes } from 'react';
+
+interface IconProps extends SVGAttributes<SVGSVGElement> {
+  size?: string | number;
+  color?: string;
+  className?: string;
+}
 
 // Helper function to create icon components
 const createIcon = (name: string) => {
-  const Icon = React.forwardRef<SVGSVGElement, any>((props, ref) => (
+  const Icon = React.forwardRef<SVGSVGElement, IconProps>((props, ref) => (
     <svg ref={ref} data-testid={`${name}-icon`} {...props} />
   ));
   Icon.displayName = name;

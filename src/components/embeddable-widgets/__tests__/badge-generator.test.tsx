@@ -1,6 +1,5 @@
-
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { BadgeGenerator } from '../badge-generator';
 import type { WidgetData } from '../widget-types';
 
@@ -117,7 +116,7 @@ describe('BadgeGenerator Security', () => {
     expect(svgContainer?.innerHTML).not.toContain('javascript:');
   });
 
-    it('sanitizes hex colors correctly', () => {
+  it('sanitizes hex colors correctly', () => {
     render(
       <BadgeGenerator
         config={{

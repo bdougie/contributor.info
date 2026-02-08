@@ -1,6 +1,8 @@
+AAChartModel/AAChartCore-Kotlin
 Ad-Astra-Innovia/frontend
 analogjs/analog
 angular/angular
+anomalyco/opencode
 anthropics/claude-code
 appwrite/appwrite
 argoproj/argo-cd
@@ -51,6 +53,7 @@ moment/moment
 nestjs/nest
 ohmyzsh/ohmyzsh
 ollama/ollama
+openclaw/openclaw
 open-sauced/app
 pashkov256/deletor
 pgvector/pgvector

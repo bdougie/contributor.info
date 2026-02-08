@@ -10,8 +10,9 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
-export interface SelectTriggerProps
-  extends ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> {
+export interface SelectTriggerProps extends ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Trigger
+> {
   ref?: Ref<ElementRef<typeof SelectPrimitive.Trigger>>;
 }
 
@@ -33,8 +34,9 @@ function SelectTrigger({ className, children, ref, ...props }: SelectTriggerProp
   );
 }
 
-export interface SelectScrollUpButtonProps
-  extends ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton> {
+export interface SelectScrollUpButtonProps extends ComponentPropsWithoutRef<
+  typeof SelectPrimitive.ScrollUpButton
+> {
   ref?: Ref<ElementRef<typeof SelectPrimitive.ScrollUpButton>>;
 }
 
@@ -50,8 +52,9 @@ function SelectScrollUpButton({ className, ref, ...props }: SelectScrollUpButton
   );
 }
 
-export interface SelectScrollDownButtonProps
-  extends ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton> {
+export interface SelectScrollDownButtonProps extends ComponentPropsWithoutRef<
+  typeof SelectPrimitive.ScrollDownButton
+> {
   ref?: Ref<ElementRef<typeof SelectPrimitive.ScrollDownButton>>;
 }
 
@@ -67,8 +70,9 @@ function SelectScrollDownButton({ className, ref, ...props }: SelectScrollDownBu
   );
 }
 
-export interface SelectContentProps
-  extends ComponentPropsWithoutRef<typeof SelectPrimitive.Content> {
+export interface SelectContentProps extends ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof SelectPrimitive.Content>>;
 }
 
@@ -146,8 +150,9 @@ function SelectItem({ className, children, ref, ...props }: SelectItemProps) {
   );
 }
 
-export interface SelectSeparatorProps
-  extends ComponentPropsWithoutRef<typeof SelectPrimitive.Separator> {
+export interface SelectSeparatorProps extends ComponentPropsWithoutRef<
+  typeof SelectPrimitive.Separator
+> {
   ref?: Ref<ElementRef<typeof SelectPrimitive.Separator>>;
 }
 

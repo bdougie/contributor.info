@@ -10,8 +10,9 @@ const AlertDialogTrigger = AlertDialogPrimitive.Trigger;
 
 const AlertDialogPortal = AlertDialogPrimitive.Portal;
 
-export interface AlertDialogOverlayProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay> {
+export interface AlertDialogOverlayProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Overlay
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Overlay>>;
 }
 
@@ -28,8 +29,9 @@ function AlertDialogOverlay({ className, ref, ...props }: AlertDialogOverlayProp
   );
 }
 
-export interface AlertDialogContentProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> {
+export interface AlertDialogContentProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Content>>;
 }
 
@@ -64,8 +66,9 @@ function AlertDialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElemen
   );
 }
 
-export interface AlertDialogTitleProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Title> {
+export interface AlertDialogTitleProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Title
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Title>>;
 }
 
@@ -79,8 +82,9 @@ function AlertDialogTitle({ className, ref, ...props }: AlertDialogTitleProps) {
   );
 }
 
-export interface AlertDialogDescriptionProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Description> {
+export interface AlertDialogDescriptionProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Description
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Description>>;
 }
 
@@ -94,8 +98,9 @@ function AlertDialogDescription({ className, ref, ...props }: AlertDialogDescrip
   );
 }
 
-export interface AlertDialogActionProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> {
+export interface AlertDialogActionProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Action
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Action>>;
 }
 
@@ -105,8 +110,9 @@ function AlertDialogAction({ className, ref, ...props }: AlertDialogActionProps)
   );
 }
 
-export interface AlertDialogCancelProps
-  extends ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel> {
+export interface AlertDialogCancelProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Cancel
+> {
   ref?: Ref<ElementRef<typeof AlertDialogPrimitive.Cancel>>;
 }
 

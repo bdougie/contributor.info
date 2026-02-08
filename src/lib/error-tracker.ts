@@ -11,7 +11,11 @@ import type { ErrorSeverity, ErrorCategory } from './posthog-lazy';
 /**
  * Wrap an async function to automatically track errors
  */
-export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
+export function withErrorTracking<
+  TArgs extends unknown[],
+  TReturn,
+  T extends (...args: TArgs) => Promise<TReturn>,
+>(
   fn: T,
   context: {
     operation: string;
@@ -50,7 +54,9 @@ export function withErrorTracking<T extends (...args: any[]) => Promise<any>>(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
 
       throw error;
     }
@@ -99,7 +105,9 @@ export async function trackedFetch(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
     }
 
     return response;
@@ -130,7 +138,9 @@ export async function trackedFetch(
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
 
     throw error;
   }
@@ -173,7 +183,9 @@ export async function trackSupabaseQuery<T>(
             },
           });
         })
-        .catch(() => {/* Silent fail */});
+        .catch(() => {
+          /* Silent fail */
+        });
     }
 
     return result;
@@ -225,7 +237,9 @@ export function setupGlobalErrorTracking(): void {
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
   });
 
   // Track global errors
@@ -263,7 +277,9 @@ export function setupGlobalErrorTracking(): void {
           },
         });
       })
-      .catch(() => {/* Silent fail */});
+      .catch(() => {
+        /* Silent fail */
+      });
   });
 }
 
@@ -321,7 +337,7 @@ export async function retryWithTracking<T>(
           .then(({ trackError, ErrorSeverity }) => {
             trackError(lastError!, {
               severity: ErrorSeverity.HIGH,
-              category: errorCategory as any,
+              category: errorCategory as ErrorCategory,
               metadata: {
                 operation,
                 attempts: maxRetries,

@@ -286,9 +286,8 @@ export class ProgressiveCaptureTrigger {
       }
 
       // Store PRs in database using existing spam detection integration
-      const { processPRWithSpamDetection } = await import(
-        '../../../supabase/functions/_shared/spam-detection-integration'
-      );
+      const { processPRWithSpamDetection } =
+        await import('../../../supabase/functions/_shared/spam-detection-integration');
 
       let importedCount = 0;
       for (const pr of recentPRs) {
