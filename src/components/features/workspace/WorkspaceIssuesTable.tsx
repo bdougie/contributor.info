@@ -622,6 +622,7 @@ export function WorkspaceIssuesTable({
                     size="sm"
                     onClick={() => setSelectedIssueForSimilar(row.original)}
                     className="h-8 px-2 text-amber-500 hover:text-amber-600"
+                    aria-label="View similar issues"
                   >
                     <Sparkles className="h-4 w-4" />
                   </Button>
@@ -652,6 +653,7 @@ export function WorkspaceIssuesTable({
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                     disabled={!!hasResponded || !onRespondClick}
+                    aria-label={hasResponded ? 'Already responded' : 'Mark as responded'}
                   >
                     <Reply className="h-4 w-4" />
                   </Button>
@@ -674,6 +676,7 @@ export function WorkspaceIssuesTable({
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Open in GitHub"
+                aria-label="Open issue in GitHub"
               >
                 <ExternalLink className="h-4 w-4" />
               </a>

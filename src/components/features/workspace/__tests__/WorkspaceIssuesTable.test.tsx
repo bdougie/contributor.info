@@ -26,15 +26,16 @@ vi.mock('@/hooks/useSimilarIssues', () => ({
 
 // Mock supabase-lazy
 vi.mock('@/lib/supabase-lazy', () => ({
-  getSupabase: async () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          in: () => Promise.resolve({ data: [], error: null }),
+  getSupabase: () =>
+    Promise.resolve({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            in: () => Promise.resolve({ data: [], error: null }),
+          }),
         }),
       }),
     }),
-  }),
   setSupabaseInstance: vi.fn(),
 }));
 
@@ -71,15 +72,10 @@ describe('WorkspaceIssuesTable', () => {
       </TooltipProvider>
     );
 
-    // Check visible PRs (slice(0, 2))
     const pr201 = screen.getByText('#201');
     expect(pr201).toBeInTheDocument();
-
-    // Check aria-label
     const link201 = pr201.closest('a');
     expect(link201).toHaveAttribute('aria-label', 'Pull request #201 (merged)');
-
-    // Check color class based on state
     expect(link201).toHaveClass('text-purple-600');
 
     const pr202 = screen.getByText('#202');
@@ -88,8 +84,21 @@ describe('WorkspaceIssuesTable', () => {
     expect(link202).toHaveAttribute('aria-label', 'Pull request #202 (open)');
     expect(link202).toHaveClass('text-green-600');
 
-    // Check overflow
-    const overflow = screen.getByText('+1');
-    expect(overflow).toBeInTheDocument();
+    expect(screen.getByText('+1')).toBeInTheDocument();
+  });
+
+  it('renders action buttons with correct aria-labels', () => {
+    const onRespondClick = vi.fn();
+    render(
+      <TooltipProvider>
+        <WorkspaceIssuesTable issues={[mockIssue]} onRespondClick={onRespondClick} />
+      </TooltipProvider>
+    );
+
+    const externalLinks = screen.getAllByLabelText('Open issue in GitHub');
+    expect(externalLinks.length).toBeGreaterThan(0);
+    expect(externalLinks[0]).toHaveAttribute('href', 'http://issue/101');
+
+    expect(screen.getByLabelText('Mark as responded')).toBeInTheDocument();
   });
 });
