@@ -47,6 +47,7 @@ kubernetes/kubernetes
 langchain-ai/langchain
 lodash/lodash
 Mail-0/Zero
+mautic/user-documentation
 microsoft/TypeScript
 microsoft/vscode
 moment/moment
