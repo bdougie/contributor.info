@@ -21,9 +21,12 @@ export const interpolateArray = vi.fn(
     () =>
       b
 );
-export const interpolateObject = vi.fn(<T extends Record<string, InterpolatableValue>>(_a: T, b: T) => () => ({
-  ...b,
-}));
+export const interpolateObject = vi.fn(
+  <T extends Record<string, InterpolatableValue>>(_a: T, b: T) =>
+    () => ({
+      ...b,
+    })
+);
 
 export default {
   interpolate,

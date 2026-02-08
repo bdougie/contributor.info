@@ -34,10 +34,7 @@ global.fetch = vi.fn(() =>
 
 // Mock IntersectionObserver - simple and synchronous
 global.IntersectionObserver = vi.fn(
-  (
-    _callback: IntersectionObserverCallback,
-    _options?: IntersectionObserverInit
-  ): IntersectionObserver => ({
+  (): IntersectionObserver => ({
     disconnect: vi.fn(),
     observe: vi.fn(),
     unobserve: vi.fn(),
@@ -50,7 +47,7 @@ global.IntersectionObserver = vi.fn(
 
 // Mock ResizeObserver
 global.ResizeObserver = vi.fn(
-  (_callback: ResizeObserverCallback): ResizeObserver => ({
+  (): ResizeObserver => ({
     disconnect: vi.fn(),
     observe: vi.fn(),
     unobserve: vi.fn(),

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-interface ShortcutHandler {
+export interface ShortcutHandler {
   key: string;
   metaKey?: boolean;
   ctrlKey?: boolean;
