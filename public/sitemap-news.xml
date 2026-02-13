@@ -3,14 +3,14 @@
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
   
   <url>
-    <loc>https://contributor.info/mautic/user-documentation</loc>
+    <loc>https://contributor.info/osmlab/name-suggestion-index</loc>
     <news:news>
       <news:publication>
         <news:name>Contributor.info</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>2026-02-08T08:17:03.653Z</news:publication_date>
-      <news:title>mautic/user-documentation - Contributor Updates</news:title>
+      <news:publication_date>2026-02-12T04:21:31.497Z</news:publication_date>
+      <news:title>osmlab/name-suggestion-index - Contributor Updates</news:title>
     </news:news>
   </url>
 </urlset>

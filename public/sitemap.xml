@@ -638,6 +638,24 @@
     <lastmod>2026-02-02T18:33:24.454Z</lastmod>
   </url>
   <url>
+    <loc>https://contributor.info/osmlab/name-suggestion-index</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+    <lastmod>2026-02-12T04:21:31.497Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/osmlab/name-suggestion-index/health</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-02-12T04:21:31.497Z</lastmod>
+  </url>
+  <url>
+    <loc>https://contributor.info/osmlab/name-suggestion-index/distribution</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+    <lastmod>2026-02-12T04:21:31.497Z</lastmod>
+  </url>
+  <url>
     <loc>https://contributor.info/zuplo/zudoku</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
