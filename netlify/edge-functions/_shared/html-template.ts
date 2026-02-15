@@ -40,8 +40,8 @@ export interface TrendingPageData {
     name: string;
     full_name: string;
     description: string | null;
-    stargazer_count: number;
-    fork_count: number;
+    stargazers_count: number;
+    forks_count: number;
     language: string | null;
     topics: string[] | null;
     score: number;
@@ -57,8 +57,8 @@ export interface RepoPageData {
     name: string;
     full_name: string;
     description: string | null;
-    stargazer_count: number;
-    fork_count: number;
+    stargazers_count: number;
+    forks_count: number;
     language: string | null;
     topics: string[] | null;
     updated_at: string;
@@ -88,7 +88,7 @@ export interface WorkspacesPageData {
       name: string;
       owner: string;
       language: string | null;
-      stargazer_count: number;
+      stargazers_count: number;
     }>;
   }>;
   stats?: {
@@ -117,7 +117,7 @@ export interface WorkspaceDetailPageData {
       owner: string;
       description: string | null;
       language: string | null;
-      stargazer_count: number;
+      stargazers_count: number;
     }>;
     owner: {
       id: string;
