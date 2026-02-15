@@ -121,7 +121,7 @@ export function useProgressiveRepoData(
 
           // Fetch minimal data for above-the-fold content with retry
           const result = await withRetry(
-            () => fetchPRDataSmart(owner, repo, { timeRange }),
+            () => fetchPRDataSmart(owner, repo, { timeRange, mode: 'basic' }),
             {
               maxRetries: 2,
               initialDelay: 500,

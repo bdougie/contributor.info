@@ -15,6 +15,7 @@ interface FetchOptions {
   timeRange?: string;
   triggerBackgroundSync?: boolean;
   showNotifications?: boolean;
+  mode?: 'full' | 'basic';
 }
 
 /**
@@ -24,14 +25,20 @@ interface FetchOptions {
 export const fetchPRDataSmart = withRequestDeduplication(
   originalFetchPRDataSmart,
   (owner: string, repo: string, options: FetchOptions = {}): string => {
-    const { timeRange = '30', triggerBackgroundSync = true, showNotifications = false } = options;
+    const {
+      timeRange = '30',
+      triggerBackgroundSync = true,
+      showNotifications = false,
+      mode = 'full',
+    } = options;
     return RequestDeduplicator.generateKey.repository(
       owner,
       repo,
       'pr-data-smart',
       timeRange,
       triggerBackgroundSync.toString(),
-      showNotifications.toString()
+      showNotifications.toString(),
+      mode
     );
   },
   {
