@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.48.0](https://github.com/bdougie/contributor.info/compare/v4.47.0...v4.48.0) (2026-02-15)
+
+
+### 🚀 Features
+
+* remove email from Unkey metadata to avoid PII transmission ([#1636](https://github.com/bdougie/contributor.info/issues/1636)) ([2d04cea](https://github.com/bdougie/contributor.info/commit/2d04ceabcd990d99443cebcba53628b46c6289e4)), closes [open-source-ready/gh-datapipe#246](https://github.com/open-source-ready/gh-datapipe/issues/246)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([7fa60fe](https://github.com/bdougie/contributor.info/commit/7fa60fe9607382643b971bb06ab8a96a8934ef3f))
+
 ## [4.47.0](https://github.com/bdougie/contributor.info/compare/v4.46.1...v4.47.0) (2026-02-15)
 
 
