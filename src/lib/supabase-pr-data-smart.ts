@@ -163,7 +163,7 @@ export async function fetchPRDataSmart(
       // Fetch PRs from database
       const { data: dbPRs, error: dbError } = await supabase
         .from('pull_requests')
-        .select(selectColumns as any)
+        .select(selectColumns as string)
         .eq('repository_id', repoData.id)
         .gte('created_at', toDateOnlyString(since))
         .order('created_at', { ascending: false })
