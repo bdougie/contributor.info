@@ -132,8 +132,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.5(@types/react@19.2.8)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@unkey/api':
-        specifier: ^0.30.0
-        version: 0.30.0
+        specifier: ^0.38.0
+        version: 0.38.0
       '@vitejs/plugin-react':
         specifier: ^4.3.1
         version: 4.7.0(vite@6.4.1(@types/node@22.19.7)(jiti@1.21.7)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))
@@ -3788,8 +3788,8 @@ packages:
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
-  '@unkey/api@0.30.0':
-    resolution: {integrity: sha512-0j0z6pa2MZfjUNWYZ/rkIz54TuPLRdX4FiZD5W3ZIsU3zWKo8i1hwy6g5n3OWcP33IoybFcpjzFrCN5JQZrS5A==}
+  '@unkey/api@0.38.0':
+    resolution: {integrity: sha512-+c5f9187P13H5llB3dJqqp29VuemCrhfrxvXGcFo+OZRhTOZlwV4eJ2RNGhPU3Riar4JFOi4rn3NtTrnTsuGig==}
 
   '@unkey/error@0.2.0':
     resolution: {integrity: sha512-DFGb4A7SrusZPP0FYuRIF0CO+Gi4etLUAEJ6EKc+TKYmscL0nEJ2Pr38FyX9MvjI4Wx5l35Wc9KsBjMm9Ybh7w==}
@@ -11567,7 +11567,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@unkey/api@0.30.0':
+  '@unkey/api@0.38.0':
     dependencies:
       '@unkey/rbac': 0.3.1
 
