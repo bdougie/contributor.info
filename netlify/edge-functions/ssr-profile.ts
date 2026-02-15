@@ -258,7 +258,7 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                                         points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                                       />
                                     </svg>
-                                    ${formatNumber(repo.stargazer_count)}
+                                    ${formatNumber(repo.stargazers_count)}
                                   </span>
                                   <span class="flex items-center gap-1">
                                     <svg
@@ -277,7 +277,7 @@ function renderProfileContent(username: string, repos: RepoData[]): SafeHTML {
                                       <path d="M6 9v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9" />
                                       <path d="M12 12v3" />
                                     </svg>
-                                    ${formatNumber(repo.fork_count)}
+                                    ${formatNumber(repo.forks_count)}
                                   </span>
                                 </div>
                               </div>

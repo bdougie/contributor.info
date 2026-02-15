@@ -232,6 +232,10 @@
     "name": "app"
   },
   {
+    "owner": "osmlab",
+    "name": "name-suggestion-index"
+  },
+  {
     "owner": "pashkov256",
     "name": "deletor"
   },
