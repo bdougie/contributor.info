@@ -4,6 +4,7 @@ analogjs/analog
 angular/angular
 anomalyco/opencode
 anthropics/claude-code
+apache/maven
 appwrite/appwrite
 argoproj/argo-cd
 ArshadMahalkari/StockApp

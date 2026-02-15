@@ -24,6 +24,10 @@
     "name": "claude-code"
   },
   {
+    "owner": "apache",
+    "name": "maven"
+  },
+  {
     "owner": "appwrite",
     "name": "appwrite"
   },
