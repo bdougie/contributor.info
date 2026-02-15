@@ -7,8 +7,9 @@ const HoverCard = HoverCardPrimitive.Root;
 
 const HoverCardTrigger = HoverCardPrimitive.Trigger;
 
-export interface HoverCardContentProps
-  extends ComponentPropsWithoutRef<typeof HoverCardPrimitive.Content> {
+export interface HoverCardContentProps extends ComponentPropsWithoutRef<
+  typeof HoverCardPrimitive.Content
+> {
   ref?: Ref<ElementRef<typeof HoverCardPrimitive.Content>>;
 }
 

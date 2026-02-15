@@ -7,8 +7,9 @@ import { cn } from '@/lib/utils';
 
 const ToastProvider = ToastPrimitives.Provider;
 
-export interface ToastViewportProps
-  extends ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport> {
+export interface ToastViewportProps extends ComponentPropsWithoutRef<
+  typeof ToastPrimitives.Viewport
+> {
   ref?: Ref<ElementRef<typeof ToastPrimitives.Viewport>>;
 }
 
@@ -42,7 +43,8 @@ const toastVariants = cva(
 );
 
 export interface ToastProps
-  extends ComponentPropsWithoutRef<typeof ToastPrimitives.Root>,
+  extends
+    ComponentPropsWithoutRef<typeof ToastPrimitives.Root>,
     VariantProps<typeof toastVariants> {
   ref?: Ref<ElementRef<typeof ToastPrimitives.Root>>;
 }
@@ -108,8 +110,9 @@ function ToastTitle({ className, ref, ...props }: ToastTitleProps) {
   );
 }
 
-export interface ToastDescriptionProps
-  extends ComponentPropsWithoutRef<typeof ToastPrimitives.Description> {
+export interface ToastDescriptionProps extends ComponentPropsWithoutRef<
+  typeof ToastPrimitives.Description
+> {
   ref?: Ref<ElementRef<typeof ToastPrimitives.Description>>;
 }
 

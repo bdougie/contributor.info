@@ -103,6 +103,7 @@ export function WorkspaceCreateForm({
           onChange={(e) => handleInputChange('name', e.target.value)}
           disabled={loading}
           required
+          maxLength={50}
           aria-required="true"
           aria-invalid={!!validationErrors.name}
           aria-describedby={validationErrors.name ? 'name-error' : undefined}
@@ -128,6 +129,7 @@ export function WorkspaceCreateForm({
           onChange={(e) => handleInputChange('description', e.target.value)}
           disabled={loading}
           rows={3}
+          maxLength={500}
           aria-invalid={!!validationErrors.description}
           aria-describedby={validationErrors.description ? 'description-error' : undefined}
         />
@@ -136,9 +138,14 @@ export function WorkspaceCreateForm({
             {validationErrors.description}
           </p>
         )}
-        <p className="text-xs text-muted-foreground">
-          Help others understand what this workspace is about
-        </p>
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground">
+            Help others understand what this workspace is about
+          </p>
+          <span className="text-xs text-muted-foreground">
+            {formData.description?.length || 0}/500
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2">

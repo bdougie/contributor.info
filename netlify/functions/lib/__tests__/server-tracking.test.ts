@@ -2,28 +2,28 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 /**
  * Helper to safely check if a URL matches expected host
- * 
+ *
  * Security: This function prevents URL substring sanitization vulnerabilities
  * by parsing the URL and validating the hostname property using split/join logic
  * that CodeQL recognizes as safe.
- * 
+ *
  * Safe patterns:
  *   - Exact match: hostname === 'sentry.io'
  *   - Subdomain match: hostname.split('.').slice(-2).join('.') === 'sentry.io'
- * 
+ *
  * This approach:
  * 1. Parses URL with new URL() to extract hostname
  * 2. Splits hostname into parts by dot
  * 3. Takes the last 2 parts (domain.tld)
  * 4. Compares directly - no substring operations
- * 
+ *
  * This prevents attacks:
  * - https://evil.com/sentry.io → hostname='evil.com' → 'evil.com' !== 'sentry.io' ✓
  * - https://sentry.io.attacker.com → 'attacker.com' !== 'sentry.io' ✓
  * - https://evilsentry.io → 'evilsentry.io' !== 'sentry.io' ✓
  * - https://sentry.io → 'sentry.io' === 'sentry.io' ✓
  * - https://us.sentry.io → 'sentry.io' === 'sentry.io' ✓
- * 
+ *
  * @param url - The URL string to validate
  * @param expectedHost - The expected hostname (e.g., 'sentry.io')
  * @returns true if URL hostname matches (exactly or as subdomain)
@@ -32,12 +32,12 @@ function isUrlForHost(url: string, expectedHost: string): boolean {
   try {
     const urlObj = new URL(url);
     const { hostname } = urlObj;
-    
+
     // Exact match: hostname is exactly the expected host
     if (hostname === expectedHost) {
       return true;
     }
-    
+
     // Subdomain match: extract the base domain and compare
     // Split hostname by dots, take last 2 parts (domain.tld)
     // This is safe because we're not using substring operations
@@ -48,7 +48,7 @@ function isUrlForHost(url: string, expectedHost: string): boolean {
         return true;
       }
     }
-    
+
     return false;
   } catch {
     // Invalid URL
@@ -88,9 +88,7 @@ describe('server-tracking utilities', () => {
       });
 
       // Check PostHog was called with correct error category (secure URL validation)
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('NETWORK_ERROR');
@@ -109,9 +107,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('TIMEOUT_ERROR');
@@ -130,9 +126,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('RATE_LIMIT_ERROR');
@@ -151,9 +145,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('AUTH_ERROR');
@@ -172,9 +164,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('INNGEST_ERROR');
@@ -195,9 +185,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       // Generic "event" should be UNKNOWN_ERROR, not INNGEST_ERROR
@@ -217,9 +205,7 @@ describe('server-tracking utilities', () => {
         repo: 'repo',
       });
 
-      const posthogCall = mockFetch.mock.calls.find((call) =>
-        isUrlForHost(call[0], 'posthog.com')
-      );
+      const posthogCall = mockFetch.mock.calls.find((call) => isUrlForHost(call[0], 'posthog.com'));
       expect(posthogCall).toBeDefined();
       const posthogBody = JSON.parse(posthogCall[1].body);
       expect(posthogBody.properties.error_category).toBe('UNKNOWN_ERROR');

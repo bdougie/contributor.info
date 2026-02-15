@@ -71,12 +71,14 @@ export function ProgressiveCaptureButton({
       setJobsQueued(routing.inngestJobs + routing.actionsJobs);
 
       // Enhanced toast with processor information
-      const processorText =
-        routing.processor === 'hybrid'
-          ? `${routing.inngestJobs} real-time jobs, ${routing.actionsJobs} bulk jobs`
-          : routing.processor === 'inngest'
-            ? 'Real-time processing'
-            : 'Bulk processing via GitHub Actions';
+      const getProcessorText = () => {
+        if (routing.processor === 'hybrid') {
+          return `${routing.inngestJobs} real-time jobs, ${routing.actionsJobs} bulk jobs`;
+        }
+        if (routing.processor === 'inngest') return 'Real-time processing';
+        return 'Bulk processing via GitHub Actions';
+      };
+      const processorText = getProcessorText();
 
       toast.success('Data capture jobs queued!', {
         description: `${processorText} • ${routing.reason}`,
@@ -84,12 +86,12 @@ export function ProgressiveCaptureButton({
 
       // Calculate realistic processing times based on job types and data volume
       const getProcessingTime = (routing: ProcessorRouting) => {
-        const baseTime =
-          routing.processor === 'inngest'
-            ? 5000
-            : routing.processor === 'github_actions'
-              ? 30000
-              : 15000;
+        const getBaseTime = () => {
+          if (routing.processor === 'inngest') return 5000;
+          if (routing.processor === 'github_actions') return 30000;
+          return 15000;
+        };
+        const baseTime = getBaseTime();
 
         // Add time based on job count
         const jobMultiplier = (routing.inngestJobs + routing.actionsJobs) * 2000;
@@ -152,11 +154,9 @@ export function ProgressiveCaptureButton({
         {getProgressiveCaptureText(isTriggering, isProcessing)}
         {routingInfo && (
           <Badge variant="secondary" className="ml-2">
-            {routingInfo.processor === 'inngest'
-              ? 'Real-time'
-              : routingInfo.processor === 'github_actions'
-                ? 'Bulk'
-                : 'Hybrid'}
+            {routingInfo.processor === 'inngest' && 'Real-time'}
+            {routingInfo.processor === 'github_actions' && 'Bulk'}
+            {routingInfo.processor === 'hybrid' && 'Hybrid'}
           </Badge>
         )}
       </Button>

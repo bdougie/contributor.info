@@ -1,33 +1,16 @@
 import { Handler } from '@netlify/functions';
-import { Unkey } from '@unkey/api';
-import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
-
-// Lazy initialization helpers - env vars are read at runtime
-function getUnkeyClient() {
-  return new Unkey({
-    rootKey: process.env.UNKEY_ROOT_KEY || '',
-  });
-}
-
-function getSupabaseClients() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const supabaseServiceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-
-  return {
-    admin: createClient(supabaseUrl, supabaseServiceKey),
-    anon: createClient(supabaseUrl, supabaseAnonKey),
-  };
-}
+import {
+  getUnkeyClient,
+  getSupabaseClients,
+  API_KEY_CORS_HEADERS,
+  hasUnkeyConfig,
+} from './lib/api-key-clients';
 
 export const handler: Handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    ...API_KEY_CORS_HEADERS,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -44,10 +27,9 @@ export const handler: Handler = async (event) => {
 
   try {
     // Verify required environment variables
-    if (!process.env.UNKEY_ROOT_KEY) {
-      console.error('Missing Unkey configuration:', {
-        hasRootKey: !!process.env.UNKEY_ROOT_KEY,
-      });
+    const unkeyConfig = hasUnkeyConfig();
+    if (!unkeyConfig.hasRootKey) {
+      console.error('Missing Unkey configuration');
       return {
         statusCode: 503,
         headers,

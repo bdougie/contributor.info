@@ -11,6 +11,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+interface RepositoryData {
+  repository_owner: string;
+  repository_name: string;
+  self_selection_rate?: number;
+}
+
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://egcxzonpmmcirmgqdrla.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_TOKEN;
 
@@ -88,7 +94,7 @@ async function refreshSelfSelectionData() {
       console.log(
         `⚠️  Found ${missingData.length} repositories with confidence data but no self-selection data:`
       );
-      missingData.forEach((repo: any) => {
+      missingData.forEach((repo: RepositoryData) => {
         console.log(`   • ${repo.repository_owner}/${repo.repository_name}`);
       });
       console.log(
@@ -105,7 +111,7 @@ async function refreshSelfSelectionData() {
       .limit(5);
 
     if (sampleData) {
-      sampleData.forEach((repo: any) => {
+      sampleData.forEach((repo: RepositoryData) => {
         console.log(
           `   • ${repo.repository_owner}/${repo.repository_name}: ${repo.self_selection_rate}%`
         );

@@ -333,10 +333,11 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
 
                 <Button
                   onClick={handleSaveChannel}
-                  disabled={!selectedChannel || isSaving}
+                  disabled={!selectedChannel}
+                  isLoading={isSaving}
                   className="w-full"
                 >
-                  {isSaving ? 'Saving...' : 'Enable Notifications'}
+                  Enable Notifications
                 </Button>
               </div>
             )}
@@ -354,15 +355,9 @@ export function RepositorySlackButton({ owner, repo }: RepositorySlackButtonProp
                   </p>
                 </div>
 
-                <Button onClick={handleConnectSlack} disabled={isConnecting} className="w-full">
-                  {isConnecting ? (
-                    'Connecting...'
-                  ) : (
-                    <>
-                      <SlackIcon className="h-4 w-4 mr-2" />
-                      Connect to Slack
-                    </>
-                  )}
+                <Button onClick={handleConnectSlack} isLoading={isConnecting} className="w-full">
+                  {!isConnecting && <SlackIcon className="h-4 w-4 mr-2" />}
+                  Connect to Slack
                 </Button>
               </div>
             )}

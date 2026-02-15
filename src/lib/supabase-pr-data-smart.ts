@@ -16,6 +16,7 @@ interface FetchOptions {
   timeRange?: string;
   triggerBackgroundSync?: boolean;
   showNotifications?: boolean;
+  mode?: 'full' | 'basic';
 }
 
 /**
@@ -34,7 +35,12 @@ export async function fetchPRDataSmart(
   repo: string,
   options: FetchOptions = {}
 ): Promise<DataResult<PullRequest[]>> {
-  const { timeRange = '30', triggerBackgroundSync = true, showNotifications = false } = options;
+  const {
+    timeRange = '30',
+    triggerBackgroundSync = true,
+    showNotifications = false,
+    mode = 'full',
+  } = options;
 
   return trackDatabaseOperation(
     'fetchPRDataSmart',
@@ -72,11 +78,31 @@ export async function fetchPRDataSmart(
         );
       }
 
-      // Fetch PRs from database
-      const { data: dbPRs, error: dbError } = await supabase
-        .from('pull_requests')
-        .select(
-          `
+      // Select columns based on mode
+      const selectColumns =
+        mode === 'basic'
+          ? `
+          id,
+          github_id,
+          number,
+          title,
+          state,
+          created_at,
+          updated_at,
+          closed_at,
+          merged_at,
+          merged,
+          html_url,
+          repository_id,
+          author_id,
+          contributors:author_id(
+            github_id,
+            username,
+            avatar_url,
+            is_bot
+          )
+        `
+          : `
           id,
           github_id,
           number,
@@ -132,8 +158,12 @@ export async function fetchPRDataSmart(
               is_bot
             )
           )
-        `
-        )
+        `;
+
+      // Fetch PRs from database
+      const { data: dbPRs, error: dbError } = await supabase
+        .from('pull_requests')
+        .select(selectColumns as string)
         .eq('repository_id', repoData.id)
         .gte('created_at', toDateOnlyString(since))
         .order('created_at', { ascending: false })

@@ -288,7 +288,7 @@ export function ApiKeysSection() {
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !creating) {
+                if (e.key === 'Enter' && !creating && newKeyName.trim()) {
                   handleCreateKey();
                 }
               }}
@@ -298,7 +298,7 @@ export function ApiKeysSection() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleCreateKey} disabled={creating}>
+            <Button onClick={handleCreateKey} disabled={creating || !newKeyName.trim()}>
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Key
             </Button>

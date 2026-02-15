@@ -75,13 +75,12 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
         setIsProcessing(true);
         setProcessor(eventProcessor);
         setEstimatedTime(eventEstimatedTime);
-        setProcessingStage(
-          eventProcessor === 'inngest'
-            ? 'Real-time processing...'
-            : eventProcessor === 'github_actions'
-              ? 'Bulk processing...'
-              : 'Hybrid processing...'
-        );
+        const getProcessingStage = () => {
+          if (eventProcessor === 'inngest') return 'Real-time processing...';
+          if (eventProcessor === 'github_actions') return 'Bulk processing...';
+          return 'Hybrid processing...';
+        };
+        setProcessingStage(getProcessingStage());
         setRecentlyCompleted(false);
         setProgress(10); // Start with small progress
         setCurrentStep('Initializing...');
@@ -260,6 +259,7 @@ export function DataProcessingIndicator({ repository, className }: DataProcessin
 /**
  * Hook to manage data processing state
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDataProcessingState(repository: string) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);

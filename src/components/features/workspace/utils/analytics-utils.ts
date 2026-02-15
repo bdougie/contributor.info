@@ -138,9 +138,15 @@ export function calculateTrend(
   const difference = current - previous;
   const percentage = Math.round((difference / previous) * 100);
 
+  const getDirection = () => {
+    if (difference > 0) return 'up';
+    if (difference < 0) return 'down';
+    return 'neutral';
+  };
+
   return {
     value: difference,
-    direction: difference > 0 ? 'up' : difference < 0 ? 'down' : 'neutral',
+    direction: getDirection(),
     percentage: Math.abs(percentage),
   };
 }

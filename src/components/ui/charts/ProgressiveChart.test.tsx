@@ -24,10 +24,7 @@ describe('ProgressiveChart', () => {
 
   it('does not re-create IntersectionObserver on re-renders with default options', () => {
     const { rerender } = render(
-      <ProgressiveChart
-        skeleton={<div>Skeleton</div>}
-        highFidelity={<div>High Fidelity</div>}
-      />
+      <ProgressiveChart skeleton={<div>Skeleton</div>} highFidelity={<div>High Fidelity</div>} />
     );
 
     // Initial render should create observer
@@ -35,10 +32,7 @@ describe('ProgressiveChart', () => {
 
     // Force re-render
     rerender(
-      <ProgressiveChart
-        skeleton={<div>Skeleton</div>}
-        highFidelity={<div>High Fidelity</div>}
-      />
+      <ProgressiveChart skeleton={<div>Skeleton</div>} highFidelity={<div>High Fidelity</div>} />
     );
 
     // Should not create another observer because options should be stable

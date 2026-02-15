@@ -9,8 +9,7 @@ const labelVariants = cva(
 );
 
 export interface LabelProps
-  extends ComponentPropsWithoutRef<typeof LabelPrimitive.Root>,
-    VariantProps<typeof labelVariants> {
+  extends ComponentPropsWithoutRef<typeof LabelPrimitive.Root>, VariantProps<typeof labelVariants> {
   ref?: Ref<ElementRef<typeof LabelPrimitive.Root>>;
 }
 

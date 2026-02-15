@@ -1,5 +1,9 @@
 [
   {
+    "owner": "AAChartModel",
+    "name": "AAChartCore-Kotlin"
+  },
+  {
     "owner": "Ad-Astra-Innovia",
     "name": "frontend"
   },
@@ -10,6 +14,10 @@
   {
     "owner": "angular",
     "name": "angular"
+  },
+  {
+    "owner": "anomalyco",
+    "name": "opencode"
   },
   {
     "owner": "anthropics",
@@ -188,6 +196,10 @@
     "name": "Zero"
   },
   {
+    "owner": "mautic",
+    "name": "user-documentation"
+  },
+  {
     "owner": "microsoft",
     "name": "TypeScript"
   },
@@ -212,8 +224,16 @@
     "name": "ollama"
   },
   {
+    "owner": "openclaw",
+    "name": "openclaw"
+  },
+  {
     "owner": "open-sauced",
     "name": "app"
+  },
+  {
+    "owner": "osmlab",
+    "name": "name-suggestion-index"
   },
   {
     "owner": "pashkov256",

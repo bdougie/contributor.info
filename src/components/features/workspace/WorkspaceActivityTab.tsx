@@ -253,7 +253,8 @@ export function WorkspaceActivityTab({
             created_at: star.captured_at,
             author: {
               username: star.actor_login || 'Unknown',
-              avatar_url: star.actor_avatar || `https://github.com/${star.actor_login || 'ghost'}.png`,
+              avatar_url:
+                star.actor_avatar || `https://github.com/${star.actor_login || 'ghost'}.png`,
             },
             repository: star.repository_name || 'Unknown Repository',
             // No status for star events
@@ -279,7 +280,8 @@ export function WorkspaceActivityTab({
             created_at: fork.captured_at,
             author: {
               username: fork.actor_login || 'Unknown',
-              avatar_url: fork.actor_avatar || `https://github.com/${fork.actor_login || 'ghost'}.png`,
+              avatar_url:
+                fork.actor_avatar || `https://github.com/${fork.actor_login || 'ghost'}.png`,
             },
             repository: fork.repository_name || 'Unknown Repository',
             // No status for fork events
@@ -397,8 +399,8 @@ export function WorkspaceActivityTab({
       <ShareableCard
         title="Activity Trend"
         contextInfo={{
-          repository: "Workspace Activity",
-          metric: "activity trend"
+          repository: 'Workspace Activity',
+          metric: 'activity trend',
         }}
         chartType="activity-trend"
         hideLogo={true}

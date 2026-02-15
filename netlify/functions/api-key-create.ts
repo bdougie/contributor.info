@@ -1,33 +1,19 @@
 import { Handler } from '@netlify/functions';
-import { Unkey } from '@unkey/api';
-import { createClient } from '@supabase/supabase-js';
 import { trackServerEvent, captureServerException } from './lib/server-tracking.mts';
-
-// Lazy initialization helpers - env vars are read at runtime
-function getUnkeyClient() {
-  return new Unkey({
-    rootKey: process.env.UNKEY_ROOT_KEY || '',
-  });
-}
-
-function getSupabaseClients() {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const supabaseServiceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-
-  return {
-    admin: createClient(supabaseUrl, supabaseServiceKey),
-    anon: createClient(supabaseUrl, supabaseAnonKey),
-  };
-}
+import {
+  getUnkeyClient,
+  getUnkeyApiId,
+  getSupabaseClients,
+  API_KEY_CORS_HEADERS,
+  API_KEY_VALIDATION,
+  hasUnkeyConfig,
+  hasSupabaseConfig,
+} from './lib/api-key-clients';
 
 export const handler: Handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    ...API_KEY_CORS_HEADERS,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -44,24 +30,15 @@ export const handler: Handler = async (event) => {
 
   try {
     // Verify required environment variables
-    const hasUnkeyRootKey = !!process.env.UNKEY_ROOT_KEY;
-    const hasUnkeyApiId = !!process.env.UNKEY_API_ID;
-    const hasSupabaseUrl = !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-    const hasServiceKey = !!(
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
-    );
-    const hasAnonKey = !!(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+    const unkeyConfig = hasUnkeyConfig();
+    const supabaseConfig = hasSupabaseConfig();
 
-    console.log('Environment check:', {
-      hasUnkeyRootKey,
-      hasUnkeyApiId,
-      hasSupabaseUrl,
-      hasServiceKey,
-      hasAnonKey,
-    });
-
-    if (!hasUnkeyRootKey || !hasUnkeyApiId) {
-      console.error('Missing Unkey configuration');
+    if (!unkeyConfig.hasRootKey || !unkeyConfig.hasApiId) {
+      console.error(
+        'Missing Unkey configuration - hasRootKey: %s, hasApiId: %s',
+        unkeyConfig.hasRootKey,
+        unkeyConfig.hasApiId
+      );
       return {
         statusCode: 503,
         headers,
@@ -69,7 +46,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    if (!hasSupabaseUrl || !hasServiceKey || !hasAnonKey) {
+    if (!supabaseConfig.hasUrl || !supabaseConfig.hasServiceKey || !supabaseConfig.hasAnonKey) {
       console.error('Missing Supabase configuration');
       return {
         statusCode: 503,
@@ -81,7 +58,7 @@ export const handler: Handler = async (event) => {
     // Initialize clients lazily
     const unkey = getUnkeyClient();
     const { admin: supabaseAdmin, anon: supabaseAnon } = getSupabaseClients();
-    const UNKEY_API_ID = process.env.UNKEY_API_ID || '';
+    const UNKEY_API_ID = getUnkeyApiId();
 
     // Verify user authentication
     const authHeader = event.headers.authorization;
@@ -119,10 +96,7 @@ export const handler: Handler = async (event) => {
     }
     const { name, expiresInDays } = body;
 
-    // Input validation constants
-    const MAX_KEY_NAME_LENGTH = 100;
-    const VALID_NAME_PATTERN = /^[a-zA-Z0-9\s\-_.]+$/;
-
+    // Input validation
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return {
         statusCode: 400,
@@ -132,15 +106,17 @@ export const handler: Handler = async (event) => {
     }
 
     const trimmedName = name.trim();
-    if (trimmedName.length > MAX_KEY_NAME_LENGTH) {
+    if (trimmedName.length > API_KEY_VALIDATION.MAX_KEY_NAME_LENGTH) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Key name too long (max 100 characters)' }),
+        body: JSON.stringify({
+          error: `Key name too long (max ${API_KEY_VALIDATION.MAX_KEY_NAME_LENGTH} characters)`,
+        }),
       };
     }
 
-    if (!VALID_NAME_PATTERN.test(trimmedName)) {
+    if (!API_KEY_VALIDATION.VALID_NAME_PATTERN.test(trimmedName)) {
       return {
         statusCode: 400,
         headers,
@@ -153,12 +129,56 @@ export const handler: Handler = async (event) => {
 
     // Calculate expiration if provided
     let expires: number | undefined;
-    if (expiresInDays && typeof expiresInDays === 'number' && expiresInDays > 0) {
+    if (expiresInDays !== undefined && expiresInDays !== null) {
+      if (typeof expiresInDays !== 'number' || expiresInDays <= 0) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Expiry days must be a positive number' }),
+        };
+      }
+      if (expiresInDays > API_KEY_VALIDATION.MAX_EXPIRY_DAYS) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: `Expiry cannot exceed ${API_KEY_VALIDATION.MAX_EXPIRY_DAYS} days`,
+          }),
+        };
+      }
       expires = Date.now() + expiresInDays * 24 * 60 * 60 * 1000;
     }
 
+    // Check if user has reached the maximum number of API keys
+    const { count, error: countError } = await supabaseAdmin
+      .from('api_keys')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('revoked_at', null);
+
+    if (countError) {
+      console.error('Database error counting user keys: %s', JSON.stringify(countError));
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Failed to verify key limit' }),
+      };
+    }
+
+    if (count !== null && count >= API_KEY_VALIDATION.MAX_KEYS_PER_USER) {
+      return {
+        statusCode: 429,
+        headers,
+        body: JSON.stringify({
+          error: `Maximum number of API keys reached (${API_KEY_VALIDATION.MAX_KEYS_PER_USER})`,
+          limit: API_KEY_VALIDATION.MAX_KEYS_PER_USER,
+          current: count,
+        }),
+      };
+    }
+
     // Create key with Unkey
-    console.log('Creating key with Unkey, apiId: %s', UNKEY_API_ID);
+    // Note: We intentionally omit email from metadata to avoid transmitting PII to third parties
     const createResult = await unkey.keys.create({
       apiId: UNKEY_API_ID,
       prefix: 'ck_live',
@@ -178,17 +198,22 @@ export const handler: Handler = async (event) => {
     });
 
     if (createResult.error) {
-      console.error('Unkey create error: %s', JSON.stringify(createResult.error));
+      console.error(
+        'Unkey create error - code: %s, message: %s, full: %s',
+        createResult.error.code,
+        createResult.error.message,
+        JSON.stringify(createResult.error)
+      );
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({
           error: 'Failed to create API key with provider',
           code: createResult.error.code,
+          message: createResult.error.message,
         }),
       };
     }
-    console.log('Unkey key created successfully, keyId: %s', createResult.result.keyId);
 
     const { keyId, key } = createResult.result;
 
@@ -198,7 +223,6 @@ export const handler: Handler = async (event) => {
     const lastFour = key.slice(-4);
 
     // Store key metadata in Supabase
-    console.log('Storing key metadata in database for user: %s', user.id);
     const { error: dbError } = await supabaseAdmin.from('api_keys').insert({
       user_id: user.id,
       unkey_key_id: keyId,
@@ -228,7 +252,6 @@ export const handler: Handler = async (event) => {
           }),
         };
       }
-      console.log('Successfully cleaned up Unkey key after db error: %s', keyId);
       return {
         statusCode: 500,
         headers,
@@ -238,7 +261,6 @@ export const handler: Handler = async (event) => {
         }),
       };
     }
-    console.log('Key metadata stored successfully');
 
     await trackServerEvent(
       'api_key_created',

@@ -10,10 +10,7 @@ import {
   deleteSlackIntegration,
   testSlackIntegration,
 } from '../services/slack-integration.service';
-import type {
-  SlackIntegrationWithStatus,
-  UpdateSlackIntegrationInput
-} from '../types/workspace';
+import type { SlackIntegrationWithStatus, UpdateSlackIntegrationInput } from '../types/workspace';
 
 interface UseSlackIntegrationsOptions {
   workspaceId: string;

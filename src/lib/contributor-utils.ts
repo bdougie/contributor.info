@@ -3,10 +3,7 @@ import { fetchUserOrganizations } from '@/lib/github';
 import { getSupabase } from '@/lib/supabase-lazy';
 
 // Cache for user pull requests lookup
-const userPullRequestsCache = new WeakMap<
-  PullRequest[],
-  Map<string, Set<PullRequest>>
->();
+const userPullRequestsCache = new WeakMap<PullRequest[], Map<string, Set<PullRequest>>>();
 
 /**
  * Indexes pull requests by user login and ID for O(1) lookup

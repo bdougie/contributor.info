@@ -5,6 +5,176 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.46.1](https://github.com/bdougie/contributor.info/compare/v4.46.0...v4.46.1) (2026-02-15)
+
+
+### 🐛 Bug Fixes
+
+* correct SSR column names to match database schema ([#1655](https://github.com/bdougie/contributor.info/issues/1655)) ([80f903f](https://github.com/bdougie/contributor.info/commit/80f903f9f54c2d67a8cca35977cf134e4e001a8b))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0854277](https://github.com/bdougie/contributor.info/commit/08542773b55f909dee059d50f3382bc3be54390c))
+
+## [4.46.0](https://github.com/bdougie/contributor.info/compare/v4.45.0...v4.46.0) (2026-02-08)
+
+
+### 🚀 Features
+
+* add keyboard shortcut to github search input ([#1638](https://github.com/bdougie/contributor.info/issues/1638)) ([94dbc31](https://github.com/bdougie/contributor.info/commit/94dbc3104a598558975de56bd5ab85a7237acc47))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d83db21](https://github.com/bdougie/contributor.info/commit/d83db2170643441d803582ee92793c1a1106e392))
+
+## [4.45.0](https://github.com/bdougie/contributor.info/compare/v4.44.2...v4.45.0) (2026-02-08)
+
+
+### 🚀 Features
+
+* add accessibility labels to issue table actions ([#1650](https://github.com/bdougie/contributor.info/issues/1650)) ([e0fe733](https://github.com/bdougie/contributor.info/commit/e0fe7339e2152e410e27e4b2737b132047c5b5fc))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3c1b0b7](https://github.com/bdougie/contributor.info/commit/3c1b0b7d1765e75821ef05f5c6560cc1371ebcd1))
+
+## [4.44.2](https://github.com/bdougie/contributor.info/compare/v4.44.1...v4.44.2) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* **a11y:** add accessible name to external link button ([#1642](https://github.com/bdougie/contributor.info/issues/1642)) ([a871891](https://github.com/bdougie/contributor.info/commit/a87189136a4a6c91e0cdf39be4654f5f29fb5689))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([86f94e5](https://github.com/bdougie/contributor.info/commit/86f94e513c89f7f26dd39b281d8701708228c742))
+
+## [4.44.1](https://github.com/bdougie/contributor.info/compare/v4.44.0...v4.44.1) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* systematic lint error reduction (91 errors fixed) ([#1648](https://github.com/bdougie/contributor.info/issues/1648)) ([b8b28cd](https://github.com/bdougie/contributor.info/commit/b8b28cdb5a0c282fcc4d36e5095f046f8217915e))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([e218e57](https://github.com/bdougie/contributor.info/commit/e218e57f776838df3c2461d421d1aaec383afbb1))
+
+## [4.44.0](https://github.com/bdougie/contributor.info/compare/v4.43.0...v4.44.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* **ui:** accessible loading buttons ([#1616](https://github.com/bdougie/contributor.info/issues/1616)) ([b4e3cc7](https://github.com/bdougie/contributor.info/commit/b4e3cc72d635fdd8690be1b780a3ad1363a34ff1))
+* **ux:** improve search clear button accessibility ([#1644](https://github.com/bdougie/contributor.info/issues/1644)) ([150f81f](https://github.com/bdougie/contributor.info/commit/150f81f8afad7ffcac6f420c5c1f99799262abc9))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d1b391d](https://github.com/bdougie/contributor.info/commit/d1b391d7f6a1d97c5481fe39215e1cfa8da430b1))
+
+## [4.43.0](https://github.com/bdougie/contributor.info/compare/v4.42.1...v4.43.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* add character counters to workspace creation form ([#1646](https://github.com/bdougie/contributor.info/issues/1646)) ([281d6df](https://github.com/bdougie/contributor.info/commit/281d6df0c1becbed05d5846591657577a1d78ffc))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([37a6a6c](https://github.com/bdougie/contributor.info/commit/37a6a6cbba93d23ea01b67e2b24992de72bbe7fe))
+
+## [4.42.1](https://github.com/bdougie/contributor.info/compare/v4.42.0...v4.42.1) (2026-02-07)
+
+
+### 🐛 Bug Fixes
+
+* actions/continue-docs-review/package.json & actions/continue-docs-review/package-lock.json to reduce vulnerabilities ([#1647](https://github.com/bdougie/contributor.info/issues/1647)) ([6b81057](https://github.com/bdougie/contributor.info/commit/6b81057ffc577ec238e0ba77ce0fc79ab1f16a31))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([23138b4](https://github.com/bdougie/contributor.info/commit/23138b44de8e39e4acefe69b42c6cb873410e2d4))
+
+## [4.42.0](https://github.com/bdougie/contributor.info/compare/v4.41.1...v4.42.0) (2026-02-07)
+
+
+### 🚀 Features
+
+* **ui:** add tooltips to icon-only buttons in ShareableCard ([#1654](https://github.com/bdougie/contributor.info/issues/1654)) ([4199a7e](https://github.com/bdougie/contributor.info/commit/4199a7ed923cbec12724b9acea9b06df7a44a591))
+* **ui:** standardize loading state in RepositorySlackButton ([#1652](https://github.com/bdougie/contributor.info/issues/1652)) ([f7b4b3f](https://github.com/bdougie/contributor.info/commit/f7b4b3f5ab350b0fd00d1902d21052f541b7d426))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d2807d9](https://github.com/bdougie/contributor.info/commit/d2807d99bbc56f7b9d00b78ede4487685c0c7070))
+
+## [4.41.1](https://github.com/bdougie/contributor.info/compare/v4.41.0...v4.41.1) (2026-01-31)
+
+
+### 🐛 Bug Fixes
+
+* upgrade @supabase/supabase-js from 2.89.0 to 2.90.1 ([#1645](https://github.com/bdougie/contributor.info/issues/1645)) ([fe466de](https://github.com/bdougie/contributor.info/commit/fe466deb10231ab51e6798cc516ff532752731a1))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6ba46b2](https://github.com/bdougie/contributor.info/commit/6ba46b2397bb2411139dc9500cc68ab19836e0f7))
+
+## [4.41.0](https://github.com/bdougie/contributor.info/compare/v4.40.1...v4.41.0) (2026-01-28)
+
+
+### 🚀 Features
+
+* **ui:** add clear button to GitHub search input ([#1641](https://github.com/bdougie/contributor.info/issues/1641)) ([ed78651](https://github.com/bdougie/contributor.info/commit/ed78651a8f9bdf57460756a0df503660f67598e2))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([5ea1f76](https://github.com/bdougie/contributor.info/commit/5ea1f76be4add73e739d7789aef0a674b70f7b7c))
+
+## [4.40.1](https://github.com/bdougie/contributor.info/compare/v4.40.0...v4.40.1) (2026-01-26)
+
+
+### 🐛 Bug Fixes
+
+* disable API key create button when name is empty and improve error logging ([#1639](https://github.com/bdougie/contributor.info/issues/1639)) ([1f8ed0f](https://github.com/bdougie/contributor.info/commit/1f8ed0ff561c462082a2b2cef060e4c762f8d7bf))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([70d7348](https://github.com/bdougie/contributor.info/commit/70d734836a66877e5ae5d660c343aff2b16030ad))
+
+## [4.40.0](https://github.com/bdougie/contributor.info/compare/v4.39.0...v4.40.0) (2026-01-26)
+
+
+### 🚀 Features
+
+* Unkey API key management UI and backend ([#1633](https://github.com/bdougie/contributor.info/issues/1633)) ([1781e4f](https://github.com/bdougie/contributor.info/commit/1781e4fd1e8caaec073f08bbb09bf94363d523df)), closes [open-source-ready/gh-datapipe#246](https://github.com/open-source-ready/gh-datapipe/issues/246)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([0325c86](https://github.com/bdougie/contributor.info/commit/0325c8609b6862a32ddfecd9f763475a158be12d))
+
+## [4.39.0](https://github.com/bdougie/contributor.info/compare/v4.38.0...v4.39.0) (2026-01-21)
+
+
+### 🚀 Features
+
+* add CSV export button to spam leaderboard ([#1630](https://github.com/bdougie/contributor.info/issues/1630)) ([7d63e1d](https://github.com/bdougie/contributor.info/commit/7d63e1d9172abc7fb9dd34c4d89e69a1b0b24b8d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a9bd73a](https://github.com/bdougie/contributor.info/commit/a9bd73a0eb16aefcdc808a8dcf9d6893b7633669))
+
 ## [4.38.0](https://github.com/bdougie/contributor.info/compare/v4.37.0...v4.38.0) (2026-01-21)
 
 

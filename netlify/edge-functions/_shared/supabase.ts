@@ -44,8 +44,8 @@ export interface RepoData {
   name: string;
   full_name: string;
   description: string | null;
-  stargazer_count: number;
-  fork_count: number;
+  stargazers_count: number;
+  forks_count: number;
   language: string | null;
   topics: string[] | null;
   contributor_count?: number;
@@ -77,8 +77,8 @@ export async function fetchRepository(owner: string, repo: string): Promise<Repo
       name,
       full_name,
       description,
-      stargazer_count,
-      fork_count,
+      stargazers_count,
+      forks_count,
       language,
       topics,
       updated_at
@@ -111,15 +111,15 @@ export async function fetchRepositoriesByOwner(owner: string, limit = 25): Promi
       name,
       full_name,
       description,
-      stargazer_count,
-      fork_count,
+      stargazers_count,
+      forks_count,
       language,
       topics,
       updated_at
     `
     )
     .eq('owner', owner)
-    .order('stargazer_count', { ascending: false })
+    .order('stargazers_count', { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -146,14 +146,14 @@ export async function fetchTrendingRepos(limit = 20): Promise<TrendingRepo[]> {
       name,
       full_name,
       description,
-      stargazer_count,
-      fork_count,
+      stargazers_count,
+      forks_count,
       language,
       topics,
       updated_at
     `
     )
-    .order('stargazer_count', { ascending: false })
+    .order('stargazers_count', { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -164,7 +164,7 @@ export async function fetchTrendingRepos(limit = 20): Promise<TrendingRepo[]> {
   // Add score calculation (simplified for edge function performance)
   return (data || []).map((repo) => ({
     ...repo,
-    score: repo.stargazer_count + repo.fork_count * 2,
+    score: repo.stargazers_count + repo.forks_count * 2,
     recent_prs: 0, // Would need additional query
     recent_contributors: 0, // Would need additional query
   })) as TrendingRepo[];
@@ -281,7 +281,7 @@ export interface WorkspacePreview extends WorkspaceData {
     name: string;
     owner: string;
     language: string | null;
-    stargazer_count: number;
+    stargazers_count: number;
   }>;
 }
 
@@ -413,7 +413,7 @@ export async function fetchUserWorkspaces(
             name,
             owner,
             language,
-            stargazer_count
+            stargazers_count
           )
         `
         )
@@ -429,7 +429,7 @@ export async function fetchUserWorkspaces(
             name: string;
             owner: string;
             language: string | null;
-            stargazer_count: number;
+            stargazers_count: number;
           };
           return repo;
         });
@@ -497,7 +497,7 @@ export interface WorkspaceDetailData {
     owner: string;
     description: string | null;
     language: string | null;
-    stargazer_count: number;
+    stargazers_count: number;
   }>;
   owner: {
     id: string;
@@ -562,7 +562,7 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
             owner,
             description,
             language,
-            stargazer_count
+            stargazers_count
           )
         `
       )
@@ -580,9 +580,9 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
   // TODO: Implement RPC function get_workspace_contributor_count(workspace_id UUID)
   //       This function should:
   //       1. Join workspace_repositories with repository_contributors
-  //       2. Count DISTINCT contributor_id across all workspace repositories  
+  //       2. Count DISTINCT contributor_id across all workspace repositories
   //       3. Return scalar integer count
-  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id) 
+  //       SQL: SELECT COUNT(DISTINCT rc.contributor_id)
   //            FROM workspace_repositories wr
   //            JOIN repository_contributors rc ON wr.repository_id = rc.repository_id
   //            WHERE wr.workspace_id = $1
@@ -599,7 +599,7 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
         owner: string;
         description: string | null;
         language: string | null;
-        stargazer_count: number;
+        stargazers_count: number;
       };
       return repo;
     });
@@ -612,7 +612,8 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
     tier: workspace.tier,
     owner_id: workspace.owner_id,
     created_at: workspace.created_at,
-    visibility: (workspace as { visibility?: string }).visibility as 'public' | 'private' || 'private',
+    visibility:
+      ((workspace as { visibility?: string }).visibility as 'public' | 'private') || 'private',
     repository_count: repoCountResult.count || 0,
     member_count: memberCountResult.count || 0,
     contributor_count: contributorCount,

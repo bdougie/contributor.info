@@ -68,28 +68,28 @@ export const supabasePullRequestWithRelationsSchema = z.object({
   github_id: z.number(),
   number: z.number(),
   title: z.string(),
-  body: z.string().nullable(),
+  body: z.string().nullable().optional(),
   state: z.string(),
   created_at: z.string(),
   updated_at: z.string(),
   closed_at: z.string().nullable(),
   merged_at: z.string().nullable(),
   merged: z.boolean().nullable(),
-  base_branch: z.string().nullable(),
-  head_branch: z.string().nullable(),
-  additions: z.number().nullable(),
-  deletions: z.number().nullable(),
-  changed_files: z.number().nullable(),
-  commits: z.number().nullable(),
+  base_branch: z.string().nullable().optional(),
+  head_branch: z.string().nullable().optional(),
+  additions: z.number().nullable().optional(),
+  deletions: z.number().nullable().optional(),
+  changed_files: z.number().nullable().optional(),
+  commits: z.number().nullable().optional(),
   html_url: z.string().url('Invalid HTML URL').nullable(),
   repository_id: z.string().uuid(),
   author_id: z.string().uuid().nullable(),
   // Nested contributor from author_id join
   contributors: supabaseContributorNestedSchema,
   // Nested reviews array with contributors
-  reviews: z.array(supabaseReviewWithContributorSchema).nullable(),
+  reviews: z.array(supabaseReviewWithContributorSchema).nullable().optional(),
   // Nested comments array with contributors
-  comments: z.array(supabaseCommentWithContributorSchema).nullable(),
+  comments: z.array(supabaseCommentWithContributorSchema).nullable().optional(),
 });
 
 // Array of pull requests for bulk queries

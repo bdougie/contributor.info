@@ -96,8 +96,9 @@ function CommandGroup({ className, ref, ...props }: CommandGroupProps) {
   );
 }
 
-export interface CommandSeparatorProps
-  extends ComponentPropsWithoutRef<typeof CommandPrimitive.Separator> {
+export interface CommandSeparatorProps extends ComponentPropsWithoutRef<
+  typeof CommandPrimitive.Separator
+> {
   ref?: Ref<ElementRef<typeof CommandPrimitive.Separator>>;
 }
 

@@ -75,6 +75,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
     'auth',
     'privacy',
     'terms',
+    'spam',
   ];
 
   // Check if first segment is reserved

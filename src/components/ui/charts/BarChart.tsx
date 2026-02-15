@@ -54,9 +54,7 @@ function generateBarChartSummary(
       const max = Math.max(...values);
       const min = Math.min(...values);
       const avg = Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
-      summaryParts.push(
-        `${dataset.label}: ranges from ${min} to ${max}, average ${avg}.`
-      );
+      summaryParts.push(`${dataset.label}: ranges from ${min} to ${max}, average ${avg}.`);
     }
   });
 

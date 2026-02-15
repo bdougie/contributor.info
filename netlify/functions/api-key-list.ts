@@ -1,25 +1,14 @@
 import { Handler } from '@netlify/functions';
-import { createClient } from '@supabase/supabase-js';
-
-// Create Supabase client with auth header for RLS
-function getSupabaseWithAuth(authHeader: string) {
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    global: {
-      headers: {
-        Authorization: authHeader,
-      },
-    },
-  });
-}
+import {
+  getSupabaseWithAuth,
+  API_KEY_CORS_HEADERS,
+  API_KEY_VALIDATION,
+} from './lib/api-key-clients';
 
 export const handler: Handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    ...API_KEY_CORS_HEADERS,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'application/json',
   };
 
   if (event.httpMethod === 'OPTIONS') {
@@ -62,7 +51,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    // Fetch user's API keys from Supabase using RLS
+    // Fetch user's API keys from Supabase using RLS with pagination
     const { data: keys, error: dbError } = await supabase
       .from('api_keys')
       .select(
@@ -70,10 +59,11 @@ export const handler: Handler = async (event) => {
       )
       .eq('user_id', user.id)
       .is('revoked_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(API_KEY_VALIDATION.MAX_KEYS_PER_USER);
 
     if (dbError) {
-      console.error('Database error fetching keys:', dbError);
+      console.error('Database error fetching keys: %s', JSON.stringify(dbError));
       throw new Error('Failed to fetch API keys');
     }
 
@@ -94,7 +84,10 @@ export const handler: Handler = async (event) => {
       }),
     };
   } catch (error) {
-    console.error('Error listing API keys:', error);
+    console.error(
+      'Error listing API keys: %s',
+      error instanceof Error ? error.message : String(error)
+    );
 
     return {
       statusCode: 500,

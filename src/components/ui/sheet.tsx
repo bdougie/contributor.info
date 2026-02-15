@@ -50,7 +50,8 @@ const sheetVariants = cva(
 );
 
 export interface SheetContentProps
-  extends ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
+  extends
+    ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
   ref?: Ref<ElementRef<typeof SheetPrimitive.Content>>;
 }
@@ -103,8 +104,9 @@ function SheetTitle({ className, ref, ...props }: SheetTitleProps) {
   );
 }
 
-export interface SheetDescriptionProps
-  extends ComponentPropsWithoutRef<typeof SheetPrimitive.Description> {
+export interface SheetDescriptionProps extends ComponentPropsWithoutRef<
+  typeof SheetPrimitive.Description
+> {
   ref?: Ref<ElementRef<typeof SheetPrimitive.Description>>;
 }
 

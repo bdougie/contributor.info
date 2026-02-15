@@ -28,6 +28,17 @@ export interface SyncResult {
   message?: string;
 }
 
+// Type-safe payload definitions for function calls
+type SupabaseFunctionPayloads = {
+  'repository-sync': { owner: string; name: string } & SyncOptions;
+  'repository-sync-graphql': { owner: string; name: string; cursor?: string } & SyncOptions;
+  'pr-details-batch': { repository: string; prNumbers: number[] } & SyncOptions;
+};
+
+type NetlifyFunctionPayloads = {
+  'sync-router': { action: string; repository: string; options: SyncOptions };
+};
+
 // Known large repositories that need Supabase Edge Functions
 const LARGE_REPOS = new Set([
   'pytorch/pytorch',
@@ -57,7 +68,7 @@ export class SyncService {
       .select('id, is_tracked, size_class')
       .eq('owner', owner)
       .eq('name', name)
-      .single();
+      .maybeSingle();
 
     if (!repo?.is_tracked) {
       throw new Error('Repository is not tracked. Please track it first.');
@@ -139,7 +150,7 @@ export class SyncService {
       .from('sync_progress')
       .select('*')
       .eq('repository_id', `${owner}/${name}`)
-      .single();
+      .maybeSingle();
 
     if (progress) {
       // Resume with Supabase (since it was a long operation)
@@ -170,13 +181,13 @@ export class SyncService {
       .select('sync_status, last_synced_at')
       .eq('owner', owner)
       .eq('name', name)
-      .single();
+      .maybeSingle();
 
     const { data: progress } = await supabase
       .from('sync_progress')
       .select('prs_processed, status')
       .eq('repository_id', `${owner}/${name}`)
-      .single();
+      .maybeSingle();
 
     return {
       issyncing: repo?.sync_status === 'syncing' || progress?.status === 'partial',
@@ -223,9 +234,9 @@ export class SyncService {
     return response.json();
   }
 
-  private static async callSupabaseFunction(
-    functionName: string,
-    payload: any
+  private static async callSupabaseFunction<K extends keyof SupabaseFunctionPayloads>(
+    functionName: K,
+    payload: SupabaseFunctionPayloads[K]
   ): Promise<SyncResult> {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       console.warn('Supabase functions not configured. This is expected in deploy previews.');
@@ -270,9 +281,9 @@ export class SyncService {
     return { ...result, router: 'supabase' };
   }
 
-  private static async callNetlifyFunction(
-    functionName: string,
-    payload: any
+  private static async callNetlifyFunction<K extends keyof NetlifyFunctionPayloads>(
+    functionName: K,
+    payload: NetlifyFunctionPayloads[K]
   ): Promise<SyncResult> {
     const response = await fetch(`/.netlify/functions/${functionName}`, {
       method: 'POST',

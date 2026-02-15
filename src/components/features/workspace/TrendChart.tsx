@@ -56,7 +56,12 @@ function generateTrendChartSummary(
       const min = Math.min(...values);
       const first = values[0];
       const last = values[values.length - 1];
-      const trend = last > first ? 'increasing' : last < first ? 'decreasing' : 'stable';
+      const getTrend = () => {
+        if (last > first) return 'increasing';
+        if (last < first) return 'decreasing';
+        return 'stable';
+      };
+      const trend = getTrend();
       const changePercent = first !== 0 ? Math.round(((last - first) / first) * 100) : 0;
       summaryParts.push(
         `${dataset.label}: ranges from ${min.toLocaleString()} to ${max.toLocaleString()}, trend is ${trend}${changePercent !== 0 ? ` (${changePercent > 0 ? '+' : ''}${changePercent}%)` : ''}.`
