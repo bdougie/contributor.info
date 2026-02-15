@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.47.0](https://github.com/bdougie/contributor.info/compare/v4.46.1...v4.47.0) (2026-02-15)
+
+
+### 🚀 Features
+
+* **perf:** optimize initial repo data fetch with basic mode ([#1661](https://github.com/bdougie/contributor.info/issues/1661)) ([cb7bce9](https://github.com/bdougie/contributor.info/commit/cb7bce94f6e7a6efbf5b0e1a10fab4c3fe5741c0))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d5aa97d](https://github.com/bdougie/contributor.info/commit/d5aa97d3eef135853df2655293946d55c1f1ddb7))
+* upgrade @polar-sh/sdk from 0.41.5 to 0.42.2 ([#1660](https://github.com/bdougie/contributor.info/issues/1660)) ([2d82518](https://github.com/bdougie/contributor.info/commit/2d82518d0624db14a16e693fb833e9038fd15cbb))
+* upgrade @supabase/supabase-js from 2.90.1 to 2.92.0 ([#1657](https://github.com/bdougie/contributor.info/issues/1657)) ([091b21e](https://github.com/bdougie/contributor.info/commit/091b21e5165e0f422f705b7e79d2f076d64c14c6))
+* upgrade @unkey/api from 0.30.0 to 0.38.0 ([#1658](https://github.com/bdougie/contributor.info/issues/1658)) ([1aa1a1e](https://github.com/bdougie/contributor.info/commit/1aa1a1e924aba5b1b810ca5496f972d0ff00feaa))
+* upgrade lucide-react from 0.556.0 to 0.563.0 ([#1659](https://github.com/bdougie/contributor.info/issues/1659)) ([bd43b8c](https://github.com/bdougie/contributor.info/commit/bd43b8c36a7cb267932cb2dc4c27db035865b942))
+* upgrade posthog-js from 1.327.0 to 1.335.2 ([#1656](https://github.com/bdougie/contributor.info/issues/1656)) ([8bbdf7f](https://github.com/bdougie/contributor.info/commit/8bbdf7f7ca4fe9292426995cd0d20b9bf6efbaaa))
+
 ## [4.46.1](https://github.com/bdougie/contributor.info/compare/v4.46.0...v4.46.1) (2026-02-15)
 
 
