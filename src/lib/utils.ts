@@ -17,18 +17,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Pre-calculate constants for humanizeNumber
-const UNITS = ['', 'K', 'M', 'B', 'T'];
-// Math.log(1000) is approximately 6.907755278982137
-const LOG_1000 = Math.log(1000);
-
+/**
+ * Formats a number into a human-readable string (e.g., 1.5K, 2M)
+ * Optimized implementation avoiding Math.log/Math.pow for better performance
+ */
 export function humanizeNumber(num: number): string {
   if (num === 0) return '0';
 
-  const order = Math.floor(Math.log(Math.abs(num)) / LOG_1000);
-  const unitname = UNITS[order];
-  const value = Math.round(num / Math.pow(1000, order));
-  return value + unitname;
+  const abs = Math.abs(num);
+
+  if (abs < 1000) {
+    return Math.round(num).toString();
+  }
+
+  if (abs < 1000000) {
+    return Math.round(num / 1000) + 'K';
+  }
+
+  if (abs < 1000000000) {
+    return Math.round(num / 1000000) + 'M';
+  }
+
+  if (abs < 1000000000000) {
+    return Math.round(num / 1000000000) + 'B';
+  }
+
+  return Math.round(num / 1000000000000) + 'T';
 }
 
 /**
