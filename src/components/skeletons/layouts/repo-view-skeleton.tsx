@@ -51,8 +51,7 @@ function StaticBreadcrumbs() {
 function StaticSearchSection() {
   const exampleRepos = [
     'continuedev/continue',
-    'argoproj/argo-cd',
-    'TanStack/table',
+    'papercomputeco/tapes',
     'vitejs/vite',
     'etcd-io/etcd',
     'better-auth/better-auth',
