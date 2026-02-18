@@ -98,7 +98,7 @@ async function fetchJson<T>(path: string): Promise<T | null> {
       method: 'GET',
       signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
         'X-API-Key': config.apiKey,
       },
     });

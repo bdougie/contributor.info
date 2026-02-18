@@ -523,7 +523,8 @@ export default async (req: Request, _context: Context) => {
               if (!dp?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
-              const data = await dp.getContributors(owner, repo, input.limit ?? 20);
+              const limit = Math.min(Math.max(input.limit ?? 20, 1), 100);
+              const data = await dp.getContributors(owner, repo, limit);
               if (!data) {
                 return { error: 'Could not reach analytics service' };
               }
@@ -571,7 +572,7 @@ export default async (req: Request, _context: Context) => {
                       isSignificantChange: data.health.is_significant_change,
                     }
                   : null,
-                lotteryFactor: data.lottery_factor
+                lotteryFactor: data.lottery_factor?.top_contributors
                   ? data.lottery_factor.top_contributors.map((c) => ({
                       login: c.login,
                       weightedScore: c.weighted_score,
@@ -611,7 +612,8 @@ export default async (req: Request, _context: Context) => {
               if (!dp?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
-              const data = await dp.getActivity(owner, repo, input.days ?? 30);
+              const days = Math.min(Math.max(input.days ?? 30, 1), 365);
+              const data = await dp.getActivity(owner, repo, days);
               if (!data) {
                 return { error: 'Could not reach analytics service' };
               }
