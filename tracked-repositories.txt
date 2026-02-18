@@ -58,6 +58,7 @@ ollama/ollama
 openclaw/openclaw
 open-sauced/app
 osmlab/name-suggestion-index
+papercomputeco/tapes
 pashkov256/deletor
 pgvector/pgvector
 pingcap/tidb
