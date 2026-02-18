@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Bot, User } from '@/components/ui/icon';
+import { Bot } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RecommendationCard } from './chat-cards/recommendation-card';
@@ -14,6 +14,7 @@ interface ChatMessageProps {
   message: UIMessage;
   owner: string;
   repo: string;
+  userAvatarUrl?: string;
 }
 
 function ToolResultCard({
@@ -45,20 +46,28 @@ function ToolResultCard({
   }
 }
 
-export function ChatMessage({ message, owner, repo }: ChatMessageProps) {
+export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
       {/* Avatar */}
-      <div
-        className={cn(
-          'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
-          isUser ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'
-        )}
-      >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-      </div>
+      {isUser && userAvatarUrl ? (
+        <img
+          src={userAvatarUrl}
+          alt="You"
+          className="flex-shrink-0 w-7 h-7 rounded-full object-cover"
+        />
+      ) : (
+        <div
+          className={cn(
+            'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
+            isUser ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'
+          )}
+        >
+          <Bot className="h-4 w-4" />
+        </div>
+      )}
 
       {/* Message content */}
       <div

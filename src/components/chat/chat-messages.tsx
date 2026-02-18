@@ -9,6 +9,7 @@ interface ChatMessagesProps {
   owner: string;
   repo: string;
   isLoading: boolean;
+  userAvatarUrl?: string;
 }
 
 function EmptyState({ owner, repo }: { owner: string; repo: string }) {
@@ -39,7 +40,13 @@ function EmptyState({ owner, repo }: { owner: string; repo: string }) {
   );
 }
 
-export function ChatMessages({ messages, owner, repo, isLoading }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  owner,
+  repo,
+  isLoading,
+  userAvatarUrl,
+}: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,7 +61,13 @@ export function ChatMessages({ messages, owner, repo, isLoading }: ChatMessagesP
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
         {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} owner={owner} repo={repo} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            owner={owner}
+            repo={repo}
+            userAvatarUrl={userAvatarUrl}
+          />
         ))}
 
         {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (

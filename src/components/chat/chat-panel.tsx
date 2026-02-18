@@ -3,13 +3,29 @@ import { createPortal } from 'react-dom';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useParams } from 'react-router';
-import { Star, X, ChevronLeft, ChevronRight } from '@/components/ui/icon';
+import { Star, X, ChevronLeft, ChevronRight, Github } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useTimeRangeStore } from '@/lib/time-range-store';
+import { useCachedAuth } from '@/hooks/use-cached-auth';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
+
+function LoginPrompt({ onLogin }: { onLogin: () => void }) {
+  return (
+    <div className="border-t border-border p-4 shrink-0">
+      <div className="text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Sign in to chat with StarSearch</p>
+        <Button variant="outline" className="w-full gap-2" onClick={onLogin}>
+          <Github className="h-4 w-4" />
+          Sign in with GitHub
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 interface ChatPanelProps {
   className?: string;
@@ -18,7 +34,11 @@ interface ChatPanelProps {
 export function ChatPanel({ className }: ChatPanelProps) {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
+  const { user, isAuthenticated } = useCachedAuth();
+  const { login } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(true);
+
+  const userAvatarUrl = user?.user_metadata?.avatar_url as string | undefined;
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -92,9 +112,19 @@ export function ChatPanel({ className }: ChatPanelProps) {
             </SheetTitle>
           </SheetHeader>
           <div className="flex-1 min-h-0 flex flex-col">
-            <ChatMessages messages={messages} owner={owner} repo={repo} isLoading={isLoading} />
+            <ChatMessages
+              messages={messages}
+              owner={owner}
+              repo={repo}
+              isLoading={isLoading}
+              userAvatarUrl={userAvatarUrl}
+            />
           </div>
-          <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />
+          {isAuthenticated ? (
+            <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />
+          ) : (
+            <LoginPrompt onLogin={login} />
+          )}
         </SheetContent>
       </Sheet>
     );
@@ -169,8 +199,18 @@ export function ChatPanel({ className }: ChatPanelProps) {
       ) : (
         // Expanded view — chat (flex-1 + min-h-0 for proper overflow)
         <div className="flex-1 min-h-0 flex flex-col">
-          <ChatMessages messages={messages} owner={owner} repo={repo} isLoading={isLoading} />
-          <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />
+          <ChatMessages
+            messages={messages}
+            owner={owner}
+            repo={repo}
+            isLoading={isLoading}
+            userAvatarUrl={userAvatarUrl}
+          />
+          {isAuthenticated ? (
+            <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />
+          ) : (
+            <LoginPrompt onLogin={login} />
+          )}
         </div>
       )}
     </div>,
