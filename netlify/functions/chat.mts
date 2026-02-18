@@ -506,26 +506,31 @@ export default async (req: Request, _context: Context) => {
             },
           }),
           execute: async (input: { limit?: number }) => {
-            if (!datapipe.isConfigured()) {
-              return { error: 'Contributor analytics not configured' };
+            try {
+              if (!datapipe.isConfigured()) {
+                return { error: 'Contributor analytics not configured' };
+              }
+              const data = await datapipe.getContributors(owner, repo, input.limit ?? 20);
+              if (!data) {
+                return { error: 'Could not reach analytics service' };
+              }
+              return {
+                repository: data.repository,
+                total: data.total,
+                contributors: data.contributors.map((c) => ({
+                  login: c.login,
+                  qualityScore: c.contribution_quality,
+                  confidenceScore: c.confidence_score,
+                  prsOpened: c.activity.prs_opened,
+                  prsMerged: c.activity.prs_merged,
+                  reviewsGiven: c.activity.reviews_given,
+                  issuesOpened: c.activity.issues_opened,
+                })),
+              };
+            } catch (err) {
+              console.error('[chat] get_contributor_rankings error: %s', err);
+              return { error: 'Could not fetch contributor rankings' };
             }
-            const data = await datapipe.getContributors(owner, repo, input.limit ?? 20);
-            if (!data) {
-              return { error: 'Could not reach analytics service' };
-            }
-            return {
-              repository: data.repository,
-              total: data.total,
-              contributors: data.contributors.map((c) => ({
-                login: c.login,
-                qualityScore: c.contribution_quality,
-                confidenceScore: c.confidence_score,
-                prsOpened: c.activity.prs_opened,
-                prsMerged: c.activity.prs_merged,
-                reviewsGiven: c.activity.reviews_given,
-                issuesOpened: c.activity.issues_opened,
-              })),
-            };
           },
         }),
 
@@ -534,38 +539,43 @@ export default async (req: Request, _context: Context) => {
             'Get lottery factor rankings showing contribution concentration, plus contributor of the month and health trending score',
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
-            if (!datapipe.isConfigured()) {
-              return { error: 'Contributor analytics not configured' };
+            try {
+              if (!datapipe.isConfigured()) {
+                return { error: 'Contributor analytics not configured' };
+              }
+              const data = await datapipe.getInsights(owner, repo);
+              if (!data) {
+                return { error: 'Could not reach analytics service' };
+              }
+              return {
+                repository: data.repository,
+                calculatedAt: data.calculated_at,
+                health: data.health
+                  ? {
+                      trendingScore: data.health.trending_score,
+                      freshnessStatus: data.health.freshness_status,
+                      isSignificantChange: data.health.is_significant_change,
+                    }
+                  : null,
+                lotteryFactor: data.lottery_factor
+                  ? data.lottery_factor.top_contributors.map((c) => ({
+                      login: c.login,
+                      weightedScore: c.weighted_score,
+                      rank: c.rank,
+                    }))
+                  : null,
+                contributorOfMonth: data.contributor_of_month
+                  ? {
+                      login: data.contributor_of_month.login,
+                      score: data.contributor_of_month.score,
+                      month: data.contributor_of_month.month,
+                    }
+                  : null,
+              };
+            } catch (err) {
+              console.error('[chat] get_lottery_factor error: %s', err);
+              return { error: 'Could not fetch lottery factor' };
             }
-            const data = await datapipe.getInsights(owner, repo);
-            if (!data) {
-              return { error: 'Could not reach analytics service' };
-            }
-            return {
-              repository: data.repository,
-              calculatedAt: data.calculated_at,
-              health: data.health
-                ? {
-                    trendingScore: data.health.trending_score,
-                    freshnessStatus: data.health.freshness_status,
-                    isSignificantChange: data.health.is_significant_change,
-                  }
-                : null,
-              lotteryFactor: data.lottery_factor
-                ? data.lottery_factor.top_contributors.map((c) => ({
-                    login: c.login,
-                    weightedScore: c.weighted_score,
-                    rank: c.rank,
-                  }))
-                : null,
-              contributorOfMonth: data.contributor_of_month
-                ? {
-                    login: data.contributor_of_month.login,
-                    score: data.contributor_of_month.score,
-                    month: data.contributor_of_month.month,
-                  }
-                : null,
-            };
           },
         }),
 
@@ -582,25 +592,30 @@ export default async (req: Request, _context: Context) => {
             },
           }),
           execute: async (input: { days?: number }) => {
-            if (!datapipe.isConfigured()) {
-              return { error: 'Contributor analytics not configured' };
+            try {
+              if (!datapipe.isConfigured()) {
+                return { error: 'Contributor analytics not configured' };
+              }
+              const data = await datapipe.getActivity(owner, repo, input.days ?? 30);
+              if (!data) {
+                return { error: 'Could not reach analytics service' };
+              }
+              return {
+                repository: data.repository,
+                days: data.days,
+                activity: data.activity.map((d) => ({
+                  date: d.date,
+                  prsOpened: d.prs_opened,
+                  prsMerged: d.prs_merged,
+                  reviews: d.reviews,
+                  issuesOpened: d.issues_opened,
+                  issuesClosed: d.issues_closed,
+                })),
+              };
+            } catch (err) {
+              console.error('[chat] get_activity_feed error: %s', err);
+              return { error: 'Could not fetch activity feed' };
             }
-            const data = await datapipe.getActivity(owner, repo, input.days ?? 30);
-            if (!data) {
-              return { error: 'Could not reach analytics service' };
-            }
-            return {
-              repository: data.repository,
-              days: data.days,
-              activity: data.activity.map((d) => ({
-                date: d.date,
-                prsOpened: d.prs_opened,
-                prsMerged: d.prs_merged,
-                reviews: d.reviews,
-                issuesOpened: d.issues_opened,
-                issuesClosed: d.issues_closed,
-              })),
-            };
           },
         }),
       },
