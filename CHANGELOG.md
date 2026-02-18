@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.49.0](https://github.com/bdougie/contributor.info/compare/v4.48.0...v4.49.0) (2026-02-18)
+
+
+### 🚀 Features
+
+* add StarSearch AI chat panel to repository pages ([#1665](https://github.com/bdougie/contributor.info/issues/1665)) ([518ca95](https://github.com/bdougie/contributor.info/commit/518ca95c4648b94942e00589b4f4ef9d3ac4c975))
+
+
+### 🔧 Maintenance
+
+* replace argo-cd with papercomputeco/tapes in example repos ([#1664](https://github.com/bdougie/contributor.info/issues/1664)) ([bf667d5](https://github.com/bdougie/contributor.info/commit/bf667d5dc1956eac8ee9fbaba38dee39afd7c431))
+* update tracked repositories list [skip ci] ([3dae90f](https://github.com/bdougie/contributor.info/commit/3dae90f09430ceb07841fd277999f5b12c431561))
+
 ## [4.48.0](https://github.com/bdougie/contributor.info/compare/v4.47.0...v4.48.0) (2026-02-15)
 
 
