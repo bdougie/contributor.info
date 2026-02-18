@@ -62,13 +62,14 @@ export function ChatMessages({
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
-        {messages.map((message) => (
+        {messages.map((message, idx) => (
           <ChatMessage
             key={message.id}
             message={message}
             owner={owner}
             repo={repo}
             userAvatarUrl={userAvatarUrl}
+            isStreaming={isLoading && idx === messages.length - 1 && message.role === 'assistant'}
           />
         ))}
 

@@ -133,8 +133,10 @@
 
 # Manual backfill functions may take longer
 # Chat function requires ESM format for V2 function detection
+# Needs extended timeout for multi-step LLM tool calls
 [functions.chat]
   node_bundler = "esbuild"
+  timeout = 26
   [functions.chat.esbuild]
     format = "esm"
 

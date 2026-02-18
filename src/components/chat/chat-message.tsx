@@ -15,6 +15,7 @@ interface ChatMessageProps {
   owner: string;
   repo: string;
   userAvatarUrl?: string;
+  isStreaming?: boolean;
 }
 
 function ToolResultCard({
@@ -77,9 +78,28 @@ function ChatAvatar({ isUser, avatarUrl }: { isUser: boolean; avatarUrl?: string
   );
 }
 
-export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessageProps) {
+export function ChatMessage({
+  message,
+  owner,
+  repo,
+  userAvatarUrl,
+  isStreaming,
+}: ChatMessageProps) {
   const isUser = message.role === 'user';
   const safeAvatarUrl = userAvatarUrl ? sanitizeImageUrl(userAvatarUrl) : undefined;
+
+  // Check if any part will produce visible content
+  const hasVisibleContent =
+    isUser ||
+    message.parts.some((part) => {
+      if (part.type === 'text' && part.text.trim()) return true;
+      if (part.type === 'dynamic-tool') return true;
+      return false;
+    });
+
+  // While streaming, the loading dots in ChatMessages handle the "waiting" state
+  // so don't render an empty bubble that flickers before content arrives
+  if (!hasVisibleContent && isStreaming) return null;
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
@@ -127,6 +147,13 @@ export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessage
 
           return null;
         })}
+
+        {/* Fallback when stream ended with no visible output */}
+        {!isUser && !isStreaming && !hasVisibleContent && (
+          <p className="text-muted-foreground italic">
+            Sorry, I couldn&apos;t generate a response. Please try again.
+          </p>
+        )}
       </div>
     </div>
   );
