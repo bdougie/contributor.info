@@ -452,7 +452,7 @@ Format your text responses with markdown for readability.`,
       headers: tapesHeaders,
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error('Chat function error:', error);
     return new Response(
