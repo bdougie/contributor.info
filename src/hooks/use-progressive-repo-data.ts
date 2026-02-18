@@ -47,7 +47,9 @@ const progressiveCache: ProgressiveCache = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export const resetProgressiveCache = () => {
-  Object.keys(progressiveCache).forEach((key) => delete progressiveCache[key]);
+  for (const key of Object.keys(progressiveCache)) {
+    delete progressiveCache[key];
+  }
 };
 
 /**
@@ -123,7 +125,7 @@ export function useProgressiveRepoData(
           const cached = progressiveCache[cacheKey];
 
           if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-            updateStage('critical', cached.data);
+            updateStage(cached.data.currentStage, cached.data);
             return {
               basicInfo: cached.data.basicInfo,
               fromCache: true,
