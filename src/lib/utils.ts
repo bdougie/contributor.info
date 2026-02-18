@@ -17,18 +17,42 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Pre-calculate constants for humanizeNumber
-const UNITS = ['', 'K', 'M', 'B', 'T'];
-// Math.log(1000) is approximately 6.907755278982137
-const LOG_1000 = Math.log(1000);
-
+/**
+ * Formats a number into a human-readable string (e.g., 1.5K, 2.3M)
+ */
 export function humanizeNumber(num: number): string {
   if (num === 0) return '0';
 
-  const order = Math.floor(Math.log(Math.abs(num)) / LOG_1000);
-  const unitname = UNITS[order];
-  const value = Math.round(num / Math.pow(1000, order));
-  return value + unitname;
+  const sign = num < 0 ? '-' : '';
+  const abs = Math.abs(num);
+
+  if (abs < 1000) {
+    return sign + Math.round(abs).toString();
+  }
+
+  const tiers: Array<[number, string]> = [
+    [1e12, 'T'],
+    [1e9, 'B'],
+    [1e6, 'M'],
+    [1e3, 'K'],
+  ];
+
+  for (let i = 0; i < tiers.length; i++) {
+    const [divisor, suffix] = tiers[i];
+    if (abs >= divisor) {
+      const value = abs / divisor;
+      // If rounding overflows (e.g. 999.999 → 1000), promote to next tier
+      if (Math.round(value) >= 1000 && i > 0) {
+        const [nextDivisor, nextSuffix] = tiers[i - 1];
+        return sign + (abs / nextDivisor).toFixed(1).replace(/\.0$/, '') + nextSuffix;
+      }
+      const formatted =
+        value >= 10 ? Math.round(value).toString() : value.toFixed(1).replace(/\.0$/, '');
+      return sign + formatted + suffix;
+    }
+  }
+
+  return sign + Math.round(abs).toString();
 }
 
 /**
