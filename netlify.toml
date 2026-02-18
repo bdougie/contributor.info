@@ -200,6 +200,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/hello"
   to = "/.netlify/functions/hello"
   status = 200

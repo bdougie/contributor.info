@@ -10,8 +10,43 @@
   position: relative;
 }
 
+/* ============================================
+   STARSEARCH PANEL - RESPONSIVE CONTENT OFFSET
+   When the chat panel is open, offset main content
+   so it doesn't render behind the panel, and use
+   container queries to trigger responsive layouts.
+   ============================================ */
+@media (min-width: 768px) {
+  #root[data-chat-panel='collapsed'] > * > main {
+    margin-right: 4rem;
+    transition: margin-right 0.3s ease;
+  }
+  #root[data-chat-panel='open'] > * > main {
+    margin-right: 420px;
+    transition: margin-right 0.3s ease;
+  }
+}
+
+/* Container query overrides: when the main content area is narrower
+   than md (768px), switch components to their mobile layouts */
+@container (max-width: 767px) {
+  /* Trends: 4-col grid → 2x2 */
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Leaderboard: show mobile layout, hide desktop 3-col grid */
+  .md\:grid-cols-3.shareable-desktop-only {
+    display: none !important;
+  }
+  .md\:hidden.shareable-capture-only {
+    display: block !important;
+  }
+}
+
 /* Main content area - stable container */
-main, .main-content {
+main,
+.main-content {
   min-height: calc(100vh - 4rem); /* Account for header */
 }
 
@@ -169,7 +204,7 @@ table {
 
 /* Avatar containers - fixed dimensions */
 .avatar-container,
-[class*="avatar"] {
+[class*='avatar'] {
   aspect-ratio: 1;
   overflow: hidden;
   background-color: hsl(var(--muted));
@@ -183,7 +218,7 @@ img:not([height]) {
 }
 
 /* GitHub avatars - common sizes */
-img[src*="avatars.githubusercontent.com"] {
+img[src*='avatars.githubusercontent.com'] {
   aspect-ratio: 1;
   object-fit: cover;
 }
@@ -194,7 +229,9 @@ img[src*="avatars.githubusercontent.com"] {
 
 /* Smooth transitions for height changes */
 .smooth-height {
-  transition: height 0.3s ease-out, min-height 0.3s ease-out;
+  transition:
+    height 0.3s ease-out,
+    min-height 0.3s ease-out;
 }
 
 /* Skeleton pulse animation without layout shift */
@@ -217,7 +254,7 @@ img[src*="avatars.githubusercontent.com"] {
 }
 
 /* Skeleton containers - maintain space */
-[class*="skeleton"] {
+[class*='skeleton'] {
   min-height: 1rem;
 }
 
@@ -249,7 +286,7 @@ img[src*="avatars.githubusercontent.com"] {
 
 /* Badge containers - consistent sizing */
 .badge,
-[class*="badge"] {
+[class*='badge'] {
   display: inline-flex;
   align-items: center;
   min-height: 1.5rem;
@@ -271,11 +308,11 @@ img[src*="avatars.githubusercontent.com"] {
   .tab-content-container {
     min-height: 300px;
   }
-  
+
   .chart-container {
     min-height: 200px;
   }
-  
+
   .org-repos-table {
     min-height: 300px;
   }
