@@ -211,6 +211,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
             repo={repo}
             isLoading={isLoading}
             userAvatarUrl={userAvatarUrl}
+            error={error}
           />
           {isAuthenticated ? (
             <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />

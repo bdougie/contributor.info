@@ -55,13 +55,15 @@ export function ChatMessages({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  if (messages.length === 0 && !isLoading) {
+  if (messages.length === 0 && !isLoading && !error) {
     return <EmptyState owner={owner} repo={repo} />;
   }
 
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
+        {messages.length === 0 && !error && !isLoading && <EmptyState owner={owner} repo={repo} />}
+
         {messages.map((message) => (
           <ChatMessage
             key={message.id}
@@ -74,7 +76,7 @@ export function ChatMessages({
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm text-red-400">
-            {error.message}
+            Something went wrong. Please try again.
           </div>
         )}
 
