@@ -83,7 +83,7 @@ Format your text responses with markdown for readability.`,
         get_repo_summary: tool({
           description:
             'Get a summary of the repository including description, stars, language, and recent activity stats',
-          parameters: jsonSchema({ type: 'object' as const, properties: {} }),
+          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             const { data: repoData } = await supabase
               .from('repositories')
@@ -121,7 +121,7 @@ Format your text responses with markdown for readability.`,
 
         get_prs_needing_attention: tool({
           description: 'Get pull requests that need maintainer attention, sorted by urgency',
-          parameters: jsonSchema({ type: 'object' as const, properties: {} }),
+          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             const { data: repoRow } = await supabase
               .from('repositories')
@@ -237,7 +237,7 @@ Format your text responses with markdown for readability.`,
         get_health_assessment: tool({
           description:
             'Get an AI health assessment of the repository including score and contributing factors',
-          parameters: jsonSchema({ type: 'object' as const, properties: {} }),
+          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             const { data: repoRow } = await supabase
               .from('repositories')
@@ -357,7 +357,7 @@ Format your text responses with markdown for readability.`,
         get_recommendations: tool({
           description:
             'Get actionable recommendations to improve repository health and contributor experience',
-          parameters: jsonSchema({ type: 'object' as const, properties: {} }),
+          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             const { data: repoRow } = await supabase
               .from('repositories')
