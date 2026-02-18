@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.51.0](https://github.com/bdougie/contributor.info/compare/v4.50.0...v4.51.0) (2026-02-18)
+
+
+### 🚀 Features
+
+* add gh-datapipe analytics tools to StarSearch chat ([#1671](https://github.com/bdougie/contributor.info/issues/1671)) ([057b6bb](https://github.com/bdougie/contributor.info/commit/057b6bb06c05865dedc796145429a542c2af6eaf))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6fc01e5](https://github.com/bdougie/contributor.info/commit/6fc01e5f0e0778b6f90bba43f908dfd5628f0010))
+
 ## [4.50.0](https://github.com/bdougie/contributor.info/compare/v4.49.0...v4.50.0) (2026-02-18)
 
 
