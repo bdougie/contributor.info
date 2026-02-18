@@ -46,6 +46,12 @@ interface ProgressiveCache {
 const progressiveCache: ProgressiveCache = {};
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+export const resetProgressiveCache = () => {
+  for (const key of Object.keys(progressiveCache)) {
+    delete progressiveCache[key];
+  }
+};
+
 /**
  * Hook for progressive loading of repository data
  * Loads data in stages to improve perceived performance
@@ -95,15 +101,19 @@ export function useProgressiveRepoData(
 
     // Update stage progress (inline function to avoid dependency issues)
     const updateStage = (stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
-      setData((prev) => ({
-        ...prev,
-        ...updates,
-        currentStage: stage,
-        stageProgress: {
-          ...prev.stageProgress,
-          [stage]: true,
-        },
-      }));
+      setData((prev) => {
+        // Correctly merge stageProgress from updates if present (e.g. from cache)
+        const mergedStageProgress = updates.stageProgress
+          ? { ...prev.stageProgress, ...updates.stageProgress, [stage]: true }
+          : { ...prev.stageProgress, [stage]: true };
+
+        return {
+          ...prev,
+          ...updates,
+          currentStage: stage,
+          stageProgress: mergedStageProgress,
+        };
+      });
     };
 
     // Stage 1: Load critical data (< 500ms target) - inline function
@@ -115,8 +125,12 @@ export function useProgressiveRepoData(
           const cached = progressiveCache[cacheKey];
 
           if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-            updateStage('critical', cached.data);
-            return cached.data.basicInfo;
+            updateStage(cached.data.currentStage, cached.data);
+            return {
+              basicInfo: cached.data.basicInfo,
+              fromCache: true,
+              cachedStage: cached.data.currentStage,
+            };
           }
 
           // Fetch minimal data for above-the-fold content with retry
@@ -165,7 +179,7 @@ export function useProgressiveRepoData(
 
           updateStage('critical', { basicInfo });
 
-          return basicInfo;
+          return { basicInfo, fromCache: false };
         } catch (error) {
           span?.setStatus('error');
           console.error('Failed to load critical data:', error);
@@ -299,8 +313,19 @@ export function useProgressiveRepoData(
             historicalTrends,
           });
 
-          // Mark as complete
-          updateStage('complete', {});
+          // Mark as complete and update cache with final state
+          setData((prev) => {
+            const complete = {
+              ...prev,
+              directCommitsData,
+              historicalTrends,
+              currentStage: 'complete' as LoadingStage,
+              stageProgress: { ...prev.stageProgress, enhancement: true, complete: true },
+            };
+            const cacheKey = `${owner}/${repo}/${timeRange}/${includeBots}`;
+            progressiveCache[cacheKey] = { data: complete, timestamp: Date.now() };
+            return complete;
+          });
 
           return { directCommitsData, historicalTrends };
         } catch (error) {
@@ -328,12 +353,24 @@ export function useProgressiveRepoData(
         });
 
         // Stage 1: Critical data (immediate)
-        await loadCriticalData(owner, repo);
+        const criticalResult = await loadCriticalData(owner, repo);
 
         if (abortController.signal.aborted) return;
 
+        // If cache already has complete data, nothing left to do
+        if (criticalResult?.fromCache && criticalResult.cachedStage === 'complete') {
+          return;
+        }
+
+        // Determine which stages to skip based on cached progress
+        const canSkipFullData =
+          criticalResult?.fromCache &&
+          (criticalResult.cachedStage === 'full' || criticalResult.cachedStage === 'enhancement');
+
         // Stage 2: Full data (after critical)
-        await loadFullData(owner, repo);
+        if (!canSkipFullData) {
+          await loadFullData(owner, repo);
+        }
 
         if (abortController.signal.aborted) return;
 
@@ -348,7 +385,6 @@ export function useProgressiveRepoData(
             { timeout: 5000 }
           );
         } else {
-          // Fallback for browsers without requestIdleCallback
           setTimeout(() => {
             if (!abortController.signal.aborted) {
               loadEnhancementData(owner, repo);

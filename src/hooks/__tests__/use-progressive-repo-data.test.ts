@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, cleanup } from '@testing-library/react';
-import { useProgressiveRepoData } from '../use-progressive-repo-data';
+import { useProgressiveRepoData, resetProgressiveCache } from '../use-progressive-repo-data';
 
 // Mock the dependencies
 vi.mock('@/lib/supabase-direct-commits', () => ({
@@ -83,6 +83,7 @@ describe('useProgressiveRepoData', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetProgressiveCache();
 
     // Set up default mock implementations
     fetchPRDataMock.mockResolvedValue({
@@ -98,6 +99,7 @@ describe('useProgressiveRepoData', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   describe('Initial state', () => {
@@ -132,7 +134,7 @@ describe('useProgressiveRepoData', () => {
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
       await waitFor(() => {
-        expect(result.current.currentStage).toBe('critical');
+        // It might have progressed beyond critical, but critical should be done
         expect(result.current.stageProgress.critical).toBe(true);
       });
 
@@ -179,7 +181,6 @@ describe('useProgressiveRepoData', () => {
 
       // Wait for full stage
       await waitFor(() => {
-        expect(result.current.currentStage).toBe('full');
         expect(result.current.stageProgress.full).toBe(true);
       });
 
@@ -246,7 +247,6 @@ describe('useProgressiveRepoData', () => {
 
       // Wait for enhancement stage
       await waitFor(() => {
-        expect(result.current.currentStage).toBe('enhancement');
         expect(result.current.stageProgress.enhancement).toBe(true);
       });
 
@@ -264,26 +264,33 @@ describe('useProgressiveRepoData', () => {
 
     it('should use setTimeout fallback when requestIdleCallback is not available', async () => {
       const originalRequestIdleCallback = window.requestIdleCallback;
-      delete (window as any).requestIdleCallback;
+      Object.defineProperty(window, 'requestIdleCallback', {
+        value: undefined,
+        writable: true,
+      });
 
       vi.useFakeTimers();
 
-      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+      try {
+        const { result } = renderHook(() =>
+          useProgressiveRepoData('owner', 'repo', '90d', false)
+        );
 
-      // Wait for full stage
-      await waitFor(() => {
-        expect(result.current.stageProgress.full).toBe(true);
-      });
+        // Wait for full stage
+        await waitFor(() => {
+          expect(result.current.stageProgress.full).toBe(true);
+        });
 
-      // Advance timers to trigger fallback
-      vi.advanceTimersByTime(2000);
+        // Advance timers to trigger fallback
+        vi.advanceTimersByTime(2000);
 
-      await waitFor(() => {
-        expect(result.current.stageProgress.enhancement).toBe(true);
-      });
-
-      vi.useRealTimers();
-      window.requestIdleCallback = originalRequestIdleCallback;
+        await waitFor(() => {
+          expect(result.current.stageProgress.enhancement).toBe(true);
+        });
+      } finally {
+        vi.useRealTimers();
+        window.requestIdleCallback = originalRequestIdleCallback;
+      }
     });
 
     it('should handle enhancement data loading errors gracefully', async () => {
@@ -328,11 +335,21 @@ describe('useProgressiveRepoData', () => {
     });
 
     it('should prevent loading when component unmounts', async () => {
+      // Delay the fetch to allow unmount to happen
+      fetchPRDataMock.mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return {
+          data: mockPRData,
+          status: 'success',
+          message: 'Data loaded successfully',
+        };
+      });
+
       const { result, unmount } = renderHook(() =>
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
-      // Start loading
+      // Start loading (critical stage starts)
       await waitFor(() => {
         expect(fetchPRDataMock).toHaveBeenCalled();
       });
@@ -341,6 +358,8 @@ describe('useProgressiveRepoData', () => {
       unmount();
 
       // Enhancement stage should not execute after unmount
+      // Note: We need to wait a bit to ensure it doesn't get called
+      await new Promise((resolve) => setTimeout(resolve, 200));
       expect(fetchDirectCommitsMock).not.toHaveBeenCalled();
     });
   });
@@ -371,29 +390,32 @@ describe('useProgressiveRepoData', () => {
 
     it('should invalidate cache after expiration', async () => {
       vi.useFakeTimers();
+      resetProgressiveCache(); // Reset to ensure clean slate with fake timers
 
-      // First render
-      const { unmount: unmount1 } = renderHook(() =>
-        useProgressiveRepoData('owner', 'repo', '90d', false)
-      );
+      try {
+        // First render
+        const { unmount: unmount1 } = renderHook(() =>
+          useProgressiveRepoData('owner', 'repo', '90d', false)
+        );
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
-      });
+        await waitFor(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
+        });
 
-      unmount1();
+        unmount1();
 
-      // Advance time beyond cache duration (5 minutes)
-      vi.advanceTimersByTime(6 * 60 * 1000);
+        // Advance time beyond cache duration (5 minutes)
+        vi.advanceTimersByTime(6 * 60 * 1000);
 
-      // Second render should not use expired cache
-      renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+        // Second render should not use expired cache
+        renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // 2 more calls
-      });
-
-      vi.useRealTimers();
+        await waitFor(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // 2 more calls
+        });
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
