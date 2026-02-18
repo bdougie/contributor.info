@@ -295,16 +295,6 @@
     animation: slide-up 0.3s ease-out;
   }
 
-  /* Adjust main content when sidebar is present on repository pages */
-  @media (min-width: 768px) {
-    /* Adjust body padding for insights sidebar on repository pages */
-    body:has([class*='fixed'][class*='right-0']) .container {
-      padding-right: 4rem; /* Base padding + space for collapsed sidebar */
-    }
-
-    /* When sidebar is expanded (not collapsed), adjust for full width */
-    body:has([class*='fixed'][class*='right-0'][class*='w-[420px]']) .container {
-      padding-right: calc(420px + 1rem); /* Sidebar width + base padding */
-    }
-  }
+  /* StarSearch panel content offset is handled via
+     data-chat-panel attribute on #root — see cls-fixes.css */
 }

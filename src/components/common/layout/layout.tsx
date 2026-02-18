@@ -375,6 +375,7 @@ export default function Layout() {
         id="main-content"
         tabIndex={-1}
         className="flex-1 bg-muted/50 dark:bg-black focus:outline-none"
+        style={{ containerType: 'inline-size' }}
       >
         <div className="container px-4 py-6">
           <Outlet />

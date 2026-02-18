@@ -17,7 +17,10 @@ import { LazyContributions } from '../charts/lazy-charts';
 import { ContributorOfMonthWrapper } from '../contributor';
 import { ExampleRepos } from './example-repos';
 import { useCachedRepoData } from '@/hooks/use-cached-repo-data';
-import { InsightsSidebar } from '@/components/insights/insights-sidebar';
+// Lazy load StarSearch chat panel to avoid impacting initial page load
+const ChatPanel = lazy(() =>
+  import('@/components/chat/chat-panel').then((m) => ({ default: m.ChatPanel }))
+);
 import { SocialMetaTags } from '@/components/common/layout';
 import { Breadcrumbs } from '@/components/common/layout/breadcrumbs';
 import RepoNotFound from './repo-not-found';
@@ -480,8 +483,10 @@ export default function RepoView() {
         </Card>
       </section>
       <aside>
-        <ErrorBoundary context="Repository Insights">
-          <InsightsSidebar />
+        <ErrorBoundary context="Repository Chat">
+          <Suspense fallback={null}>
+            <ChatPanel />
+          </Suspense>
         </ErrorBoundary>
       </aside>
     </article>

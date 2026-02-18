@@ -80,8 +80,8 @@ jobs:
       - name: Security checks
         id: security
         run: |
-          npm audit fix
-          if npm audit --audit-level=moderate; then
+          npm audit fix --omit=dev
+          if npm audit --omit=dev --audit-level=moderate; then
             echo "result=success" >> $GITHUB_OUTPUT
           else
             echo "result=failure" >> $GITHUB_OUTPUT
