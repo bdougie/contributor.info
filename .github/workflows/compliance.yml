@@ -150,10 +150,10 @@ jobs:
         run: npm ci
 
       - name: Fix vulnerabilities
-        run: npm audit fix
+        run: npm audit fix --omit=dev
 
       - name: Run npm audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

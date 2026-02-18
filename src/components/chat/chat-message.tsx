@@ -40,15 +40,25 @@ function ToolResultCard({
   }
 }
 
+function isSafeImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const safeAvatarUrl = userAvatarUrl && isSafeImageUrl(userAvatarUrl) ? userAvatarUrl : undefined;
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
       {/* Avatar */}
-      {isUser && userAvatarUrl ? (
+      {isUser && safeAvatarUrl ? (
         <img
-          src={userAvatarUrl}
+          src={safeAvatarUrl}
           alt="You"
           className="flex-shrink-0 w-7 h-7 rounded-full object-cover"
         />

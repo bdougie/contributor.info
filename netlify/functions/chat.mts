@@ -3,8 +3,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
-import { getApiConfig } from './lib/config.mts';
-import { handlePreflight, applyCorsHeaders } from './lib/cors.mts';
 
 function buildOpenAIProvider() {
   const tapesProxyUrl = process.env.TAPES_PROXY_URL;
@@ -38,17 +36,21 @@ When users ask questions about PRs, health, recommendations, or summaries, use t
 Keep responses concise and actionable. Use the tool results to provide data-backed answers.
 Format your text responses with markdown for readability.`;
 
-export default async (req: Request, _context: Context) => {
-  const config = getApiConfig();
+const CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
 
+export default async (req: Request, _context: Context) => {
   if (req.method === 'OPTIONS') {
-    return handlePreflight(req, config);
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
   }
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
   }
 
@@ -58,7 +60,7 @@ export default async (req: Request, _context: Context) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -72,7 +74,7 @@ export default async (req: Request, _context: Context) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -83,7 +85,7 @@ export default async (req: Request, _context: Context) => {
     if (!Array.isArray(uiMessages) || uiMessages.length === 0) {
       return new Response(JSON.stringify({ error: 'messages must be a non-empty array' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -98,7 +100,7 @@ export default async (req: Request, _context: Context) => {
     ) {
       return new Response(JSON.stringify({ error: 'Invalid owner or repo format' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }
 
@@ -482,13 +484,12 @@ export default async (req: Request, _context: Context) => {
       },
     });
 
-    const response = result.toUIMessageStreamResponse();
-    return applyCorsHeaders(response, req, config);
+    return result.toUIMessageStreamResponse({ headers: CORS_HEADERS });
   } catch (error) {
     console.error('Chat function error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
   }
 };
