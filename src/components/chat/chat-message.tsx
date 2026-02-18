@@ -16,6 +16,7 @@ interface ChatMessageProps {
   repo: string;
   userAvatarUrl?: string;
   isStreaming?: boolean;
+  errorMessage?: string | null;
 }
 
 function ToolResultCard({
@@ -84,6 +85,7 @@ export function ChatMessage({
   repo,
   userAvatarUrl,
   isStreaming,
+  errorMessage,
 }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const safeAvatarUrl = userAvatarUrl ? sanitizeImageUrl(userAvatarUrl) : undefined;
@@ -150,9 +152,14 @@ export function ChatMessage({
 
         {/* Fallback when stream ended with no visible output */}
         {!isUser && !isStreaming && !hasVisibleContent && (
-          <p className="text-muted-foreground italic">
-            Sorry, I couldn&apos;t generate a response. Please try again.
-          </p>
+          <div className="space-y-1">
+            <p className="text-muted-foreground italic">
+              Sorry, I couldn&apos;t generate a response. Please try again.
+            </p>
+            {errorMessage && (
+              <p className="text-xs text-red-400/80 font-mono">Error: {errorMessage}</p>
+            )}
+          </div>
         )}
       </div>
     </div>

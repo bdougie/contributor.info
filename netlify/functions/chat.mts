@@ -181,7 +181,7 @@ export default async (req: Request, _context: Context) => {
     const repoId: number | null = repoRow?.id ?? null;
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-4.1'),
       system: buildSystemPrompt(hasDatapipe),
       messages: [
         {
@@ -663,7 +663,14 @@ export default async (req: Request, _context: Context) => {
       },
     });
 
-    return result.toUIMessageStreamResponse({ headers: CORS_HEADERS });
+    return result.toUIMessageStreamResponse({
+      headers: CORS_HEADERS,
+      onError: (error) => {
+        const msg = error instanceof Error ? error.message : 'An unknown error occurred';
+        console.error('[chat] stream error: %s', msg);
+        return msg;
+      },
+    });
   } catch (error) {
     console.error('Chat function error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

@@ -78,10 +78,13 @@ export function ChatPanel({ className }: ChatPanelProps) {
     [owner, repo, timeRange]
   );
 
+  const [lastError, setLastError] = useState<string | null>(null);
+
   const { messages, sendMessage, status, stop, error } = useChat({
     transport,
     onError: (err) => {
       console.error('[StarSearch] Chat error:', err);
+      setLastError(err.message || 'An unknown error occurred');
     },
   });
 
@@ -89,6 +92,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
 
   const handleSendMessage = useCallback(
     (text: string) => {
+      setLastError(null);
       sendMessage({ text });
     },
     [sendMessage]
@@ -132,6 +136,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
               isLoading={isLoading}
               userAvatarUrl={userAvatarUrl}
               error={error}
+              lastErrorMessage={lastError}
             />
           </div>
           {isAuthenticated ? (

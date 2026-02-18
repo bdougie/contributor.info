@@ -11,6 +11,7 @@ interface ChatMessagesProps {
   isLoading: boolean;
   userAvatarUrl?: string;
   error?: Error | null;
+  lastErrorMessage?: string | null;
 }
 
 function EmptyState({ owner, repo }: { owner: string; repo: string }) {
@@ -48,6 +49,7 @@ export function ChatMessages({
   isLoading,
   userAvatarUrl,
   error,
+  lastErrorMessage,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -62,16 +64,20 @@ export function ChatMessages({
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
-        {messages.map((message, idx) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            owner={owner}
-            repo={repo}
-            userAvatarUrl={userAvatarUrl}
-            isStreaming={isLoading && idx === messages.length - 1 && message.role === 'assistant'}
-          />
-        ))}
+        {messages.map((message, idx) => {
+          const isLastMessage = idx === messages.length - 1;
+          return (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              owner={owner}
+              repo={repo}
+              userAvatarUrl={userAvatarUrl}
+              isStreaming={isLoading && isLastMessage && message.role === 'assistant'}
+              errorMessage={isLastMessage && !isLoading ? lastErrorMessage : undefined}
+            />
+          );
+        })}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm text-red-400">
