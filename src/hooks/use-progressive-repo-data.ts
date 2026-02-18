@@ -95,15 +95,19 @@ export function useProgressiveRepoData(
 
     // Update stage progress (inline function to avoid dependency issues)
     const updateStage = (stage: LoadingStage, updates: Partial<ProgressiveDataState>) => {
-      setData((prev) => ({
-        ...prev,
-        ...updates,
-        currentStage: stage,
-        stageProgress: {
-          ...prev.stageProgress,
-          [stage]: true,
-        },
-      }));
+      setData((prev) => {
+        // Correctly merge stageProgress if it exists in updates (e.g. from cache)
+        const newStageProgress = updates.stageProgress
+          ? { ...prev.stageProgress, ...updates.stageProgress, [stage]: true }
+          : { ...prev.stageProgress, [stage]: true };
+
+        return {
+          ...prev,
+          ...updates,
+          currentStage: stage,
+          stageProgress: newStageProgress,
+        };
+      });
     };
 
     // Stage 1: Load critical data (< 500ms target) - inline function
@@ -115,8 +119,14 @@ export function useProgressiveRepoData(
           const cached = progressiveCache[cacheKey];
 
           if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-            updateStage('critical', cached.data);
-            return cached.data.basicInfo;
+            // Restore the full state from cache, including currentStage
+            updateStage(cached.data.currentStage, cached.data);
+            // Return cached data info to allow skipping subsequent stages
+            return {
+              basicInfo: cached.data.basicInfo,
+              fromCache: true,
+              cachedStage: cached.data.currentStage,
+            };
           }
 
           // Fetch minimal data for above-the-fold content with retry
@@ -165,7 +175,7 @@ export function useProgressiveRepoData(
 
           updateStage('critical', { basicInfo });
 
-          return basicInfo;
+          return { basicInfo, fromCache: false };
         } catch (error) {
           span?.setStatus('error');
           console.error('Failed to load critical data:', error);
@@ -328,9 +338,51 @@ export function useProgressiveRepoData(
         });
 
         // Stage 1: Critical data (immediate)
-        await loadCriticalData(owner, repo);
+        const criticalResult = await loadCriticalData(owner, repo);
 
         if (abortController.signal.aborted) return;
+
+        // Optimization: If we loaded complete data from cache, we can skip the rest
+        if (criticalResult?.fromCache) {
+          // If cached data was at least 'full' (or better), we have stats and lottery factor
+          // So we can skip loadFullData
+          if (
+            criticalResult.cachedStage === 'full' ||
+            criticalResult.cachedStage === 'enhancement' ||
+            criticalResult.cachedStage === 'complete'
+          ) {
+            // If cached data was complete, we can skip everything
+            if (criticalResult.cachedStage === 'complete') {
+              return;
+            }
+
+            // If we are here, we might need enhancement data (direct commits)
+            // But currently enhancement data is not fully cached in progressiveCache (only stats are)
+            // So we should proceed to loadEnhancementData unless we are sure.
+
+            // However, we CAN skip loadFullData which is the heavy lifting
+            if (abortController.signal.aborted) return;
+
+            // Skip Stage 2 and go to Stage 3
+            if ('requestIdleCallback' in window) {
+              requestIdleCallback(
+                () => {
+                  if (!abortController.signal.aborted) {
+                    loadEnhancementData(owner, repo);
+                  }
+                },
+                { timeout: 5000 }
+              );
+            } else {
+              setTimeout(() => {
+                if (!abortController.signal.aborted) {
+                  loadEnhancementData(owner, repo);
+                }
+              }, 2000);
+            }
+            return;
+          }
+        }
 
         // Stage 2: Full data (after critical)
         await loadFullData(owner, repo);
