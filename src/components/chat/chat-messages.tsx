@@ -10,6 +10,7 @@ interface ChatMessagesProps {
   repo: string;
   isLoading: boolean;
   userAvatarUrl?: string;
+  error?: Error | null;
 }
 
 function EmptyState({ owner, repo }: { owner: string; repo: string }) {
@@ -46,6 +47,7 @@ export function ChatMessages({
   repo,
   isLoading,
   userAvatarUrl,
+  error,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +71,12 @@ export function ChatMessages({
             userAvatarUrl={userAvatarUrl}
           />
         ))}
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm text-red-400">
+            {error.message}
+          </div>
+        )}
 
         {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-2">

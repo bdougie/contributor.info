@@ -49,7 +49,9 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    const { messages, owner, repo, timeRange = '30' } = await req.json();
+    const body = await req.json();
+    console.log('[chat] Received request with keys: %s', Object.keys(body).join(', '));
+    const { messages, owner, repo, timeRange = '30' } = body;
 
     const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]{1,100}$/;
     if (

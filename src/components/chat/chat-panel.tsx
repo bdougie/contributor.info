@@ -70,7 +70,12 @@ export function ChatPanel({ className }: ChatPanelProps) {
     [owner, repo, timeRange]
   );
 
-  const { messages, sendMessage, status, stop } = useChat({ transport });
+  const { messages, sendMessage, status, stop, error } = useChat({
+    transport,
+    onError: (err) => {
+      console.error('[StarSearch] Chat error:', err);
+    },
+  });
 
   const isLoading = status === 'streaming' || status === 'submitted';
 
@@ -118,6 +123,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
               repo={repo}
               isLoading={isLoading}
               userAvatarUrl={userAvatarUrl}
+              error={error}
             />
           </div>
           {isAuthenticated ? (
