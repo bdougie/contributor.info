@@ -466,7 +466,3 @@ Format your text responses with markdown for readability.`,
     );
   }
 };
-
-export const config = {
-  path: '/.netlify/functions/chat',
-};
