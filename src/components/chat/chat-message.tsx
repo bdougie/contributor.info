@@ -40,18 +40,21 @@ function ToolResultCard({
   }
 }
 
-function isSafeImageUrl(url: string): boolean {
+function sanitizeImageUrl(url: string): string | undefined {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return parsed.href;
+    }
+    return undefined;
   } catch {
-    return false;
+    return undefined;
   }
 }
 
 export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  const safeAvatarUrl = userAvatarUrl && isSafeImageUrl(userAvatarUrl) ? userAvatarUrl : undefined;
+  const safeAvatarUrl = userAvatarUrl ? sanitizeImageUrl(userAvatarUrl) : undefined;
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
