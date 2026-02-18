@@ -1,6 +1,13 @@
 import type { Context } from '@netlify/functions';
 import { createOpenAI } from '@ai-sdk/openai';
-import { generateText, streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
+import {
+  generateText,
+  streamText,
+  tool,
+  convertToModelMessages,
+  jsonSchema,
+  stepCountIs,
+} from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
 type DatapipeClient = typeof import('./lib/gh-datapipe-client.mts');
@@ -662,7 +669,7 @@ export default async (req: Request, _context: Context) => {
       system: buildSystemPrompt(hasDatapipe),
       messages: conversationMessages,
       tools: allTools,
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       headers: tapesHeaders,
     });
 
