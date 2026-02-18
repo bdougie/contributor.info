@@ -1,6 +1,6 @@
 import type { Context } from '@netlify/functions';
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, tool } from 'ai';
+import { streamText, tool, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 import { getSupabaseClient } from './_shared/supabase-client';
 
@@ -51,7 +51,8 @@ export default async (req: Request, _context: Context) => {
   try {
     const body = await req.json();
     console.log('[chat] Received request with keys: %s', Object.keys(body).join(', '));
-    const { messages, owner, repo, timeRange = '30' } = body;
+    const { messages: uiMessages, owner, repo, timeRange = '30' } = body;
+    const messages = convertToModelMessages(uiMessages);
 
     const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]{1,100}$/;
     if (
