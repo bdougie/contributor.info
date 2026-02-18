@@ -80,9 +80,9 @@ export function ChatMessages({
 
         {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-2">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-muted-foreground/50 animate-pulse" />
-            </div>
+            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-lg leading-none">
+              🌱
+            </span>
             <div className="bg-muted rounded-lg px-3 py-2">
               <div className="flex gap-1">
                 <div

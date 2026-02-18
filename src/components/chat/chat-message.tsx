@@ -54,7 +54,14 @@ function sanitizeImageUrl(url: string): string | undefined {
 
 function ChatAvatar({ isUser, avatarUrl }: { isUser: boolean; avatarUrl?: string }) {
   if (!isUser) {
-    return <img src="/favicon.svg" alt="contributor.info" className="flex-shrink-0 w-7 h-7" />;
+    return (
+      <span
+        className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-lg leading-none"
+        aria-label="contributor.info"
+      >
+        🌱
+      </span>
+    );
   }
 
   if (avatarUrl) {
