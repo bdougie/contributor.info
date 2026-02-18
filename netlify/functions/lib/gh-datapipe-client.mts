@@ -131,12 +131,14 @@ export async function getContributors(
   limit = 20
 ): Promise<ContributorsResponse | null> {
   return fetchJson<ContributorsResponse>(
-    `/api/v1/repositories/${owner}/${repo}/contributors?limit=${limit}`
+    `/api/v1/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?limit=${limit}`
   );
 }
 
 export async function getInsights(owner: string, repo: string): Promise<InsightsResponse | null> {
-  return fetchJson<InsightsResponse>(`/api/v1/repositories/${owner}/${repo}/insights`);
+  return fetchJson<InsightsResponse>(
+    `/api/v1/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/insights`
+  );
 }
 
 export async function getActivity(
@@ -144,5 +146,7 @@ export async function getActivity(
   repo: string,
   days = 30
 ): Promise<ActivityResponse | null> {
-  return fetchJson<ActivityResponse>(`/api/v1/repositories/${owner}/${repo}/activity?days=${days}`);
+  return fetchJson<ActivityResponse>(
+    `/api/v1/repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/activity?days=${days}`
+  );
 }
