@@ -86,7 +86,7 @@ Format your text responses with markdown for readability.`,
             const { data: repoData } = await supabase
               .from('repositories')
               .select(
-                'description, stargazers_count, forks_count, language, open_issues_count, owner, name'
+                'id, description, stargazers_count, forks_count, language, open_issues_count, owner, name'
               )
               .eq('owner', owner)
               .eq('name', repo)
@@ -102,17 +102,7 @@ Format your text responses with markdown for readability.`,
             const { count: recentPrCount } = await supabase
               .from('pull_requests')
               .select('id', { count: 'exact', head: true })
-              .eq(
-                'repository_id',
-                (
-                  await supabase
-                    .from('repositories')
-                    .select('id')
-                    .eq('owner', owner)
-                    .eq('name', repo)
-                    .maybeSingle()
-                ).data?.id || ''
-              )
+              .eq('repository_id', repoData.id)
               .gte('created_at', cutoffDate.toISOString());
 
             return {
