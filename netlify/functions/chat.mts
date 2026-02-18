@@ -42,27 +42,50 @@ function buildTapesHeaders(owner: string, repo: string): Record<string, string> 
   };
 }
 
-const SYSTEM_PROMPT = `You are a helpful repository insights assistant for a GitHub repository.
+const BASE_CAPABILITIES = [
+  '- **Repository overview**: description, stars, forks, language, and recent PR count',
+  '- **Pull requests needing attention**: open PRs ranked by urgency based on age and size',
+  '- **Repository health score**: an assessment based on merge times, activity levels, and stale PRs',
+  '- **Actionable recommendations**: suggestions to improve repo health and contributor experience',
+];
+
+const DATAPIPE_CAPABILITIES = [
+  '- **Contributor rankings**: top contributors ranked by quality score, with confidence and activity breakdowns',
+  '- **Lottery factor**: how concentrated contributions are among top contributors, plus contributor of the month',
+  '- **Activity feed**: daily breakdown of PRs opened/merged, reviews, and issues',
+];
+
+function buildSystemPrompt(hasDatapipe: boolean): string {
+  const capabilities = hasDatapipe
+    ? [...BASE_CAPABILITIES, ...DATAPIPE_CAPABILITIES]
+    : BASE_CAPABILITIES;
+
+  const examples = hasDatapipe
+    ? [
+        '"Who are the top contributors?"',
+        '"What\'s the lottery factor?"',
+        '"How active is this repo?"',
+        '"Which PRs need attention right now?"',
+      ]
+    : [
+        '"How healthy is this repo?"',
+        '"Which PRs need attention right now?"',
+        '"What recommendations do you have?"',
+      ];
+
+  return `You are a helpful repository insights assistant for a GitHub repository.
 You help maintainers understand their repository health and areas needing attention.
 
 You can answer questions about these topics using your tools:
-- **Repository overview**: description, stars, forks, language, and recent PR count
-- **Pull requests needing attention**: open PRs ranked by urgency based on age and size
-- **Repository health score**: an assessment based on merge times, activity levels, and stale PRs
-- **Actionable recommendations**: suggestions to improve repo health and contributor experience
-- **Contributor rankings**: top contributors ranked by quality score, with confidence and activity breakdowns
-- **Lottery factor**: how concentrated contributions are among top contributors, plus contributor of the month
-- **Activity feed**: daily breakdown of PRs opened/merged, reviews, and issues
+${capabilities.join('\n')}
 
-When users ask about topics outside these capabilities (e.g. commit history or specific code changes), be honest that you cannot look that up yet and suggest three things you *can* help with as brief, natural-language example questions they can try. For example:
-- "Who are the top contributors?"
-- "What's the lottery factor?"
-- "How active is this repo?"
-- "Which PRs need attention right now?"
+When users ask about topics outside these capabilities (e.g. commit history or specific code changes), be honest that you cannot look that up yet and suggest things you *can* help with as brief, natural-language example questions they can try. For example:
+${examples.map((e) => `- ${e}`).join('\n')}
 
 When users ask questions within your capabilities, use the available tools to fetch real data.
 Keep responses concise and actionable. Use the tool results to provide data-backed answers.
 Format your text responses with markdown for readability.`;
+}
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -141,6 +164,10 @@ export default async (req: Request, _context: Context) => {
     const tapesHeaders = buildTapesHeaders(owner, repo);
     const supabase = getSupabaseClient();
 
+    // Check datapipe availability once, before building tools
+    const dp = await getDatapipe();
+    const hasDatapipe = dp?.isConfigured() === true;
+
     // Look up repo ID once to share across all tools
     const { data: repoRow } = await supabase
       .from('repositories')
@@ -155,7 +182,7 @@ export default async (req: Request, _context: Context) => {
 
     const result = streamText({
       model: openai('gpt-4o-mini'),
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(hasDatapipe),
       messages: [
         {
           role: 'user' as const,
@@ -505,136 +532,129 @@ export default async (req: Request, _context: Context) => {
           },
         }),
 
-        get_contributor_rankings: tool({
-          description:
-            'Get top contributors ranked by quality score with confidence and activity breakdowns',
-          inputSchema: jsonSchema({
-            type: 'object' as const,
-            properties: {
-              limit: {
-                type: 'number' as const,
-                description: 'Max contributors to return (default 20)',
-              },
-            },
-          }),
-          execute: async (input: { limit?: number }) => {
-            try {
-              const dp = await getDatapipe();
-              if (!dp?.isConfigured()) {
-                return { error: 'Contributor analytics not configured' };
-              }
-              const limit = Math.min(Math.max(input.limit ?? 20, 1), 100);
-              const data = await dp.getContributors(owner, repo, limit);
-              if (!data) {
-                return { error: 'Could not reach analytics service' };
-              }
-              return {
-                repository: data.repository,
-                total: data.total,
-                contributors: data.contributors.map((c) => ({
-                  login: c.login,
-                  qualityScore: c.contribution_quality,
-                  confidenceScore: c.confidence_score,
-                  prsOpened: c.activity.prs_opened,
-                  prsMerged: c.activity.prs_merged,
-                  reviewsGiven: c.activity.reviews_given,
-                  issuesOpened: c.activity.issues_opened,
-                })),
-              };
-            } catch (err) {
-              console.error('[chat] get_contributor_rankings error: %s', err);
-              return { error: 'Could not fetch contributor rankings' };
-            }
-          },
-        }),
-
-        get_lottery_factor: tool({
-          description:
-            'Get lottery factor rankings showing contribution concentration, plus contributor of the month and health trending score',
-          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
-          execute: async () => {
-            try {
-              const dp = await getDatapipe();
-              if (!dp?.isConfigured()) {
-                return { error: 'Contributor analytics not configured' };
-              }
-              const data = await dp.getInsights(owner, repo);
-              if (!data) {
-                return { error: 'Could not reach analytics service' };
-              }
-              return {
-                repository: data.repository,
-                calculatedAt: data.calculated_at,
-                health: data.health
-                  ? {
-                      trendingScore: data.health.trending_score,
-                      freshnessStatus: data.health.freshness_status,
-                      isSignificantChange: data.health.is_significant_change,
+        // Datapipe tools — only registered when the API is configured
+        ...(hasDatapipe && dp
+          ? {
+              get_contributor_rankings: tool({
+                description:
+                  'Get top contributors ranked by quality score with confidence and activity breakdowns',
+                inputSchema: jsonSchema({
+                  type: 'object' as const,
+                  properties: {
+                    limit: {
+                      type: 'number' as const,
+                      description: 'Max contributors to return (default 20)',
+                    },
+                  },
+                }),
+                execute: async (input: { limit?: number }) => {
+                  try {
+                    const limit = Math.min(Math.max(input.limit ?? 20, 1), 100);
+                    const data = await dp.getContributors(owner, repo, limit);
+                    if (!data) {
+                      return { error: 'Could not reach analytics service' };
                     }
-                  : null,
-                lotteryFactor: data.lottery_factor?.top_contributors
-                  ? data.lottery_factor.top_contributors.map((c) => ({
-                      login: c.login,
-                      weightedScore: c.weighted_score,
-                      rank: c.rank,
-                    }))
-                  : null,
-                contributorOfMonth: data.contributor_of_month
-                  ? {
-                      login: data.contributor_of_month.login,
-                      score: data.contributor_of_month.score,
-                      month: data.contributor_of_month.month,
-                    }
-                  : null,
-              };
-            } catch (err) {
-              console.error('[chat] get_lottery_factor error: %s', err);
-              return { error: 'Could not fetch lottery factor' };
-            }
-          },
-        }),
+                    return {
+                      repository: data.repository,
+                      total: data.total,
+                      contributors: data.contributors.map((c) => ({
+                        login: c.login,
+                        qualityScore: c.contribution_quality,
+                        confidenceScore: c.confidence_score,
+                        prsOpened: c.activity.prs_opened,
+                        prsMerged: c.activity.prs_merged,
+                        reviewsGiven: c.activity.reviews_given,
+                        issuesOpened: c.activity.issues_opened,
+                      })),
+                    };
+                  } catch (err) {
+                    console.error('[chat] get_contributor_rankings error: %s', err);
+                    return { error: 'Could not fetch contributor rankings' };
+                  }
+                },
+              }),
 
-        get_activity_feed: tool({
-          description:
-            'Get daily activity breakdown including PRs opened/merged, reviews, and issues for a repository',
-          inputSchema: jsonSchema({
-            type: 'object' as const,
-            properties: {
-              days: {
-                type: 'number' as const,
-                description: 'Number of days of activity (default 30)',
-              },
-            },
-          }),
-          execute: async (input: { days?: number }) => {
-            try {
-              const dp = await getDatapipe();
-              if (!dp?.isConfigured()) {
-                return { error: 'Contributor analytics not configured' };
-              }
-              const days = Math.min(Math.max(input.days ?? 30, 1), 365);
-              const data = await dp.getActivity(owner, repo, days);
-              if (!data) {
-                return { error: 'Could not reach analytics service' };
-              }
-              return {
-                repository: data.repository,
-                days: data.days,
-                activity: data.activity.map((d) => ({
-                  date: d.date,
-                  prsOpened: d.prs_opened,
-                  prsMerged: d.prs_merged,
-                  reviews: d.reviews,
-                  issuesOpened: d.issues_opened,
-                  issuesClosed: d.issues_closed,
-                })),
-              };
-            } catch (err) {
-              console.error('[chat] get_activity_feed error: %s', err);
-              return { error: 'Could not fetch activity feed' };
+              get_lottery_factor: tool({
+                description:
+                  'Get lottery factor rankings showing contribution concentration, plus contributor of the month and health trending score',
+                inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
+                execute: async () => {
+                  try {
+                    const data = await dp.getInsights(owner, repo);
+                    if (!data) {
+                      return { error: 'Could not reach analytics service' };
+                    }
+                    return {
+                      repository: data.repository,
+                      calculatedAt: data.calculated_at,
+                      health: data.health
+                        ? {
+                            trendingScore: data.health.trending_score,
+                            freshnessStatus: data.health.freshness_status,
+                            isSignificantChange: data.health.is_significant_change,
+                          }
+                        : null,
+                      lotteryFactor: data.lottery_factor?.top_contributors
+                        ? data.lottery_factor.top_contributors.map((c) => ({
+                            login: c.login,
+                            weightedScore: c.weighted_score,
+                            rank: c.rank,
+                          }))
+                        : null,
+                      contributorOfMonth: data.contributor_of_month
+                        ? {
+                            login: data.contributor_of_month.login,
+                            score: data.contributor_of_month.score,
+                            month: data.contributor_of_month.month,
+                          }
+                        : null,
+                    };
+                  } catch (err) {
+                    console.error('[chat] get_lottery_factor error: %s', err);
+                    return { error: 'Could not fetch lottery factor' };
+                  }
+                },
+              }),
+
+              get_activity_feed: tool({
+                description:
+                  'Get daily activity breakdown including PRs opened/merged, reviews, and issues for a repository',
+                inputSchema: jsonSchema({
+                  type: 'object' as const,
+                  properties: {
+                    days: {
+                      type: 'number' as const,
+                      description: 'Number of days of activity (default 30)',
+                    },
+                  },
+                }),
+                execute: async (input: { days?: number }) => {
+                  try {
+                    const days = Math.min(Math.max(input.days ?? 30, 1), 365);
+                    const data = await dp.getActivity(owner, repo, days);
+                    if (!data) {
+                      return { error: 'Could not reach analytics service' };
+                    }
+                    return {
+                      repository: data.repository,
+                      days: data.days,
+                      activity: data.activity.map((d) => ({
+                        date: d.date,
+                        prsOpened: d.prs_opened,
+                        prsMerged: d.prs_merged,
+                        reviews: d.reviews,
+                        issuesOpened: d.issues_opened,
+                        issuesClosed: d.issues_closed,
+                      })),
+                    };
+                  } catch (err) {
+                    console.error('[chat] get_activity_feed error: %s', err);
+                    return { error: 'Could not fetch activity feed' };
+                  }
+                },
+              }),
             }
-          },
-        }),
+          : {}),
       },
       maxSteps: 5,
       headers: tapesHeaders,

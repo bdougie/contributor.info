@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Bot, User } from '@/components/ui/icon';
+import { User } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RecommendationCard } from './chat-cards/recommendation-card';
@@ -52,29 +52,31 @@ function sanitizeImageUrl(url: string): string | undefined {
   }
 }
 
+function ChatAvatar({ isUser, avatarUrl }: { isUser: boolean; avatarUrl?: string }) {
+  if (!isUser) {
+    return <img src="/favicon.svg" alt="contributor.info" className="flex-shrink-0 w-7 h-7" />;
+  }
+
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt="You" className="flex-shrink-0 w-7 h-7 rounded-full object-cover" />
+    );
+  }
+
+  return (
+    <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-orange-500 text-white">
+      <User className="h-4 w-4" />
+    </div>
+  );
+}
+
 export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessageProps) {
   const isUser = message.role === 'user';
   const safeAvatarUrl = userAvatarUrl ? sanitizeImageUrl(userAvatarUrl) : undefined;
 
   return (
     <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : 'flex-row')}>
-      {/* Avatar */}
-      {isUser && safeAvatarUrl ? (
-        <img
-          src={safeAvatarUrl}
-          alt="You"
-          className="flex-shrink-0 w-7 h-7 rounded-full object-cover"
-        />
-      ) : (
-        <div
-          className={cn(
-            'flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center',
-            isUser ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-        </div>
-      )}
+      <ChatAvatar isUser={isUser} avatarUrl={safeAvatarUrl} />
 
       {/* Message content */}
       <div
