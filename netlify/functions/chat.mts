@@ -3,13 +3,18 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
-import type * as DatapipeTypes from './lib/gh-datapipe-client.mts';
+type DatapipeClient = typeof import('./lib/gh-datapipe-client.mts');
 
-let datapipe: typeof DatapipeTypes | null = null;
-try {
-  datapipe = await import('./lib/gh-datapipe-client.mts');
-} catch (err) {
-  console.error('[chat] Failed to load gh-datapipe client: %s', err);
+let _datapipeCache: DatapipeClient | null | undefined;
+async function getDatapipe(): Promise<DatapipeClient | null> {
+  if (_datapipeCache !== undefined) return _datapipeCache;
+  try {
+    _datapipeCache = await import('./lib/gh-datapipe-client.mts');
+  } catch (err) {
+    console.error('[chat] Failed to load gh-datapipe client: %s', err);
+    _datapipeCache = null;
+  }
+  return _datapipeCache;
 }
 
 function buildOpenAIProvider() {
@@ -514,10 +519,11 @@ export default async (req: Request, _context: Context) => {
           }),
           execute: async (input: { limit?: number }) => {
             try {
-              if (!datapipe?.isConfigured()) {
+              const dp = await getDatapipe();
+              if (!dp?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
-              const data = await datapipe.getContributors(owner, repo, input.limit ?? 20);
+              const data = await dp.getContributors(owner, repo, input.limit ?? 20);
               if (!data) {
                 return { error: 'Could not reach analytics service' };
               }
@@ -547,10 +553,11 @@ export default async (req: Request, _context: Context) => {
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             try {
-              if (!datapipe?.isConfigured()) {
+              const dp = await getDatapipe();
+              if (!dp?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
-              const data = await datapipe.getInsights(owner, repo);
+              const data = await dp.getInsights(owner, repo);
               if (!data) {
                 return { error: 'Could not reach analytics service' };
               }
@@ -600,10 +607,11 @@ export default async (req: Request, _context: Context) => {
           }),
           execute: async (input: { days?: number }) => {
             try {
-              if (!datapipe?.isConfigured()) {
+              const dp = await getDatapipe();
+              if (!dp?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
-              const data = await datapipe.getActivity(owner, repo, input.days ?? 30);
+              const data = await dp.getActivity(owner, repo, input.days ?? 30);
               if (!data) {
                 return { error: 'Could not reach analytics service' };
               }
