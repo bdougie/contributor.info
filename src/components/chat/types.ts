@@ -1,13 +1,3 @@
-export interface RepoSummaryData {
-  description: string | null;
-  stars: number;
-  forks: number;
-  language: string | null;
-  openIssues: number;
-  recentPRs: number;
-  timeRangeDays: string;
-}
-
 export interface PrAlertData {
   number: number;
   title: string;

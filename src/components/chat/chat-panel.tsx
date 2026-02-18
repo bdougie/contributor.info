@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { useCachedAuth } from '@/hooks/use-cached-auth';
 import { useAuth } from '@/hooks/useAuth';
+import { safeGetSession } from '@/lib/auth/safe-auth';
 import { cn } from '@/lib/utils';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
@@ -66,6 +67,13 @@ export function ChatPanel({ className }: ChatPanelProps) {
       new DefaultChatTransport({
         api: '/api/chat',
         body: { owner, repo, timeRange },
+        headers: async (): Promise<Record<string, string>> => {
+          const { session } = await safeGetSession();
+          if (session?.access_token) {
+            return { Authorization: `Bearer ${session.access_token}` };
+          }
+          return {};
+        },
       }),
     [owner, repo, timeRange]
   );

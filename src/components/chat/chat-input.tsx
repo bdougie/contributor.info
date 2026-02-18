@@ -1,6 +1,6 @@
 import { useState, type KeyboardEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Plus } from '@/components/ui/icon';
+import { ArrowRight } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -29,15 +29,6 @@ export function ChatInput({ onSubmit, isLoading, onStop }: ChatInputProps) {
   return (
     <div className="border-t border-border p-3 shrink-0">
       <div className="flex items-end gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-          aria-label="Suggestions"
-          disabled={isLoading}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}

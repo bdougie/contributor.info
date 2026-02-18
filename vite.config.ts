@@ -192,7 +192,7 @@ export default defineConfig(() => ({
               return 'vendor-uplot';
             }
             // AI SDK - lazy loaded via chat panel
-            if (id.includes('@ai-sdk') || id.includes('ai/')) {
+            if (id.includes('@ai-sdk') || id.includes('/node_modules/ai/')) {
               return 'vendor-ai-sdk';
             }
             // Supabase SDK

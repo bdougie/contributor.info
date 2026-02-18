@@ -2,6 +2,9 @@ import type { Context } from '@netlify/functions';
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
+import { getSupabaseClients } from './lib/api-key-clients';
+import { getApiConfig } from './lib/config.mts';
+import { handlePreflight, applyCorsHeaders } from './lib/cors.mts';
 
 function buildOpenAIProvider() {
   const tapesProxyUrl = process.env.TAPES_PROXY_URL;
@@ -28,16 +31,18 @@ function buildTapesHeaders(owner: string, repo: string): Record<string, string> 
   };
 }
 
+const SYSTEM_PROMPT = `You are a helpful repository insights assistant for a GitHub repository.
+You help maintainers understand their repository health, contributor activity, and areas needing attention.
+
+When users ask questions about PRs, health, recommendations, or summaries, use the available tools to fetch real data.
+Keep responses concise and actionable. Use the tool results to provide data-backed answers.
+Format your text responses with markdown for readability.`;
+
 export default async (req: Request, _context: Context) => {
+  const config = getApiConfig();
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
+    return handlePreflight(req, config);
   }
 
   if (req.method !== 'POST') {
@@ -48,9 +53,40 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
+    // Authenticate the user
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { anon: supabaseAnon } = getSupabaseClients();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAnon.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const body = await req.json();
     console.log('[chat] Received request with keys: %s', Object.keys(body).join(', '));
-    const { messages: uiMessages, owner, repo, timeRange = '30' } = body;
+    const { messages: uiMessages, owner, repo, timeRange: rawTimeRange = '30' } = body;
+
+    if (!Array.isArray(uiMessages) || uiMessages.length === 0) {
+      return new Response(JSON.stringify({ error: 'messages must be a non-empty array' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const messages = await convertToModelMessages(uiMessages);
 
     const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]{1,100}$/;
@@ -66,53 +102,62 @@ export default async (req: Request, _context: Context) => {
       });
     }
 
+    // Validate timeRange: must parse to a finite positive number, default 30
+    const parsedTimeRange = parseInt(rawTimeRange, 10);
+    const timeRange =
+      Number.isFinite(parsedTimeRange) && parsedTimeRange > 0 ? parsedTimeRange : 30;
+
     const openai = buildOpenAIProvider();
     const tapesHeaders = buildTapesHeaders(owner, repo);
     const supabase = getSupabaseClient();
 
+    // Look up repo ID once to share across all tools
+    const { data: repoRow } = await supabase
+      .from('repositories')
+      .select(
+        'id, description, stargazers_count, forks_count, language, open_issues_count, owner, name'
+      )
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    const repoId: number | null = repoRow?.id ?? null;
+
     const result = streamText({
       model: openai('gpt-4o-mini'),
-      system: `You are a helpful repository insights assistant for the GitHub repository "${owner}/${repo}".
-You help maintainers understand their repository health, contributor activity, and areas needing attention.
-
-When users ask questions about PRs, health, recommendations, or summaries, use the available tools to fetch real data.
-Keep responses concise and actionable. Use the tool results to provide data-backed answers.
-Format your text responses with markdown for readability.`,
-      messages,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user' as const,
+          content: `[Repository context: ${owner}/${repo}]`,
+        },
+        ...messages,
+      ],
       tools: {
         get_repo_summary: tool({
           description:
             'Get a summary of the repository including description, stars, language, and recent activity stats',
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
-            const { data: repoData } = await supabase
-              .from('repositories')
-              .select(
-                'id, description, stargazers_count, forks_count, language, open_issues_count, owner, name'
-              )
-              .eq('owner', owner)
-              .eq('name', repo)
-              .maybeSingle();
-
-            if (!repoData) {
+            if (!repoRow) {
               return { error: 'Repository not found in database' };
             }
 
             const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+            cutoffDate.setDate(cutoffDate.getDate() - timeRange);
 
             const { count: recentPrCount } = await supabase
               .from('pull_requests')
               .select('id', { count: 'exact', head: true })
-              .eq('repository_id', repoData.id)
+              .eq('repository_id', repoId!)
               .gte('created_at', cutoffDate.toISOString());
 
             return {
-              description: repoData.description,
-              stars: repoData.stargazers_count,
-              forks: repoData.forks_count,
-              language: repoData.language,
-              openIssues: repoData.open_issues_count,
+              description: repoRow.description,
+              stars: repoRow.stargazers_count,
+              forks: repoRow.forks_count,
+              language: repoRow.language,
+              openIssues: repoRow.open_issues_count,
               recentPRs: recentPrCount || 0,
               timeRangeDays: timeRange,
             };
@@ -123,14 +168,7 @@ Format your text responses with markdown for readability.`,
           description: 'Get pull requests that need maintainer attention, sorted by urgency',
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
-            const { data: repoRow } = await supabase
-              .from('repositories')
-              .select('id')
-              .eq('owner', owner)
-              .eq('name', repo)
-              .maybeSingle();
-
-            if (!repoRow) {
+            if (!repoId) {
               return {
                 alerts: [],
                 metrics: {
@@ -148,7 +186,7 @@ Format your text responses with markdown for readability.`,
               .select(
                 'id, number, title, state, created_at, updated_at, additions, deletions, contributors!inner(username, avatar_url)'
               )
-              .eq('repository_id', repoRow.id)
+              .eq('repository_id', repoId)
               .eq('state', 'open')
               .order('created_at', { ascending: true })
               .limit(20);
@@ -239,37 +277,31 @@ Format your text responses with markdown for readability.`,
             'Get an AI health assessment of the repository including score and contributing factors',
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
-            const { data: repoRow } = await supabase
-              .from('repositories')
-              .select('id, stargazers_count, forks_count')
-              .eq('owner', owner)
-              .eq('name', repo)
-              .maybeSingle();
-
-            if (!repoRow) {
+            if (!repoId) {
               return { score: 0, factors: [], recommendations: ['Repository not found'] };
             }
 
             const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+            cutoffDate.setDate(cutoffDate.getDate() - timeRange);
             const cutoffIso = cutoffDate.toISOString();
 
             const [prData, recentPRs, openPRs] = await Promise.all([
               supabase
                 .from('pull_requests')
                 .select('state, merged_at, created_at')
-                .eq('repository_id', repoRow.id)
+                .eq('repository_id', repoId)
                 .gte('created_at', cutoffIso),
               supabase
                 .from('pull_requests')
                 .select('created_at')
-                .eq('repository_id', repoRow.id)
+                .eq('repository_id', repoId)
                 .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
               supabase
                 .from('pull_requests')
                 .select('created_at')
-                .eq('repository_id', repoRow.id)
-                .eq('state', 'open'),
+                .eq('repository_id', repoId)
+                .eq('state', 'open')
+                .limit(500),
             ]);
 
             const allPRs = prData.data || [];
@@ -359,25 +391,18 @@ Format your text responses with markdown for readability.`,
             'Get actionable recommendations to improve repository health and contributor experience',
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
-            const { data: repoRow } = await supabase
-              .from('repositories')
-              .select('id')
-              .eq('owner', owner)
-              .eq('name', repo)
-              .maybeSingle();
-
-            if (!repoRow) {
+            if (!repoId) {
               return { recommendations: [] };
             }
 
             const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+            cutoffDate.setDate(cutoffDate.getDate() - timeRange);
             const cutoffIso = cutoffDate.toISOString();
 
             const { data: allPRs } = await supabase
               .from('pull_requests')
               .select('state, merged_at, created_at, additions, deletions')
-              .eq('repository_id', repoRow.id)
+              .eq('repository_id', repoId)
               .gte('created_at', cutoffIso);
 
             const prs = allPRs || [];
@@ -452,17 +477,18 @@ Format your text responses with markdown for readability.`,
       },
       maxSteps: 3,
       headers: tapesHeaders,
+      onError: ({ error }) => {
+        console.error('[chat] streamText error: %s', error);
+      },
     });
 
-    return result.toUIMessageStreamResponse();
+    const response = result.toUIMessageStreamResponse();
+    return applyCorsHeaders(response, req, config);
   } catch (error) {
     console.error('Chat function error:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 };

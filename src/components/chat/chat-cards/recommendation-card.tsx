@@ -19,8 +19,6 @@ const priorityColors: Record<string, string> = {
 
 interface RecommendationCardProps {
   data: RecommendationsData;
-  owner: string;
-  repo: string;
 }
 
 export function RecommendationCard({ data }: RecommendationCardProps) {

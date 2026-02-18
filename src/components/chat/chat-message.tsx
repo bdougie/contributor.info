@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Bot } from '@/components/ui/icon';
+import { Bot, User } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RecommendationCard } from './chat-cards/recommendation-card';
@@ -30,13 +30,7 @@ function ToolResultCard({
 }) {
   switch (toolName) {
     case 'get_recommendations':
-      return (
-        <RecommendationCard
-          data={result as unknown as RecommendationsData}
-          owner={owner}
-          repo={repo}
-        />
-      );
+      return <RecommendationCard data={result as unknown as RecommendationsData} />;
     case 'get_prs_needing_attention':
       return <PrAlertCard data={result as unknown as PrAttentionData} owner={owner} repo={repo} />;
     case 'get_health_assessment':
@@ -65,7 +59,7 @@ export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessage
             isUser ? 'bg-orange-500 text-white' : 'bg-muted text-muted-foreground'
           )}
         >
-          <Bot className="h-4 w-4" />
+          {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
         </div>
       )}
 
@@ -80,7 +74,7 @@ export function ChatMessage({ message, owner, repo, userAvatarUrl }: ChatMessage
           if (part.type === 'text' && part.text.trim()) {
             return (
               <Suspense key={i} fallback={<span>{part.text}</span>}>
-                <div className="prose prose-sm prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                   <ReactMarkdown>{part.text}</ReactMarkdown>
                 </div>
               </Suspense>

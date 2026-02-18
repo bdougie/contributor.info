@@ -62,8 +62,6 @@ export function ChatMessages({
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
-        {messages.length === 0 && !error && !isLoading && <EmptyState owner={owner} repo={repo} />}
-
         {messages.map((message) => (
           <ChatMessage
             key={message.id}
