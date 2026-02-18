@@ -51,8 +51,14 @@ export default async (req: Request, _context: Context) => {
   try {
     const { messages, owner, repo, timeRange = '30' } = await req.json();
 
-    if (!owner || !repo) {
-      return new Response(JSON.stringify({ error: 'owner and repo are required' }), {
+    const GITHUB_NAME_RE = /^[a-zA-Z0-9._-]{1,100}$/;
+    if (
+      typeof owner !== 'string' ||
+      typeof repo !== 'string' ||
+      !GITHUB_NAME_RE.test(owner) ||
+      !GITHUB_NAME_RE.test(repo)
+    ) {
+      return new Response(JSON.stringify({ error: 'Invalid owner or repo format' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
