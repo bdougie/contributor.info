@@ -3,7 +3,14 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
-import * as datapipe from './lib/gh-datapipe-client.mts';
+import type * as DatapipeTypes from './lib/gh-datapipe-client.mts';
+
+let datapipe: typeof DatapipeTypes | null = null;
+try {
+  datapipe = await import('./lib/gh-datapipe-client.mts');
+} catch (err) {
+  console.error('[chat] Failed to load gh-datapipe client: %s', err);
+}
 
 function buildOpenAIProvider() {
   const tapesProxyUrl = process.env.TAPES_PROXY_URL;
@@ -507,7 +514,7 @@ export default async (req: Request, _context: Context) => {
           }),
           execute: async (input: { limit?: number }) => {
             try {
-              if (!datapipe.isConfigured()) {
+              if (!datapipe?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
               const data = await datapipe.getContributors(owner, repo, input.limit ?? 20);
@@ -540,7 +547,7 @@ export default async (req: Request, _context: Context) => {
           inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
           execute: async () => {
             try {
-              if (!datapipe.isConfigured()) {
+              if (!datapipe?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
               const data = await datapipe.getInsights(owner, repo);
@@ -593,7 +600,7 @@ export default async (req: Request, _context: Context) => {
           }),
           execute: async (input: { days?: number }) => {
             try {
-              if (!datapipe.isConfigured()) {
+              if (!datapipe?.isConfigured()) {
                 return { error: 'Contributor analytics not configured' };
               }
               const data = await datapipe.getActivity(owner, repo, input.days ?? 30);
