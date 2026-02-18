@@ -1,6 +1,8 @@
 import type { Context } from '@netlify/functions';
 import { createOpenAI } from '@ai-sdk/openai';
 import {
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   generateText,
   streamText,
   tool,
@@ -661,11 +663,13 @@ export default async (req: Request, _context: Context) => {
       ...messages,
     ];
 
-    // Phase 1: Use generateText to resolve tool calls reliably.
+    // Phase 1: Use generateText with a fast model to resolve tool calls reliably.
     // streamText + maxSteps doesn't complete multi-step on Netlify Functions
     // because the serverless runtime terminates before step 2 begins.
+    // gpt-4o-mini is used here — it's fast/cheap and perfectly capable of
+    // deciding which tools to call and extracting the right parameters.
     const toolResult = await generateText({
-      model: openai('gpt-4.1'),
+      model: openai('gpt-4o-mini'),
       system: buildSystemPrompt(hasDatapipe),
       messages: conversationMessages,
       tools: allTools,
@@ -673,30 +677,30 @@ export default async (req: Request, _context: Context) => {
       headers: tapesHeaders,
     });
 
-    // Phase 2: If the model used tools, stream a final response with tool context.
-    // If no tools were called, stream the text directly.
     const hasToolCalls = toolResult.steps.some((s) => s.toolCalls.length > 0);
 
     if (!hasToolCalls) {
-      // No tools used — stream the same prompt for a text response
-      const result = streamText({
-        model: openai('gpt-4.1'),
-        system: buildSystemPrompt(hasDatapipe),
-        messages: conversationMessages,
-        headers: tapesHeaders,
-      });
-
-      return result.toUIMessageStreamResponse({
-        headers: CORS_HEADERS,
+      // No tools used — serve the already-generated text directly via
+      // createUIMessageStream so we don't waste a second LLM call.
+      const text = toolResult.text;
+      const stream = createUIMessageStream({
+        execute: async ({ writer }) => {
+          writer.write({ type: 'text-start', id: 'text-0' });
+          writer.write({ type: 'text-delta', id: 'text-0', delta: text });
+          writer.write({ type: 'text-end', id: 'text-0' });
+        },
         onError: (error) => {
           const msg = error instanceof Error ? error.message : 'An unknown error occurred';
           console.error('[chat] stream error: %s', msg);
           return msg;
         },
       });
+
+      return createUIMessageStreamResponse({ stream, headers: CORS_HEADERS });
     }
 
-    // Tools were called — stream a response using the full step history
+    // Tools were called — stream a final response with gpt-4.1 for quality,
+    // using the full step history (tool calls + results) as context.
     const result = streamText({
       model: openai('gpt-4.1'),
       system: buildSystemPrompt(hasDatapipe),
