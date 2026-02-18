@@ -90,9 +90,13 @@ async function fetchJson<T>(path: string): Promise<T | null> {
   const config = getConfig();
   if (!config) return null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(`${config.apiUrl}${path}`, {
       method: 'GET',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': config.apiKey,
@@ -108,6 +112,8 @@ async function fetchJson<T>(path: string): Promise<T | null> {
   } catch (error) {
     console.error('[gh-datapipe] fetch error for %s: %s', path, error);
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
