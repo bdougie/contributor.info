@@ -3,6 +3,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool, convertToModelMessages, jsonSchema } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
+import * as datapipe from './lib/gh-datapipe-client.mts';
 
 function buildOpenAIProvider() {
   const tapesProxyUrl = process.env.TAPES_PROXY_URL;
@@ -37,11 +38,15 @@ You can answer questions about these topics using your tools:
 - **Pull requests needing attention**: open PRs ranked by urgency based on age and size
 - **Repository health score**: an assessment based on merge times, activity levels, and stale PRs
 - **Actionable recommendations**: suggestions to improve repo health and contributor experience
+- **Contributor rankings**: top contributors ranked by quality score, with confidence and activity breakdowns
+- **Lottery factor**: how concentrated contributions are among top contributors, plus contributor of the month
+- **Activity feed**: daily breakdown of PRs opened/merged, reviews, and issues
 
-When users ask about topics outside these capabilities (e.g. individual contributor stats, commit history, or specific code changes), be honest that you cannot look that up yet and suggest three things you *can* help with as brief, natural-language example questions they can try. For example:
+When users ask about topics outside these capabilities (e.g. commit history or specific code changes), be honest that you cannot look that up yet and suggest three things you *can* help with as brief, natural-language example questions they can try. For example:
+- "Who are the top contributors?"
+- "What's the lottery factor?"
+- "How active is this repo?"
 - "Which PRs need attention right now?"
-- "How healthy is this repo?"
-- "What can we do to improve?"
 
 When users ask questions within your capabilities, use the available tools to fetch real data.
 Keep responses concise and actionable. Use the tool results to provide data-backed answers.
@@ -485,6 +490,117 @@ export default async (req: Request, _context: Context) => {
             });
 
             return { recommendations: recommendations.slice(0, 4) };
+          },
+        }),
+
+        get_contributor_rankings: tool({
+          description:
+            'Get top contributors ranked by quality score with confidence and activity breakdowns',
+          inputSchema: jsonSchema({
+            type: 'object' as const,
+            properties: {
+              limit: {
+                type: 'number' as const,
+                description: 'Max contributors to return (default 20)',
+              },
+            },
+          }),
+          execute: async (input: { limit?: number }) => {
+            if (!datapipe.isConfigured()) {
+              return { error: 'Contributor analytics not configured' };
+            }
+            const data = await datapipe.getContributors(owner, repo, input.limit ?? 20);
+            if (!data) {
+              return { error: 'Could not reach analytics service' };
+            }
+            return {
+              repository: data.repository,
+              total: data.total,
+              contributors: data.contributors.map((c) => ({
+                login: c.login,
+                qualityScore: c.contribution_quality,
+                confidenceScore: c.confidence_score,
+                prsOpened: c.activity.prs_opened,
+                prsMerged: c.activity.prs_merged,
+                reviewsGiven: c.activity.reviews_given,
+                issuesOpened: c.activity.issues_opened,
+              })),
+            };
+          },
+        }),
+
+        get_lottery_factor: tool({
+          description:
+            'Get lottery factor rankings showing contribution concentration, plus contributor of the month and health trending score',
+          inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
+          execute: async () => {
+            if (!datapipe.isConfigured()) {
+              return { error: 'Contributor analytics not configured' };
+            }
+            const data = await datapipe.getInsights(owner, repo);
+            if (!data) {
+              return { error: 'Could not reach analytics service' };
+            }
+            return {
+              repository: data.repository,
+              calculatedAt: data.calculated_at,
+              health: data.health
+                ? {
+                    trendingScore: data.health.trending_score,
+                    freshnessStatus: data.health.freshness_status,
+                    isSignificantChange: data.health.is_significant_change,
+                  }
+                : null,
+              lotteryFactor: data.lottery_factor
+                ? data.lottery_factor.top_contributors.map((c) => ({
+                    login: c.login,
+                    weightedScore: c.weighted_score,
+                    rank: c.rank,
+                  }))
+                : null,
+              contributorOfMonth: data.contributor_of_month
+                ? {
+                    login: data.contributor_of_month.login,
+                    score: data.contributor_of_month.score,
+                    month: data.contributor_of_month.month,
+                  }
+                : null,
+            };
+          },
+        }),
+
+        get_activity_feed: tool({
+          description:
+            'Get daily activity breakdown including PRs opened/merged, reviews, and issues for a repository',
+          inputSchema: jsonSchema({
+            type: 'object' as const,
+            properties: {
+              days: {
+                type: 'number' as const,
+                description: 'Number of days of activity (default 30)',
+              },
+            },
+          }),
+          execute: async (input: { days?: number }) => {
+            if (!datapipe.isConfigured()) {
+              return { error: 'Contributor analytics not configured' };
+            }
+            const data = await datapipe.getActivity(owner, repo, input.days ?? 30);
+            if (!data) {
+              return { error: 'Could not reach analytics service' };
+            }
+            return {
+              repository: data.repository,
+              days: data.days,
+              activity: data.activity.map((d) => ({
+                date: d.date,
+                prsOpened: d.prs_opened,
+                prsMerged: d.prs_merged,
+                reviews: d.reviews,
+                issuesOpened: d.issues_opened,
+                issuesClosed: d.issues_closed,
+              })),
+            };
           },
         }),
       },
