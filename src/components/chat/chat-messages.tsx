@@ -11,6 +11,7 @@ interface ChatMessagesProps {
   isLoading: boolean;
   userAvatarUrl?: string;
   error?: Error | null;
+  lastErrorMessage?: string | null;
 }
 
 function EmptyState({ owner, repo }: { owner: string; repo: string }) {
@@ -48,6 +49,7 @@ export function ChatMessages({
   isLoading,
   userAvatarUrl,
   error,
+  lastErrorMessage,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -62,15 +64,20 @@ export function ChatMessages({
   return (
     <ScrollArea className="flex-1 min-h-0">
       <div className="space-y-4 p-4">
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            message={message}
-            owner={owner}
-            repo={repo}
-            userAvatarUrl={userAvatarUrl}
-          />
-        ))}
+        {messages.map((message, idx) => {
+          const isLastMessage = idx === messages.length - 1;
+          return (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              owner={owner}
+              repo={repo}
+              userAvatarUrl={userAvatarUrl}
+              isStreaming={isLoading && isLastMessage && message.role === 'assistant'}
+              errorMessage={isLastMessage && !isLoading ? lastErrorMessage : undefined}
+            />
+          );
+        })}
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 text-sm text-red-400">
@@ -80,9 +87,9 @@ export function ChatMessages({
 
         {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
           <div className="flex gap-2">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-muted-foreground/50 animate-pulse" />
-            </div>
+            <span className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-lg leading-none">
+              🌱
+            </span>
             <div className="bg-muted rounded-lg px-3 py-2">
               <div className="flex gap-1">
                 <div
