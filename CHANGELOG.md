@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.51.1](https://github.com/bdougie/contributor.info/compare/v4.51.0...v4.51.1) (2026-02-18)
+
+
+### 🐛 Bug Fixes
+
+* optimize chat tool routing and improve loading UX ([#1672](https://github.com/bdougie/contributor.info/issues/1672)) ([3155167](https://github.com/bdougie/contributor.info/commit/3155167b39a65b20d354174fc2395210425c9572))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([23a8da3](https://github.com/bdougie/contributor.info/commit/23a8da3538561a2945f4f656db4ac5c2385cc09c))
+
 ## [4.51.0](https://github.com/bdougie/contributor.info/compare/v4.50.0...v4.51.0) (2026-02-18)
 
 
