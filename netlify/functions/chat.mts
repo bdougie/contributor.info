@@ -634,7 +634,7 @@ export default async (req: Request, _context: Context) => {
           },
         }),
       },
-      maxSteps: 3,
+      maxSteps: 5,
       headers: tapesHeaders,
       onError: ({ error }) => {
         console.error('[chat] streamText error: %s', error);
