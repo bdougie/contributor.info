@@ -11,15 +11,38 @@ describe('cn function', () => {
 });
 
 describe('humanizeNumber function', () => {
-  it('should format numbers correctly', () => {
+  it('should return 0 for zero', () => {
     expect(humanizeNumber(0)).toBe('0');
+  });
+
+  it('should return raw number below 1000', () => {
+    expect(humanizeNumber(5)).toBe('5');
     expect(humanizeNumber(999)).toBe('999');
+  });
+
+  it('should format thousands with decimal precision', () => {
     expect(humanizeNumber(1000)).toBe('1K');
-    expect(humanizeNumber(1500)).toBe('2K');
-    expect(humanizeNumber(999999)).toBe('1000K');
+    expect(humanizeNumber(1500)).toBe('1.5K');
+    expect(humanizeNumber(9999)).toBe('10K');
+    expect(humanizeNumber(25000)).toBe('25K');
+  });
+
+  it('should roll over to next unit at boundary', () => {
+    expect(humanizeNumber(999999)).toBe('1M');
+    expect(humanizeNumber(999999999)).toBe('1B');
+  });
+
+  it('should format millions and above', () => {
     expect(humanizeNumber(1000000)).toBe('1M');
-    expect(humanizeNumber(1500000)).toBe('2M');
+    expect(humanizeNumber(1500000)).toBe('1.5M');
     expect(humanizeNumber(1000000000)).toBe('1B');
+    expect(humanizeNumber(2500000000000)).toBe('2.5T');
+  });
+
+  it('should handle negative numbers', () => {
+    expect(humanizeNumber(-500)).toBe('-500');
+    expect(humanizeNumber(-1500)).toBe('-1.5K');
+    expect(humanizeNumber(-1000000)).toBe('-1M');
   });
 });
 
