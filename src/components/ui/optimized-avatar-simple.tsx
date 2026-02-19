@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   optimizeAvatarUrl,
@@ -106,10 +106,8 @@ export function OptimizedAvatarSimple({
   const fallbackRenderer =
     renderFallback || ((props) => <div className={props.className}>{props.children}</div>);
 
-  // Determine loading strategy - priority always wins, otherwise respect lazy prop
-  // If lazy is explicitly false, use eager loading (unless priority overrides it, which is also eager)
-  // If lazy is true (default), use lazy loading
-  const loadingAttribute = priority ? 'eager' : (lazy ? 'lazy' : 'eager');
+  // Use eager loading unless lazy is true and priority is not set
+  const loadingAttribute: 'eager' | 'lazy' = lazy && !priority ? 'lazy' : 'eager';
 
   return avatarRenderer({
     ref: imgRef,

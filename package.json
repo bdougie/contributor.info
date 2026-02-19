@@ -1,7 +1,7 @@
 {
   "name": "contributor-info",
   "private": true,
-  "version": "4.52.0",
+  "version": "4.53.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -104,7 +104,7 @@
     "@ai-sdk/openai": "^3.0.29",
     "@ai-sdk/react": "^3.0.91",
     "@hookform/resolvers": "^3.9.0",
-    "@netlify/functions": "^4.2.5",
+    "@netlify/functions": "^5.1.2",
     "@nivo/scatterplot": "^0.99.0",
     "@octokit/auth-app": "^8.0.2",
     "@octokit/graphql": "^9.0.1",

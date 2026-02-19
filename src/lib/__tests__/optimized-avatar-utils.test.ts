@@ -4,8 +4,6 @@ import {
   generateFallbackText,
   getAvatarSizeConfig,
   getFallbackTextSize,
-  shouldLoadImmediately,
-  getLoadingAttribute,
 } from '../optimized-avatar-utils';
 
 describe('optimizeAvatarUrl', () => {
@@ -165,30 +163,5 @@ describe('getFallbackTextSize', () => {
     expect(getFallbackTextSize(80)).toBe('text-base');
     expect(getFallbackTextSize(96)).toBe('text-base');
     expect(getFallbackTextSize(128)).toBe('text-base');
-  });
-});
-
-describe('shouldLoadImmediately', () => {
-  it('returns true when lazy is false', () => {
-    expect(shouldLoadImmediately(false, false)).toBe(true);
-    expect(shouldLoadImmediately(false, true)).toBe(true);
-  });
-
-  it('returns true when priority is true', () => {
-    expect(shouldLoadImmediately(true, true)).toBe(true);
-  });
-
-  it('returns false when lazy is true and priority is false', () => {
-    expect(shouldLoadImmediately(true, false)).toBe(false);
-  });
-});
-
-describe('getLoadingAttribute', () => {
-  it('returns eager when priority is true', () => {
-    expect(getLoadingAttribute(true)).toBe('eager');
-  });
-
-  it('returns lazy when priority is false', () => {
-    expect(getLoadingAttribute(false)).toBe('lazy');
   });
 });

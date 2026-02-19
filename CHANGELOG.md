@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.53.0](https://github.com/bdougie/contributor.info/compare/v4.52.0...v4.53.0) (2026-02-19)
+
+
+### 🚀 Features
+
+* connect vector search to chat for RAG context ([#1674](https://github.com/bdougie/contributor.info/issues/1674)) ([63afb47](https://github.com/bdougie/contributor.info/commit/63afb47272323f0358bc0d5f3c619b61433c273b))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([9becba8](https://github.com/bdougie/contributor.info/commit/9becba824686b17c46c57e371224fa0308d6a2ad))
+* upgrade @netlify/functions from v4.3.0 to v5.1.2 ([#1678](https://github.com/bdougie/contributor.info/issues/1678)) ([2a0850b](https://github.com/bdougie/contributor.info/commit/2a0850b5ef765b0f5f051092e60ebdce0cefea36))
+
 ## [4.52.0](https://github.com/bdougie/contributor.info/compare/v4.51.1...v4.52.0) (2026-02-19)
 
 
