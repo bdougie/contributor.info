@@ -965,6 +965,11 @@ export default async (req: Request, _context: Context) => {
               });
             }
             for (const tr of step.toolResults) {
+              // Skip error results — the LLM text summary already describes the failure
+              const output = tr.output as Record<string, unknown> | undefined;
+              if (output && typeof output === 'object' && 'error' in output) {
+                continue;
+              }
               writer.write({
                 type: 'tool-output-available',
                 toolCallId: tr.toolCallId,

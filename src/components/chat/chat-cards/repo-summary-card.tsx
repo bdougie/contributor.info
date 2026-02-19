@@ -8,6 +8,14 @@ interface RepoSummaryCardProps {
 }
 
 export function RepoSummaryCard({ data }: RepoSummaryCardProps) {
+  if ('error' in data || data.stars == null) {
+    return (
+      <Card className="p-3 bg-muted/50 border-border">
+        <p className="text-sm text-muted-foreground">Repository summary unavailable.</p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-4 border-orange-200 dark:border-orange-800 bg-orange-50/30 dark:bg-orange-950/20">
       <div className="space-y-3">
