@@ -14,6 +14,7 @@ import type {
   HealthAssessmentData,
   RepoSummaryData,
   ContributorRankingsData,
+  ToolResultData,
 } from './types';
 
 const ReactMarkdown = lazy(() => import('react-markdown'));
@@ -34,21 +35,21 @@ function ToolResultCard({
   repo,
 }: {
   toolName: string;
-  result: Record<string, unknown>;
+  result: ToolResultData;
   owner: string;
   repo: string;
 }) {
   switch (toolName) {
     case 'get_recommendations':
-      return <RecommendationCard data={result as unknown as RecommendationsData} />;
+      return <RecommendationCard data={result as RecommendationsData} />;
     case 'get_prs_needing_attention':
-      return <PrAlertCard data={result as unknown as PrAttentionData} owner={owner} repo={repo} />;
+      return <PrAlertCard data={result as PrAttentionData} owner={owner} repo={repo} />;
     case 'get_health_assessment':
-      return <HealthCard data={result as unknown as HealthAssessmentData} />;
+      return <HealthCard data={result as HealthAssessmentData} />;
     case 'get_repo_summary':
-      return <RepoSummaryCard data={result as unknown as RepoSummaryData} />;
+      return <RepoSummaryCard data={result as RepoSummaryData} />;
     case 'get_contributor_rankings':
-      return <ContributorRankingsCard data={result as unknown as ContributorRankingsData} />;
+      return <ContributorRankingsCard data={result as ContributorRankingsData} />;
     default:
       return null;
   }
@@ -143,7 +144,7 @@ export function ChatMessage({
                 <div key={i} className="mt-2">
                   <ToolResultCard
                     toolName={part.toolName}
-                    result={part.output as Record<string, unknown>}
+                    result={part.output as ToolResultData}
                     owner={owner}
                     repo={repo}
                   />

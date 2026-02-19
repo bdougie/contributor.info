@@ -72,3 +72,18 @@ export interface ContributorRankingsData {
   total: number;
   contributors: ContributorData[];
 }
+
+export type ToolResultData =
+  | RecommendationsData
+  | PrAttentionData
+  | HealthAssessmentData
+  | RepoSummaryData
+  | ContributorRankingsData;
+
+export const EXAMPLE_QUESTIONS = [
+  'Give me an overview of this repo',
+  'Which PRs need attention right now?',
+  'How healthy is this repository?',
+  'What recommendations do you have?',
+  'Who are the top contributors?',
+] as const;

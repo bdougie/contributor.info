@@ -939,15 +939,19 @@ export default async (req: Request, _context: Context) => {
 
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
-        // Stream the LLM's text summary first
+        // Stream the LLM's text summary first.
+        // Single text part per response — hardcoded ID is intentional.
         writer.write({ type: 'text-start', id: 'text-0' });
         for await (const chunk of textResult.textStream) {
           writer.write({ type: 'text-delta', id: 'text-0', delta: chunk });
         }
         writer.write({ type: 'text-end', id: 'text-0' });
 
-        // Then emit tool events from phase 1 so the client creates
+        // Emit tool events from phase 1 so the client creates
         // dynamic-tool parts and renders rich UI cards.
+        // These arrive after text-end, so cards "pop in" after the summary.
+        // The AI SDK stream protocol doesn't support interleaving tool
+        // events mid-text, so this ordering is a known trade-off.
         // Wrapped in try-catch so a serialisation failure doesn't
         // discard the already-streamed text summary.
         try {

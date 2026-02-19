@@ -3,6 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Star } from '@/components/ui/icon';
 import { ChatMessage } from './chat-message';
 import type { UIMessage } from '@ai-sdk/react';
+import { EXAMPLE_QUESTIONS } from './types';
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -14,14 +15,6 @@ interface ChatMessagesProps {
   lastErrorMessage?: string | null;
   onExampleClick?: (question: string) => void;
 }
-
-const exampleQuestions = [
-  'Give me an overview of this repo',
-  'Which PRs need attention right now?',
-  'How healthy is this repository?',
-  'What recommendations do you have?',
-  'Who are the top contributors?',
-];
 
 function EmptyState({
   owner,
@@ -43,7 +36,7 @@ function EmptyState({
             Ask anything about {owner}/{repo}
           </h3>
           <div className="flex flex-wrap justify-center gap-2">
-            {exampleQuestions.map((question) => (
+            {EXAMPLE_QUESTIONS.map((question) => (
               <button
                 key={question}
                 type="button"

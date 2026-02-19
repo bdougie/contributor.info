@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Trophy, GitPullRequest, Eye } from '@/components/ui/icon';
+import { Trophy, GitPullRequest, Eye, User } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import type { ContributorRankingsData } from '../types';
 
@@ -12,6 +13,28 @@ function getRankStyle(rank: number): string {
 
 interface ContributorRankingsCardProps {
   data: ContributorRankingsData;
+}
+
+function ContributorAvatar({ login }: { login: string }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="w-5 h-5 rounded-full shrink-0 bg-muted flex items-center justify-center">
+        <User className="h-3 w-3 text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`https://github.com/${encodeURIComponent(login)}.png?size=40`}
+      alt={login}
+      className="w-5 h-5 rounded-full shrink-0"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export function ContributorRankingsCard({ data }: ContributorRankingsCardProps) {
@@ -28,17 +51,12 @@ export function ContributorRankingsCard({ data }: ContributorRankingsCardProps) 
   return (
     <div className="space-y-1.5">
       {shown.map((contributor, i) => (
-        <Card key={contributor.login} className="p-2.5 hover:shadow-sm transition-shadow">
+        <Card key={`${contributor.login}-${i}`} className="p-2.5 hover:shadow-sm transition-shadow">
           <div className="flex items-center gap-2">
             <span className={cn('text-sm font-bold w-5 text-center shrink-0', getRankStyle(i))}>
               {i < 3 ? <Trophy className="h-3.5 w-3.5 inline" /> : `${i + 1}`}
             </span>
-            <img
-              src={`https://github.com/${contributor.login}.png?size=40`}
-              alt={contributor.login}
-              className="w-5 h-5 rounded-full shrink-0"
-              loading="lazy"
-            />
+            <ContributorAvatar login={contributor.login} />
             <span className="text-xs font-medium truncate flex-1">{contributor.login}</span>
             <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
               <span className="flex items-center gap-0.5" title="PRs merged">
