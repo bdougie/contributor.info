@@ -102,22 +102,3 @@ export function getFallbackTextSize(size: number): string {
   if (size >= 80) return 'text-base';
   return 'text-sm';
 }
-
-/**
- * Determine if avatar should load immediately
- * @param lazy - Whether lazy loading is enabled
- * @param priority - Whether this is a priority image
- * @returns Whether to load immediately
- */
-export function shouldLoadImmediately(lazy: boolean, priority: boolean): boolean {
-  return !lazy || priority;
-}
-
-/**
- * Get loading attribute for image element
- * @param priority - Whether this is a priority image
- * @returns 'eager' or 'lazy' loading attribute
- */
-export function getLoadingAttribute(priority: boolean): 'eager' | 'lazy' {
-  return priority ? 'eager' : 'lazy';
-}
