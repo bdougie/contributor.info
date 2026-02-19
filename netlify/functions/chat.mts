@@ -928,21 +928,53 @@ export default async (req: Request, _context: Context) => {
 
     // Tools were called — stream a final response with gpt-4.1 for quality,
     // using the full step history (tool calls + results) as context.
-    const result = streamText({
+    // We also emit tool-call/tool-result events so the client can render
+    // rich cards alongside the streamed text summary.
+    const textResult = streamText({
       model: openai('gpt-4.1'),
       system: systemPrompt,
       messages: [...conversationMessages, ...toolResult.response.messages],
       headers: tapesHeaders,
     });
 
-    return result.toUIMessageStreamResponse({
-      headers: CORS_HEADERS,
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        // Stream the LLM's text summary first
+        writer.write({ type: 'text-start', id: 'text-0' });
+        for await (const chunk of textResult.textStream) {
+          writer.write({ type: 'text-delta', id: 'text-0', delta: chunk });
+        }
+        writer.write({ type: 'text-end', id: 'text-0' });
+
+        // Then emit tool events from phase 1 so the client creates
+        // dynamic-tool parts and renders rich UI cards.
+        for (const step of toolResult.steps) {
+          for (const tc of step.toolCalls) {
+            writer.write({
+              type: 'tool-input-start',
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName as string,
+              dynamic: true,
+            });
+          }
+          for (const tr of step.toolResults) {
+            writer.write({
+              type: 'tool-output-available',
+              toolCallId: tr.toolCallId,
+              output: tr.output,
+              dynamic: true,
+            });
+          }
+        }
+      },
       onError: (error) => {
         const msg = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error('[chat] stream error: %s', msg);
         return msg;
       },
     });
+
+    return createUIMessageStreamResponse({ stream, headers: CORS_HEADERS });
   } catch (error) {
     console.error('Chat function error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
