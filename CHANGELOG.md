@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.55.0](https://github.com/bdougie/contributor.info/compare/v4.54.0...v4.55.0) (2026-02-19)
+
+
+### 🚀 Features
+
+* add clickable example questions to StarSearch chat ([#1680](https://github.com/bdougie/contributor.info/issues/1680)) ([ed06511](https://github.com/bdougie/contributor.info/commit/ed065117cdb713429021668da9f51a986484048e))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([6d78120](https://github.com/bdougie/contributor.info/commit/6d781203621ebe64ca934f7086580be82256a649))
+
 ## [4.54.0](https://github.com/bdougie/contributor.info/compare/v4.53.0...v4.54.0) (2026-02-19)
 
 
