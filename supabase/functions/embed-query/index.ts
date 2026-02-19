@@ -35,10 +35,11 @@ serve(async (req) => {
     );
   }
 
-  // Require service_role key via Authorization header
+  // Require service_role key via Authorization header (exact match)
   const authHeader = req.headers.get('authorization') || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  if (!serviceKey || !authHeader.includes(serviceKey)) {
+  if (!serviceKey || token !== serviceKey) {
     return new Response(
       JSON.stringify({ error: 'Unauthorized' }),
       { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
