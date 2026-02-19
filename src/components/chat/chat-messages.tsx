@@ -47,7 +47,7 @@ function EmptyState({
               <button
                 key={question}
                 type="button"
-                className="text-xs rounded-full border border-border px-3 py-1.5 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors text-left text-muted-foreground"
+                className="text-xs rounded-lg bg-muted/60 border border-border px-3 py-2 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors text-left text-muted-foreground"
                 onClick={() => onExampleClick?.(question)}
               >
                 {question}
