@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.54.0](https://github.com/bdougie/contributor.info/compare/v4.53.0...v4.54.0) (2026-02-19)
+
+
+### 🚀 Features
+
+* enrich RAG context with body preview, author, and timestamps ([#1677](https://github.com/bdougie/contributor.info/issues/1677)) ([#1679](https://github.com/bdougie/contributor.info/issues/1679)) ([59d4299](https://github.com/bdougie/contributor.info/commit/59d4299700558ae8c56efdddb1c8bab997be5a9d))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([55dec5c](https://github.com/bdougie/contributor.info/commit/55dec5c8a13269f1204ee666493ee4b8da5ea649))
+
 ## [4.53.0](https://github.com/bdougie/contributor.info/compare/v4.52.0...v4.53.0) (2026-02-19)
 
 
