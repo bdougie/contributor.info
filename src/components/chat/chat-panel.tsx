@@ -137,6 +137,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
               userAvatarUrl={userAvatarUrl}
               error={error}
               lastErrorMessage={lastError}
+              onExampleClick={isAuthenticated ? handleSendMessage : undefined}
             />
           </div>
           {isAuthenticated ? (
@@ -225,6 +226,8 @@ export function ChatPanel({ className }: ChatPanelProps) {
             isLoading={isLoading}
             userAvatarUrl={userAvatarUrl}
             error={error}
+            lastErrorMessage={lastError}
+            onExampleClick={isAuthenticated ? handleSendMessage : undefined}
           />
           {isAuthenticated ? (
             <ChatInput onSubmit={handleSendMessage} isLoading={isLoading} onStop={stop} />

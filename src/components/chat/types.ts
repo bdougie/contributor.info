@@ -46,3 +46,44 @@ export interface RecommendationData {
 export interface RecommendationsData {
   recommendations: RecommendationData[];
 }
+
+export interface RepoSummaryData {
+  description: string | null;
+  stars: number;
+  forks: number;
+  language: string | null;
+  openIssues: number;
+  recentPRs: number;
+  timeRangeDays: number;
+}
+
+export interface ContributorData {
+  login: string;
+  qualityScore: number;
+  confidenceScore: number;
+  prsOpened: number;
+  prsMerged: number;
+  reviewsGiven: number;
+  issuesOpened: number;
+}
+
+export interface ContributorRankingsData {
+  repository: string;
+  total: number;
+  contributors: ContributorData[];
+}
+
+export type ToolResultData =
+  | RecommendationsData
+  | PrAttentionData
+  | HealthAssessmentData
+  | RepoSummaryData
+  | ContributorRankingsData;
+
+export const EXAMPLE_QUESTIONS = [
+  'Give me an overview of this repo',
+  'Which PRs need attention right now?',
+  'How healthy is this repository?',
+  'What recommendations do you have?',
+  'Who are the top contributors?',
+] as const;

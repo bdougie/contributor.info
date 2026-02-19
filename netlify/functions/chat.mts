@@ -369,7 +369,7 @@ export default async (req: Request, _context: Context) => {
           const { data: openPRs } = await supabase
             .from('pull_requests')
             .select(
-              'id, number, title, state, created_at, updated_at, additions, deletions, contributors!inner(username, avatar_url)'
+              'id, number, title, state, created_at, updated_at, additions, deletions, author:contributors!pull_requests_author_id_fkey(username, avatar_url)'
             )
             .eq('repository_id', repoId)
             .eq('state', 'open')
@@ -423,11 +423,11 @@ export default async (req: Request, _context: Context) => {
               else if (urgencyScore >= 50) urgency = 'high';
               else if (urgencyScore >= 30) urgency = 'medium';
 
-              const contributors = pr.contributors as Array<{
+              const prAuthor = pr.author as {
                 username: string;
                 avatar_url: string;
-              }>;
-              const author = contributors?.[0]?.username || 'unknown';
+              } | null;
+              const author = prAuthor?.username || 'unknown';
 
               return {
                 number: pr.number,
@@ -928,21 +928,68 @@ export default async (req: Request, _context: Context) => {
 
     // Tools were called — stream a final response with gpt-4.1 for quality,
     // using the full step history (tool calls + results) as context.
-    const result = streamText({
+    // We also emit tool-call/tool-result events so the client can render
+    // rich cards alongside the streamed text summary.
+    const textResult = streamText({
       model: openai('gpt-4.1'),
       system: systemPrompt,
       messages: [...conversationMessages, ...toolResult.response.messages],
       headers: tapesHeaders,
     });
 
-    return result.toUIMessageStreamResponse({
-      headers: CORS_HEADERS,
+    const stream = createUIMessageStream({
+      execute: async ({ writer }) => {
+        // Stream the LLM's text summary first.
+        // Single text part per response — hardcoded ID is intentional.
+        writer.write({ type: 'text-start', id: 'text-0' });
+        for await (const chunk of textResult.textStream) {
+          writer.write({ type: 'text-delta', id: 'text-0', delta: chunk });
+        }
+        writer.write({ type: 'text-end', id: 'text-0' });
+
+        // Emit tool events from phase 1 so the client creates
+        // dynamic-tool parts and renders rich UI cards.
+        // These arrive after text-end, so cards "pop in" after the summary.
+        // The AI SDK stream protocol doesn't support interleaving tool
+        // events mid-text, so this ordering is a known trade-off.
+        // Wrapped in try-catch so a serialisation failure doesn't
+        // discard the already-streamed text summary.
+        try {
+          for (const step of toolResult.steps) {
+            for (const tc of step.toolCalls) {
+              writer.write({
+                type: 'tool-input-start',
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName as string,
+                dynamic: true,
+              });
+            }
+            for (const tr of step.toolResults) {
+              // Skip error results — the LLM text summary already describes the failure
+              const output = tr.output as Record<string, unknown> | undefined;
+              if (output && typeof output === 'object' && 'error' in output) {
+                continue;
+              }
+              writer.write({
+                type: 'tool-output-available',
+                toolCallId: tr.toolCallId,
+                output: tr.output,
+                dynamic: true,
+              });
+            }
+          }
+        } catch (toolEventErr) {
+          console.error('[chat] Failed to emit tool events: %s', toolEventErr);
+        }
+      },
       onError: (error) => {
         const msg = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error('[chat] stream error: %s', msg);
         return msg;
       },
     });
+
+    return createUIMessageStreamResponse({ stream, headers: CORS_HEADERS });
   } catch (error) {
     console.error('Chat function error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

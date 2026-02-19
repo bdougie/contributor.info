@@ -3,6 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Star } from '@/components/ui/icon';
 import { ChatMessage } from './chat-message';
 import type { UIMessage } from '@ai-sdk/react';
+import { EXAMPLE_QUESTIONS } from './types';
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -12,9 +13,18 @@ interface ChatMessagesProps {
   userAvatarUrl?: string;
   error?: Error | null;
   lastErrorMessage?: string | null;
+  onExampleClick?: (question: string) => void;
 }
 
-function EmptyState({ owner, repo }: { owner: string; repo: string }) {
+function EmptyState({
+  owner,
+  repo,
+  onExampleClick,
+}: {
+  owner: string;
+  repo: string;
+  onExampleClick?: (question: string) => void;
+}) {
   return (
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="text-center max-w-[280px] space-y-4">
@@ -25,12 +35,18 @@ function EmptyState({ owner, repo }: { owner: string; repo: string }) {
           <h3 className="text-sm font-medium text-foreground">
             Ask anything about {owner}/{repo}
           </h3>
-          <ul className="text-xs text-muted-foreground space-y-1.5 text-left">
-            <li>Get a quick repo overview</li>
-            <li>Find PRs that need attention</li>
-            <li>Check repository health scores</li>
-            <li>Get actionable recommendations</li>
-          </ul>
+          <div className="flex flex-wrap justify-center gap-2">
+            {EXAMPLE_QUESTIONS.map((question) => (
+              <button
+                key={question}
+                type="button"
+                className="text-xs rounded-lg bg-muted/60 border border-border px-3 py-2 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors text-left text-muted-foreground"
+                onClick={() => onExampleClick?.(question)}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="rounded-md bg-muted/50 border border-border px-3 py-2">
           <p className="text-[11px] text-muted-foreground">
@@ -50,6 +66,7 @@ export function ChatMessages({
   userAvatarUrl,
   error,
   lastErrorMessage,
+  onExampleClick,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +75,7 @@ export function ChatMessages({
   }, [messages, isLoading]);
 
   if (messages.length === 0 && !isLoading && !error) {
-    return <EmptyState owner={owner} repo={repo} />;
+    return <EmptyState owner={owner} repo={repo} onExampleClick={onExampleClick} />;
   }
 
   return (
