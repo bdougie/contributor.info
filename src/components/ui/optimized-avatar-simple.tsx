@@ -1,11 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   optimizeAvatarUrl,
   generateFallbackText,
   getAvatarSizeConfig,
   getFallbackTextSize,
-  shouldLoadImmediately,
   getLoadingAttribute,
 } from '@/lib/optimized-avatar-utils';
 
@@ -58,45 +57,14 @@ export function OptimizedAvatarSimple({
   renderFallback,
 }: OptimizedAvatarSimpleProps) {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [shouldLoad, setShouldLoad] = useState(shouldLoadImmediately(lazy, priority));
   const [error, setError] = useState(false);
-  const imgRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLDivElement>(null); // Keep ref for compatibility with renderAvatar prop
 
   // Optimize the avatar URL
   const optimizedSrc = optimizeAvatarUrl(src, size);
 
   // Get size configuration
   const sizeConfig = getAvatarSizeConfig(size);
-
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    if (!lazy || priority || shouldLoad) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setShouldLoad(true);
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        rootMargin: '50px', // Start loading 50px before entering viewport
-      }
-    );
-
-    const currentRef = imgRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [lazy, priority, shouldLoad]);
 
   const handleLoad = () => {
     setIsLoaded(true);
@@ -149,8 +117,7 @@ export function OptimizedAvatarSimple({
     style: sizeConfig.style,
     children: (
       <>
-        {shouldLoad &&
-          optimizedSrc &&
+        {optimizedSrc &&
           !error &&
           imageRenderer({
             src: optimizedSrc,
@@ -169,7 +136,10 @@ export function OptimizedAvatarSimple({
           className: cn(
             'flex h-full w-full items-center justify-center rounded-full bg-muted text-sm font-medium',
             fallbackTextSize,
-            !shouldLoad || error || !isLoaded ? 'opacity-100' : 'opacity-0'
+            // Show fallback if image is not loaded or has error
+            // With loading="lazy", image starts loading when near viewport
+            // Until then, isLoaded is false, so fallback is visible
+            !isLoaded || error ? 'opacity-100' : 'opacity-0'
           ),
           children: fallbackText,
         })}

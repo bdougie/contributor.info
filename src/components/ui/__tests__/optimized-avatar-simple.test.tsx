@@ -1,56 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { OptimizedAvatarSimple } from '../optimized-avatar-simple';
-
-// Mock IntersectionObserver
-class MockIntersectionObserver {
-  callback: IntersectionObserverCallback;
-  elements: Set<Element> = new Set();
-
-  constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback;
-  }
-
-  observe(element: Element) {
-    this.elements.add(element);
-  }
-
-  unobserve(element: Element) {
-    this.elements.delete(element);
-  }
-
-  disconnect() {
-    this.elements.clear();
-  }
-
-  // Trigger intersection for testing
-  triggerIntersection(isIntersecting: boolean) {
-    const entries = Array.from(this.elements).map((element) => ({
-      isIntersecting,
-      target: element,
-      intersectionRatio: isIntersecting ? 1 : 0,
-      boundingClientRect: {} as DOMRectReadOnly,
-      intersectionRect: {} as DOMRectReadOnly,
-      rootBounds: null,
-      time: Date.now(),
-    }));
-    this.callback(entries, this as any);
-  }
-}
-
-let mockObserver: MockIntersectionObserver | null = null;
-
-beforeEach(() => {
-  global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
-    mockObserver = new MockIntersectionObserver(callback);
-    return mockObserver;
-  }) as any;
-});
-
-afterEach(() => {
-  mockObserver = null;
-});
 
 describe('OptimizedAvatarSimple - Rendering', () => {
   it('renders with basic props', () => {
@@ -148,9 +99,13 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
       <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Loading User" lazy={false} />
     );
 
-    // Fallback should be visible initially
+    // Fallback should be visible initially (opacity-100)
     expect(screen.getByText('LU')).toBeInTheDocument();
     expect(screen.getByText('LU')).toHaveClass('opacity-100');
+
+    // Image should also be present but invisible (opacity-0)
+    const img = screen.getByRole('img');
+    expect(img).toHaveClass('opacity-0');
   });
 
   it('hides fallback after image loads', () => {
@@ -163,20 +118,26 @@ describe('OptimizedAvatarSimple - Image Loading', () => {
 
     // Fallback should be hidden after load
     expect(screen.getByText('SU')).toHaveClass('opacity-0');
+    // Image should be visible
+    expect(img).toHaveClass('opacity-100');
   });
 });
 
 describe('OptimizedAvatarSimple - Lazy Loading', () => {
-  it('does not render image initially when lazy is true', () => {
+  it('renders image immediately with loading="lazy" when lazy is true', () => {
     render(
       <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Lazy User" lazy={true} />
     );
 
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.getByText('LU')).toBeInTheDocument();
+    const img = screen.getByRole('img');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('loading', 'lazy');
+
+    // Fallback should also be visible initially
+    expect(screen.getByText('LU')).toHaveClass('opacity-100');
   });
 
-  it('renders image immediately when priority is true', () => {
+  it('renders image immediately with loading="eager" when priority is true', () => {
     render(
       <OptimizedAvatarSimple
         src="https://example.com/avatar.jpg"
@@ -189,27 +150,6 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
     const img = screen.getByRole('img');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('loading', 'eager');
-  });
-
-  it('loads image when intersecting viewport', async () => {
-    render(
-      <OptimizedAvatarSimple
-        src="https://example.com/avatar.jpg"
-        alt="Intersection User"
-        lazy={true}
-      />
-    );
-
-    // Initially no image
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-
-    // Trigger intersection
-    mockObserver?.triggerIntersection(true);
-
-    // Image should now be rendered
-    await waitFor(() => {
-      expect(screen.getByRole('img')).toBeInTheDocument();
-    });
   });
 
   it('sets correct loading attribute based on priority', () => {
@@ -309,18 +249,6 @@ describe('OptimizedAvatarSimple - Edge Cases', () => {
     render(<OptimizedAvatarSimple alt="John-Paul O'Connor" lazy={false} />);
 
     expect(screen.getByText('JO')).toBeInTheDocument();
-  });
-
-  it('cleans up intersection observer on unmount', () => {
-    const { unmount } = render(
-      <OptimizedAvatarSimple src="https://example.com/avatar.jpg" alt="Cleanup User" lazy={true} />
-    );
-
-    const disconnectSpy = vi.spyOn(mockObserver!, 'unobserve');
-
-    unmount();
-
-    expect(disconnectSpy).toHaveBeenCalled();
   });
 });
 
