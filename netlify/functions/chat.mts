@@ -62,6 +62,7 @@ const DATAPIPE_CAPABILITIES = [
   '- **Contributor rankings**: top contributors ranked by quality score, with confidence and activity breakdowns',
   '- **Lottery factor**: how concentrated contributions are among top contributors, plus contributor of the month',
   '- **Activity feed**: daily breakdown of PRs opened/merged, reviews, and issues',
+  '- **Repository discovery**: find repositories by language, topic, or criteria with usage statistics',
 ];
 
 function buildSystemPrompt(hasDatapipe: boolean): string {
@@ -74,6 +75,7 @@ function buildSystemPrompt(hasDatapipe: boolean): string {
         '"Who are the top contributors?"',
         '"What\'s the lottery factor?"',
         '"How active is this repo?"',
+        '"Which repos use TypeScript?"',
         '"Which PRs need attention right now?"',
       ]
     : [
@@ -648,6 +650,73 @@ export default async (req: Request, _context: Context) => {
                 } catch (err) {
                   console.error('[chat] get_activity_feed error: %s', err);
                   return { error: 'Could not fetch activity feed' };
+                }
+              },
+            }),
+
+            discover_repos: tool({
+              description:
+                'Discover repositories by language, topic, or criteria with usage statistics',
+              inputSchema: jsonSchema({
+                type: 'object' as const,
+                properties: {
+                  language: {
+                    type: 'string' as const,
+                    description: 'Filter by programming language',
+                  },
+                  topic: {
+                    type: 'string' as const,
+                    description: 'Filter by topic or keyword',
+                  },
+                  min_stars: {
+                    type: 'number' as const,
+                    description: 'Minimum star count',
+                  },
+                  limit: {
+                    type: 'number' as const,
+                    description: 'Max results (default 10)',
+                  },
+                },
+              }),
+              execute: async (input: {
+                language?: string;
+                topic?: string;
+                min_stars?: number;
+                limit?: number;
+              }) => {
+                try {
+                  const limit = Math.min(Math.max(input.limit ?? 10, 1), 50);
+                  const discoverData = await dp.discoverRepos({
+                    language: input.language,
+                    topic: input.topic,
+                    min_stars: input.min_stars,
+                    limit,
+                  });
+                  if (!discoverData) {
+                    return { error: 'Could not reach analytics service' };
+                  }
+
+                  const stats = await dp.getDiscoveryStats(discoverData.config_id);
+
+                  return {
+                    repositories: discoverData.repositories.map((r) => ({
+                      owner: r.owner,
+                      name: r.name,
+                      language: r.language,
+                      stars: r.stars,
+                      description: r.description,
+                    })),
+                    stats: stats
+                      ? {
+                          total: stats.total,
+                          languageBreakdown: stats.language_breakdown,
+                          avgStars: stats.avg_stars,
+                        }
+                      : null,
+                  };
+                } catch (err) {
+                  console.error('[chat] discover_repos error: %s', err);
+                  return { error: 'Could not discover repositories' };
                 }
               },
             }),
