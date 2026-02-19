@@ -60,6 +60,23 @@ interface RAGItem {
   url: string;
   state: string;
   repository_name: string;
+  body_preview: string | null;
+  created_at: string | null;
+  author_login: string | null;
+}
+
+function formatRelativeTime(isoDate: string): string {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(months / 12);
+  return `${years}y ago`;
 }
 
 interface EmbedQueryResponse {
@@ -148,7 +165,13 @@ async function retrieveRAGContext(
 
   const lines = relevant.map((item) => {
     const typeLabel = item.item_type === 'pull_request' ? 'PR' : item.item_type;
-    return `- [${typeLabel} #${item.number}](${item.url}): ${item.title} (${item.state}, relevance: ${Math.round(item.similarity * 100)}%)`;
+    const author = item.author_login ? ` by @${item.author_login}` : '';
+    const timeAgo = item.created_at ? `, ${formatRelativeTime(item.created_at)}` : '';
+    let line = `- [${typeLabel} #${item.number}](${item.url})${author} (${item.state}${timeAgo}): ${item.title}`;
+    if (item.body_preview) {
+      line += `\n  > ${item.body_preview.replace(/\n/g, ' ')}`;
+    }
+    return line;
   });
 
   return `\n\n## Related Repository Activity (from semantic search)\nThe following items from this repository are semantically related to the user's question:\n${lines.join('\n')}\n\nUse this context to provide more informed answers when relevant. Cite specific PRs, issues, or discussions when they help answer the question.`;
