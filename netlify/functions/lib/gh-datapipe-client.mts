@@ -71,9 +71,9 @@ export interface DiscoverRequest {
 export interface DiscoveredRepository {
   owner: string;
   name: string;
-  language: string;
+  language: string | null;
   stars: number;
-  description: string;
+  description: string | null;
 }
 
 export interface DiscoverResponse {
