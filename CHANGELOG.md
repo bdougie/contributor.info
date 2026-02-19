@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.52.0](https://github.com/bdougie/contributor.info/compare/v4.51.1...v4.52.0) (2026-02-19)
+
+
+### 🚀 Features
+
+* add discover_repos tool to StarSearch chat ([#1673](https://github.com/bdougie/contributor.info/issues/1673)) ([ea82e40](https://github.com/bdougie/contributor.info/commit/ea82e40de45666b3570520269e183e147b62555f)), closes [#1668](https://github.com/bdougie/contributor.info/issues/1668)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([06a88a7](https://github.com/bdougie/contributor.info/commit/06a88a763c6dae8875bbf0f3c45e1ea7861b1787))
+
 ## [4.51.1](https://github.com/bdougie/contributor.info/compare/v4.51.0...v4.51.1) (2026-02-18)
 
 
