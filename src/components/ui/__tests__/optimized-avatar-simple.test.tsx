@@ -158,7 +158,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         src="https://example.com/avatar.jpg"
         alt="Loading Attr User"
         priority={false}
-        lazy={false}
+        lazy={true}
       />
     );
 
@@ -170,7 +170,7 @@ describe('OptimizedAvatarSimple - Lazy Loading', () => {
         src="https://example.com/avatar.jpg"
         alt="Loading Attr User"
         priority={true}
-        lazy={false}
+        lazy={true}
       />
     );
 
