@@ -369,7 +369,7 @@ export default async (req: Request, _context: Context) => {
           const { data: openPRs } = await supabase
             .from('pull_requests')
             .select(
-              'id, number, title, state, created_at, updated_at, additions, deletions, contributors!inner(username, avatar_url)'
+              'id, number, title, state, created_at, updated_at, additions, deletions, author:contributors!pull_requests_author_id_fkey(username, avatar_url)'
             )
             .eq('repository_id', repoId)
             .eq('state', 'open')
@@ -423,11 +423,11 @@ export default async (req: Request, _context: Context) => {
               else if (urgencyScore >= 50) urgency = 'high';
               else if (urgencyScore >= 30) urgency = 'medium';
 
-              const contributors = pr.contributors as Array<{
+              const prAuthor = pr.author as {
                 username: string;
                 avatar_url: string;
-              }>;
-              const author = contributors?.[0]?.username || 'unknown';
+              } | null;
+              const author = prAuthor?.username || 'unknown';
 
               return {
                 number: pr.number,
@@ -948,23 +948,29 @@ export default async (req: Request, _context: Context) => {
 
         // Then emit tool events from phase 1 so the client creates
         // dynamic-tool parts and renders rich UI cards.
-        for (const step of toolResult.steps) {
-          for (const tc of step.toolCalls) {
-            writer.write({
-              type: 'tool-input-start',
-              toolCallId: tc.toolCallId,
-              toolName: tc.toolName as string,
-              dynamic: true,
-            });
+        // Wrapped in try-catch so a serialisation failure doesn't
+        // discard the already-streamed text summary.
+        try {
+          for (const step of toolResult.steps) {
+            for (const tc of step.toolCalls) {
+              writer.write({
+                type: 'tool-input-start',
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName as string,
+                dynamic: true,
+              });
+            }
+            for (const tr of step.toolResults) {
+              writer.write({
+                type: 'tool-output-available',
+                toolCallId: tr.toolCallId,
+                output: tr.output,
+                dynamic: true,
+              });
+            }
           }
-          for (const tr of step.toolResults) {
-            writer.write({
-              type: 'tool-output-available',
-              toolCallId: tr.toolCallId,
-              output: tr.output,
-              dynamic: true,
-            });
-          }
+        } catch (toolEventErr) {
+          console.error('[chat] Failed to emit tool events: %s', toolEventErr);
         }
       },
       onError: (error) => {
