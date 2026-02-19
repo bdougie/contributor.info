@@ -12,9 +12,26 @@ interface ChatMessagesProps {
   userAvatarUrl?: string;
   error?: Error | null;
   lastErrorMessage?: string | null;
+  onExampleClick?: (question: string) => void;
 }
 
-function EmptyState({ owner, repo }: { owner: string; repo: string }) {
+const exampleQuestions = [
+  'Give me an overview of this repo',
+  'Which PRs need attention right now?',
+  'How healthy is this repository?',
+  'What recommendations do you have?',
+  'Who are the top contributors?',
+];
+
+function EmptyState({
+  owner,
+  repo,
+  onExampleClick,
+}: {
+  owner: string;
+  repo: string;
+  onExampleClick?: (question: string) => void;
+}) {
   return (
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="text-center max-w-[280px] space-y-4">
@@ -25,12 +42,18 @@ function EmptyState({ owner, repo }: { owner: string; repo: string }) {
           <h3 className="text-sm font-medium text-foreground">
             Ask anything about {owner}/{repo}
           </h3>
-          <ul className="text-xs text-muted-foreground space-y-1.5 text-left">
-            <li>Get a quick repo overview</li>
-            <li>Find PRs that need attention</li>
-            <li>Check repository health scores</li>
-            <li>Get actionable recommendations</li>
-          </ul>
+          <div className="flex flex-wrap justify-center gap-2">
+            {exampleQuestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                className="text-xs rounded-full border border-border px-3 py-1.5 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors text-left text-muted-foreground"
+                onClick={() => onExampleClick?.(question)}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="rounded-md bg-muted/50 border border-border px-3 py-2">
           <p className="text-[11px] text-muted-foreground">
@@ -50,6 +73,7 @@ export function ChatMessages({
   userAvatarUrl,
   error,
   lastErrorMessage,
+  onExampleClick,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +82,7 @@ export function ChatMessages({
   }, [messages, isLoading]);
 
   if (messages.length === 0 && !isLoading && !error) {
-    return <EmptyState owner={owner} repo={repo} />;
+    return <EmptyState owner={owner} repo={repo} onExampleClick={onExampleClick} />;
   }
 
   return (
