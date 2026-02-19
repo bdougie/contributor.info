@@ -46,3 +46,29 @@ export interface RecommendationData {
 export interface RecommendationsData {
   recommendations: RecommendationData[];
 }
+
+export interface RepoSummaryData {
+  description: string | null;
+  stars: number;
+  forks: number;
+  language: string | null;
+  openIssues: number;
+  recentPRs: number;
+  timeRangeDays: number;
+}
+
+export interface ContributorData {
+  login: string;
+  qualityScore: number;
+  confidenceScore: number;
+  prsOpened: number;
+  prsMerged: number;
+  reviewsGiven: number;
+  issuesOpened: number;
+}
+
+export interface ContributorRankingsData {
+  repository: string;
+  total: number;
+  contributors: ContributorData[];
+}

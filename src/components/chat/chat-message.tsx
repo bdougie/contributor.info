@@ -5,8 +5,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RecommendationCard } from './chat-cards/recommendation-card';
 import { PrAlertCard } from './chat-cards/pr-alert-card';
 import { HealthCard } from './chat-cards/health-card';
+import { RepoSummaryCard } from './chat-cards/repo-summary-card';
+import { ContributorRankingsCard } from './chat-cards/contributor-rankings-card';
 import type { UIMessage } from '@ai-sdk/react';
-import type { RecommendationsData, PrAttentionData, HealthAssessmentData } from './types';
+import type {
+  RecommendationsData,
+  PrAttentionData,
+  HealthAssessmentData,
+  RepoSummaryData,
+  ContributorRankingsData,
+} from './types';
 
 const ReactMarkdown = lazy(() => import('react-markdown'));
 
@@ -37,6 +45,10 @@ function ToolResultCard({
       return <PrAlertCard data={result as unknown as PrAttentionData} owner={owner} repo={repo} />;
     case 'get_health_assessment':
       return <HealthCard data={result as unknown as HealthAssessmentData} />;
+    case 'get_repo_summary':
+      return <RepoSummaryCard data={result as unknown as RepoSummaryData} />;
+    case 'get_contributor_rankings':
+      return <ContributorRankingsCard data={result as unknown as ContributorRankingsData} />;
     default:
       return null;
   }
