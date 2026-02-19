@@ -164,7 +164,7 @@
     "js-yaml": "^4.1.1",
     "lucide-react": "^0.563.0",
     "marked": "^16.1.2",
-    "minimatch": "^10.0.3",
+    "minimatch": "^10.2.1",
     "openai": "^5.22.0",
     "papaparse": "^5.5.3",
     "posthog-js": "^1.335.2",
@@ -199,7 +199,8 @@
     "react-helmet-async": {
       "react": "^19.2.1",
       "react-dom": "^19.2.1"
-    }
+    },
+    "minimatch": "^10.2.1"
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",
