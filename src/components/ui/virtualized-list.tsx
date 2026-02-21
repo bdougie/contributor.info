@@ -35,6 +35,7 @@ export function VirtualizedList<T>({
     estimateSize:
       estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
     overscan,
+    gap,
   });
 
   return (
@@ -57,7 +58,7 @@ export function VirtualizedList<T>({
                 left: 0,
                 width: '100%',
                 height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+                transform: `translateY(${virtualItem.start}px)`,
               }}
               className={className}
             >
@@ -184,6 +185,7 @@ export function WindowVirtualizedList<T>({
     estimateSize:
       estimateSize || (typeof itemHeight === 'function' ? itemHeight : () => itemHeight as number),
     overscan,
+    gap,
   });
 
   return (
@@ -206,7 +208,7 @@ export function WindowVirtualizedList<T>({
                 left: 0,
                 width: '100%',
                 height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start + virtualItem.index * gap}px)`,
+                transform: `translateY(${virtualItem.start}px)`,
               }}
               className={className}
             >
