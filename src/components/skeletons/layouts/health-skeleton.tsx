@@ -27,7 +27,7 @@ export function HealthSkeleton({ className, isMobile = false }: HealthSkeletonPr
           <Skeleton className="h-7 w-48" />
         </CardTitle>
         <CardDescription>
-          <span className="inline-block h-4 w-96 animate-pulse rounded-md bg-primary/10" />
+          <Skeleton className="h-4 w-96" />
         </CardDescription>
       </CardHeader>
       <CardContent>
