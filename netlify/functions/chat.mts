@@ -13,6 +13,7 @@ import {
 } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
+import { captureServerException } from './lib/server-tracking.mts';
 import { trackLLMCall } from './lib/llm-analytics.mts';
 import { trackServerEvent } from './lib/server-tracking.mts';
 import {
@@ -453,6 +454,10 @@ export default async (req: Request, _context: Context) => {
     const [preprocessResult, dp, { data: repoRow }] = await Promise.all([
       preprocessUserMessage(rawUserText, openai, tapesHeaders, user.id).catch((err) => {
         console.log('[chat] preprocessor failed (non-fatal): %s', err);
+        captureServerException(err instanceof Error ? err : new Error(String(err)), {
+          level: 'warning',
+          tags: { component: 'chat-preprocessor', repository: `${owner}/${repo}` },
+        });
         return null;
       }),
       getDatapipe(),
@@ -624,6 +629,13 @@ export default async (req: Request, _context: Context) => {
                   };
                 } catch (err) {
                   console.error('[chat] discover_repos error: %s', err);
+                  captureServerException(err instanceof Error ? err : new Error(String(err)), {
+                    tags: {
+                      component: 'chat-tool',
+                      tool: 'discover_repos',
+                      repository: `${owner}/${repo}`,
+                    },
+                  });
                   return { error: 'Could not discover repositories' };
                 }
               },
@@ -687,6 +699,9 @@ export default async (req: Request, _context: Context) => {
         onError: (error) => {
           const msg = error instanceof Error ? error.message : 'An unknown error occurred';
           console.error('[chat] stream error: %s', msg);
+          captureServerException(error instanceof Error ? error : new Error(msg), {
+            tags: { component: 'chat-stream', phase: 'no-tools', repository: `${owner}/${repo}` },
+          });
           return msg;
         },
       });
@@ -791,11 +806,24 @@ export default async (req: Request, _context: Context) => {
           }
         } catch (toolEventErr) {
           console.error('[chat] Failed to emit tool events: %s', toolEventErr);
+          captureServerException(
+            toolEventErr instanceof Error ? toolEventErr : new Error(String(toolEventErr)),
+            {
+              tags: {
+                component: 'chat-stream',
+                phase: 'tool-events',
+                repository: `${owner}/${repo}`,
+              },
+            }
+          );
         }
       },
       onError: (error) => {
         const msg = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error('[chat] stream error: %s', msg);
+        captureServerException(error instanceof Error ? error : new Error(msg), {
+          tags: { component: 'chat-stream', phase: 'synthesis', repository: `${owner}/${repo}` },
+        });
         return msg;
       },
     });
@@ -803,6 +831,9 @@ export default async (req: Request, _context: Context) => {
     return createUIMessageStreamResponse({ stream, headers: CORS_HEADERS });
   } catch (error) {
     console.error('Chat function error:', error);
+    captureServerException(error instanceof Error ? error : new Error(String(error)), {
+      tags: { component: 'chat', repository: `${owner ?? 'unknown'}/${repo ?? 'unknown'}` },
+    });
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
