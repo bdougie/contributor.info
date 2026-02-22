@@ -15,6 +15,7 @@ import { getSupabaseClients } from './lib/api-key-clients';
 import {
   runRepoHealthAgent,
   type AgentContext,
+  type RepoRow,
   type SubAgentResult,
 } from './agents/repo-health-agent.mts';
 import { runContributorAgent, type ContributorAgentContext } from './agents/contributor-agent.mts';
@@ -327,7 +328,7 @@ export default async (req: Request, _context: Context) => {
     const dp = await getDatapipe();
     const hasDatapipe = dp?.isConfigured() === true;
 
-    // Look up repo ID once to share across all agents
+    // Look up repo once to share across all agents — avoids duplicate queries
     const { data: repoRow } = await supabase
       .from('repositories')
       .select(
@@ -338,12 +339,22 @@ export default async (req: Request, _context: Context) => {
       .maybeSingle();
 
     const repoId: string | null = repoRow?.id ?? null;
+    const repoData: RepoRow | null = repoRow
+      ? {
+          description: repoRow.description,
+          stargazers_count: repoRow.stargazers_count,
+          forks_count: repoRow.forks_count,
+          language: repoRow.language,
+          open_issues_count: repoRow.open_issues_count,
+        }
+      : null;
 
     // Shared context passed to sub-agents
     const agentContext: AgentContext = {
       owner,
       repo,
       repoId,
+      repoData,
       timeRange,
       supabase,
       openai,
@@ -541,30 +552,53 @@ export default async (req: Request, _context: Context) => {
         // two-phase approach (AI SDK doesn't support interleaving mid-text).
         try {
           for (const step of managerResult.steps) {
+            // Build a toolCallId → toolName map for manager-level tools (e.g. discover_repos)
+            const managerToolNames = new Map(
+              step.toolCalls.map((tc) => [tc.toolCallId, tc.toolName as string])
+            );
+
             for (const tr of step.toolResults) {
               const subResult = tr.output as SubAgentResult | undefined;
-              if (!subResult?.toolCalls) continue;
 
-              // Re-emit each sub-tool's input event
-              for (const tc of subResult.toolCalls) {
-                writer.write({
-                  type: 'tool-input-start',
-                  toolCallId: tc.toolCallId,
-                  toolName: tc.toolName,
-                  dynamic: true,
-                });
-              }
-
-              // Re-emit each sub-tool's output event (skip errors)
-              for (const subTr of subResult.toolResults) {
-                const output = subTr.output as Record<string, unknown> | undefined;
+              if (subResult?.toolCalls) {
+                // Sub-agent result — re-emit individual tool events with original tool names
+                for (const tc of subResult.toolCalls) {
+                  writer.write({
+                    type: 'tool-input-start',
+                    toolCallId: tc.toolCallId,
+                    toolName: tc.toolName,
+                    dynamic: true,
+                  });
+                }
+                for (const subTr of subResult.toolResults) {
+                  const output = subTr.output as Record<string, unknown> | undefined;
+                  if (output && typeof output === 'object' && 'error' in output) {
+                    continue;
+                  }
+                  writer.write({
+                    type: 'tool-output-available',
+                    toolCallId: subTr.toolCallId,
+                    output: subTr.output,
+                    dynamic: true,
+                  });
+                }
+              } else {
+                // Manager-level tool (discover_repos) — emit directly using the manager's tool call id
+                const output = tr.output as Record<string, unknown> | undefined;
                 if (output && typeof output === 'object' && 'error' in output) {
                   continue;
                 }
+                const toolName = managerToolNames.get(tr.toolCallId) ?? tr.toolCallId;
+                writer.write({
+                  type: 'tool-input-start',
+                  toolCallId: tr.toolCallId,
+                  toolName,
+                  dynamic: true,
+                });
                 writer.write({
                   type: 'tool-output-available',
-                  toolCallId: subTr.toolCallId,
-                  output: subTr.output,
+                  toolCallId: tr.toolCallId,
+                  output: tr.output,
                   dynamic: true,
                 });
               }

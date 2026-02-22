@@ -15,10 +15,19 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Shared interfaces — re-exported so chat.mts can import them once
 // ---------------------------------------------------------------------------
 
+export interface RepoRow {
+  description: string | null;
+  stargazers_count: number | null;
+  forks_count: number | null;
+  language: string | null;
+  open_issues_count: number | null;
+}
+
 export interface AgentContext {
   owner: string;
   repo: string;
   repoId: string | null;
+  repoData: RepoRow | null;
   timeRange: number;
   supabase: SupabaseClient;
   openai: ReturnType<typeof createOpenAI>;
@@ -50,7 +59,7 @@ Return a concise, data-backed summary.`;
 // ---------------------------------------------------------------------------
 
 function buildRepoHealthTools(context: AgentContext) {
-  const { owner, repo, repoId, timeRange, supabase } = context;
+  const { owner, repo, repoId, repoData, timeRange, supabase } = context;
 
   return {
     get_repo_summary: tool({
@@ -58,23 +67,12 @@ function buildRepoHealthTools(context: AgentContext) {
         'Get a summary of the repository including description, stars, language, and recent activity stats',
       inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
       execute: async () => {
-        if (!repoId) {
+        if (!repoId || !repoData) {
           return { error: 'Repository not found in database' };
         }
 
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - timeRange);
-
-        const { data: repoRow } = await supabase
-          .from('repositories')
-          .select('description, stargazers_count, forks_count, language, open_issues_count')
-          .eq('owner', owner)
-          .eq('name', repo)
-          .maybeSingle();
-
-        if (!repoRow) {
-          return { error: 'Repository not found in database' };
-        }
 
         const { count: recentPrCount } = await supabase
           .from('pull_requests')
@@ -83,11 +81,11 @@ function buildRepoHealthTools(context: AgentContext) {
           .gte('created_at', cutoffDate.toISOString());
 
         return {
-          description: repoRow.description,
-          stars: repoRow.stargazers_count,
-          forks: repoRow.forks_count,
-          language: repoRow.language,
-          openIssues: repoRow.open_issues_count,
+          description: repoData.description,
+          stars: repoData.stargazers_count,
+          forks: repoData.forks_count,
+          language: repoData.language,
+          openIssues: repoData.open_issues_count,
           recentPRs: recentPrCount ?? 0,
           timeRangeDays: timeRange,
         };
