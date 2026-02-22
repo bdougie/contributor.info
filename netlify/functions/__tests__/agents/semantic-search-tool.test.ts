@@ -48,6 +48,15 @@ describe('formatRelativeTime', () => {
     const now = new Date('2026-02-21T12:00:00Z').toISOString();
     expect(formatRelativeTime(now)).toBe('0m ago');
   });
+
+  it('returns "just now" for future dates', () => {
+    const future = new Date('2027-01-01T00:00:00Z').toISOString();
+    expect(formatRelativeTime(future)).toBe('just now');
+  });
+
+  it('returns "just now" for invalid date strings', () => {
+    expect(formatRelativeTime('not-a-date')).toBe('just now');
+  });
 });
 
 // ---------------------------------------------------------------------------

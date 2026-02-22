@@ -219,8 +219,7 @@ Available tools:
 ${tools.join('\n')}
 
 When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call multiple sub-agents in the same step so they run in parallel.
-When the question is domain-specific, call only the relevant sub-agent.
-Only use search_repository_context when the user asks about specific topics, features, or activity — not for general health or contributor questions.
+When the question is domain-specific, call only the relevant sub-agent.${hasRepoContext ? '\nOnly use search_repository_context when the user asks about specific topics, features, or activity — not for general health or contributor questions.' : ''}
 Do not answer directly — always use tools to fetch real data.`;
 }
 

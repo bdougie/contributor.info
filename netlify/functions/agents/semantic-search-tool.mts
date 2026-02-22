@@ -55,6 +55,7 @@ export interface SemanticSearchResult {
 
 export function formatRelativeTime(isoDate: string): string {
   const diffMs = Date.now() - new Date(isoDate).getTime();
+  if (!Number.isFinite(diffMs) || diffMs < 0) return 'just now';
   const minutes = Math.floor(diffMs / 60_000);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
