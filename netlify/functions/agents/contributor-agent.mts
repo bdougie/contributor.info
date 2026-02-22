@@ -1,0 +1,193 @@
+/**
+ * Contributor Sub-Agent
+ *
+ * Handles contributor intelligence tools: get_contributor_rankings,
+ * get_lottery_factor, get_activity_feed.
+ *
+ * Called by the manager in chat.mts — never invoked directly by the client.
+ * Returns early with a clear message if the datapipe client is unavailable.
+ */
+
+import { generateText, tool, jsonSchema, stepCountIs, type ModelMessage } from 'ai';
+import type { AgentContext, SubAgentResult } from './repo-health-agent.mts';
+type DatapipeClient = typeof import('../lib/gh-datapipe-client.mts');
+
+// ---------------------------------------------------------------------------
+// Context extension
+// ---------------------------------------------------------------------------
+
+export interface ContributorAgentContext extends AgentContext {
+  datapipe: DatapipeClient;
+}
+
+// ---------------------------------------------------------------------------
+// System prompt
+// ---------------------------------------------------------------------------
+
+const CONTRIBUTOR_SYSTEM_PROMPT = `You are a contributor intelligence specialist. Analyze contribution patterns and team dynamics using your tools.
+
+Call all relevant tools to provide insights on:
+- Top contributors ranked by quality score
+- Lottery factor — how concentrated contributions are among a few people
+- Activity feed — daily breakdown of PRs, reviews, and issues
+
+Return a concise, data-backed summary highlighting patterns and risks.`;
+
+// ---------------------------------------------------------------------------
+// Tool definitions
+// ---------------------------------------------------------------------------
+
+function buildContributorTools(context: ContributorAgentContext) {
+  const { owner, repo, datapipe } = context;
+
+  return {
+    get_contributor_rankings: tool({
+      description:
+        'Get top contributors ranked by quality score with confidence and activity breakdowns',
+      inputSchema: jsonSchema({
+        type: 'object' as const,
+        properties: {
+          limit: {
+            type: 'number' as const,
+            description: 'Max contributors to return (default 20)',
+          },
+        },
+      }),
+      execute: async (input: { limit?: number }) => {
+        try {
+          const limit = Math.min(Math.max(input.limit ?? 20, 1), 100);
+          const data = await datapipe.getContributors(owner, repo, limit);
+          if (!data) {
+            return { error: 'Could not reach analytics service' };
+          }
+          return {
+            repository: data.repository,
+            total: data.total,
+            contributors: data.contributors.map((c) => ({
+              login: c.login,
+              qualityScore: c.contribution_quality,
+              confidenceScore: c.confidence_score,
+              prsOpened: c.activity.prs_opened,
+              prsMerged: c.activity.prs_merged,
+              reviewsGiven: c.activity.reviews_given,
+              issuesOpened: c.activity.issues_opened,
+            })),
+          };
+        } catch (err) {
+          console.error('[contributor-agent] get_contributor_rankings error: %s', err);
+          return { error: 'Could not fetch contributor rankings' };
+        }
+      },
+    }),
+
+    get_lottery_factor: tool({
+      description:
+        'Get lottery factor rankings showing contribution concentration, plus contributor of the month and health trending score',
+      inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
+      execute: async () => {
+        try {
+          const data = await datapipe.getInsights(owner, repo);
+          if (!data) {
+            return { error: 'Could not reach analytics service' };
+          }
+          return {
+            repository: data.repository,
+            calculatedAt: data.calculated_at,
+            health: data.health
+              ? {
+                  trendingScore: data.health.trending_score,
+                  freshnessStatus: data.health.freshness_status,
+                  isSignificantChange: data.health.is_significant_change,
+                }
+              : null,
+            lotteryFactor: data.lottery_factor?.top_contributors
+              ? data.lottery_factor.top_contributors.map((c) => ({
+                  login: c.login,
+                  weightedScore: c.weighted_score,
+                  rank: c.rank,
+                }))
+              : null,
+            contributorOfMonth: data.contributor_of_month
+              ? {
+                  login: data.contributor_of_month.login,
+                  score: data.contributor_of_month.score,
+                  month: data.contributor_of_month.month,
+                }
+              : null,
+          };
+        } catch (err) {
+          console.error('[contributor-agent] get_lottery_factor error: %s', err);
+          return { error: 'Could not fetch lottery factor' };
+        }
+      },
+    }),
+
+    get_activity_feed: tool({
+      description:
+        'Get daily activity breakdown including PRs opened/merged, reviews, and issues for a repository',
+      inputSchema: jsonSchema({
+        type: 'object' as const,
+        properties: {
+          days: {
+            type: 'number' as const,
+            description: 'Number of days of activity (default 30)',
+          },
+        },
+      }),
+      execute: async (input: { days?: number }) => {
+        try {
+          const days = Math.min(Math.max(input.days ?? 30, 1), 365);
+          const data = await datapipe.getActivity(owner, repo, days);
+          if (!data) {
+            return { error: 'Could not reach analytics service' };
+          }
+          return {
+            repository: data.repository,
+            days: data.days,
+            activity: data.activity.map((d) => ({
+              date: d.date,
+              prsOpened: d.prs_opened,
+              prsMerged: d.prs_merged,
+              reviews: d.reviews,
+              issuesOpened: d.issues_opened,
+              issuesClosed: d.issues_closed,
+            })),
+          };
+        } catch (err) {
+          console.error('[contributor-agent] get_activity_feed error: %s', err);
+          return { error: 'Could not fetch activity feed' };
+        }
+      },
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public runner
+// ---------------------------------------------------------------------------
+
+export async function runContributorAgent(
+  context: ContributorAgentContext,
+  userMessages: ModelMessage[]
+): Promise<SubAgentResult> {
+  const tools = buildContributorTools(context);
+
+  const result = await generateText({
+    model: context.openai('gpt-4o-mini'),
+    system: CONTRIBUTOR_SYSTEM_PROMPT,
+    messages: userMessages,
+    tools,
+    stopWhen: stepCountIs(3),
+    headers: context.tapesHeaders,
+  });
+
+  return {
+    text: result.text,
+    toolCalls: result.steps.flatMap((s) =>
+      s.toolCalls.map((tc) => ({ toolCallId: tc.toolCallId, toolName: tc.toolName as string }))
+    ),
+    toolResults: result.steps.flatMap((s) =>
+      s.toolResults.map((tr) => ({ toolCallId: tr.toolCallId, output: tr.output }))
+    ),
+  };
+}
