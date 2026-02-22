@@ -408,19 +408,31 @@ export default async (req: Request, _context: Context) => {
             )?.text ?? '')
           : '';
 
-    // Preprocessor: detect injection, clean query, classify intent
-    let preprocessResult: PreprocessorResult | null = null;
-    try {
-      const preStart = Date.now();
-      preprocessResult = await preprocessUserMessage(rawUserText, openai, tapesHeaders);
+    // Run preprocessor, datapipe check, and repo lookup in parallel
+    const preStart = Date.now();
+    const [preprocessResult, dp, { data: repoRow }] = await Promise.all([
+      preprocessUserMessage(rawUserText, openai, tapesHeaders).catch((err) => {
+        console.log('[chat] preprocessor failed (non-fatal): %s', err);
+        return null;
+      }),
+      getDatapipe(),
+      supabase
+        .from('repositories')
+        .select(
+          'id, description, stargazers_count, forks_count, language, open_issues_count, owner, name'
+        )
+        .eq('owner', owner)
+        .eq('name', repo)
+        .maybeSingle(),
+    ]);
+
+    if (preprocessResult) {
       console.log(
         '[chat] preprocessor: %dms, intent=%s, injection=%s',
         Date.now() - preStart,
         preprocessResult.intent,
         preprocessResult.flags.injection
       );
-    } catch (err) {
-      console.log('[chat] preprocessor failed (non-fatal): %s', err);
     }
 
     if (preprocessResult?.flags.injection) {
@@ -436,19 +448,7 @@ export default async (req: Request, _context: Context) => {
       );
     }
 
-    // Check datapipe availability once, before building tools
-    const dp = await getDatapipe();
     const hasDatapipe = dp?.isConfigured() === true;
-
-    // Look up repo ID once to share across all tools
-    const { data: repoRow } = await supabase
-      .from('repositories')
-      .select(
-        'id, description, stargazers_count, forks_count, language, open_issues_count, owner, name'
-      )
-      .eq('owner', owner)
-      .eq('name', repo)
-      .maybeSingle();
 
     const repoId: string | null = repoRow?.id ?? null;
 
