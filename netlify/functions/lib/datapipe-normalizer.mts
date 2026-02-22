@@ -186,7 +186,7 @@ export function normalizeDiscover(data: DiscoverResponse): DatapipeChunk | null 
 // Batch normalizer
 // ---------------------------------------------------------------------------
 
-interface NormalizeAllInput {
+export interface NormalizeAllInput {
   contributors?: ContributorsResponse | null;
   insights?: InsightsResponse | null;
   activity?: ActivityResponse | null;

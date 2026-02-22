@@ -279,6 +279,18 @@ describe('normalizeInsights', () => {
     expect(result!.text).not.toContain('Lottery factor');
     expect(result!.text).not.toContain('Contributor of the month');
   });
+
+  it('skips lottery factor line when top_contributors is empty', () => {
+    const data = makeInsightsResponse({
+      lottery_factor: { top_contributors: [] },
+      contributor_of_month: null,
+    });
+
+    const result = normalizeInsights(data);
+    expect(result).not.toBeNull();
+    expect(result!.text).not.toContain('Lottery factor');
+    expect(result!.text).toContain('trending score');
+  });
 });
 
 // ---------------------------------------------------------------------------
