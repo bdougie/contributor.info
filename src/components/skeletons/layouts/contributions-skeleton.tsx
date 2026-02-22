@@ -29,11 +29,11 @@ export function ContributionsSkeleton({ className, isMobile = false }: Contribut
         </CardTitle>
         <div className="space-y-1">
           <CardDescription>
-            <span className="inline-block h-4 w-80 animate-pulse rounded-md bg-primary/10" />
+            <Skeleton className="h-4 w-80" />
           </CardDescription>
           {isMobile && (
             <CardDescription>
-              <span className="inline-block h-4 w-64 animate-pulse rounded-md bg-primary/10" />
+              <Skeleton className="h-4 w-64" />
             </CardDescription>
           )}
         </div>

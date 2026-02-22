@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.57.0](https://github.com/bdougie/contributor.info/compare/v4.56.0...v4.57.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* add chat preprocessor agent for injection detection ([#1693](https://github.com/bdougie/contributor.info/issues/1693)) ([7d25b48](https://github.com/bdougie/contributor.info/commit/7d25b48c6ee9e66e9c5f7c0239c2c1094d29dcc4))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([299bc45](https://github.com/bdougie/contributor.info/commit/299bc45fc18e7ffec613bdc253abc5c837faaad2))
+
+## [4.56.0](https://github.com/bdougie/contributor.info/compare/v4.55.1...v4.56.0) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* actions/continue-triage/package.json to reduce vulnerabilities ([#1682](https://github.com/bdougie/contributor.info/issues/1682)) ([bcf4189](https://github.com/bdougie/contributor.info/commit/bcf41895ea5ca0a489a31532e980dfe207eb9be9))
+* **ui:** use gap option in VirtualizedList for correct total size ([#1683](https://github.com/bdougie/contributor.info/issues/1683)) ([42659e4](https://github.com/bdougie/contributor.info/commit/42659e4287b7b973ce1d47cef3ed375cbb8858c9))
+
+
+### ⚡ Performance Improvements
+
+* optimize workspace events fetching to eliminate N+1 queries ([#1684](https://github.com/bdougie/contributor.info/issues/1684)) ([2484f5c](https://github.com/bdougie/contributor.info/commit/2484f5ce84651aff1ccf11ace078242c8b666981))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([8deb80d](https://github.com/bdougie/contributor.info/commit/8deb80d0af97da3d933406db4553f3e990f3abde))
+
+## [4.55.1](https://github.com/bdougie/contributor.info/compare/v4.55.0...v4.55.1) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* prevent loading flash of status banners on repo pages ([#1685](https://github.com/bdougie/contributor.info/issues/1685)) ([4c828f8](https://github.com/bdougie/contributor.info/commit/4c828f893dac9776d01505942e214cee161606cd))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a65b930](https://github.com/bdougie/contributor.info/commit/a65b930a49e6ff1b9570540d0f46344b8ed9707e))
+
 ## [4.55.0](https://github.com/bdougie/contributor.info/compare/v4.54.0...v4.55.0) (2026-02-19)
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy, useMemo } from 'react';
 import { Share2 } from 'lucide-react';
 import { useParams, useNavigate, useLocation, Outlet } from 'react-router';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -230,6 +230,23 @@ export default function RepoView() {
   const isLoading = trackingState.status === 'checking' || stats.loading;
   const showTrackingCard = trackingState.status === 'not_tracked';
 
+  // Debounce non-success data status to prevent flash of "Getting familiar..." banners
+  // Only show status indicators after state has persisted for 800ms
+  const [debouncedShowStatus, setDebouncedShowStatus] = useState(false);
+  const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    const shouldShow =
+      !isLoading && !showTrackingCard && dataStatus && dataStatus.status !== 'success';
+    if (shouldShow) {
+      statusTimerRef.current = setTimeout(() => setDebouncedShowStatus(true), 800);
+    } else {
+      setDebouncedShowStatus(false);
+    }
+    return () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
+  }, [isLoading, showTrackingCard, dataStatus]);
+
   if (stats.error) {
     // Check if this is a 404 repository error
     const isRepoNotFound =
@@ -420,20 +437,17 @@ export default function RepoView() {
                       </div>
                     </aside>
                   )}
-                  {/* Show data state indicator for pending/partial data */}
-                  {!isLoading &&
-                    !showTrackingCard &&
-                    dataStatus &&
-                    dataStatus.status !== 'success' && (
-                      <aside>
-                        <DataStateIndicator
-                          status={dataStatus.status}
-                          message={dataStatus.message}
-                          metadata={dataStatus.metadata}
-                          className="mt-4"
-                        />
-                      </aside>
-                    )}
+                  {/* Show data state indicator for pending/partial data (debounced to prevent flash) */}
+                  {debouncedShowStatus && (
+                    <aside>
+                      <DataStateIndicator
+                        status={dataStatus.status}
+                        message={dataStatus.message}
+                        metadata={dataStatus.metadata}
+                        className="mt-4"
+                      />
+                    </aside>
+                  )}
                 </div>
               </>
             )}
