@@ -895,40 +895,31 @@ function WorkspacePage() {
           const allStarEvents: GitHubEvent[] = [];
           const allForkEvents: GitHubEvent[] = [];
 
-          for (const repo of transformedRepos) {
-            const [owner, name] = repo.full_name.split('/');
+          // Use Promise.all to fetch events for all repositories in parallel
+          await Promise.all(
+            transformedRepos.map(async (repo) => {
+              const [owner, name] = repo.full_name.split('/');
 
-            // Fetch star events for this specific repository
-            // Note: Removing date filter temporarily as events might have incorrect timestamps
-            const { data: starEvents, error: starError } = await supabase
-              .from('github_events_cache')
-              .select('*')
-              .eq('event_type', 'WatchEvent')
-              .eq('repository_owner', owner)
-              .eq('repository_name', name)
-              // .gte('created_at', startDate.toISOString()) // Commented out for debugging
-              .order('created_at', { ascending: false })
-              .limit(50); // Limit per repository
+              // Fetch both star and fork events for this specific repository in a single query
+              const { data: events, error: eventsError } = await supabase
+                .from('github_events_cache')
+                .select('*')
+                .in('event_type', ['WatchEvent', 'ForkEvent'])
+                .eq('repository_owner', owner)
+                .eq('repository_name', name)
+                .order('created_at', { ascending: false })
+                .limit(100); // Increased limit to capture enough of both types
 
-            if (!starError && starEvents) {
-              allStarEvents.push(...starEvents);
-            }
+              if (!eventsError && events) {
+                // Filter events into respective arrays
+                const stars = events.filter((e) => e.event_type === 'WatchEvent');
+                const forks = events.filter((e) => e.event_type === 'ForkEvent');
 
-            // Fetch fork events for this specific repository
-            const { data: forkEvents, error: forkError } = await supabase
-              .from('github_events_cache')
-              .select('*')
-              .eq('event_type', 'ForkEvent')
-              .eq('repository_owner', owner)
-              .eq('repository_name', name)
-              // .gte('created_at', startDate.toISOString()) // Commented out for debugging
-              .order('created_at', { ascending: false })
-              .limit(50); // Limit per repository
-
-            if (!forkError && forkEvents) {
-              allForkEvents.push(...forkEvents);
-            }
-          }
+                allStarEvents.push(...stars);
+                allForkEvents.push(...forks);
+              }
+            })
+          );
 
           // Format star events
           const formattedStars = allStarEvents.map((event) => {
