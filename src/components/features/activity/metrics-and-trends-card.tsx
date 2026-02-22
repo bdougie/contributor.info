@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TrendingUp, TrendingDown } from '@/components/ui/icon';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -260,6 +260,21 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
     loadData();
   }, [loadData]);
 
+  // Debounce status indicators to prevent flash of "Getting familiar..." on initial load
+  const [showStatusIndicators, setShowStatusIndicators] = useState(false);
+  const statusTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    const shouldShow = !loading && metrics && metrics.status !== 'success';
+    if (shouldShow) {
+      statusTimerRef.current = setTimeout(() => setShowStatusIndicators(true), 800);
+    } else {
+      setShowStatusIndicators(false);
+    }
+    return () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
+  }, [loading, metrics]);
+
   // Track when status messages are displayed for monitoring
   useEffect(() => {
     if (!loading && hasLowDataQuality(metrics, trends) && metrics) {
@@ -316,8 +331,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Show user-friendly status for all data states */}
-        {!loading && metrics && metrics.status !== 'success' && (
+        {/* Show user-friendly status for all data states (debounced to prevent flash) */}
+        {showStatusIndicators && metrics && (
           <DataStateIndicator
             status={metrics.status || 'success'}
             message={metrics.message}
@@ -325,7 +340,8 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           />
         )}
 
-        {/* Show progressive capture option for data quality issues */}
+        {/* Show progressive capture option for data quality issues (not gated by showStatusIndicators
+            because hasLowDataQuality targets repos where status IS 'success' but data is sparse) */}
         {!loading &&
           hasLowDataQuality(metrics, trends) &&
           metrics?.status !== 'large_repository_protected' && (

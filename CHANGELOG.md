@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.55.1](https://github.com/bdougie/contributor.info/compare/v4.55.0...v4.55.1) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* prevent loading flash of status banners on repo pages ([#1685](https://github.com/bdougie/contributor.info/issues/1685)) ([4c828f8](https://github.com/bdougie/contributor.info/commit/4c828f893dac9776d01505942e214cee161606cd))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a65b930](https://github.com/bdougie/contributor.info/commit/a65b930a49e6ff1b9570540d0f46344b8ed9707e))
+
 ## [4.55.0](https://github.com/bdougie/contributor.info/compare/v4.54.0...v4.55.0) (2026-02-19)
 
 

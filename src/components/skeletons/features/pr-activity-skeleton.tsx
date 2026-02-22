@@ -23,7 +23,7 @@ export function PRActivitySkeleton({
           <Skeleton className="h-7 w-48" />
         </CardTitle>
         <CardDescription>
-          <span className="inline-block h-4 w-72 animate-pulse rounded-md bg-primary/10" />
+          <Skeleton className="h-4 w-72" />
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
