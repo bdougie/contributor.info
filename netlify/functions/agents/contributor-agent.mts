@@ -10,6 +10,7 @@
 
 import { generateText, tool, jsonSchema, stepCountIs, type ModelMessage } from 'ai';
 import type { AgentContext, SubAgentResult } from './repo-health-agent.mts';
+import { trackLLMCall } from '../lib/llm-analytics.mts';
 
 // Keep the last N messages to avoid unbounded context growth in long sessions.
 // The first message (repo context prefix) is always preserved.
@@ -183,6 +184,7 @@ export async function runContributorAgent(
 ): Promise<SubAgentResult> {
   const tools = buildContributorTools(context);
 
+  const agentStart = Date.now();
   const result = await generateText({
     model: context.openai('gpt-4o-mini'),
     system: CONTRIBUTOR_SYSTEM_PROMPT,
@@ -190,6 +192,17 @@ export async function runContributorAgent(
     tools,
     stopWhen: stepCountIs(3),
     headers: context.tapesHeaders,
+  });
+
+  const toolsInvoked = result.steps.flatMap((s) => s.toolCalls.map((tc) => tc.toolName as string));
+  trackLLMCall({
+    agent: 'contributor',
+    model: 'gpt-4o-mini',
+    inputTokens: result.usage.promptTokens,
+    outputTokens: result.usage.completionTokens,
+    latencyMs: Date.now() - agentStart,
+    distinctId: context.distinctId,
+    metadata: { tools_invoked: toolsInvoked, tools_invoked_count: toolsInvoked.length },
   });
 
   return {

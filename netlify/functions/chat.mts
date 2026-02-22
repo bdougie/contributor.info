@@ -13,6 +13,8 @@ import {
 } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
+import { trackLLMCall } from './lib/llm-analytics.mts';
+import { trackServerEvent } from './lib/server-tracking.mts';
 import {
   runRepoHealthAgent,
   type AgentContext,
@@ -274,7 +276,8 @@ const PREPROCESSOR_MAX_INPUT_LENGTH = 2000;
 async function preprocessUserMessage(
   userMessageText: string,
   openai: ReturnType<typeof buildOpenAIProvider>,
-  tapesHeaders: Record<string, string>
+  tapesHeaders: Record<string, string>,
+  distinctId?: string
 ): Promise<PreprocessorResult> {
   if (!userMessageText.trim()) {
     return {
@@ -289,7 +292,8 @@ async function preprocessUserMessage(
       ? userMessageText.slice(0, PREPROCESSOR_MAX_INPUT_LENGTH)
       : userMessageText;
 
-  const { object } = await generateText({
+  const preStart = Date.now();
+  const { object, usage } = await generateText({
     model: openai('gpt-4o-mini'),
     system: PREPROCESSOR_SYSTEM_PROMPT,
     prompt: truncatedInput,
@@ -315,6 +319,20 @@ async function preprocessUserMessage(
       }),
     }),
     headers: tapesHeaders,
+  });
+
+  trackLLMCall({
+    agent: 'pre-processor',
+    model: 'gpt-4o-mini',
+    inputTokens: usage.promptTokens,
+    outputTokens: usage.completionTokens,
+    latencyMs: Date.now() - preStart,
+    distinctId,
+    metadata: {
+      intent: object.intent,
+      injection_detected: object.flags.injection,
+      off_topic: object.flags.offTopic,
+    },
   });
 
   return object;
@@ -433,7 +451,7 @@ export default async (req: Request, _context: Context) => {
     // Run preprocessor, datapipe check, and repo lookup in parallel
     const preStart = Date.now();
     const [preprocessResult, dp, { data: repoRow }] = await Promise.all([
-      preprocessUserMessage(rawUserText, openai, tapesHeaders).catch((err) => {
+      preprocessUserMessage(rawUserText, openai, tapesHeaders, user.id).catch((err) => {
         console.log('[chat] preprocessor failed (non-fatal): %s', err);
         return null;
       }),
@@ -493,6 +511,7 @@ export default async (req: Request, _context: Context) => {
       supabase,
       openai,
       tapesHeaders,
+      distinctId: user.id,
     };
 
     // Retrieve RAG context from vector embeddings (non-blocking, graceful fallback)
@@ -613,9 +632,24 @@ export default async (req: Request, _context: Context) => {
         : {}),
     };
 
+    // Emit a session-level event so PostHog dashboards can show per-request context
+    trackServerEvent(
+      'ai_chat_request',
+      {
+        repository: `${owner}/${repo}`,
+        intent: preprocessResult?.intent,
+        rag_used: ragContext !== null,
+        has_datapipe: hasDatapipe,
+        time_range: timeRange,
+        off_topic: preprocessResult?.flags.offTopic ?? false,
+      },
+      user.id
+    ).catch(() => {});
+
     // Phase 1: Manager dispatches to sub-agents using generateText.
     // When the LLM issues parallel tool calls in one step, sub-agents run concurrently.
     // stopWhen is reduced to 3 — the manager needs fewer steps than a direct tool runner.
+    const managerStart = Date.now();
     const managerResult = await generateText({
       model: openai('gpt-4o-mini'),
       system: buildManagerSystemPrompt(hasDatapipe),
@@ -623,6 +657,19 @@ export default async (req: Request, _context: Context) => {
       tools: managerTools,
       stopWhen: stepCountIs(3),
       headers: tapesHeaders,
+    });
+
+    const dispatchedTools = managerResult.steps
+      .flatMap((s) => s.toolCalls)
+      .map((tc) => tc.toolName as string);
+    trackLLMCall({
+      agent: 'manager',
+      model: 'gpt-4o-mini',
+      inputTokens: managerResult.usage.promptTokens,
+      outputTokens: managerResult.usage.completionTokens,
+      latencyMs: Date.now() - managerStart,
+      distinctId: user.id,
+      metadata: { dispatched_tools: dispatchedTools, dispatched_count: dispatchedTools.length },
     });
 
     const hasToolCalls = managerResult.steps.some((s) => s.toolCalls.length > 0);
@@ -649,6 +696,7 @@ export default async (req: Request, _context: Context) => {
 
     // Phase 2: Tools were called — stream a final response with gpt-4.1 for quality,
     // using the full manager step history (tool calls + results) as context.
+    const synthStart = Date.now();
     const textResult = streamText({
       model: openai('gpt-4.1'),
       system: systemPrompt,
@@ -665,6 +713,21 @@ export default async (req: Request, _context: Context) => {
           writer.write({ type: 'text-delta', id: 'text-0', delta: chunk });
         }
         writer.write({ type: 'text-end', id: 'text-0' });
+
+        // Track synthesizer usage after the stream is fully consumed (non-blocking).
+        textResult.usage
+          .then((usage) => {
+            trackLLMCall({
+              agent: 'synthesizer',
+              model: 'gpt-4.1',
+              inputTokens: usage.promptTokens,
+              outputTokens: usage.completionTokens,
+              latencyMs: Date.now() - synthStart,
+              distinctId: user.id,
+              metadata: { rag_used: ragContext !== null },
+            });
+          })
+          .catch(() => {});
 
         // Re-emit sub-agent tool events so the client creates
         // dynamic-tool parts and renders rich UI cards.

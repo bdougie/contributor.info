@@ -10,6 +10,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText, tool, jsonSchema, stepCountIs, type ModelMessage } from 'ai';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { trackLLMCall } from '../lib/llm-analytics.mts';
 
 // ---------------------------------------------------------------------------
 // Shared interfaces — re-exported so chat.mts can import them once
@@ -32,6 +33,8 @@ export interface AgentContext {
   supabase: SupabaseClient;
   openai: ReturnType<typeof createOpenAI>;
   tapesHeaders: Record<string, string>;
+  /** User ID for PostHog LLM analytics attribution */
+  distinctId?: string;
 }
 
 export interface SubAgentResult {
@@ -476,6 +479,7 @@ export async function runRepoHealthAgent(
 ): Promise<SubAgentResult> {
   const tools = buildRepoHealthTools(context);
 
+  const agentStart = Date.now();
   const result = await generateText({
     model: context.openai('gpt-4o-mini'),
     system: REPO_HEALTH_SYSTEM_PROMPT,
@@ -483,6 +487,17 @@ export async function runRepoHealthAgent(
     tools,
     stopWhen: stepCountIs(4),
     headers: context.tapesHeaders,
+  });
+
+  const toolsInvoked = result.steps.flatMap((s) => s.toolCalls.map((tc) => tc.toolName as string));
+  trackLLMCall({
+    agent: 'repo-health',
+    model: 'gpt-4o-mini',
+    inputTokens: result.usage.promptTokens,
+    outputTokens: result.usage.completionTokens,
+    latencyMs: Date.now() - agentStart,
+    distinctId: context.distinctId,
+    metadata: { tools_invoked: toolsInvoked, tools_invoked_count: toolsInvoked.length },
   });
 
   return {
