@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.62.1](https://github.com/bdougie/contributor.info/compare/v4.62.0...v4.62.1) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* expand manager prompt past 1024 token cache threshold and add llm-analytics tests ([#1700](https://github.com/bdougie/contributor.info/issues/1700)) ([ca89b43](https://github.com/bdougie/contributor.info/commit/ca89b4383713f1eaeeb290269e852117882f7747))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([35e4058](https://github.com/bdougie/contributor.info/commit/35e4058372088659331554bbe27023c4b274d593))
+
 ## [4.62.0](https://github.com/bdougie/contributor.info/compare/v4.61.0...v4.62.0) (2026-02-22)
 
 
