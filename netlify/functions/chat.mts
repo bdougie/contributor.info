@@ -324,8 +324,8 @@ async function preprocessUserMessage(
   trackLLMCall({
     agent: 'pre-processor',
     model: 'gpt-4o-mini',
-    inputTokens: usage.promptTokens,
-    outputTokens: usage.completionTokens,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
     latencyMs: Date.now() - preStart,
     distinctId,
     metadata: {
@@ -665,8 +665,8 @@ export default async (req: Request, _context: Context) => {
     trackLLMCall({
       agent: 'manager',
       model: 'gpt-4o-mini',
-      inputTokens: managerResult.usage.promptTokens,
-      outputTokens: managerResult.usage.completionTokens,
+      inputTokens: managerResult.usage.inputTokens,
+      outputTokens: managerResult.usage.outputTokens,
       latencyMs: Date.now() - managerStart,
       distinctId: user.id,
       metadata: { dispatched_tools: dispatchedTools, dispatched_count: dispatchedTools.length },
@@ -720,8 +720,8 @@ export default async (req: Request, _context: Context) => {
             trackLLMCall({
               agent: 'synthesizer',
               model: 'gpt-4.1',
-              inputTokens: usage.promptTokens,
-              outputTokens: usage.completionTokens,
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
               latencyMs: Date.now() - synthStart,
               distinctId: user.id,
               metadata: { rag_used: ragContext !== null },

@@ -198,8 +198,8 @@ export async function runContributorAgent(
   trackLLMCall({
     agent: 'contributor',
     model: 'gpt-4o-mini',
-    inputTokens: result.usage.promptTokens,
-    outputTokens: result.usage.completionTokens,
+    inputTokens: result.usage.inputTokens,
+    outputTokens: result.usage.outputTokens,
     latencyMs: Date.now() - agentStart,
     distinctId: context.distinctId,
     metadata: { tools_invoked: toolsInvoked, tools_invoked_count: toolsInvoked.length },
