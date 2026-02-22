@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.57.0](https://github.com/bdougie/contributor.info/compare/v4.56.0...v4.57.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* add chat preprocessor agent for injection detection ([#1693](https://github.com/bdougie/contributor.info/issues/1693)) ([7d25b48](https://github.com/bdougie/contributor.info/commit/7d25b48c6ee9e66e9c5f7c0239c2c1094d29dcc4))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([299bc45](https://github.com/bdougie/contributor.info/commit/299bc45fc18e7ffec613bdc253abc5c837faaad2))
+
 ## [4.56.0](https://github.com/bdougie/contributor.info/compare/v4.55.1...v4.56.0) (2026-02-22)
 
 
