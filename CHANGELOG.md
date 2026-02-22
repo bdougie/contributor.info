@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.58.0](https://github.com/bdougie/contributor.info/compare/v4.57.0...v4.58.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* add data normalization layer for RAG pipeline ([#1695](https://github.com/bdougie/contributor.info/issues/1695)) ([c9cc091](https://github.com/bdougie/contributor.info/commit/c9cc0918194b5b9b6493394d9b5924fba645995e)), closes [#1670](https://github.com/bdougie/contributor.info/issues/1670)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([7626750](https://github.com/bdougie/contributor.info/commit/7626750fd7185710ca0bcab26cf32e734a1e8e2b))
+
 ## [4.57.0](https://github.com/bdougie/contributor.info/compare/v4.56.0...v4.57.0) (2026-02-22)
 
 
