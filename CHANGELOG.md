@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.62.0](https://github.com/bdougie/contributor.info/compare/v4.61.0...v4.62.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* track OpenAI prompt cache hits in PostHog and fix ragContext bug ([#1699](https://github.com/bdougie/contributor.info/issues/1699)) ([8d6ecfb](https://github.com/bdougie/contributor.info/commit/8d6ecfbd0ee7abdfc8984da3339ca08888687767))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([919ac04](https://github.com/bdougie/contributor.info/commit/919ac04eb7dca20eba86a07e7ccb137938bcb1e6))
+
 ## [4.61.0](https://github.com/bdougie/contributor.info/compare/v4.60.0...v4.61.0) (2026-02-22)
 
 
