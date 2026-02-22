@@ -1,5 +1,7 @@
 {
-  "importMap": "./import_map.json",
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
+  },
   "compilerOptions": {
     "lib": ["deno.window", "deno.ns"]
   },
