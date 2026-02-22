@@ -24,14 +24,16 @@ export interface ContributorAgentContext extends AgentContext {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const CONTRIBUTOR_SYSTEM_PROMPT = `You are a contributor intelligence specialist. Analyze contribution patterns and team dynamics using your tools.
+const CONTRIBUTOR_SYSTEM_PROMPT = `You are a contributor intelligence specialist with access to tools for contributor data.
 
-Call all relevant tools to provide insights on:
-- Top contributors ranked by quality score
-- Lottery factor — how concentrated contributions are among a few people
-- Activity feed — daily breakdown of PRs, reviews, and issues
+Available tools:
+- get_contributor_rankings: top contributors ranked by quality score with activity breakdowns
+- get_lottery_factor: contribution concentration, contributor of the month, health trend
+- get_activity_feed: daily breakdown of PRs opened/merged, reviews, and issues
 
-Return a concise, data-backed summary highlighting patterns and risks.`;
+Only call the tools that are relevant to the user's specific question. Do not call all tools for every request — for example, if the user only asks about the lottery factor, only call get_lottery_factor. If the user asks for a full contributor overview, call all relevant tools.
+
+Return a concise, data-backed answer highlighting patterns and risks.`;
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -182,6 +184,7 @@ export async function runContributorAgent(
   });
 
   return {
+    kind: 'sub-agent-result' as const,
     text: result.text,
     toolCalls: result.steps.flatMap((s) =>
       s.toolCalls.map((tc) => ({ toolCallId: tc.toolCallId, toolName: tc.toolName as string }))

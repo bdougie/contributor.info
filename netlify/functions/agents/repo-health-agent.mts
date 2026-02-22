@@ -35,6 +35,7 @@ export interface AgentContext {
 }
 
 export interface SubAgentResult {
+  readonly kind: 'sub-agent-result';
   text: string;
   toolCalls: Array<{ toolCallId: string; toolName: string }>;
   toolResults: Array<{ toolCallId: string; output: unknown }>;
@@ -44,15 +45,17 @@ export interface SubAgentResult {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const REPO_HEALTH_SYSTEM_PROMPT = `You are a repository health specialist. Analyze the health of a GitHub repository using your tools.
+const REPO_HEALTH_SYSTEM_PROMPT = `You are a repository health specialist with access to tools for repository data.
 
-Call all relevant tools to provide a comprehensive health assessment covering:
-- Repository overview and statistics
-- Pull requests needing urgent attention
-- Health score and contributing factors
-- Actionable recommendations for maintainers
+Available tools:
+- get_repo_summary: repository overview (stars, forks, language, recent PR count)
+- get_prs_needing_attention: open PRs ranked by urgency
+- get_health_assessment: overall health score and contributing factors
+- get_recommendations: actionable suggestions to improve health
 
-Return a concise, data-backed summary.`;
+Only call the tools that are relevant to the user's specific question. Do not call all tools for every request — for example, if the user only asks about PRs needing review, only call get_prs_needing_attention. If the user asks for a full health overview, call all relevant tools.
+
+Return a concise, data-backed answer.`;
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -421,6 +424,7 @@ export async function runRepoHealthAgent(
   });
 
   return {
+    kind: 'sub-agent-result' as const,
     text: result.text,
     toolCalls: result.steps.flatMap((s) =>
       s.toolCalls.map((tc) => ({ toolCallId: tc.toolCallId, toolName: tc.toolName as string }))

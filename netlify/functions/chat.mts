@@ -560,7 +560,7 @@ export default async (req: Request, _context: Context) => {
             for (const tr of step.toolResults) {
               const subResult = tr.output as SubAgentResult | undefined;
 
-              if (subResult?.toolCalls) {
+              if (subResult?.kind === 'sub-agent-result') {
                 // Sub-agent result — re-emit individual tool events with original tool names
                 for (const tc of subResult.toolCalls) {
                   writer.write({
