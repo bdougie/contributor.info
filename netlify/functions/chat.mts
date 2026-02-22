@@ -22,6 +22,7 @@ import {
   type SubAgentResult,
 } from './agents/repo-health-agent.mts';
 import { runContributorAgent, type ContributorAgentContext } from './agents/contributor-agent.mts';
+import { searchRepositoryContext } from './agents/semantic-search-tool.mts';
 type DatapipeClient = typeof import('./lib/gh-datapipe-client.mts');
 
 let _datapipeCache: DatapipeClient | null | undefined;
@@ -61,20 +62,6 @@ function buildTapesHeaders(owner: string, repo: string): Record<string, string> 
   };
 }
 
-interface RAGItem {
-  item_type: string;
-  id: string;
-  title: string;
-  number: number;
-  similarity: number;
-  url: string;
-  state: string;
-  repository_name: string;
-  body_preview: string | null;
-  created_at: string | null;
-  author_login: string | null;
-}
-
 type PreprocessorIntent = 'health' | 'contributors' | 'search' | 'off_topic';
 
 interface PreprocessorFlags {
@@ -88,124 +75,12 @@ interface PreprocessorResult {
   flags: PreprocessorFlags;
 }
 
-function formatRelativeTime(isoDate: string): string {
-  const diffMs = Date.now() - new Date(isoDate).getTime();
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  const years = Math.floor(months / 12);
-  return `${years}y ago`;
-}
-
-interface EmbedQueryResponse {
-  embedding: number[];
-  dimensions: number;
-  elapsed_ms: number;
-}
-
-/**
- * Retrieve RAG context by embedding the user query and searching for similar items.
- * Returns a formatted markdown context block, or null if unavailable.
- */
-async function retrieveRAGContext(
-  queryText: string,
-  repoId: string,
-  supabase: ReturnType<typeof getSupabaseClient>
-): Promise<string | null> {
-  const edgeFunctionUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!edgeFunctionUrl || !serviceRoleKey) {
-    console.log('[chat] RAG skipped: missing Supabase URL or service role key');
-    return null;
-  }
-
-  const start = Date.now();
-
-  // Step 1: Get embedding from the edge function with a 3s timeout
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-
-  let embedding: number[];
-  try {
-    const embedResponse = await fetch(`${edgeFunctionUrl}/functions/v1/embed-query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({ text: queryText }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (!embedResponse.ok) {
-      console.log('[chat] RAG embed-query returned %d', embedResponse.status);
-      return null;
-    }
-
-    const embedData: EmbedQueryResponse = await embedResponse.json();
-    embedding = embedData.embedding;
-  } catch (err) {
-    clearTimeout(timeout);
-    const reason = err instanceof Error ? err.message : String(err);
-    console.log('[chat] RAG embed-query failed: %s', reason);
-    return null;
-  }
-
-  // Step 2: Call vector search RPC
-  const { data: similarItems, error: rpcError } = await supabase.rpc(
-    'find_similar_items_cross_entity',
-    {
-      query_embedding: embedding,
-      repo_ids: [repoId],
-      match_count: 8,
-      exclude_item_type: null,
-      exclude_item_id: null,
-    }
-  );
-
-  if (rpcError) {
-    console.log('[chat] RAG RPC error: %s', rpcError.message);
-    return null;
-  }
-
-  // Step 3: Filter by similarity threshold and format
-  const items = (similarItems as RAGItem[] | null) ?? [];
-  const relevant = items.filter((item) => item.similarity > 0.3);
-
-  const elapsed = Date.now() - start;
-  console.log('[chat] RAG retrieval: %dms, %d items', elapsed, relevant.length);
-
-  if (relevant.length === 0) {
-    return null;
-  }
-
-  const lines = relevant.map((item) => {
-    const typeLabel = item.item_type === 'pull_request' ? 'PR' : item.item_type;
-    const author = item.author_login ? ` by @${item.author_login}` : '';
-    const timeAgo = item.created_at ? `, ${formatRelativeTime(item.created_at)}` : '';
-    let line = `- [${typeLabel} #${item.number}](${item.url})${author} (${item.state}${timeAgo}): ${item.title}`;
-    if (item.body_preview) {
-      line += `\n  > ${item.body_preview.replace(/\n/g, ' ')}`;
-    }
-    return line;
-  });
-
-  return `\n\n## Related Repository Activity (from semantic search)\nThe following items from this repository are semantically related to the user's question:\n${lines.join('\n')}\n\nUse this context to provide more informed answers when relevant. Cite specific PRs, issues, or discussions when they help answer the question.`;
-}
-
 const BASE_CAPABILITIES = [
   '- **Repository overview**: description, stars, forks, language, and recent PR count',
   '- **Pull requests needing attention**: open PRs ranked by urgency based on age and size',
   '- **Repository health score**: an assessment based on merge times, activity levels, and stale PRs',
   '- **Actionable recommendations**: suggestions to improve repo health and contributor experience',
-  '- **Related activity**: semantically related PRs, issues, and discussions from the repository',
+  '- **Semantic search**: find related PRs, issues, and discussions by topic when relevant',
 ];
 
 const DATAPIPE_CAPABILITIES = [
@@ -338,18 +213,31 @@ async function preprocessUserMessage(
   return object;
 }
 
-function buildManagerSystemPrompt(hasDatapipe: boolean): string {
-  const toolList = hasDatapipe
-    ? '- get_repo_health: repository summary, PRs needing attention, health score, recommendations\n- get_contributor_intelligence: contributor rankings, lottery factor, activity feed\n- discover_repos: find repositories by language, topic, or criteria'
-    : '- get_repo_health: repository summary, PRs needing attention, health score, recommendations';
+function buildManagerSystemPrompt(hasDatapipe: boolean, hasRepoContext: boolean): string {
+  const tools: string[] = [
+    '- get_repo_health: repository summary, PRs needing attention, health score, recommendations',
+  ];
+
+  if (hasDatapipe) {
+    tools.push(
+      '- get_contributor_intelligence: contributor rankings, lottery factor, activity feed',
+      '- discover_repos: find repositories by language, topic, or criteria'
+    );
+  }
+
+  if (hasRepoContext) {
+    tools.push(
+      '- search_repository_context: semantic search over PRs, issues, and discussions. Use when the user asks about specific topics, features, bugs, or activity that requires searching repository history.'
+    );
+  }
 
   return `You are an orchestration manager for repository analysis. Your job is to call the right sub-agent tools to answer the user's question.
 
 Available tools:
-${toolList}
+${tools.join('\n')}
 
-When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call both sub-agents in the same step so they run in parallel.
-When the question is domain-specific, call only the relevant sub-agent.
+When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call multiple sub-agents in the same step so they run in parallel.
+When the question is domain-specific, call only the relevant sub-agent.${hasRepoContext ? '\nOnly use search_repository_context when the user asks about specific topics, features, or activity — not for general health or contributor questions.' : ''}
 Do not answer directly — always use tools to fetch real data.`;
 }
 
@@ -518,24 +406,11 @@ export default async (req: Request, _context: Context) => {
       distinctId: user.id,
     };
 
-    // Retrieve RAG context from vector embeddings (non-blocking, graceful fallback)
-    let ragContext: string | null = null;
-    if (repoId) {
-      const queryText = preprocessResult?.cleanedQuery?.trim() || rawUserText.trim();
-      if (queryText.length > 0) {
-        try {
-          ragContext = await retrieveRAGContext(queryText, repoId, supabase);
-        } catch (err) {
-          console.log('[chat] RAG retrieval error (non-fatal): %s', err);
-        }
-      }
-    }
-
     const offTopicHint = preprocessResult?.flags.offTopic
       ? "\n\nThe user's latest message appears to be off-topic. Gently guide them toward questions you can help with, such as repository health, contributors, or pull requests."
       : '';
 
-    const systemPrompt = buildSystemPrompt(hasDatapipe) + (ragContext ?? '') + offTopicHint;
+    const systemPrompt = buildSystemPrompt(hasDatapipe) + offTopicHint;
 
     const conversationMessages = [
       {
@@ -553,6 +428,32 @@ export default async (req: Request, _context: Context) => {
         inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
         execute: async () => runRepoHealthAgent(agentContext, conversationMessages),
       }),
+      ...(repoId
+        ? {
+            search_repository_context: tool({
+              description:
+                'Semantic search over repository PRs, issues, and discussions. Use when the user asks about specific topics, features, bugs, or activity.',
+              inputSchema: jsonSchema({
+                type: 'object' as const,
+                properties: {
+                  query: {
+                    type: 'string' as const,
+                    description: 'The search query describing what to look for',
+                  },
+                },
+                required: ['query'],
+              }),
+              execute: async (input: { query: string }) => {
+                try {
+                  return await searchRepositoryContext(input.query, repoId, supabase);
+                } catch (err) {
+                  console.error('[chat] search_repository_context error: %s', err);
+                  return { items: [], elapsed_ms: 0 };
+                }
+              },
+            }),
+          }
+        : {}),
       ...(hasDatapipe && dp
         ? {
             get_contributor_intelligence: tool({
@@ -663,7 +564,7 @@ export default async (req: Request, _context: Context) => {
     const managerStart = Date.now();
     const managerResult = await generateText({
       model: openai('gpt-4o-mini'),
-      system: buildManagerSystemPrompt(hasDatapipe),
+      system: buildManagerSystemPrompt(hasDatapipe, repoId !== null),
       messages: conversationMessages,
       tools: managerTools,
       stopWhen: stepCountIs(3),
