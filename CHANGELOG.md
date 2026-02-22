@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.62.2](https://github.com/bdougie/contributor.info/compare/v4.62.1...v4.62.2) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* migrate import_map.json into deno.json ([#1675](https://github.com/bdougie/contributor.info/issues/1675)) ([#1701](https://github.com/bdougie/contributor.info/issues/1701)) ([fb24e43](https://github.com/bdougie/contributor.info/commit/fb24e436d0655734a60798a3626294bf82e604f9))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([b0ee0ed](https://github.com/bdougie/contributor.info/commit/b0ee0ed520bf9d619392d7c67abcd502153bd18d))
+
 ## [4.62.1](https://github.com/bdougie/contributor.info/compare/v4.62.0...v4.62.1) (2026-02-22)
 
 
