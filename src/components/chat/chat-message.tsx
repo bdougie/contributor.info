@@ -7,6 +7,7 @@ import { PrAlertCard } from './chat-cards/pr-alert-card';
 import { HealthCard } from './chat-cards/health-card';
 import { RepoSummaryCard } from './chat-cards/repo-summary-card';
 import { ContributorRankingsCard } from './chat-cards/contributor-rankings-card';
+import { SemanticSearchCard } from './chat-cards/semantic-search-card';
 import type { UIMessage } from '@ai-sdk/react';
 import type {
   RecommendationsData,
@@ -14,6 +15,7 @@ import type {
   HealthAssessmentData,
   RepoSummaryData,
   ContributorRankingsData,
+  SemanticSearchData,
   ToolResultData,
 } from './types';
 
@@ -50,6 +52,8 @@ function ToolResultCard({
       return <RepoSummaryCard data={result as RepoSummaryData} />;
     case 'get_contributor_rankings':
       return <ContributorRankingsCard data={result as ContributorRankingsData} />;
+    case 'search_repository_context':
+      return <SemanticSearchCard data={result as SemanticSearchData} />;
     default:
       return null;
   }
