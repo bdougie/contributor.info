@@ -22,6 +22,8 @@ export interface LLMCallMetrics {
   latencyMs: number;
   /** PostHog distinct_id for per-user attribution — omit for anonymous */
   distinctId?: string;
+  /** Number of input tokens served from OpenAI's prompt cache */
+  cachedTokens?: number;
   /** Extra properties merged into the event (agent-specific metadata) */
   metadata?: Record<string, unknown>;
 }
@@ -39,6 +41,7 @@ export function trackLLMCall(metrics: LLMCallMetrics): void {
       $ai_input_tokens: metrics.inputTokens,
       $ai_output_tokens: metrics.outputTokens,
       $ai_latency: metrics.latencyMs,
+      ...(metrics.cachedTokens != null && { $ai_cached_tokens: metrics.cachedTokens }),
       agent: metrics.agent,
       ...metrics.metadata,
     },
