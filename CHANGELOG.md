@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.56.0](https://github.com/bdougie/contributor.info/compare/v4.55.1...v4.56.0) (2026-02-22)
+
+
+### 🐛 Bug Fixes
+
+* actions/continue-triage/package.json to reduce vulnerabilities ([#1682](https://github.com/bdougie/contributor.info/issues/1682)) ([bcf4189](https://github.com/bdougie/contributor.info/commit/bcf41895ea5ca0a489a31532e980dfe207eb9be9))
+* **ui:** use gap option in VirtualizedList for correct total size ([#1683](https://github.com/bdougie/contributor.info/issues/1683)) ([42659e4](https://github.com/bdougie/contributor.info/commit/42659e4287b7b973ce1d47cef3ed375cbb8858c9))
+
+
+### ⚡ Performance Improvements
+
+* optimize workspace events fetching to eliminate N+1 queries ([#1684](https://github.com/bdougie/contributor.info/issues/1684)) ([2484f5c](https://github.com/bdougie/contributor.info/commit/2484f5ce84651aff1ccf11ace078242c8b666981))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([8deb80d](https://github.com/bdougie/contributor.info/commit/8deb80d0af97da3d933406db4553f3e990f3abde))
+
 ## [4.55.1](https://github.com/bdougie/contributor.info/compare/v4.55.0...v4.55.1) (2026-02-22)
 
 
