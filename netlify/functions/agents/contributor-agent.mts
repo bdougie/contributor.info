@@ -10,6 +10,15 @@
 
 import { generateText, tool, jsonSchema, stepCountIs, type ModelMessage } from 'ai';
 import type { AgentContext, SubAgentResult } from './repo-health-agent.mts';
+
+// Keep the last N messages to avoid unbounded context growth in long sessions.
+// The first message (repo context prefix) is always preserved.
+const MAX_HISTORY_MESSAGES = 10;
+
+function capMessages(messages: ModelMessage[]): ModelMessage[] {
+  if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
+  return [messages[0], ...messages.slice(-(MAX_HISTORY_MESSAGES - 1))];
+}
 type DatapipeClient = typeof import('../lib/gh-datapipe-client.mts');
 
 // ---------------------------------------------------------------------------
@@ -177,7 +186,7 @@ export async function runContributorAgent(
   const result = await generateText({
     model: context.openai('gpt-4o-mini'),
     system: CONTRIBUTOR_SYSTEM_PROMPT,
-    messages: userMessages,
+    messages: capMessages(userMessages),
     tools,
     stopWhen: stepCountIs(3),
     headers: context.tapesHeaders,

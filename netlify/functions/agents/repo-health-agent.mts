@@ -42,6 +42,148 @@ export interface SubAgentResult {
 }
 
 // ---------------------------------------------------------------------------
+// Pure scoring helpers — exported for unit testing
+// ---------------------------------------------------------------------------
+
+export interface PRUrgencyInput {
+  created_at: string;
+  updated_at: string;
+  additions: number | null;
+  deletions: number | null;
+}
+
+export type UrgencyLevel = 'critical' | 'high' | 'medium' | 'low';
+
+export interface PRUrgencyResult {
+  urgency: UrgencyLevel;
+  urgencyScore: number;
+  reasons: string[];
+  daysSinceCreated: number;
+  linesChanged: number;
+}
+
+export function computePRUrgency(pr: PRUrgencyInput, now: Date): PRUrgencyResult {
+  const created = new Date(pr.created_at);
+  const updated = new Date(pr.updated_at);
+  const daysSinceCreated = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceUpdated = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+  const linesChanged = (pr.additions ?? 0) + (pr.deletions ?? 0);
+
+  let urgencyScore = 0;
+  const reasons: string[] = [];
+
+  if (daysSinceCreated >= 7) {
+    reasons.push(`Open for ${daysSinceCreated} days`);
+    urgencyScore += Math.min(daysSinceCreated * 2, 40);
+  }
+  if (daysSinceUpdated >= 3) {
+    reasons.push(`No updates for ${daysSinceUpdated} days`);
+    urgencyScore += daysSinceUpdated * 3;
+  }
+  if (linesChanged > 1000) {
+    reasons.push('Very large PR');
+    urgencyScore += 20;
+  }
+
+  let urgency: UrgencyLevel = 'low';
+  if (urgencyScore >= 70) urgency = 'critical';
+  else if (urgencyScore >= 50) urgency = 'high';
+  else if (urgencyScore >= 30) urgency = 'medium';
+
+  return {
+    urgency,
+    urgencyScore: Math.min(urgencyScore, 100),
+    reasons: reasons.length > 0 ? reasons : ['Needs review'],
+    daysSinceCreated,
+    linesChanged,
+  };
+}
+
+export interface MergedPRData {
+  merged_at: string;
+  created_at: string;
+}
+
+export interface HealthFactor {
+  name: string;
+  score: number;
+  status: 'good' | 'warning' | 'critical';
+  description: string;
+}
+
+export interface HealthFactorsResult {
+  factors: HealthFactor[];
+  recommendations: string[];
+  overallScore: number;
+}
+
+export function computeHealthFactors(
+  mergedPRs: MergedPRData[],
+  weeklyPRCount: number,
+  stalePRCount: number,
+  totalOpenPRs: number
+): HealthFactorsResult {
+  const factors: HealthFactor[] = [];
+  const recommendations: string[] = [];
+
+  // Merge time factor
+  let mergeTimeScore = 100;
+  if (mergedPRs.length > 0) {
+    const avgMergeHours =
+      mergedPRs.reduce((sum, pr) => {
+        return (
+          sum +
+          (new Date(pr.merged_at).getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60)
+        );
+      }, 0) / mergedPRs.length;
+
+    if (avgMergeHours > 168) {
+      mergeTimeScore = 50;
+      recommendations.push('PR merge times are high - consider review SLAs');
+    } else if (avgMergeHours > 72) {
+      mergeTimeScore = 70;
+      recommendations.push('Consider streamlining PR review process');
+    } else if (avgMergeHours > 24) {
+      mergeTimeScore = 85;
+    }
+    factors.push({
+      name: 'PR Merge Time',
+      score: mergeTimeScore,
+      status: mergeTimeScore >= 80 ? 'good' : mergeTimeScore >= 60 ? 'warning' : 'critical',
+      description: `Average ${Math.round(avgMergeHours)} hours`,
+    });
+  }
+
+  // Activity factor
+  const activityScore = weeklyPRCount === 0 ? 30 : weeklyPRCount < 3 ? 70 : 100;
+  if (weeklyPRCount === 0) recommendations.push('No activity in the past week');
+  factors.push({
+    name: 'Activity Level',
+    score: activityScore,
+    status: activityScore >= 80 ? 'good' : activityScore >= 60 ? 'warning' : 'critical',
+    description: `${weeklyPRCount} PRs in the last 7 days`,
+  });
+
+  // Stale PRs factor
+  const staleRatio = totalOpenPRs > 0 ? stalePRCount / totalOpenPRs : 0;
+  const responseScore = staleRatio > 0.5 ? 50 : staleRatio > 0.25 ? 75 : 100;
+  if (staleRatio > 0.5) recommendations.push('Many PRs are stale - establish response time SLAs');
+  factors.push({
+    name: 'Response Time',
+    score: responseScore,
+    status: responseScore >= 80 ? 'good' : responseScore >= 60 ? 'warning' : 'critical',
+    description: `${stalePRCount} PRs open > 7 days`,
+  });
+
+  const overallScore =
+    factors.length > 0
+      ? Math.round(factors.reduce((sum, f) => sum + f.score, 0) / factors.length)
+      : 0;
+
+  return { factors, recommendations, overallScore };
+}
+
+// ---------------------------------------------------------------------------
 // System prompt
 // ---------------------------------------------------------------------------
 
@@ -60,6 +202,15 @@ Return a concise, data-backed answer.`;
 // ---------------------------------------------------------------------------
 // Tool definitions
 // ---------------------------------------------------------------------------
+
+// Keep the last N messages to avoid unbounded context growth in long sessions.
+// The first message (repo context prefix) is always preserved.
+const MAX_HISTORY_MESSAGES = 10;
+
+function capMessages(messages: ModelMessage[]): ModelMessage[] {
+  if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
+  return [messages[0], ...messages.slice(-(MAX_HISTORY_MESSAGES - 1))];
+}
 
 function buildRepoHealthTools(context: AgentContext) {
   const { owner, repo, repoId, repoData, timeRange, supabase } = context;
@@ -138,49 +289,13 @@ function buildRepoHealthTools(context: AgentContext) {
         const now = new Date();
         const alerts = openPRs
           .map((pr) => {
-            const created = new Date(pr.created_at);
-            const updated = new Date(pr.updated_at);
-            const daysSinceCreated = Math.floor(
-              (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            const daysSinceUpdated = Math.floor(
-              (now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24)
-            );
-            const linesChanged = (pr.additions || 0) + (pr.deletions || 0);
-
-            let urgencyScore = 0;
-            const reasons: string[] = [];
-
-            if (daysSinceCreated >= 7) {
-              reasons.push(`Open for ${daysSinceCreated} days`);
-              urgencyScore += Math.min(daysSinceCreated * 2, 40);
-            }
-            if (daysSinceUpdated >= 3) {
-              reasons.push(`No updates for ${daysSinceUpdated} days`);
-              urgencyScore += daysSinceUpdated * 3;
-            }
-            if (linesChanged > 1000) {
-              reasons.push('Very large PR');
-              urgencyScore += 20;
-            }
-
-            let urgency: 'critical' | 'high' | 'medium' | 'low' = 'low';
-            if (urgencyScore >= 70) urgency = 'critical';
-            else if (urgencyScore >= 50) urgency = 'high';
-            else if (urgencyScore >= 30) urgency = 'medium';
-
+            const scoring = computePRUrgency(pr, now);
             const prAuthor = pr.author as { username: string; avatar_url: string } | null;
-            const author = prAuthor?.username || 'unknown';
-
             return {
               number: pr.number,
               title: pr.title,
-              author,
-              urgency,
-              urgencyScore: Math.min(urgencyScore, 100),
-              reasons: reasons.length > 0 ? reasons : ['Needs review'],
-              daysSinceCreated,
-              linesChanged,
+              author: prAuthor?.username ?? 'unknown',
+              ...scoring,
               url: `https://github.com/${owner}/${repo}/pull/${pr.number}`,
             };
           })
@@ -232,77 +347,24 @@ function buildRepoHealthTools(context: AgentContext) {
             .limit(500),
         ]);
 
-        const allPRs = prData.data || [];
-        const mergedPRs = allPRs.filter((pr) => pr.merged_at);
-        const weeklyPRs = recentPRs.data || [];
-        const stalePRs = (openPRs.data || []).filter((pr) => {
+        const allPRs = prData.data ?? [];
+        const mergedPRs = allPRs.filter(
+          (pr): pr is { merged_at: string; created_at: string; state: string } =>
+            pr.merged_at != null
+        );
+        const weeklyPRCount = recentPRs.data?.length ?? 0;
+        const openPRList = openPRs.data ?? [];
+        const stalePRCount = openPRList.filter((pr) => {
           const created = new Date(pr.created_at);
           return (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24) > 7;
-        });
+        }).length;
 
-        const factors: Array<{
-          name: string;
-          score: number;
-          status: string;
-          description: string;
-        }> = [];
-        const recommendations: string[] = [];
-
-        // Merge time factor
-        let mergeTimeScore = 100;
-        if (mergedPRs.length > 0) {
-          const avgMergeHours =
-            mergedPRs.reduce((sum, pr) => {
-              return (
-                sum +
-                (new Date(pr.merged_at!).getTime() - new Date(pr.created_at).getTime()) /
-                  (1000 * 60 * 60)
-              );
-            }, 0) / mergedPRs.length;
-          if (avgMergeHours > 168) {
-            mergeTimeScore = 50;
-            recommendations.push('PR merge times are high - consider review SLAs');
-          } else if (avgMergeHours > 72) {
-            mergeTimeScore = 70;
-            recommendations.push('Consider streamlining PR review process');
-          } else if (avgMergeHours > 24) {
-            mergeTimeScore = 85;
-          }
-          factors.push({
-            name: 'PR Merge Time',
-            score: mergeTimeScore,
-            status: mergeTimeScore >= 80 ? 'good' : mergeTimeScore >= 60 ? 'warning' : 'critical',
-            description: `Average ${Math.round(avgMergeHours)} hours`,
-          });
-        }
-
-        // Activity factor
-        const activityScore = weeklyPRs.length === 0 ? 30 : weeklyPRs.length < 3 ? 70 : 100;
-        if (weeklyPRs.length === 0) recommendations.push('No activity in the past week');
-        factors.push({
-          name: 'Activity Level',
-          score: activityScore,
-          status: activityScore >= 80 ? 'good' : activityScore >= 60 ? 'warning' : 'critical',
-          description: `${weeklyPRs.length} PRs in the last 7 days`,
-        });
-
-        // Stale PRs factor
-        const staleRatio = openPRs.data?.length ? stalePRs.length / openPRs.data.length : 0;
-        const responseScore = staleRatio > 0.5 ? 50 : staleRatio > 0.25 ? 75 : 100;
-        if (staleRatio > 0.5)
-          recommendations.push('Many PRs are stale - establish response time SLAs');
-        factors.push({
-          name: 'Response Time',
-          score: responseScore,
-          status: responseScore >= 80 ? 'good' : responseScore >= 60 ? 'warning' : 'critical',
-          description: `${stalePRs.length} PRs open > 7 days`,
-        });
-
-        const totalWeight = factors.length;
-        const overallScore =
-          totalWeight > 0
-            ? Math.round(factors.reduce((sum, f) => sum + f.score, 0) / totalWeight)
-            : 0;
+        const { factors, recommendations, overallScore } = computeHealthFactors(
+          mergedPRs,
+          weeklyPRCount,
+          stalePRCount,
+          openPRList.length
+        );
 
         return {
           score: overallScore,
@@ -332,7 +394,7 @@ function buildRepoHealthTools(context: AgentContext) {
           .eq('repository_id', repoId)
           .gte('created_at', cutoffIso);
 
-        const prs = allPRs || [];
+        const prs = allPRs ?? [];
         const recommendations: Array<{
           title: string;
           priority: 'high' | 'medium' | 'low';
@@ -417,7 +479,7 @@ export async function runRepoHealthAgent(
   const result = await generateText({
     model: context.openai('gpt-4o-mini'),
     system: REPO_HEALTH_SYSTEM_PROMPT,
-    messages: userMessages,
+    messages: capMessages(userMessages),
     tools,
     stopWhen: stepCountIs(4),
     headers: context.tapesHeaders,
