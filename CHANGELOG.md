@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.59.0](https://github.com/bdougie/contributor.info/compare/v4.58.0...v4.59.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* refactor chat tools into parallel sub-agents ([#1694](https://github.com/bdougie/contributor.info/issues/1694)) ([898d74e](https://github.com/bdougie/contributor.info/commit/898d74e4e5cf69234289a05042aec7f6c070e9a5)), closes [#1687](https://github.com/bdougie/contributor.info/issues/1687)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([374f7e1](https://github.com/bdougie/contributor.info/commit/374f7e1178557c09e56a89521f4d109267acd2ad))
+
 ## [4.58.0](https://github.com/bdougie/contributor.info/compare/v4.57.0...v4.58.0) (2026-02-22)
 
 
