@@ -16,7 +16,7 @@ export default function ContributorOfTheMonthWrapper() {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
   if (loading) {
-    return <div className="animate-pulse h-64 bg-gray-100 rounded-lg" />;
+    return <div className="animate-pulse h-64 bg-muted rounded-lg" />;
   }
 
   // If no rankings data at all, show workspace CTA

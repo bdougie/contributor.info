@@ -26,6 +26,9 @@ export interface TrackingState {
   error: string | null;
 }
 
+// Module-level cache of confirmed tracked repos to avoid "checking" flash on re-mounts
+const confirmedTrackedRepos = new Map<string, { id: string; owner: string; name: string }>();
+
 interface TrackingOptions {
   owner: string | undefined;
   repo: string | undefined;
@@ -43,12 +46,15 @@ export function useRepositoryTracking({
   enabled = true,
   onTrackingComplete,
 }: TrackingOptions) {
-  const [state, setState] = useState<TrackingState>({
-    status: 'checking',
-    repository: null,
-    message: null,
-    error: null,
-  });
+  // Check module-level cache to skip "checking" state for known tracked repos
+  const repoKey = owner && repo ? `${owner}/${repo}` : '';
+  const cachedRepo = repoKey ? confirmedTrackedRepos.get(repoKey) : undefined;
+
+  const [state, setState] = useState<TrackingState>(
+    cachedRepo
+      ? { status: 'tracked', repository: cachedRepo, message: null, error: null }
+      : { status: 'checking', repository: null, message: null, error: null }
+  );
 
   const { isLoggedIn } = useGitHubAuth();
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -89,7 +95,9 @@ export function useRepositoryTracking({
       }
 
       if (repoData) {
-        // Repository is tracked
+        // Repository is tracked - cache for future synchronous lookups
+        const key = `${owner}/${repo}`;
+        confirmedTrackedRepos.set(key, repoData);
         setState({
           status: 'tracked',
           repository: repoData,
