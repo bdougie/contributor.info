@@ -73,30 +73,12 @@ export interface ContributorRankingsData {
   contributors: ContributorData[];
 }
 
-export interface SemanticSearchItemData {
-  type: string;
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-  author: string | null;
-  age: string | null;
-  similarity: number;
-  bodyPreview: string | null;
-}
-
-export interface SemanticSearchData {
-  items: SemanticSearchItemData[];
-  elapsed_ms: number;
-}
-
 export type ToolResultData =
   | RecommendationsData
   | PrAttentionData
   | HealthAssessmentData
   | RepoSummaryData
-  | ContributorRankingsData
-  | SemanticSearchData;
+  | ContributorRankingsData;
 
 export const EXAMPLE_QUESTIONS = [
   'Give me an overview of this repo',
