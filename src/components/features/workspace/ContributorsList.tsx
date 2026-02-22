@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -363,22 +363,27 @@ export function ContributorsList({
     };
   }, [updateLayout]);
 
-  const filteredContributors = contributors.filter((contributor) => {
-    const matchesSearch =
-      contributor.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contributor.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contributor.bio?.toLowerCase().includes(searchTerm.toLowerCase());
+  const trackedContributorsSet = useMemo(() => new Set(trackedContributors), [trackedContributors]);
 
-    const isTracked = trackedContributors.includes(contributor.id);
-    const matchesTrackedFilter = showTrackedOnly ? isTracked : true;
+  const filteredContributors = useMemo(() => {
+    const normalizedSearch = searchTerm.toLowerCase();
+    return contributors.filter((contributor) => {
+      const matchesSearch =
+        contributor.username.toLowerCase().includes(normalizedSearch) ||
+        contributor.name?.toLowerCase().includes(normalizedSearch) ||
+        contributor.bio?.toLowerCase().includes(normalizedSearch);
 
-    return matchesSearch && matchesTrackedFilter;
-  });
+      const isTracked = trackedContributorsSet.has(contributor.id);
+      const matchesTrackedFilter = showTrackedOnly ? isTracked : true;
+
+      return matchesSearch && matchesTrackedFilter;
+    });
+  }, [contributors, searchTerm, trackedContributorsSet, showTrackedOnly]);
 
   // Memoize renderItem to avoid re-creating functions on every render
   const renderGridItem = useCallback(
     (contributor: Contributor) => {
-      const isTracked = trackedContributors.includes(contributor.id);
+      const isTracked = trackedContributorsSet.has(contributor.id);
       return (
         <ContributorCard
           key={contributor.id}
@@ -392,7 +397,7 @@ export function ContributorsList({
       );
     },
     [
-      trackedContributors,
+      trackedContributorsSet,
       onTrackContributor,
       onUntrackContributor,
       onContributorClick,
@@ -468,7 +473,7 @@ export function ContributorsList({
         {filteredContributors.length > 0 && view === 'list' && (
           <div className="space-y-3">
             {filteredContributors.map((contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
+              const isTracked = trackedContributorsSet.has(contributor.id);
               return (
                 <ContributorListItem
                   key={contributor.id}
@@ -541,7 +546,7 @@ export function ContributorsList({
         {filteredContributors.length > 0 && view === 'list' && (
           <div className="space-y-3">
             {filteredContributors.map((contributor) => {
-              const isTracked = trackedContributors.includes(contributor.id);
+              const isTracked = trackedContributorsSet.has(contributor.id);
               return (
                 <ContributorListItem
                   key={contributor.id}
