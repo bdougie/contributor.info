@@ -72,7 +72,12 @@ export function useRepositoryTracking({
     }
 
     try {
-      setState((prev) => ({ ...prev, status: 'checking', error: null }));
+      // Only show 'checking' UI when we have no cached answer —
+      // otherwise the cached 'tracked' state gets overwritten causing a skeleton flash
+      const key = `${owner}/${repo}`;
+      if (!confirmedTrackedRepos.has(key)) {
+        setState((prev) => ({ ...prev, status: 'checking', error: null }));
+      }
 
       // Check if repository exists
       const supabase = await getSupabase();

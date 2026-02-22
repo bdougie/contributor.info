@@ -340,8 +340,9 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           />
         )}
 
-        {/* Show progressive capture option for data quality issues (debounced) */}
-        {showStatusIndicators &&
+        {/* Show progressive capture option for data quality issues (not gated by showStatusIndicators
+            because hasLowDataQuality targets repos where status IS 'success' but data is sparse) */}
+        {!loading &&
           hasLowDataQuality(metrics, trends) &&
           metrics?.status !== 'large_repository_protected' && (
             <div className="mb-6 p-4 rounded-lg border bg-black dark:bg-white">
