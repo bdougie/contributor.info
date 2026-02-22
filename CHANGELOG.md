@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.61.0](https://github.com/bdougie/contributor.info/compare/v4.60.0...v4.61.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* convert RAG to on-demand semantic search tool ([#1697](https://github.com/bdougie/contributor.info/issues/1697)) ([30c548c](https://github.com/bdougie/contributor.info/commit/30c548cd583e48aa2ab508aed6b55d23c6744f55)), closes [#1688](https://github.com/bdougie/contributor.info/issues/1688)
+* send StarSearch errors to Sentry ([#1698](https://github.com/bdougie/contributor.info/issues/1698)) ([42e9447](https://github.com/bdougie/contributor.info/commit/42e9447a612646a0dab47acfca90836dc5b503df)), closes [#1687](https://github.com/bdougie/contributor.info/issues/1687) [#1689](https://github.com/bdougie/contributor.info/issues/1689)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([44975e0](https://github.com/bdougie/contributor.info/commit/44975e08dd5fbba0654e3aa0a86225aaf2d88b0e))
+
 ## [4.60.0](https://github.com/bdougie/contributor.info/compare/v4.59.0...v4.60.0) (2026-02-22)
 
 
