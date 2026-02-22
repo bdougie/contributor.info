@@ -201,6 +201,7 @@ async function preprocessUserMessage(
     model: 'gpt-4o-mini',
     inputTokens: usage.inputTokens,
     outputTokens: usage.outputTokens,
+    cachedTokens: usage.inputTokenDetails?.cacheReadTokens ?? 0,
     latencyMs: Date.now() - preStart,
     distinctId,
     metadata: {
@@ -231,14 +232,35 @@ function buildManagerSystemPrompt(hasDatapipe: boolean, hasRepoContext: boolean)
     );
   }
 
-  return `You are an orchestration manager for repository analysis. Your job is to call the right sub-agent tools to answer the user's question.
+  return `You are an orchestration manager for repository analysis. Your job is to call the right sub-agent tools to answer the user's question about a GitHub repository.
+
+You are part of the contributor.info platform — a tool that helps open-source maintainers understand their repositories and contributor communities through data-driven insights.
 
 Available tools:
 ${tools.join('\n')}
 
-When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call multiple sub-agents in the same step so they run in parallel.
-When the question is domain-specific, call only the relevant sub-agent.${hasRepoContext ? '\nOnly use search_repository_context when the user asks about specific topics, features, or activity — not for general health or contributor questions.' : ''}
-Do not answer directly — always use tools to fetch real data.`;
+## Routing rules
+
+1. When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call multiple sub-agent tools in the same step so they execute in parallel for faster responses.
+2. When the question is clearly domain-specific, call only the relevant sub-agent to avoid unnecessary data fetching.
+3. Do not answer directly — always delegate to tools to fetch real, up-to-date data. Never fabricate statistics or repository information.${hasRepoContext ? '\n4. Only use search_repository_context when the user asks about specific topics, features, bugs, or historical activity — not for general health or contributor overview questions.' : ''}
+
+## Response quality guidelines
+
+When your sub-agents return data, the synthesizer will format a final response. To help it produce the best output:
+- Ensure tool calls include all relevant parameters so sub-agents return comprehensive data.
+- If a tool returns an error, do not retry — report the error so the synthesizer can inform the user gracefully.
+- Prefer calling fewer, more targeted tools over calling everything. Only request data that directly answers the user's question.
+
+## Scope boundaries
+
+You can only answer questions about GitHub repositories using the tools above. Topics you cannot help with include:
+- Specific code changes, commits, or diffs
+- CI/CD pipeline status or deployment details
+- Individual file contents or code review
+- Issues outside the repository's tracked data
+
+If the user asks about something outside your capabilities, respond with a brief explanation of what you can help with instead.`;
 }
 
 const CORS_HEADERS: Record<string, string> = {
@@ -550,7 +572,7 @@ export default async (req: Request, _context: Context) => {
       {
         repository: `${owner}/${repo}`,
         intent: preprocessResult?.intent,
-        rag_used: ragContext !== null,
+        rag_available: repoId !== null,
         has_datapipe: hasDatapipe,
         time_range: timeRange,
         off_topic: preprocessResult?.flags.offTopic ?? false,
@@ -579,6 +601,7 @@ export default async (req: Request, _context: Context) => {
       model: 'gpt-4o-mini',
       inputTokens: managerResult.usage.inputTokens,
       outputTokens: managerResult.usage.outputTokens,
+      cachedTokens: managerResult.usage.inputTokenDetails?.cacheReadTokens ?? 0,
       latencyMs: Date.now() - managerStart,
       distinctId: user.id,
       metadata: { dispatched_tools: dispatchedTools, dispatched_count: dispatchedTools.length },
@@ -637,9 +660,10 @@ export default async (req: Request, _context: Context) => {
               model: 'gpt-4.1',
               inputTokens: usage.inputTokens,
               outputTokens: usage.outputTokens,
+              cachedTokens: usage.inputTokenDetails?.cacheReadTokens ?? 0,
               latencyMs: Date.now() - synthStart,
               distinctId: user.id,
-              metadata: { rag_used: ragContext !== null },
+              metadata: { rag_available: repoId !== null },
             });
           })
           .catch(() => {});

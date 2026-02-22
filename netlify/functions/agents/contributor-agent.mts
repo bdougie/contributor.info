@@ -200,6 +200,7 @@ export async function runContributorAgent(
     model: 'gpt-4o-mini',
     inputTokens: result.usage.inputTokens,
     outputTokens: result.usage.outputTokens,
+    cachedTokens: result.usage.inputTokenDetails?.cacheReadTokens ?? 0,
     latencyMs: Date.now() - agentStart,
     distinctId: context.distinctId,
     metadata: { tools_invoked: toolsInvoked, tools_invoked_count: toolsInvoked.length },
