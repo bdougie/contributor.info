@@ -71,17 +71,40 @@ export function useCachedRepoData(
   timeRange: TimeRange,
   includeBots: boolean
 ) {
-  const [stats, setStats] = useState<RepoStats>({
-    pullRequests: [],
-    loading: true,
-    error: null,
-  });
-  const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(null);
-  const [directCommitsData, setDirectCommitsData] = useState<DirectCommitsData | null>(null);
+  // Check in-memory cache synchronously to avoid loading flash on re-mounts
+  const cacheKey = owner && repo ? `${owner}/${repo}/${timeRange}` : '';
+  const cachedEntry = cacheKey ? repoDataCache[cacheKey] : undefined;
+  const hasFreshCache =
+    cachedEntry !== undefined && Date.now() - cachedEntry.timestamp < CACHE_DURATION;
+
+  const [stats, setStats] = useState<RepoStats>(
+    hasFreshCache
+      ? cachedEntry.stats
+      : {
+          pullRequests: [],
+          loading: true,
+          error: null,
+        }
+  );
+  const [lotteryFactor, setLotteryFactor] = useState<LotteryFactor | null>(
+    hasFreshCache
+      ? calculateLotteryFactor(cachedEntry.stats.pullRequests, timeRange, includeBots)
+      : null
+  );
+  const [directCommitsData, setDirectCommitsData] = useState<DirectCommitsData | null>(
+    hasFreshCache ? cachedEntry.directCommitsData : null
+  );
   const [dataStatus, setDataStatus] = useState<{
     status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
     message?: string;
-    metadata?: Record<string, any>;
+    metadata?: {
+      isStale?: boolean;
+      lastUpdate?: string;
+      dataCompleteness?: number;
+      repositoryId?: string;
+      owner?: string;
+      repo?: string;
+    };
   }>({ status: 'success' });
 
   // Track if we're currently fetching to prevent duplicate requests
