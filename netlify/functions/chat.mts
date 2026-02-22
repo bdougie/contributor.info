@@ -13,9 +13,8 @@ import {
 } from 'ai';
 import { getSupabaseClient } from './_shared/supabase-client';
 import { getSupabaseClients } from './lib/api-key-clients';
-import { captureServerException } from './lib/server-tracking.mts';
 import { trackLLMCall } from './lib/llm-analytics.mts';
-import { trackServerEvent } from './lib/server-tracking.mts';
+import { captureServerException, trackServerEvent } from './lib/server-tracking.mts';
 import {
   runRepoHealthAgent,
   type AgentContext,

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.60.0](https://github.com/bdougie/contributor.info/compare/v4.59.0...v4.60.0) (2026-02-22)
+
+
+### 🚀 Features
+
+* add PostHog LLM observability to multi-agent chat pipeline ([#1696](https://github.com/bdougie/contributor.info/issues/1696)) ([d9aec04](https://github.com/bdougie/contributor.info/commit/d9aec04a45001cc7090fc516234ffe65d0a5b838)), closes [#1687](https://github.com/bdougie/contributor.info/issues/1687) [#1689](https://github.com/bdougie/contributor.info/issues/1689)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([a273142](https://github.com/bdougie/contributor.info/commit/a27314234aa2d41cbc1b43c8b178ca8ec014df87))
+
 ## [4.59.0](https://github.com/bdougie/contributor.info/compare/v4.58.0...v4.59.0) (2026-02-22)
 
 
