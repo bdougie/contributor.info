@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.63.0](https://github.com/bdougie/contributor.info/compare/v4.62.2...v4.63.0) (2026-02-23)
+
+
+### ⚡ Performance Improvements
+
+* extract constants in src/lib/utils.ts to reduce allocation ([#1702](https://github.com/bdougie/contributor.info/issues/1702)) ([06aa94a](https://github.com/bdougie/contributor.info/commit/06aa94a8beb971e673a0afefe68f05ea402fcebc))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([d105829](https://github.com/bdougie/contributor.info/commit/d1058297445fed3702185d187f3ddba05fd27c2f))
+
 ## [4.62.2](https://github.com/bdougie/contributor.info/compare/v4.62.1...v4.62.2) (2026-02-22)
 
 
