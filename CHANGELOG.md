@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.63.1](https://github.com/bdougie/contributor.info/compare/v4.63.0...v4.63.1) (2026-02-23)
+
+
+### 🐛 Bug Fixes
+
+* prevent permanent skeleton loaders for errored chat tool results ([#1703](https://github.com/bdougie/contributor.info/issues/1703)) ([f8d0e22](https://github.com/bdougie/contributor.info/commit/f8d0e2265a22f1149b00ca6a797d493ebb1e6e68))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([36ab4a6](https://github.com/bdougie/contributor.info/commit/36ab4a60d3ee3a09897b71ed484fe8f47672a81e))
+
 ## [4.63.0](https://github.com/bdougie/contributor.info/compare/v4.62.2...v4.63.0) (2026-02-23)
 
 
