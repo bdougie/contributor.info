@@ -696,8 +696,19 @@ export default async (req: Request, _context: Context) => {
               const subResult = tr.output as SubAgentResult | undefined;
 
               if (subResult?.kind === 'sub-agent-result') {
-                // Sub-agent result — re-emit individual tool events with original tool names
+                // Sub-agent result — re-emit individual tool events with original tool names.
+                // Build a set of errored tool call IDs so we skip both start + output for them,
+                // preventing the client from getting stuck with permanent skeleton loaders.
+                const erroredCallIds = new Set<string>();
+                for (const subTr of subResult.toolResults) {
+                  const output = subTr.output as Record<string, unknown> | undefined;
+                  if (output && typeof output === 'object' && 'error' in output) {
+                    erroredCallIds.add(subTr.toolCallId);
+                  }
+                }
+
                 for (const tc of subResult.toolCalls) {
+                  if (erroredCallIds.has(tc.toolCallId)) continue;
                   writer.write({
                     type: 'tool-input-start',
                     toolCallId: tc.toolCallId,
@@ -706,10 +717,7 @@ export default async (req: Request, _context: Context) => {
                   });
                 }
                 for (const subTr of subResult.toolResults) {
-                  const output = subTr.output as Record<string, unknown> | undefined;
-                  if (output && typeof output === 'object' && 'error' in output) {
-                    continue;
-                  }
+                  if (erroredCallIds.has(subTr.toolCallId)) continue;
                   writer.write({
                     type: 'tool-output-available',
                     toolCallId: subTr.toolCallId,

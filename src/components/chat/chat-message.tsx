@@ -112,7 +112,10 @@ export function ChatMessage({
     isUser ||
     message.parts.some((part) => {
       if (part.type === 'text' && part.text.trim()) return true;
-      if (part.type === 'dynamic-tool') return true;
+      if (part.type === 'dynamic-tool') {
+        // After streaming, only count tool parts that have output
+        return isStreaming || part.state === 'output-available';
+      }
       return false;
     });
 
@@ -155,6 +158,8 @@ export function ChatMessage({
                 </div>
               );
             }
+            // Hide tool parts that never received output after streaming ended
+            if (!isStreaming) return null;
             // Loading state for in-progress tool calls
             return (
               <div key={i} className="mt-2 space-y-2">
