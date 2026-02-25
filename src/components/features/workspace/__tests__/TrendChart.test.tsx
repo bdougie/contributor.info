@@ -3,8 +3,8 @@ import { TrendChart } from '../TrendChart';
 import { vi, describe, it, expect } from 'vitest';
 
 // Mock UPlotChart to avoid canvas issues
-vi.mock('@/components/ui/charts/UPlotChart', () => ({
-  UPlotChart: () => <div data-testid="uplot-chart">Chart</div>,
+vi.mock('@/components/ui/charts/UPlotChart-lazy', () => ({
+  LazyUPlotChart: () => <div data-testid="uplot-chart">Chart</div>,
 }));
 
 // Mock ResizeObserver

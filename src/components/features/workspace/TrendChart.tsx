@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { Info, Layout, X } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { UPlotChart } from '@/components/ui/charts/UPlotChart';
+import { LazyUPlotChart as UPlotChart } from '@/components/ui/charts/UPlotChart-lazy';
 import type { AlignedData, Options } from 'uplot';
 import { useMemo, useState } from 'react';
 
