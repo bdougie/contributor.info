@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { WindowVirtualizedGrid } from '@/components/ui/virtualized-list';
 import {
   X,
@@ -108,10 +109,11 @@ const ContributorCard = memo(function ContributorCard({
               }
               title={onAddToGroup ? 'Add to group' : 'View profile'}
             >
-              <img
+              <OptimizedAvatar
                 src={contributor.avatar_url}
                 alt={`${contributor.username}'s avatar`}
-                className="h-12 w-12 rounded-full cursor-pointer"
+                size={48}
+                className="cursor-pointer"
               />
             </button>
             <button
@@ -222,10 +224,10 @@ const ContributorListItem = memo(function ContributorListItem({
         className="flex items-center gap-4 flex-1"
         aria-label={`View ${contributor.username} profile`}
       >
-        <img
+        <OptimizedAvatar
           src={contributor.avatar_url}
           alt={`${contributor.username}'s avatar`}
-          className="h-10 w-10 rounded-full"
+          size={40}
         />
         <div className="flex-1 text-left">
           <div className="flex items-center gap-2">
