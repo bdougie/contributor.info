@@ -2,7 +2,7 @@
  * Contributors tab component for workspace page
  */
 
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
