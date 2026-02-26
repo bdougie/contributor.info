@@ -223,6 +223,7 @@ export function WorkspaceContributorsTab({
     return map;
   }, [contributorGroupsByUsername, contributors]);
 
+  // Handlers are wrapped in useCallback to prevent unnecessary re-renders of virtualized lists
   const handleContributorClick = useCallback((contributor: Contributor) => {
     setSelectedContributor(contributor);
     setShowProfileModal(true);
