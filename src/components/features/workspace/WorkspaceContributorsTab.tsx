@@ -223,33 +223,39 @@ export function WorkspaceContributorsTab({
     return map;
   }, [contributorGroupsByUsername, contributors]);
 
-  const handleContributorClick = (contributor: Contributor) => {
+  const handleContributorClick = useCallback((contributor: Contributor) => {
     setSelectedContributor(contributor);
     setShowProfileModal(true);
-  };
+  }, []);
 
-  const handleTrackContributor = (contributorId: string) => {
-    if (showAddContributors) {
-      setSelectedContributorsToAdd((prev) =>
-        prev.includes(contributorId)
-          ? prev.filter((id) => id !== contributorId)
-          : [...prev, contributorId]
-      );
-    }
-  };
+  const handleTrackContributor = useCallback(
+    (contributorId: string) => {
+      if (showAddContributors) {
+        setSelectedContributorsToAdd((prev) =>
+          prev.includes(contributorId)
+            ? prev.filter((id) => id !== contributorId)
+            : [...prev, contributorId]
+        );
+      }
+    },
+    [showAddContributors]
+  );
 
-  const handleUntrackContributor = async (contributorId: string) => {
-    await removeContributorFromWorkspace(contributorId);
-  };
+  const handleUntrackContributor = useCallback(
+    async (contributorId: string) => {
+      await removeContributorFromWorkspace(contributorId);
+    },
+    [removeContributorFromWorkspace]
+  );
 
-  const handleAddContributor = () => {
+  const handleAddContributor = useCallback(() => {
     setShowAddContributors(true);
     setSelectedContributorsToAdd([]);
     setPage(0);
     setGlobalFilter('');
-  };
+  }, []);
 
-  const handleSubmitContributors = async () => {
+  const handleSubmitContributors = useCallback(async () => {
     if (selectedContributorsToAdd.length > 0) {
       await addContributorsToWorkspace(selectedContributorsToAdd);
       setShowAddContributors(false);
@@ -257,40 +263,50 @@ export function WorkspaceContributorsTab({
     } else {
       toast.warning('Please select at least one contributor to add');
     }
-  };
+  }, [selectedContributorsToAdd, addContributorsToWorkspace]);
 
-  const handleCancelAdd = () => {
+  const handleCancelAdd = useCallback(() => {
     setShowAddContributors(false);
     setSelectedContributorsToAdd([]);
     setPage(0);
     setGlobalFilter('');
-  };
+  }, []);
 
   // Group and note handlers
-  const handleAddToGroup = (contributorId: string) => {
-    const contributor = contributors.find((c) => c.id === contributorId);
-    if (contributor) {
-      setSelectedContributor(contributor);
-      if (!selectedContributorsForGroups.has(contributorId)) {
-        setSelectedContributorsForGroups(
-          new Set([...selectedContributorsForGroups, contributorId])
-        );
+  const handleAddToGroup = useCallback(
+    (contributorId: string) => {
+      const contributor = contributors.find((c) => c.id === contributorId);
+      if (contributor) {
+        setSelectedContributor(contributor);
+        setSelectedContributorsForGroups((prev) => {
+          if (!prev.has(contributorId)) {
+            return new Set([...prev, contributorId]);
+          }
+          return prev;
+        });
+        setShowGroupManager(true);
       }
-      setShowGroupManager(true);
-    }
-  };
+    },
+    [contributors]
+  );
 
-  const handleAddNote = (contributorId: string) => {
-    const contributor = contributors.find((c) => c.id === contributorId);
-    if (contributor) {
-      setSelectedContributor(contributor);
-      setShowNotesDialog(true);
-    }
-  };
+  const handleAddNote = useCallback(
+    (contributorId: string) => {
+      const contributor = contributors.find((c) => c.id === contributorId);
+      if (contributor) {
+        setSelectedContributor(contributor);
+        setShowNotesDialog(true);
+      }
+    },
+    [contributors]
+  );
 
-  const handleRemoveContributor = async (contributorId: string) => {
-    await removeContributorFromWorkspace(contributorId);
-  };
+  const handleRemoveContributor = useCallback(
+    async (contributorId: string) => {
+      await removeContributorFromWorkspace(contributorId);
+    },
+    [removeContributorFromWorkspace]
+  );
 
   const handleExport = () => {
     exportContributorsToCSV(filteredContributors, 'contributors.csv');
