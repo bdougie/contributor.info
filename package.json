@@ -200,7 +200,7 @@
       "react": "^19.2.1",
       "react-dom": "^19.2.1"
     },
-    "minimatch": "^10.2.1"
+    "minimatch": "^10.2.3"
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",
