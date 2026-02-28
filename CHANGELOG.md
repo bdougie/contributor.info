@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.64.1](https://github.com/bdougie/contributor.info/compare/v4.64.0...v4.64.1) (2026-02-28)
+
+
+### 🐛 Bug Fixes
+
+* remove unnecessary npm ci from workspace issues sync workflow ([#1707](https://github.com/bdougie/contributor.info/issues/1707)) ([62d8075](https://github.com/bdougie/contributor.info/commit/62d80751c1fdbb089cc8c5a2e915ba55ac96b867)), closes [#1706](https://github.com/bdougie/contributor.info/issues/1706)
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([e3871e5](https://github.com/bdougie/contributor.info/commit/e3871e512891cf24d584586a7038ba8b1c1afe64))
+
 ## [4.64.0](https://github.com/bdougie/contributor.info/compare/v4.63.1...v4.64.0) (2026-02-25)
 
 
