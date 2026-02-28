@@ -1,3 +1,5 @@
+import { optimizeAvatarUrl } from '@/lib/optimized-avatar-utils';
+
 interface UserAvatarProps {
   src: string;
   alt: string;
@@ -13,9 +15,12 @@ export function UserAvatar({
   priority = false,
   lazy = true,
 }: UserAvatarProps) {
+  // Optimize the image source for GitHub avatars to reduce download size
+  const optimizedSrc = optimizeAvatarUrl(src, size);
+
   return (
     <img
-      src={src}
+      src={optimizedSrc || src}
       alt={alt}
       width={size}
       height={size}
