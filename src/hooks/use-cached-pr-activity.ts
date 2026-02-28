@@ -18,17 +18,6 @@ const CACHE_DURATION = 10 * 60 * 1000;
 // Global cache to persist across component re-mounts
 const activityCache: ActivityCache = {};
 
-function formatTimestamp(date: string): string {
-  const now = new Date();
-  const timestamp = new Date(date);
-  const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-  return `${Math.floor(diffInSeconds / 86400)} days ago`;
-}
-
 function createPullRequestsHash(pullRequests: PullRequest[]): string {
   // Create a hash of PR data to detect changes
   const prData = pullRequests.map((pr) => ({
@@ -95,7 +84,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
         owner: owner,
         url: repoUrl,
       },
-      timestamp: formatTimestamp(pr.created_at),
+      timestamp: pr.created_at,
       createdAt: new Date(pr.created_at),
     });
 
@@ -122,7 +111,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
           owner: owner,
           url: repoUrl,
         },
-        timestamp: formatTimestamp(pr.merged_at),
+        timestamp: pr.merged_at,
         createdAt: new Date(pr.merged_at),
       });
     } else if (pr.closed_at && !pr.merged_at) {
@@ -147,7 +136,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
           owner: owner,
           url: repoUrl,
         },
-        timestamp: formatTimestamp(pr.closed_at || ''),
+        timestamp: pr.closed_at || '',
         createdAt: new Date(pr.closed_at || ''),
       });
     }
@@ -182,7 +171,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
               owner: owner,
               url: repoUrl,
             },
-            timestamp: formatTimestamp(review.submitted_at || pr.updated_at),
+            timestamp: review.submitted_at || pr.updated_at,
             createdAt: new Date(review.submitted_at || pr.updated_at),
           });
         }
@@ -218,7 +207,7 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
             owner: owner,
             url: repoUrl,
           },
-          timestamp: formatTimestamp(comment.created_at),
+          timestamp: comment.created_at,
           createdAt: new Date(comment.created_at),
         });
       });
