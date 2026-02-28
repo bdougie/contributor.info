@@ -13,8 +13,7 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { useCombinedActivity } from '@/hooks/use-combined-activity';
 import { ContributorRolesProvider } from '@/hooks/useContributorRoles';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
-import { PermissionUpgradeCTA } from '@/components/ui/permission-upgrade-cta';
-import { UPGRADE_MESSAGES } from '@/lib/copy/upgrade-messages';
+import { LogIn } from '@/components/ui/icon';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -174,12 +173,15 @@ export default function PRActivity() {
         </div>
         {!isLoggedIn && (
           <div className="mb-4">
-            <PermissionUpgradeCTA
-              message={UPGRADE_MESSAGES.FEED_STARS_FORKS}
-              variant="inline"
+            <Button
+              onClick={login}
+              variant="default"
               size="sm"
-              onAction={login}
-            />
+              className="bg-orange-600 hover:bg-orange-700 text-white border-orange-600"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Log in to see stars & forks
+            </Button>
           </div>
         )}
 

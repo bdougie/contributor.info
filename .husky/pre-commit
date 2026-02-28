@@ -1,5 +1,9 @@
 #!/bin/sh
 
+# Ensure fnm-managed node/npx is available in git hooks
+export PATH="$HOME/.nix-profile/bin:$PATH"
+eval "$(fnm env)"
+
 # Get list of staged files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 
