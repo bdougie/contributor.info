@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.65.0](https://github.com/bdougie/contributor.info/compare/v4.64.1...v4.65.0) (2026-02-28)
+
+
+### 🚀 Features
+
+* **perf:** optimize UserAvatar image size for GitHub avatars ([#1709](https://github.com/bdougie/contributor.info/issues/1709)) ([f6d7f62](https://github.com/bdougie/contributor.info/commit/f6d7f6219814c8eddd8a023b257d053e5961b8a8))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([18b43cf](https://github.com/bdougie/contributor.info/commit/18b43cfe10a6548bb7ac1559263a76d9de45b785))
+
 ## [4.64.1](https://github.com/bdougie/contributor.info/compare/v4.64.0...v4.64.1) (2026-02-28)
 
 
