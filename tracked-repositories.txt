@@ -1,5 +1,6 @@
 AAChartModel/AAChartCore-Kotlin
 Ad-Astra-Innovia/frontend
+agent0ai/agent-zero
 analogjs/analog
 angular/angular
 anomalyco/opencode
@@ -58,6 +59,7 @@ ollama/ollama
 openclaw/openclaw
 open-sauced/app
 osmlab/name-suggestion-index
+papercomputeco/stereOS
 papercomputeco/tapes
 pashkov256/deletor
 pgvector/pgvector

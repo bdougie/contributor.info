@@ -8,6 +8,10 @@
     "name": "frontend"
   },
   {
+    "owner": "agent0ai",
+    "name": "agent-zero"
+  },
+  {
     "owner": "analogjs",
     "name": "analog"
   },
@@ -238,6 +242,10 @@
   {
     "owner": "osmlab",
     "name": "name-suggestion-index"
+  },
+  {
+    "owner": "papercomputeco",
+    "name": "stereOS"
   },
   {
     "owner": "papercomputeco",
