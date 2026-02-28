@@ -20,7 +20,7 @@ export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const { timeRange } = useTimeRange();
   const { stats } = useContext(RepoStatsContext);
-  const { isLoggedIn } = useGitHubAuth();
+  const { isLoggedIn, login } = useGitHubAuth();
   const { selectedTypes, includeBots, toggleActivityType, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
   const [hasBots, setHasBots] = useState(false);
@@ -140,28 +140,28 @@ export default function PRActivity() {
             </Label>
           </div>
           {isLoggedIn && (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="filter-starred"
-                checked={selectedTypes.includes('starred')}
-                onCheckedChange={() => toggleActivityType('starred')}
-              />
-              <Label htmlFor="filter-starred" className="text-sm">
-                Starred
-              </Label>
-            </div>
-          )}
-          {isLoggedIn && (
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="filter-forked"
-                checked={selectedTypes.includes('forked')}
-                onCheckedChange={() => toggleActivityType('forked')}
-              />
-              <Label htmlFor="filter-forked" className="text-sm">
-                Forked
-              </Label>
-            </div>
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="filter-starred"
+                  checked={selectedTypes.includes('starred')}
+                  onCheckedChange={() => toggleActivityType('starred')}
+                />
+                <Label htmlFor="filter-starred" className="text-sm">
+                  Starred
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="filter-forked"
+                  checked={selectedTypes.includes('forked')}
+                  onCheckedChange={() => toggleActivityType('forked')}
+                />
+                <Label htmlFor="filter-forked" className="text-sm">
+                  Forked
+                </Label>
+              </div>
+            </>
           )}
           {hasBots && (
             <div className="flex items-center space-x-2">
@@ -178,6 +178,7 @@ export default function PRActivity() {
               message={UPGRADE_MESSAGES.FEED_STARS_FORKS}
               variant="inline"
               size="sm"
+              onAction={login}
             />
           </div>
         )}
