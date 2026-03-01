@@ -126,23 +126,17 @@ const ActivityRow = memo(function ActivityRow({
                       rel="noopener noreferrer"
                       className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
                     >
-                      {activity.title}
+                      {activity.description || activity.title}
                     </a>
                   ) : (
                     <span className="text-sm font-medium truncate block text-muted-foreground">
-                      {activity.title}
+                      {activity.description || activity.title}
                     </span>
-                  )}
-                  {activity.description && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {activity.description}
-                    </p>
                   )}
                 </div>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="font-semibold text-sm">{activity.title}</p>
-                {activity.description && <p className="text-xs mt-1">{activity.description}</p>}
                 <p className="text-xs mt-1">Repository: {activity.repository}</p>
                 <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
                 {activity.url && <p className="text-xs">Click to open in GitHub</p>}

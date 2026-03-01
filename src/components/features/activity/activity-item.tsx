@@ -158,10 +158,11 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                   {pullRequest.title}
                 </a>
               ) : (
-                pullRequest.title
+                <span className={description ? 'text-muted-foreground' : ''}>
+                  {description || pullRequest.title}
+                </span>
               )}
             </h3>
-            {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
           </div>
           <time
             className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2"
