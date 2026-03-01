@@ -12,11 +12,14 @@ import { usePRActivityStore } from '@/lib/pr-activity-store';
 import { useTimeRange } from '@/lib/time-range-store';
 import { useCombinedActivity } from '@/hooks/use-combined-activity';
 import { ContributorRolesProvider } from '@/hooks/useContributorRoles';
+import { useGitHubAuth } from '@/hooks/use-github-auth';
+import { LogIn } from '@/components/ui/icon';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
   const { timeRange } = useTimeRange();
   const { stats } = useContext(RepoStatsContext);
+  const { isLoggedIn, login } = useGitHubAuth();
   const { selectedTypes, includeBots, toggleActivityType, setIncludeBots } = usePRActivityStore();
   const [visibleCount, setVisibleCount] = useState(15);
   const [hasBots, setHasBots] = useState(false);
@@ -39,7 +42,7 @@ export default function PRActivity() {
     error: activityError,
   } = useCachedPRActivity(effectivePRs);
 
-  // Use combined activity hook to merge PR activities (stars/forks disabled for repo view)
+  // Use combined activity hook to merge PR activities with stars/forks (logged-in only)
   const {
     activities: allActivities,
     loading: eventsLoading,
@@ -48,8 +51,8 @@ export default function PRActivity() {
     pullRequestActivities: prActivities,
     owner,
     repo,
-    includeStars: false, // Stars disabled for repo view - premium workspace feature only
-    includeForks: false, // Forks disabled for repo view - premium workspace feature only
+    includeStars: isLoggedIn,
+    includeForks: isLoggedIn,
   });
 
   // Combined loading state and error
@@ -135,6 +138,30 @@ export default function PRActivity() {
               Commented
             </Label>
           </div>
+          {isLoggedIn && (
+            <>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="filter-starred"
+                  checked={selectedTypes.includes('starred')}
+                  onCheckedChange={() => toggleActivityType('starred')}
+                />
+                <Label htmlFor="filter-starred" className="text-sm">
+                  Starred
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="filter-forked"
+                  checked={selectedTypes.includes('forked')}
+                  onCheckedChange={() => toggleActivityType('forked')}
+                />
+                <Label htmlFor="filter-forked" className="text-sm">
+                  Forked
+                </Label>
+              </div>
+            </>
+          )}
           {hasBots && (
             <div className="flex items-center space-x-2">
               <Switch id="filter-bots" checked={includeBots} onCheckedChange={setIncludeBots} />
@@ -144,6 +171,19 @@ export default function PRActivity() {
             </div>
           )}
         </div>
+        {!isLoggedIn && (
+          <div className="mb-4">
+            <Button
+              onClick={login}
+              variant="default"
+              size="sm"
+              className="bg-orange-600 hover:bg-orange-700 text-white border-orange-600"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Log in to see stars & forks
+            </Button>
+          </div>
+        )}
 
         <div className="mb-2 text-sm text-muted-foreground">
           Showing {visibleActivities.length} of {filteredActivities.length} activities

@@ -118,6 +118,14 @@ export const UPGRADE_MESSAGES = {
     actionType: 'upgrade' as const,
   },
 
+  // Feed Features
+  FEED_STARS_FORKS: {
+    title: 'Log in to see stars & forks',
+    description: "See who's starring and forking this repository by logging in with GitHub.",
+    actionText: 'Log in with GitHub',
+    actionType: 'login' as const,
+  },
+
   // Developer Tools
   REPOSITORY_INSIGHTS_TUI: {
     title: 'Repository Insights TUI',

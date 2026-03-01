@@ -8,6 +8,7 @@ import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { createContributorStats, getContributorActivityCounts } from '@/lib/contributor-utils';
 import { useContributorRole } from '@/hooks/useContributorRoles';
 import { getUserRole } from '@/lib/utils/data-type-mapping';
+import { useTimeFormatter } from '@/hooks/use-time-formatter';
 
 interface ActivityItemProps {
   activity: PullRequestActivity;
@@ -16,6 +17,7 @@ interface ActivityItemProps {
 export function ActivityItem({ activity }: ActivityItemProps) {
   const { type, user, pullRequest, repository, timestamp } = activity;
   const { stats } = useContext(RepoStatsContext);
+  const { formatRelativeTime } = useTimeFormatter();
 
   // Get the contributor's role
   const { role } = useContributorRole(repository.owner, repository.name, user.id);
@@ -164,8 +166,8 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               )}
             </h3>
           </div>
-          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2">
-            {timestamp}
+          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2" dateTime={timestamp}>
+            {formatRelativeTime(timestamp)}
           </time>
         </div>
       </div>
