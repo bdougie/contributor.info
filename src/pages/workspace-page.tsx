@@ -933,6 +933,32 @@ function WorkspacePage() {
             })
           );
 
+          // Collect unique actor logins from star/fork events to batch-lookup bios
+          const actorLogins = [
+            ...new Set(
+              [
+                ...allStarEvents.map((e) => e.actor_login),
+                ...allForkEvents.map((e) => e.actor_login),
+              ].filter(Boolean)
+            ),
+          ];
+
+          // Batch-fetch bios from contributors table
+          const bioMap = new Map<string, string>();
+          if (actorLogins.length > 0) {
+            const { data: contributors } = await supabase
+              .from('contributors')
+              .select('username, bio')
+              .in('username', actorLogins);
+            if (contributors) {
+              for (const c of contributors) {
+                if (c.bio) {
+                  bioMap.set(c.username, c.bio);
+                }
+              }
+            }
+          }
+
           // Format star events
           const formattedStars = allStarEvents.map((event) => {
             const payload = event.payload as { actor?: { login: string; avatar_url: string } };
@@ -941,6 +967,7 @@ function WorkspacePage() {
               event_type: 'star' as const,
               actor_login: event.actor_login,
               actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
+              actor_bio: bioMap.get(event.actor_login),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };
@@ -955,6 +982,7 @@ function WorkspacePage() {
               event_type: 'fork' as const,
               actor_login: event.actor_login,
               actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
+              actor_bio: bioMap.get(event.actor_login),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };

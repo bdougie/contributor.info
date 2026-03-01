@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 import type { ActivityItem } from './AnalyticsDashboard';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats, RecentActivity } from '@/lib/types';
-import { TYPE_ICONS, TYPE_COLORS, STATUS_COLORS } from './components/activity-table-constants';
+import { TYPE_COLORS, STATUS_COLORS } from './components/activity-table-constants';
 
 export interface ActivityTableProps {
   activities: ActivityItem[];
@@ -60,9 +60,6 @@ const ActivityRow = memo(function ActivityRow({
   virtualItemSize,
   virtualItemStart,
 }: ActivityRowProps) {
-  // Get icon for activity type with fallback
-  const Icon = TYPE_ICONS[activity.type] || TYPE_ICONS.pr;
-
   // Safely parse date with fallback
   const activityDate = (() => {
     try {
@@ -99,8 +96,7 @@ const ActivityRow = memo(function ActivityRow({
           <div className="flex-shrink-0 w-16 sm:w-24" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="secondary" className={cn('gap-1', TYPE_COLORS[activity.type])}>
-                  <Icon className="h-3 w-3" />
+                <Badge variant="secondary" className={cn(TYPE_COLORS[activity.type])}>
                   {activity.type.toUpperCase()}
                 </Badge>
               </TooltipTrigger>
@@ -122,23 +118,31 @@ const ActivityRow = memo(function ActivityRow({
           <div className="flex-1 min-w-[250px]" role="cell">
             <Tooltip>
               <TooltipTrigger asChild>
-                {activity.url ? (
-                  <a
-                    href={activity.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                  >
-                    {activity.title}
-                  </a>
-                ) : (
-                  <span className="text-sm font-medium truncate block text-muted-foreground">
-                    {activity.title}
-                  </span>
-                )}
+                <div className="min-w-0">
+                  {activity.url ? (
+                    <a
+                      href={activity.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                    >
+                      {activity.title}
+                    </a>
+                  ) : (
+                    <span className="text-sm font-medium truncate block text-muted-foreground">
+                      {activity.title}
+                    </span>
+                  )}
+                  {activity.description && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {activity.description}
+                    </p>
+                  )}
+                </div>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="font-semibold text-sm">{activity.title}</p>
+                {activity.description && <p className="text-xs mt-1">{activity.description}</p>}
                 <p className="text-xs mt-1">Repository: {activity.repository}</p>
                 <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
                 {activity.url && <p className="text-xs">Click to open in GitHub</p>}
@@ -342,6 +346,10 @@ export function ActivityTable({
     return statsMap;
   }, [activities]);
 
+  // Check which optional activity types exist to conditionally show filter options
+  const hasStars = useMemo(() => activities.some((a) => a.type === 'star'), [activities]);
+  const hasForks = useMemo(() => activities.some((a) => a.type === 'fork'), [activities]);
+
   // Filter and sort activities
   const processedActivities = useMemo(() => {
     let filtered = activities;
@@ -483,8 +491,8 @@ export function ActivityTable({
             <SelectItem value="commit">Commits</SelectItem>
             <SelectItem value="review">Reviews</SelectItem>
             <SelectItem value="comment">Comments</SelectItem>
-            <SelectItem value="star">Stars</SelectItem>
-            <SelectItem value="fork">Forks</SelectItem>
+            {hasStars && <SelectItem value="star">Stars</SelectItem>}
+            {hasForks && <SelectItem value="fork">Forks</SelectItem>}
           </SelectContent>
         </Select>
       </div>
