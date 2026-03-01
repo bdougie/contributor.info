@@ -53,6 +53,7 @@ function convertEventToActivity(event: RepositoryEvent): CombinedActivity {
     },
     timestamp: event.created_at,
     description: event.actor_bio,
+    fullDescription: event.actor_full_bio,
     eventData: event,
   };
 }

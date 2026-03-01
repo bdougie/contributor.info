@@ -995,6 +995,7 @@ function WorkspacePage() {
               actor_login: event.actor_login,
               actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
               actor_bio: bioMap.get(event.actor_login),
+              actor_full_bio: fullBioMap.get(event.actor_login),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };
@@ -1010,6 +1011,7 @@ function WorkspacePage() {
               actor_login: event.actor_login,
               actor_avatar: payload?.actor?.avatar_url || getFallbackAvatar(),
               actor_bio: bioMap.get(event.actor_login),
+              actor_full_bio: fullBioMap.get(event.actor_login),
               repository_name: `${event.repository_owner}/${event.repository_name}`,
               captured_at: event.created_at,
             };

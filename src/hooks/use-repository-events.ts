@@ -8,6 +8,7 @@ export interface RepositoryEvent {
   event_type: 'WatchEvent' | 'ForkEvent';
   actor_login: string;
   actor_bio?: string;
+  actor_full_bio?: string;
   repository_owner: string;
   repository_name: string;
   created_at: string;
@@ -80,6 +81,7 @@ export function useRepositoryEvents(
               const bioMap = await abbreviateBios(fullBioMap);
               for (const event of enrichedEvents) {
                 event.actor_bio = bioMap.get(event.actor_login);
+                event.actor_full_bio = fullBioMap.get(event.actor_login);
               }
             }
           }

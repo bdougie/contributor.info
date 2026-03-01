@@ -15,6 +15,7 @@ interface ActivityItem {
   type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
   description?: string;
+  fullDescription?: string;
   author: {
     username: string;
     avatar_url: string;
@@ -95,6 +96,7 @@ export interface WorkspaceActivityTabProps {
     actor_login: string;
     actor_avatar?: string;
     actor_bio?: string;
+    actor_full_bio?: string;
     repository_name?: string;
     captured_at: string;
   }>;
@@ -104,6 +106,7 @@ export interface WorkspaceActivityTabProps {
     actor_login: string;
     actor_avatar?: string;
     actor_bio?: string;
+    actor_full_bio?: string;
     repository_name?: string;
     captured_at: string;
   }>;
@@ -251,6 +254,7 @@ export function WorkspaceActivityTab({
             type: 'star',
             title: `${login} starred ${repoShort}`,
             description: star.actor_bio || undefined,
+            fullDescription: star.actor_full_bio || undefined,
             created_at: star.captured_at,
             author: {
               username: login,
@@ -278,6 +282,7 @@ export function WorkspaceActivityTab({
             type: 'fork',
             title: `${login} forked ${repoShort}`,
             description: fork.actor_bio || undefined,
+            fullDescription: fork.actor_full_bio || undefined,
             created_at: fork.captured_at,
             author: {
               username: login,

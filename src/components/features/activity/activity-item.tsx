@@ -15,7 +15,7 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ activity }: ActivityItemProps) {
-  const { type, user, pullRequest, repository, timestamp, description } = activity;
+  const { type, user, pullRequest, repository, timestamp, description, fullDescription } = activity;
   const { stats } = useContext(RepoStatsContext);
   const { formatRelativeTime } = useTimeFormatter();
 
@@ -147,7 +147,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               </a>
             </div>
             <h3 className="text-sm line-clamp-1 pr-2 font-normal">
-              {pullRequest.number > 0 ? (
+              {pullRequest.number > 0 && (
                 <a
                   href={`https://github.com/${repository.owner}/${repository.name}/pull/${pullRequest.number}`}
                   className="hover:text-primary hover:underline cursor-pointer transition-colors"
@@ -157,11 +157,18 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 >
                   {pullRequest.title}
                 </a>
-              ) : (
-                <span className={description ? 'text-muted-foreground' : ''}>
-                  {description || pullRequest.title}
-                </span>
               )}
+              {pullRequest.number <= 0 && description && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-muted-foreground cursor-default">{description}</span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">{fullDescription || description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {pullRequest.number <= 0 && !description && <span>{pullRequest.title}</span>}
             </h3>
           </div>
           <time
