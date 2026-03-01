@@ -434,6 +434,14 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         details: detailsQueued,
       };
 
+      // Step 6.5: Trigger repository events capture (stars/forks)
+      await step.sendEvent('repository-events', {
+        name: 'capture/repository.events',
+        data: {
+          repositoryId,
+        },
+      });
+
       // Step 7: Update repository sync timestamp
       await step.run('update-sync-timestamp', async () => {
         const { error } = await supabase

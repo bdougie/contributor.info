@@ -80,36 +80,48 @@ export const captureRepositoryEvents = inngest.createFunction(
         }
 
         console.log('Fetching events for repository %s/%s', repository.owner, repository.name);
-        apiCallsUsed++;
 
         // Fetch events from GitHub Events API
-        // This endpoint returns the last 90 days of events (max 300 events)
-        const response = await fetch(
-          `https://api.github.com/repos/${repository.owner}/${repository.name}/events`,
-          {
+        // This endpoint returns the last 90 days of events (max 10 pages × 100 = 300 events)
+        const MAX_PAGES = 10;
+        const PER_PAGE = 100;
+        const eventsData: GitHubEvent[] = [];
+
+        for (let page = 1; page <= MAX_PAGES; page++) {
+          const url = `https://api.github.com/repos/${repository.owner}/${repository.name}/events?per_page=${PER_PAGE}&page=${page}`;
+          const response = await fetch(url, {
             headers: {
               Accept: 'application/vnd.github.v3+json',
               Authorization: `token ${process.env.GITHUB_TOKEN}`,
             },
-          }
-        );
+          });
 
-        if (!response.ok) {
-          if (response.status === 404) {
-            console.warn(
-              `Repository ${repository.owner}/${repository.name} not found, skipping events`
-            );
-            return { events: [], failedContributorCreations: 0 };
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.warn(
+                'Repository %s/%s not found, skipping events',
+                repository.owner,
+                repository.name
+              );
+              return { events: [], failedContributorCreations: 0 };
+            }
+            if (response.status === 403) {
+              throw new Error(
+                `Rate limit exceeded while fetching events for ${repository.owner}/${repository.name}. Will retry later.`
+              );
+            }
+            throw new Error(`GitHub API error: ${response.status}`);
           }
-          if (response.status === 403) {
-            throw new Error(
-              `Rate limit exceeded while fetching events for ${repository.owner}/${repository.name}. Will retry later.`
-            );
+
+          apiCallsUsed++;
+          const pageData = (await response.json()) as GitHubEvent[];
+          eventsData.push(...pageData);
+
+          // Stop if this page returned fewer results than requested (no more pages)
+          if (pageData.length < PER_PAGE) {
+            break;
           }
-          throw new Error(`GitHub API error: ${response.status}`);
         }
-
-        const eventsData = (await response.json()) as GitHubEvent[];
 
         // Filter for WatchEvent and ForkEvent only
         const relevantEvents = eventsData.filter(
