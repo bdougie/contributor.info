@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
 import { getAppUserId } from '@/lib/auth-helpers';
+import { resolveWorkspaceOwnership } from '@/lib/workspace-ownership';
 import { useWorkspaceEvents } from '@/hooks/use-workspace-events';
 import { TIME_RANGE_DAYS, getStartDateForTimeRange } from '@/lib/utils/time-range';
 import {
@@ -431,20 +432,18 @@ function WorkspacePage() {
       setAppUserId(resolvedAppUserId);
 
       // Check if current user is the workspace owner
-      // Primary check: compare owner_id against app_users.id
-      // Fallback: also check auth.users.id for workspaces created before the app_users migration
-      if (resolvedAppUserId && workspaceData.owner_id === resolvedAppUserId) {
-        setIsWorkspaceOwner(true);
-      } else if (user && workspaceData.owner_id === user.id) {
+      const ownership = resolveWorkspaceOwnership(
+        workspaceData.owner_id,
+        resolvedAppUserId,
+        user?.id ?? null
+      );
+      setIsWorkspaceOwner(ownership.isOwner);
+
+      if (ownership.matchType === 'auth_fallback') {
         logger.warn(
           '[Workspace] owner_id matches auth.users.id instead of app_users.id — data needs migration',
-          {
-            workspaceId: workspaceData.id,
-          }
+          { workspaceId: workspaceData.id }
         );
-        setIsWorkspaceOwner(true);
-      } else {
-        setIsWorkspaceOwner(false);
       }
 
       // Fetch current member info and member count
