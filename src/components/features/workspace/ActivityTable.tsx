@@ -135,15 +135,8 @@ const ActivityRow = memo(function ActivityRow({
                   )}
                 </div>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                {activity.fullDescription ? (
-                  <p className="text-sm">{activity.fullDescription}</p>
-                ) : (
-                  <p className="font-semibold text-sm">{activity.title}</p>
-                )}
-                <p className="text-xs mt-1">Repository: {activity.repository}</p>
-                <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
-                {activity.url && <p className="text-xs">Click to open in GitHub</p>}
+              <TooltipContent>
+                <p>{activity.fullDescription || activity.title}</p>
               </TooltipContent>
             </Tooltip>
           </div>

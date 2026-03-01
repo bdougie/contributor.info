@@ -163,8 +163,8 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                   <TooltipTrigger asChild>
                     <span className="text-muted-foreground cursor-default">{description}</span>
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">{fullDescription || description}</p>
+                  <TooltipContent>
+                    <p>{fullDescription || description}</p>
                   </TooltipContent>
                 </Tooltip>
               )}
