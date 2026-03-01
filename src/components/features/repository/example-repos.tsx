@@ -9,13 +9,14 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
   const examples = [
     // Medium repositories - ideal for demos
     'continuedev/continue', // Medium: AI code assistant (TypeScript) - primary demo
-    'papercomputeco/tapes', // Medium: tape computing (Rust) - shows hardware usage
+    'papercomputeco/stereOS', // Medium: stereo computing - shows hardware usage
     // Large repositories - performance examples
     'vitejs/vite', // Large: Frontend tooling (TypeScript) - very popular
     'etcd-io/etcd', // Large: Distributed systems (Go) - infrastructure
 
     // Well-known projects across different sizes
     'better-auth/better-auth', // Medium: Auth framework (TypeScript) - modern tooling
+    'papercomputeco/stereOS', // Medium: stereo computing - shows hardware usage
   ];
 
   return (

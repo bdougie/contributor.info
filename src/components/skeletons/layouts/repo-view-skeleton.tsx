@@ -51,10 +51,11 @@ function StaticBreadcrumbs() {
 function StaticSearchSection() {
   const exampleRepos = [
     'continuedev/continue',
-    'papercomputeco/tapes',
+    'papercomputeco/stereOS',
     'vitejs/vite',
     'etcd-io/etcd',
     'better-auth/better-auth',
+    'papercomputeco/stereOS',
   ];
 
   return (

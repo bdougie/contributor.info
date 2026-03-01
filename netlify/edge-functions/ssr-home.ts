@@ -28,10 +28,11 @@ import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
  */
 const EXAMPLE_REPOS = [
   'continuedev/continue',
-  'papercomputeco/tapes',
+  'papercomputeco/stereOS',
   'vitejs/vite',
   'etcd-io/etcd',
   'better-auth/better-auth',
+  'papercomputeco/stereOS',
 ];
 
 /**
