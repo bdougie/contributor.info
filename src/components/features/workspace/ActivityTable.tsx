@@ -115,30 +115,25 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Activity */}
-          <div className="flex-1 min-w-[250px]" role="cell">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="min-w-0">
-                  {activity.url ? (
-                    <a
-                      href={activity.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-                    >
-                      {activity.description || activity.title}
-                    </a>
-                  ) : (
-                    <span className="text-sm font-medium truncate block text-muted-foreground">
-                      {activity.description || activity.title}
-                    </span>
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{activity.fullDescription || activity.title}</p>
-              </TooltipContent>
-            </Tooltip>
+          <div
+            className="flex-1 min-w-[250px]"
+            role="cell"
+            title={activity.fullDescription || activity.title}
+          >
+            {activity.url ? (
+              <a
+                href={activity.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+              >
+                {activity.description || activity.title}
+              </a>
+            ) : (
+              <span className="text-sm font-medium truncate block text-muted-foreground">
+                {activity.description || activity.title}
+              </span>
+            )}
           </div>
 
           {/* Author */}

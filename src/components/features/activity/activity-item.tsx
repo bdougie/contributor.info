@@ -159,14 +159,9 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 </a>
               )}
               {pullRequest.number <= 0 && description && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-muted-foreground cursor-default">{description}</span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{fullDescription || description}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <span className="text-muted-foreground" title={fullDescription || description}>
+                  {description}
+                </span>
               )}
               {pullRequest.number <= 0 && !description && <span>{pullRequest.title}</span>}
             </h3>
