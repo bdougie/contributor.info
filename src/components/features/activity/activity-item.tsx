@@ -118,11 +118,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
-              <span className="text-muted-foreground">
-                {type === 'starred' && '⭐ '}
-                {type === 'forked' && '🔱 '}
-                {getActivityText()}
-              </span>
+              <span className="text-muted-foreground">{getActivityText()}</span>
               {pullRequest.number > 0 ? (
                 <>
                   <a
@@ -166,7 +162,10 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               )}
             </h3>
           </div>
-          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2" dateTime={timestamp}>
+          <time
+            className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2"
+            dateTime={timestamp}
+          >
             {formatRelativeTime(timestamp)}
           </time>
         </div>
