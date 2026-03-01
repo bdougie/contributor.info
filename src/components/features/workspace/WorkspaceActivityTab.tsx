@@ -14,6 +14,8 @@ interface ActivityItem {
   id: string;
   type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
+  description?: string;
+  fullDescription?: string;
   author: {
     username: string;
     avatar_url: string;
@@ -93,6 +95,8 @@ export interface WorkspaceActivityTabProps {
     event_type: 'star';
     actor_login: string;
     actor_avatar?: string;
+    actor_bio?: string;
+    actor_full_bio?: string;
     repository_name?: string;
     captured_at: string;
   }>;
@@ -101,6 +105,8 @@ export interface WorkspaceActivityTabProps {
     event_type: 'fork';
     actor_login: string;
     actor_avatar?: string;
+    actor_bio?: string;
+    actor_full_bio?: string;
     repository_name?: string;
     captured_at: string;
   }>;
@@ -241,33 +247,31 @@ export function WorkspaceActivityTab({
         }),
         // Convert star events to activities - now individual events
         ...validStarData.map((star, index): ActivityItem => {
-          // Link to the user's GitHub profile instead of the repository
-          let starUrl = '';
-          if (star.actor_login) {
-            starUrl = `https://github.com/${star.actor_login}`;
-          }
+          const login = star.actor_login || 'Unknown';
+          const repoShort = star.repository_name?.split('/')[1] || 'repository';
           return {
             id: star.id || `star-${index}`,
             type: 'star',
-            title: `starred the repository`,
+            title: `${login} starred ${repoShort}`,
+            description: star.actor_bio || undefined,
+            fullDescription: star.actor_full_bio || undefined,
             created_at: star.captured_at,
             author: {
-              username: star.actor_login || 'Unknown',
+              username: login,
               avatar_url:
                 star.actor_avatar || `https://github.com/${star.actor_login || 'ghost'}.png`,
             },
             repository: star.repository_name || 'Unknown Repository',
-            // No status for star events
-            url: starUrl,
+            url: login !== 'Unknown' ? `https://github.com/${login}` : '',
             metadata: {},
           };
         }),
         // Convert fork events to activities - now individual events
         ...validForkData.map((fork, index): ActivityItem => {
-          // Link to the user's forked repository
+          const login = fork.actor_login || 'Unknown';
+          const repoShort = fork.repository_name?.split('/')[1] || 'repository';
           let forkUrl = '';
           if (fork.actor_login && fork.repository_name) {
-            // Extract just the repo name from owner/repo format
             const repoName = fork.repository_name.split('/')[1];
             if (repoName) {
               forkUrl = `https://github.com/${fork.actor_login}/${repoName}`;
@@ -276,15 +280,16 @@ export function WorkspaceActivityTab({
           return {
             id: fork.id || `fork-${index}`,
             type: 'fork',
-            title: `forked the repository`,
+            title: `${login} forked ${repoShort}`,
+            description: fork.actor_bio || undefined,
+            fullDescription: fork.actor_full_bio || undefined,
             created_at: fork.captured_at,
             author: {
-              username: fork.actor_login || 'Unknown',
+              username: login,
               avatar_url:
                 fork.actor_avatar || `https://github.com/${fork.actor_login || 'ghost'}.png`,
             },
             repository: fork.repository_name || 'Unknown Repository',
-            // No status for fork events
             url: forkUrl,
             metadata: {},
           };

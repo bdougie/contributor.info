@@ -40,8 +40,8 @@ function convertEventToActivity(event: RepositoryEvent): CombinedActivity {
       number: 0,
       title:
         event.event_type === 'WatchEvent'
-          ? `${event.actor_login} starred the repository`
-          : `${event.actor_login} forked the repository`,
+          ? `${event.actor_login} starred ${event.repository_name}`
+          : `${event.actor_login} forked ${event.repository_name}`,
       state: 'event',
       url: `https://github.com/${event.repository_owner}/${event.repository_name}`,
     },
@@ -52,6 +52,8 @@ function convertEventToActivity(event: RepositoryEvent): CombinedActivity {
       url: `https://github.com/${event.repository_owner}/${event.repository_name}`,
     },
     timestamp: event.created_at,
+    description: event.actor_bio,
+    fullDescription: event.actor_full_bio,
     eventData: event,
   };
 }

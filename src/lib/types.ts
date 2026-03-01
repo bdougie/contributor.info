@@ -209,6 +209,8 @@ export interface PullRequestActivity {
   };
   timestamp: string;
   createdAt?: Date;
+  description?: string;
+  fullDescription?: string;
   // Additional metadata for spam detection
   metadata?: {
     spamScore?: number | null;

@@ -24,6 +24,8 @@ export interface ActivityItem {
   id: string;
   type: 'pr' | 'issue' | 'commit' | 'review' | 'comment' | 'star' | 'fork';
   title: string;
+  description?: string;
+  fullDescription?: string;
   author: {
     username: string;
     avatar_url?: string;

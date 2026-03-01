@@ -15,7 +15,7 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ activity }: ActivityItemProps) {
-  const { type, user, pullRequest, repository, timestamp } = activity;
+  const { type, user, pullRequest, repository, timestamp, description, fullDescription } = activity;
   const { stats } = useContext(RepoStatsContext);
   const { formatRelativeTime } = useTimeFormatter();
 
@@ -118,11 +118,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
-              <span className="text-muted-foreground">
-                {type === 'starred' && '⭐ '}
-                {type === 'forked' && '🔱 '}
-                {getActivityText()}
-              </span>
+              <span className="text-muted-foreground">{getActivityText()}</span>
               {pullRequest.number > 0 ? (
                 <>
                   <a
@@ -151,7 +147,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
               </a>
             </div>
             <h3 className="text-sm line-clamp-1 pr-2 font-normal">
-              {pullRequest.number > 0 ? (
+              {pullRequest.number > 0 && (
                 <a
                   href={`https://github.com/${repository.owner}/${repository.name}/pull/${pullRequest.number}`}
                   className="hover:text-primary hover:underline cursor-pointer transition-colors"
@@ -161,12 +157,19 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 >
                   {pullRequest.title}
                 </a>
-              ) : (
-                pullRequest.title
               )}
+              {pullRequest.number <= 0 && description && (
+                <span className="text-muted-foreground" title={fullDescription || description}>
+                  {description}
+                </span>
+              )}
+              {pullRequest.number <= 0 && !description && <span>{pullRequest.title}</span>}
             </h3>
           </div>
-          <time className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2" dateTime={timestamp}>
+          <time
+            className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2"
+            dateTime={timestamp}
+          >
             {formatRelativeTime(timestamp)}
           </time>
         </div>
