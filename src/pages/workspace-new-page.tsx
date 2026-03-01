@@ -11,6 +11,7 @@ import { trackEvent } from '@/lib/posthog-lazy';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
+import { getAppUserId } from '@/lib/auth-helpers';
 
 export default function WorkspaceNewPage() {
   const navigate = useNavigate();
@@ -52,7 +53,15 @@ export default function WorkspaceNewPage() {
     setError(null);
 
     try {
-      const response = await WorkspaceService.createWorkspace(user.id, data);
+      // Resolve auth.users.id to app_users.id for workspace operations
+      const resolvedUserId = await getAppUserId();
+      if (!resolvedUserId) {
+        setError('Unable to resolve your user account. Please try logging in again.');
+        setLoading(false);
+        return;
+      }
+
+      const response = await WorkspaceService.createWorkspace(resolvedUserId, data);
 
       if (response.success && response.data) {
         // Track successful workspace creation
@@ -69,7 +78,7 @@ export default function WorkspaceNewPage() {
         const { count } = await supabase
           .from('workspaces')
           .select('*', { count: 'exact', head: true })
-          .eq('owner_id', user.id);
+          .eq('owner_id', resolvedUserId);
 
         if (count === 1) {
           trackEvent('first_workspace_created', {

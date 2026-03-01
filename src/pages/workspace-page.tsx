@@ -218,6 +218,7 @@ function WorkspacePage() {
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  const [appUserId, setAppUserId] = useState<string | null>(null);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
   const [selectedRepoForModal, setSelectedRepoForModal] = useState<Repository | null>(null);
@@ -426,22 +427,33 @@ function WorkspacePage() {
       }
 
       // Get app_users.id for workspace ownership and membership checks
-      const appUserId = await getAppUserId();
+      const resolvedAppUserId = await getAppUserId();
+      setAppUserId(resolvedAppUserId);
 
       // Check if current user is the workspace owner
-      if (appUserId && workspaceData.owner_id === appUserId) {
+      // Primary check: compare owner_id against app_users.id
+      // Fallback: also check auth.users.id for workspaces created before the app_users migration
+      if (resolvedAppUserId && workspaceData.owner_id === resolvedAppUserId) {
+        setIsWorkspaceOwner(true);
+      } else if (user && workspaceData.owner_id === user.id) {
+        logger.warn(
+          '[Workspace] owner_id matches auth.users.id instead of app_users.id — data needs migration',
+          {
+            workspaceId: workspaceData.id,
+          }
+        );
         setIsWorkspaceOwner(true);
       } else {
         setIsWorkspaceOwner(false);
       }
 
       // Fetch current member info and member count
-      if (appUserId) {
+      if (resolvedAppUserId) {
         const { data: memberData } = await supabase
           .from('workspace_members')
           .select('*')
           .eq('workspace_id', workspaceData.id)
-          .eq('user_id', appUserId)
+          .eq('user_id', resolvedAppUserId)
           .maybeSingle();
 
         if (memberData && user) {
@@ -1246,12 +1258,12 @@ function WorkspacePage() {
   };
 
   const handleRemoveRepository = async (repo: Repository) => {
-    if (!workspace || !currentUser) return;
+    if (!workspace || !currentUser || !appUserId) return;
 
     try {
       const result = await WorkspaceService.removeRepositoryFromWorkspace(
         workspace.id,
-        currentUser.id,
+        appUserId,
         repo.id
       );
 

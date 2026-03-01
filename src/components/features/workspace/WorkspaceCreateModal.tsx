@@ -18,6 +18,7 @@ import { useFeatureFlags } from '@/lib/feature-flags/context';
 import { FEATURE_FLAGS } from '@/lib/feature-flags/types';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
+import { getAppUserId } from '@/lib/auth-helpers';
 
 export interface WorkspaceCreateModalProps {
   open: boolean;
@@ -118,13 +119,21 @@ export function WorkspaceCreateModal({
       setError(null);
 
       try {
+        // Resolve auth.users.id to app_users.id for workspace operations
+        const resolvedUserId = await getAppUserId();
+        if (!resolvedUserId) {
+          setError('Unable to resolve your user account. Please try logging in again.');
+          setLoading(false);
+          return;
+        }
+
         let response;
 
         if (mode === 'create') {
-          response = await WorkspaceService.createWorkspace(user.id, data);
+          response = await WorkspaceService.createWorkspace(resolvedUserId, data);
         } else {
           // workspaceId is guaranteed to be defined here due to the check above
-          response = await WorkspaceService.updateWorkspace(workspaceId!, user.id, data);
+          response = await WorkspaceService.updateWorkspace(workspaceId!, resolvedUserId, data);
         }
 
         if (response.success && response.data) {
