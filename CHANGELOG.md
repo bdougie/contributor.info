@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.67.1](https://github.com/bdougie/contributor.info/compare/v4.67.0...v4.67.1) (2026-03-01)
+
+
+### 🐛 Bug Fixes
+
+* resolve auth.users.id vs app_users.id mismatch in workspace operations ([86443a0](https://github.com/bdougie/contributor.info/commit/86443a0fa8376d8961353dd179d1eb5419a744ef))
+
+
+### 🔧 Maintenance
+
+* update tracked repositories list [skip ci] ([3205662](https://github.com/bdougie/contributor.info/commit/3205662def41da380bf5cc89ae8b7bfd2f2f82cc))
+
 ## [4.67.0](https://github.com/bdougie/contributor.info/compare/v4.66.0...v4.67.0) (2026-03-01)
 
 
