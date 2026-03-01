@@ -20,11 +20,7 @@ import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/componen
 import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
 import { z } from 'zod';
-import {
-  createRepositoryFallback,
-  waitForRepository,
-  type ExtendedGitHubRepository,
-} from '@/lib/utils/repository-helpers';
+import { waitForRepository } from '@/lib/utils/repository-helpers';
 import { getAppUserId } from '@/lib/auth-helpers';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -322,6 +318,83 @@ export function AddRepositoryModal({
     [appUserId, workspace, workspaceId, onSuccess]
   );
 
+  /**
+   * Track and resolve a repository ID, starting tracking if needed.
+   * Returns the repository ID or throws a user-friendly error.
+   */
+  const trackAndResolveRepository = useCallback(
+    async (supabase: SupabaseClient, repo: StagedRepository): Promise<string> => {
+      const owner = repo.owner.login;
+      const name = repo.name;
+
+      // Check if repository already exists in our database
+      const { data: existingRepo } = await supabase
+        .from('repositories')
+        .select('id')
+        .eq('owner', owner)
+        .eq('name', name)
+        .maybeSingle();
+
+      if (existingRepo) {
+        return existingRepo.id;
+      }
+
+      // Repository not tracked yet — start tracking via API
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const trackResponse = await fetch('/api/track-repository', {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ owner, repo: name }),
+      });
+
+      const trackResult = await trackResponse.json();
+
+      // Handle API-level errors with user-friendly messages
+      if (!trackResponse.ok) {
+        if (trackResponse.status === 404) {
+          throw new Error(`${repo.full_name} was not found on GitHub.`);
+        }
+        if (trackResponse.status === 403) {
+          throw new Error(
+            trackResult.error === 'Private repository'
+              ? `${repo.full_name} is private and cannot be tracked.`
+              : `You don't have permission to track ${repo.full_name}.`
+          );
+        }
+        if (trackResponse.status === 429) {
+          throw new Error('Rate limit reached. Please wait a moment and try again.');
+        }
+        if (trackResponse.status === 503) {
+          throw new Error('The tracking service is temporarily unavailable. Please try again.');
+        }
+        throw new Error(trackResult.message || `Unable to track ${repo.full_name}.`);
+      }
+
+      if (trackResult.success && trackResult.repositoryId) {
+        return trackResult.repositoryId;
+      }
+
+      if (trackResult.success) {
+        // Tracking initiated but no ID returned yet — poll for it
+        return await waitForRepository(owner, name);
+      }
+
+      // trackResult.success is false but HTTP was 200
+      throw new Error(trackResult.message || `Unable to track ${repo.full_name}.`);
+    },
+    []
+  );
+
   const handleSubmit = useCallback(async () => {
     if (!appUserId) {
       setError('You must be logged in to add repositories');
@@ -339,120 +412,35 @@ export function AddRepositoryModal({
     try {
       const supabase = await getSupabaseClient();
 
-      // First, we need to ensure these repositories are tracked in our system
-      const repoPromises = stagedRepos.map(async (repo) => {
-        try {
-          // First check if repository already exists in our database
-          const { data: existingRepo } = await supabase
-            .from('repositories')
-            .select('id')
-            .eq('owner', repo.owner.login)
-            .eq('name', repo.name)
-            .maybeSingle();
-
-          if (existingRepo) {
-            return existingRepo.id;
-          }
-
-          // Try to track via API endpoint for proper GitHub data
-          try {
-            const trackResponse = await fetch('/api/track-repository', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              credentials: 'include',
-              body: JSON.stringify({
-                owner: repo.owner.login,
-                repo: repo.name,
-              }),
-            });
-
-            // Check if API is unavailable (common in local dev without GitHub token)
-            if (trackResponse.status === 503) {
-              console.log(
-                'Track API unavailable (likely missing GitHub token), using direct database creation'
-              );
-              throw new Error('API unavailable - using fallback');
-            }
-
-            const trackResult = await trackResponse.json();
-
-            if (trackResult.success) {
-              // If we have a repositoryId in the response, use it
-              if (trackResult.repositoryId) {
-                return trackResult.repositoryId;
-              }
-
-              // Otherwise, wait for repository to be created with exponential backoff
-              try {
-                const repoId = await waitForRepository(repo.owner.login, repo.name);
-                return repoId;
-              } catch (error) {
-                console.error('Failed to find repository after tracking:', error);
-              }
-            } else if (trackResult.message?.includes('already being tracked')) {
-              // Repository is already tracked, wait for it with exponential backoff
-              try {
-                const repoId = await waitForRepository(repo.owner.login, repo.name);
-                return repoId;
-              } catch (error) {
-                console.error('Failed to find already tracked repository:', error);
-              }
-            }
-          } catch (apiError) {
-            // In local development without GitHub token, this is expected
-            const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown error';
-            if (errorMessage !== 'API unavailable - using fallback') {
-              console.info('Track API unavailable, using direct database creation instead');
+      // Track and resolve all repositories (starts tracking for untracked repos)
+      const repoResults = await Promise.all(
+        stagedRepos.map(
+          async (
+            repo
+          ): Promise<{ id: string | null; error: string | null; repo: StagedRepository }> => {
+            try {
+              const id = await trackAndResolveRepository(supabase, repo);
+              return { id, error: null, repo };
+            } catch (err) {
+              const message =
+                err instanceof Error ? err.message : `Failed to set up ${repo.full_name}`;
+              console.error('Error tracking repository %s:', repo.full_name, err);
+              return { id: null, error: message, repo };
             }
           }
+        )
+      );
 
-          // Fallback: Create repository directly if API fails (e.g., in development without GitHub token)
-          const extendedRepo = repo as ExtendedGitHubRepository;
+      const resolved = repoResults.filter(
+        (r): r is { id: string; error: null; repo: StagedRepository } => r.id !== null
+      );
+      const failed = repoResults.filter((r) => r.id === null);
 
-          const { data: newRepo, error: createError } = await createRepositoryFallback(
-            repo.owner.login,
-            repo.name,
-            extendedRepo
-          );
-
-          if (createError) {
-            const errorMessage =
-              createError instanceof Error ? createError.message : 'Unknown error';
-            console.error('Error creating repository %s:', repo.full_name, createError);
-            throw new Error(`Failed to add ${repo.full_name}: ${errorMessage}`);
-          }
-
-          if (!newRepo) {
-            throw new Error(`Failed to create repository ${repo.full_name}`);
-          }
-
-          return newRepo.id;
-        } catch (error) {
-          console.error('Error processing repository %s:', repo.full_name, error);
-          // Return null to indicate failure but don't throw to allow other repos to process
-          return null;
-        }
-      });
-
-      const repositoryResults = await Promise.all(repoPromises);
-      const repositoryIds = repositoryResults.filter((id): id is string => id !== null);
-
-      // Track which repositories failed to process
-      const failedRepos = stagedRepos.filter((_, index) => repositoryResults[index] === null);
-
-      // Now add all repositories to the workspace
+      // Add resolved repositories to the workspace
       let successCount = 0;
-      const errors: string[] = failedRepos.map((r) => `Failed to process ${r.full_name}`);
+      const errors: string[] = failed.map((r) => r.error!);
 
-      // Create a map of successful repository IDs to their staged repos
-      const successfulRepos = repositoryIds.map((id) => {
-        const index = repositoryResults.findIndex((r) => r === id);
-        return { id, repo: stagedRepos[index] };
-      });
-
-      for (const { id: repoId, repo: stagedRepo } of successfulRepos) {
+      for (const { id: repoId, repo: stagedRepo } of resolved) {
         const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, appUserId, {
           repository_id: repoId,
           notes: stagedRepo.notes,
@@ -495,7 +483,7 @@ export function AddRepositoryModal({
     } finally {
       setSubmitting(false);
     }
-  }, [appUserId, workspaceId, stagedRepos, onOpenChange, onSuccess]);
+  }, [appUserId, workspaceId, stagedRepos, onOpenChange, onSuccess, trackAndResolveRepository]);
 
   const handleCancel = useCallback(() => {
     if (!submitting) {
@@ -720,8 +708,8 @@ export function AddRepositoryModal({
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Adding {stagedRepos.length}{' '}
-                {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}...
+                Setting up {stagedRepos.length}{' '}
+                {stagedRepos.length === 1 ? 'repository' : 'repositories'}...
               </>
             ) : (
               <>
