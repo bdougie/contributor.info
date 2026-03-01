@@ -397,10 +397,20 @@ describe('WorkspaceService', () => {
             maybeSingle: vi.fn().mockResolvedValue({
               data: {
                 max_repositories: 4,
-                current_repository_count: 2, // Under limit
               },
               error: null,
             }),
+          }),
+        }),
+      };
+
+      // Mock actual repo count (under limit)
+      const repoCountMock = {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            count: 2,
+            data: null,
+            error: null,
           }),
         }),
       };
@@ -442,22 +452,21 @@ describe('WorkspaceService', () => {
         }),
       };
 
-      // Setup mocks
-      let callCount = 0;
+      // Setup mocks - track calls per table
+      let wsRepoCallCount = 0;
+      let workspacesCallCount = 0;
       vi.mocked(supabase.from).mockImplementation((table: string) => {
-        if (table === 'workspace_repositories' && callCount === 0) {
-          callCount++;
-          return existingRepoMock as MockQueryBuilder;
-        }
-        if (table === 'workspaces' && callCount === 1) {
-          callCount++;
-          return workspaceMock as MockQueryBuilder;
-        }
         if (table === 'workspace_repositories') {
-          return addRepoMock as MockQueryBuilder;
+          wsRepoCallCount++;
+          if (wsRepoCallCount === 1) return existingRepoMock as MockQueryBuilder; // duplicate check
+          if (wsRepoCallCount === 2) return repoCountMock as MockQueryBuilder; // limit check count
+          if (wsRepoCallCount === 3) return addRepoMock as MockQueryBuilder; // insert
+          return repoCountMock as MockQueryBuilder; // post-insert count sync
         }
         if (table === 'workspaces') {
-          return updateMock as MockQueryBuilder;
+          workspacesCallCount++;
+          if (workspacesCallCount === 1) return workspaceMock as MockQueryBuilder; // max_repositories
+          return updateMock as MockQueryBuilder; // update count
         }
         if (table === 'repositories') {
           return repositoriesMock as MockQueryBuilder;
@@ -500,17 +509,27 @@ describe('WorkspaceService', () => {
         }),
       } as MockSupabaseResponse);
 
-      // Mock workspace at limit
+      // Mock workspace max_repositories
       vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
               data: {
                 max_repositories: 4,
-                current_repository_count: 4, // At limit
               },
               error: null,
             }),
+          }),
+        }),
+      } as MockSupabaseResponse);
+
+      // Mock actual repo count (at limit)
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            count: 4,
+            data: null,
+            error: null,
           }),
         }),
       } as MockSupabaseResponse);

@@ -674,10 +674,10 @@ export class WorkspaceService {
         };
       }
 
-      // Check workspace repository limit
+      // Check workspace repository limit using actual row count (not the denormalized counter)
       const { data: workspace } = await supabase
         .from('workspaces')
-        .select('max_repositories, current_repository_count')
+        .select('max_repositories')
         .eq('id', workspaceId)
         .maybeSingle();
 
@@ -689,7 +689,12 @@ export class WorkspaceService {
         };
       }
 
-      if (workspace.current_repository_count >= workspace.max_repositories) {
+      const { count: actualRepoCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+
+      if ((actualRepoCount ?? 0) >= workspace.max_repositories) {
         return {
           success: false,
           error: `Repository limit reached. Maximum ${workspace.max_repositories} repositories allowed.`,
@@ -715,11 +720,16 @@ export class WorkspaceService {
         throw addError;
       }
 
-      // Update workspace repository count
+      // Sync workspace repository count from actual rows
+      const { count: newRepoCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+
       await supabase
         .from('workspaces')
         .update({
-          current_repository_count: workspace.current_repository_count + 1,
+          current_repository_count: newRepoCount ?? (actualRepoCount ?? 0) + 1,
           last_activity_at: new Date().toISOString(),
         })
         .eq('id', workspaceId);
@@ -840,22 +850,19 @@ export class WorkspaceService {
         };
       }
 
-      // Update workspace repository count
-      const { data: workspace } = await supabase
-        .from('workspaces')
-        .select('current_repository_count')
-        .eq('id', workspaceId)
-        .maybeSingle();
+      // Sync workspace repository count from actual rows
+      const { count: repoCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
 
-      if (workspace && workspace.current_repository_count > 0) {
-        await supabase
-          .from('workspaces')
-          .update({
-            current_repository_count: workspace.current_repository_count - 1,
-            last_activity_at: new Date().toISOString(),
-          })
-          .eq('id', workspaceId);
-      }
+      await supabase
+        .from('workspaces')
+        .update({
+          current_repository_count: repoCount ?? 0,
+          last_activity_at: new Date().toISOString(),
+        })
+        .eq('id', workspaceId);
 
       // NEW: Check if repository is still in other workspaces
       try {
