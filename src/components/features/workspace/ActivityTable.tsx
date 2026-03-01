@@ -115,24 +115,51 @@ const ActivityRow = memo(function ActivityRow({
           </div>
 
           {/* Activity */}
-          <div
-            className="flex-1 min-w-[250px]"
-            role="cell"
-            title={activity.fullDescription || activity.title}
-          >
-            {activity.url ? (
-              <a
-                href={activity.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
-              >
-                {activity.description || activity.title}
-              </a>
+          <div className="flex-1 min-w-[250px]" role="cell">
+            {activity.fullDescription ? (
+              <div title={activity.fullDescription}>
+                {activity.url ? (
+                  <a
+                    href={activity.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                  >
+                    {activity.description || activity.title}
+                  </a>
+                ) : (
+                  <span className="text-sm font-medium truncate block text-muted-foreground">
+                    {activity.description || activity.title}
+                  </span>
+                )}
+              </div>
             ) : (
-              <span className="text-sm font-medium truncate block text-muted-foreground">
-                {activity.description || activity.title}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="min-w-0">
+                    {activity.url ? (
+                      <a
+                        href={activity.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium truncate cursor-pointer hover:text-primary hover:underline transition-colors block"
+                      >
+                        {activity.title}
+                      </a>
+                    ) : (
+                      <span className="text-sm font-medium truncate block text-muted-foreground">
+                        {activity.title}
+                      </span>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold text-sm">{activity.title}</p>
+                  <p className="text-xs mt-1">Repository: {activity.repository}</p>
+                  <p className="text-xs">Created: {format(activityDate, 'PPp')}</p>
+                  {activity.url && <p className="text-xs">Click to open in GitHub</p>}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
 

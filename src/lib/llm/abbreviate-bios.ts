@@ -10,7 +10,7 @@ import { openAIService } from './openai-service';
  */
 export async function abbreviateBios(
   bios: Map<string, string>,
-  targetLength = 35
+  targetLength = 50
 ): Promise<Map<string, string>> {
   const result = new Map<string, string>();
 
