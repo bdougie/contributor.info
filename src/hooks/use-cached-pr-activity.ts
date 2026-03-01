@@ -136,8 +136,8 @@ async function processActivities(pullRequests: PullRequest[]): Promise<PullReque
           owner: owner,
           url: repoUrl,
         },
-        timestamp: pr.closed_at || '',
-        createdAt: new Date(pr.closed_at || ''),
+        timestamp: pr.closed_at,
+        createdAt: new Date(pr.closed_at),
       });
     }
 

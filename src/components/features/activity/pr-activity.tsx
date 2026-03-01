@@ -42,7 +42,7 @@ export default function PRActivity() {
     error: activityError,
   } = useCachedPRActivity(effectivePRs);
 
-  // Use combined activity hook to merge PR activities (stars/forks disabled for repo view)
+  // Use combined activity hook to merge PR activities with stars/forks (logged-in only)
   const {
     activities: allActivities,
     loading: eventsLoading,
