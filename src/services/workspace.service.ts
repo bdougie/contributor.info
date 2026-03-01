@@ -821,14 +821,23 @@ export class WorkspaceService {
       }
 
       // Remove repository from workspace
-      const { error: removeError } = await supabase
+      const { error: removeError, count } = await supabase
         .from('workspace_repositories')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('workspace_id', workspaceId)
         .eq('repository_id', repositoryId);
 
       if (removeError) {
         throw removeError;
+      }
+
+      // If no rows were deleted, the RLS policy likely blocked the operation
+      if (count === 0) {
+        return {
+          success: false,
+          error: 'Unable to remove repository. You may not have permission.',
+          statusCode: 403,
+        };
       }
 
       // Update workspace repository count
