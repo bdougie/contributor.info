@@ -9,7 +9,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
   const examples = [
     // Medium repositories - ideal for demos
     'continuedev/continue', // Medium: AI code assistant (TypeScript) - primary demo
-    'papercomputeco/stereOS', // Medium: stereo computing - shows hardware usage
+    'papercomputeco/tapes', // Medium: tape computing (Rust) - shows hardware usage
     // Large repositories - performance examples
     'vitejs/vite', // Large: Frontend tooling (TypeScript) - very popular
     'etcd-io/etcd', // Large: Distributed systems (Go) - infrastructure

@@ -28,7 +28,7 @@ import { shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
  */
 const EXAMPLE_REPOS = [
   'continuedev/continue',
-  'papercomputeco/stereOS',
+  'papercomputeco/tapes',
   'vitejs/vite',
   'etcd-io/etcd',
   'better-auth/better-auth',
