@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
@@ -167,6 +167,7 @@ function WorkspacePage() {
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const skipNextFetchRef = useRef(false);
   const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
   const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
@@ -1133,6 +1134,11 @@ function WorkspacePage() {
     if (workspaceId) {
       syncWithUrl(workspaceId);
     }
+    // Skip re-fetch after repo removal — local state is already correct
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
+      return;
+    }
     fetchWorkspace();
   }, [fetchWorkspace, workspaceId, syncWithUrl]);
 
@@ -1267,6 +1273,10 @@ function WorkspacePage() {
       );
 
       if (result.success) {
+        // Skip the fetchWorkspace re-run triggered by selectedRepositories change
+        // The local state update is sufficient and avoids a stale read from the DB
+        skipNextFetchRef.current = true;
+
         // Remove the repository from the local state immediately
         setRepositories((prev) => prev.filter((r) => r.id !== repo.id));
 
