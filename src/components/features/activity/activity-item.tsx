@@ -15,7 +15,7 @@ interface ActivityItemProps {
 }
 
 export function ActivityItem({ activity }: ActivityItemProps) {
-  const { type, user, pullRequest, repository, timestamp } = activity;
+  const { type, user, pullRequest, repository, timestamp, description } = activity;
   const { stats } = useContext(RepoStatsContext);
   const { formatRelativeTime } = useTimeFormatter();
 
@@ -161,6 +161,7 @@ export function ActivityItem({ activity }: ActivityItemProps) {
                 pullRequest.title
               )}
             </h3>
+            {description && <p className="text-xs text-muted-foreground truncate">{description}</p>}
           </div>
           <time
             className="text-xs text-muted-foreground whitespace-nowrap sm:ml-2"

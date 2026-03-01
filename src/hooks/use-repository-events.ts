@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
 
 export interface RepositoryEvent {
   id: string;
   event_id: string;
   event_type: 'WatchEvent' | 'ForkEvent';
   actor_login: string;
+  actor_bio?: string;
   repository_owner: string;
   repository_name: string;
   created_at: string;
@@ -59,7 +61,31 @@ export function useRepositoryEvents(
           throw new Error(`Failed to fetch repository events: ${fetchError.message}`);
         }
 
-        setEvents(data || []);
+        // Enrich events with bios from contributors table
+        const enrichedEvents = data || [];
+        if (enrichedEvents.length > 0) {
+          const actorLogins = [
+            ...new Set(enrichedEvents.map((e) => e.actor_login).filter(Boolean)),
+          ];
+          const { data: contributors } = await supabase
+            .from('contributors')
+            .select('username, bio')
+            .in('username', actorLogins);
+          if (contributors) {
+            const fullBioMap = new Map<string, string>();
+            for (const c of contributors) {
+              if (c.bio) fullBioMap.set(c.username, c.bio);
+            }
+            if (fullBioMap.size > 0) {
+              const bioMap = await abbreviateBios(fullBioMap);
+              for (const event of enrichedEvents) {
+                event.actor_bio = bioMap.get(event.actor_login);
+              }
+            }
+          }
+        }
+
+        setEvents(enrichedEvents);
       } catch (err) {
         console.error('Error fetching repository events:', err);
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
