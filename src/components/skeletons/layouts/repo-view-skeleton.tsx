@@ -55,6 +55,7 @@ function StaticSearchSection() {
     'vitejs/vite',
     'etcd-io/etcd',
     'better-auth/better-auth',
+    'papercomputeco/stereOS',
   ];
 
   return (

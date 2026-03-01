@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Load PATH for fnm/node/npx (needed for non-interactive shells like git hooks)
+[ -f "$HOME/.zshenv" ] && . "$HOME/.zshenv"
+
 # Get list of staged files
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
 

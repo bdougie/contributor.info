@@ -16,6 +16,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
 
     // Well-known projects across different sizes
     'better-auth/better-auth', // Medium: Auth framework (TypeScript) - modern tooling
+    'papercomputeco/stereOS', // Medium: stereo computing - shows hardware usage
   ];
 
   return (

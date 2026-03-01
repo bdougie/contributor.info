@@ -32,6 +32,7 @@ const EXAMPLE_REPOS = [
   'vitejs/vite',
   'etcd-io/etcd',
   'better-auth/better-auth',
+  'papercomputeco/stereOS',
 ];
 
 /**
