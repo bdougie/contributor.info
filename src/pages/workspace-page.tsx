@@ -43,6 +43,8 @@ import { WorkspaceService } from '@/services/workspace.service';
 import { useMyWork } from '@/hooks/use-my-work';
 import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
 import type { WorkspaceActivityTabProps as WorkspaceActivityProps } from '@/components/features/workspace/WorkspaceActivityTab';
+import { fetchGitHubUserProfile } from '@/services/github-profile';
+import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 
@@ -944,7 +946,7 @@ function WorkspacePage() {
           ];
 
           // Batch-fetch bios from contributors table
-          const bioMap = new Map<string, string>();
+          const fullBioMap = new Map<string, string>();
           if (actorLogins.length > 0) {
             const { data: contributors } = await supabase
               .from('contributors')
@@ -953,11 +955,36 @@ function WorkspacePage() {
             if (contributors) {
               for (const c of contributors) {
                 if (c.bio) {
-                  bioMap.set(c.username, c.bio);
+                  fullBioMap.set(c.username, c.bio);
+                }
+              }
+            }
+
+            // Fetch missing bios from GitHub API (limit to 10 to avoid rate limits)
+            const missingBioLogins = actorLogins
+              .filter((login) => !fullBioMap.has(login))
+              .slice(0, 10);
+            if (missingBioLogins.length > 0) {
+              const profileResults = await Promise.allSettled(
+                missingBioLogins.map((login) => fetchGitHubUserProfile(login))
+              );
+              for (let i = 0; i < missingBioLogins.length; i++) {
+                const result = profileResults[i];
+                if (result.status === 'fulfilled' && result.value?.bio) {
+                  fullBioMap.set(missingBioLogins[i], result.value.bio);
+                  // Cache bio back to contributors table
+                  supabase
+                    .from('contributors')
+                    .update({ bio: result.value.bio })
+                    .eq('username', missingBioLogins[i])
+                    .then(() => {});
                 }
               }
             }
           }
+
+          // Abbreviate bios to match title length using 4o-mini (falls back to truncation)
+          const bioMap = fullBioMap.size > 0 ? await abbreviateBios(fullBioMap) : fullBioMap;
 
           // Format star events
           const formattedStars = allStarEvents.map((event) => {
