@@ -272,9 +272,7 @@ describe('useProgressiveRepoData', () => {
       vi.useFakeTimers();
 
       try {
-        const { result } = renderHook(() =>
-          useProgressiveRepoData('owner', 'repo', '90d', false)
-        );
+        const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
         // Wait for full stage
         await waitFor(() => {

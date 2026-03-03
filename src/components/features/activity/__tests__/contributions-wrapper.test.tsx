@@ -36,7 +36,7 @@ describe('ContributionsWrapper', () => {
 
     // In test environment, ContributionsWrapper uses an internal mock
     await waitFor(() => {
-        expect(screen.getByTestId('mock-contributions-chart')).toBeInTheDocument();
+      expect(screen.getByTestId('mock-contributions-chart')).toBeInTheDocument();
     });
 
     // Check if chart is also inside shareable card

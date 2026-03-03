@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -202,15 +202,17 @@ export function ContributorLeaderboard({
               </div>
               <CardHeader className="pb-4">
                 <div className="flex flex-col items-center text-center">
-                  <Avatar
-                    className="h-12 w-12 border-2 border-background mb-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  <div
+                    className="mb-3 cursor-pointer hover:opacity-80 transition-opacity rounded-full border-2 border-background"
                     onClick={() => onContributorClick?.(contributor)}
                   >
-                    <AvatarImage src={contributor.avatar_url} />
-                    <AvatarFallback>
-                      {contributor.username.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                    <OptimizedAvatar
+                      alt={contributor.username}
+                      src={contributor.avatar_url}
+                      size={48}
+                      className="h-12 w-12"
+                    />
+                  </div>
                   <p
                     className="font-semibold cursor-pointer hover:underline"
                     onClick={() => onContributorClick?.(contributor)}
@@ -307,15 +309,17 @@ export function ContributorLeaderboard({
                     </div>
 
                     {/* Avatar and Name */}
-                    <Avatar
-                      className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    <div
+                      className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => onContributorClick?.(contributor)}
                     >
-                      <AvatarImage src={contributor.avatar_url} />
-                      <AvatarFallback>
-                        {contributor.username.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                      <OptimizedAvatar
+                        alt={contributor.username}
+                        src={contributor.avatar_url}
+                        size={32}
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-sm font-medium truncate cursor-pointer hover:underline"
