@@ -399,17 +399,17 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
           <section className="rounded-lg border bg-card p-4">
             <h3 className="text-sm font-medium mb-3">Activity Metrics</h3>
             {loading || !metrics ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shareable-desktop-only">
                 <PrCountCard openPRs={0} totalPRs={0} loading={true} />
                 <AvgTimeCard averageMergeTime={0} loading={true} />
-                <div className="sm:col-span-2 md:col-span-2">
+                <div className="md:col-span-2 lg:col-span-2">
                   <VelocityCard velocity={{ current: 0, previous: 0, change: 0 }} loading={true} />
                 </div>
               </div>
             ) : (
               <>
                 {/* Desktop view - full grid with all cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shareable-desktop-only">
                   <PrCountCard
                     openPRs={metrics.openPRs}
                     totalPRs={metrics.totalPRs}
@@ -420,7 +420,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
                     averageMergeTimeTrend={metrics.averageMergeTimeTrend}
                     loading={loading}
                   />
-                  <div className="sm:col-span-2 md:col-span-2">
+                  <div className="md:col-span-2 lg:col-span-2">
                     <VelocityCard velocity={metrics.velocity} loading={loading} />
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
             {(() => {
               if (loading) {
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shareable-desktop-only">
                     {[1, 2, 3, 4].map((i) => (
                       <TrendCard key={i} loading={true} />
                     ))}
@@ -546,7 +546,7 @@ export function MetricsAndTrendsCard({ owner, repo, timeRange }: MetricsAndTrend
               return (
                 <>
                   {/* Desktop view - full grid with TrendCards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 shareable-desktop-only">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shareable-desktop-only">
                     {trends.slice(0, 4).map((trend, index) => (
                       <TrendCard key={index} trend={trend} loading={loading} />
                     ))}
