@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.tapes_sessions (
   project text NOT NULL,              -- "{owner}/{repo}" from X-Tapes-Session
   app text NOT NULL DEFAULT 'contributor-info',  -- X-Tapes-App
   session_hash text,                  -- tapes node hash for traceability
-  role text NOT NULL,                 -- "user" or "assistant"
+  role text NOT NULL CHECK (role IN ('user', 'assistant')),
   content text NOT NULL,              -- message content (plain text summary)
   model text,                         -- LLM model used
   token_count integer DEFAULT 0,

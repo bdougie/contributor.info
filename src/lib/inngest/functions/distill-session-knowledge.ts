@@ -109,9 +109,9 @@ Given a conversation history, extract 1-5 key insights. Each insight should be o
 - "fact": A notable data point or metric
 - "observation": A general observation about the project
 
-Respond with a JSON array of objects, each with "type" (one of the above) and "content" (a concise natural language insight, 1-2 sentences max).
+Respond with a JSON object containing an "insights" key with an array of objects, each with "type" (one of the above) and "content" (a concise natural language insight, 1-2 sentences max).
 
-Only include meaningful, non-obvious insights. If the conversation is trivial, return an empty array [].`,
+Only include meaningful, non-obvious insights. If the conversation is trivial, return {"insights": []}.`,
               },
               {
                 role: 'user',

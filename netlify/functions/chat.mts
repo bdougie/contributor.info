@@ -472,17 +472,13 @@ export default async (req: Request, _context: Context) => {
         inputSchema: jsonSchema({
           type: 'object' as const,
           properties: {
-            query: {
-              type: 'string' as const,
-              description: 'Optional search term to filter relevant past sessions',
-            },
             limit: {
               type: 'number' as const,
-              description: 'Max sessions to return (default 5)',
+              description: 'Max session message pairs to return (default 5, max 20)',
             },
           },
         }),
-        execute: async (input: { query?: string; limit?: number }) => {
+        execute: async (input: { limit?: number }) => {
           try {
             const sessionLimit = Math.min(Math.max(input.limit ?? 5, 1), 20);
             const { data, error } = await supabase

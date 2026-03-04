@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS public.tapes_knowledge (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project text NOT NULL,              -- "{owner}/{repo}"
-  insight_type text NOT NULL,         -- "trend", "recommendation", "fact", "observation"
+  insight_type text NOT NULL CHECK (insight_type IN ('trend', 'recommendation', 'fact', 'observation')),
   content text NOT NULL,              -- Natural language insight
   metadata jsonb DEFAULT '{}'::jsonb, -- Supporting data (scores, dates, sources)
   source_sessions uuid[] DEFAULT '{}',-- Session IDs this was distilled from

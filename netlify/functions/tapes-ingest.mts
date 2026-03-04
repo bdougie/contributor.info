@@ -1,14 +1,11 @@
 import type { Context } from '@netlify/functions';
 import { getSupabaseClient } from './_shared/supabase-client';
-
-interface TapesSessionNode {
-  project: string;
-  role: string;
-  content: string;
-  model?: string;
-  session_hash?: string;
-  token_count?: number;
-}
+import {
+  isValidSessionNode,
+  buildSessionRow,
+  MAX_BATCH_SIZE,
+  type TapesSessionNode,
+} from '../../src/lib/tapes/validation';
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -58,14 +55,17 @@ export default async (req: Request, _context: Context) => {
       });
     }
 
-    // Validate each node
-    const validNodes = nodes.filter((node) => {
-      if (!node.project || !node.role || !node.content) return false;
-      if (!['user', 'assistant'].includes(node.role)) return false;
-      // Validate project format: owner/repo
-      if (!/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/.test(node.project)) return false;
-      return true;
-    });
+    if (nodes.length > MAX_BATCH_SIZE) {
+      return new Response(
+        JSON.stringify({ error: `Batch too large — max ${MAX_BATCH_SIZE} nodes per request` }),
+        {
+          status: 400,
+          headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const validNodes = nodes.filter(isValidSessionNode);
 
     if (validNodes.length === 0) {
       return new Response(
@@ -78,16 +78,7 @@ export default async (req: Request, _context: Context) => {
     }
 
     const supabase = getSupabaseClient();
-
-    const rows = validNodes.map((node) => ({
-      project: node.project,
-      app: 'contributor-info',
-      session_hash: node.session_hash ?? null,
-      role: node.role,
-      content: node.content,
-      model: node.model ?? null,
-      token_count: node.token_count ?? 0,
-    }));
+    const rows = validNodes.map(buildSessionRow);
 
     const { error } = await supabase.from('tapes_sessions').insert(rows);
 
