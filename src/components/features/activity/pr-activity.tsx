@@ -53,6 +53,7 @@ export default function PRActivity() {
     repo,
     includeStars: isLoggedIn,
     includeForks: isLoggedIn,
+    isLoggedIn,
   });
 
   // Combined loading state and error
