@@ -312,7 +312,7 @@ export default function Layout() {
           <div className="ml-auto flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div>
+                <div className="hidden md:block">
                   <TourTriggerButton variant="ghost" size="icon" showLabel={false} />
                 </div>
               </TooltipTrigger>
@@ -321,7 +321,7 @@ export default function Layout() {
               </TooltipContent>
             </Tooltip>
             {isLoggedIn && (
-              <div data-tour="notifications">
+              <div data-tour="notifications" className="hidden md:block">
                 <NotificationDropdown />
               </div>
             )}

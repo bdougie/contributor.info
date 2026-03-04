@@ -1,5 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import { GithubIcon, LogOut, MessageSquare, Shield, Settings, Key } from '@/components/ui/icon';
+import {
+  GithubIcon,
+  LogOut,
+  MessageSquare,
+  Shield,
+  Settings,
+  Key,
+  Bell,
+} from '@/components/ui/icon';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,12 +16,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import { markAuthRedirectStart, getAuthRedirectDuration } from '@/lib/plg-tracking-utils';
+import { useNotifications } from '@/hooks/use-notifications';
+import { NotificationsList } from '@/components/notifications/notifications-list';
 import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
@@ -334,6 +345,17 @@ export function AuthButton() {
           </>
         )}
 
+        {/* Mobile-only: inline notifications (bell is hidden from header on mobile) */}
+        <div className="md:hidden">
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="flex items-center gap-2 text-sm">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </DropdownMenuLabel>
+          <div className="max-h-[200px] overflow-y-auto">
+            <MobileNotifications />
+          </div>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/billing')}>
           <Key className="mr-2 h-4 w-4" />
@@ -359,5 +381,18 @@ export function AuthButton() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function MobileNotifications() {
+  const { notifications, loading, markAsRead, deleteNotification } = useNotifications({ limit: 5 });
+
+  return (
+    <NotificationsList
+      notifications={notifications}
+      loading={loading}
+      onMarkAsRead={markAsRead}
+      onDelete={deleteNotification}
+    />
   );
 }
