@@ -17,3 +17,7 @@
 ## 2024-05-23 - Activity Feed Performance Bottleneck
 **Learning:** The `ActivityItem` component was performing O(N*M) calculations (filtering all PRs and comments) for every activity item rendered. Since the activity feed renders many items for the same user, this resulted in massive redundant computation (15x-20x slowdown for 50 items).
 **Action:** Implemented a shared `WeakMap` cache for contributor activity counts keyed by the `pullRequests` array. This transforms the complexity from O(Activities * PRs) to O(PRs) (amortized constant time lookup per activity). Future list items should avoid inline heavy aggregations over the parent data context.
+
+## 2026-01-14 - Date Comparison Performance
+**Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
+**Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.

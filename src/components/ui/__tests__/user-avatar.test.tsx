@@ -5,12 +5,7 @@ import { UserAvatar } from '../user-avatar';
 
 describe('UserAvatar', () => {
   it('renders with basic props', () => {
-    render(
-      <UserAvatar
-        src="https://example.com/avatar.jpg"
-        alt="John Doe"
-      />
-    );
+    render(<UserAvatar src="https://example.com/avatar.jpg" alt="John Doe" />);
 
     const img = screen.getByRole('img');
     expect(img).toBeInTheDocument();
@@ -34,13 +29,7 @@ describe('UserAvatar', () => {
   });
 
   it('leaves non-GitHub URLs untouched', () => {
-    render(
-      <UserAvatar
-        src="https://example.com/avatar.jpg"
-        alt="External User"
-        size={48}
-      />
-    );
+    render(<UserAvatar src="https://example.com/avatar.jpg" alt="External User" size={48} />);
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('src', 'https://example.com/avatar.jpg');

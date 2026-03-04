@@ -70,7 +70,7 @@ const DANGEROUS_PATTERNS = [
   /[{}[\]]/, // Template injection patterns
   /\.\./, // Path traversal
   /^[.-]/, // Leading dots or hyphens (invalid usernames)
-  ];
+];
 
 /**
  * Validates and sanitizes repository paths to prevent XSS and invalid navigation
