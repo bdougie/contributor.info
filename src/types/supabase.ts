@@ -4087,6 +4087,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      tapes_knowledge: {
+        Row: {
+          id: string;
+          project: string;
+          insight_type: string;
+          content: string;
+          metadata: Record<string, unknown>;
+          source_sessions: string[];
+          created_at: string;
+          expires_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          project: string;
+          insight_type: string;
+          content: string;
+          metadata?: Record<string, unknown>;
+          source_sessions?: string[];
+          created_at?: string;
+          expires_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          project?: string;
+          insight_type?: string;
+          content?: string;
+          metadata?: Record<string, unknown>;
+          source_sessions?: string[];
+          created_at?: string;
+          expires_at?: string | null;
+        };
+        Relationships: [];
+      };
+      tapes_sessions: {
+        Row: {
+          id: string;
+          project: string;
+          app: string;
+          session_hash: string | null;
+          role: string;
+          content: string;
+          model: string | null;
+          token_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project: string;
+          app?: string;
+          session_hash?: string | null;
+          role: string;
+          content: string;
+          model?: string | null;
+          token_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project?: string;
+          app?: string;
+          session_hash?: string | null;
+          role?: string;
+          content?: string;
+          model?: string | null;
+          token_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       repositories: {
         Row: {
           _dlt_id: string | null;

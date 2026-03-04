@@ -16,6 +16,7 @@ import {
   sendUserSlackMonthlyLeaderboardCron,
   captureRepositoryMetricsCron,
   captureRepositoryMetricsManual,
+  distillSessionKnowledge,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
 
 // Create the Inngest serve handler
@@ -43,6 +44,8 @@ const inngestHandler = serve({
     // Repository metrics capture for trending
     captureRepositoryMetricsCron,
     captureRepositoryMetricsManual,
+    // StarSearch session knowledge distillation
+    distillSessionKnowledge,
   ],
   servePath: '/.netlify/functions/inngest',
 });
@@ -70,6 +73,7 @@ export default async (req: Request, context: Context) => {
           'send-user-slack-monthly-leaderboard-cron',
           'capture-repository-metrics-cron',
           'capture-repository-metrics-manual',
+          'distill-session-knowledge',
         ],
         environment: {
           context: process.env.CONTEXT || 'unknown',

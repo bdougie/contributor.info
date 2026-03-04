@@ -232,6 +232,10 @@ function buildManagerSystemPrompt(hasDatapipe: boolean, hasRepoContext: boolean)
     );
   }
 
+  tools.push(
+    '- recall_sessions: recall previous StarSearch conversations about this repository. Use when user references past discussions or historical context would help.'
+  );
+
   return `You are an orchestration manager for repository analysis on the contributor.info platform. Your job is to call the right sub-agent tools to answer the user's question about a GitHub repository.
 
 contributor.info helps open-source maintainers understand their repositories and contributor communities through data-driven insights. Users come here to assess project health, identify bottlenecks, recognize top contributors, and find actionable improvements for their open-source projects.
@@ -244,6 +248,7 @@ ${tools.join('\n')}
 - When the user's question spans multiple domains (e.g. "How healthy is this repo AND who are the top contributors?"), call multiple sub-agent tools in the same step so they execute in parallel for faster responses.
 - When the question is clearly domain-specific, call only the relevant sub-agent to avoid unnecessary data fetching.
 - Do not answer directly — always delegate to tools to fetch real, up-to-date data. Never fabricate statistics or repository information.${hasRepoContext ? '\n- Only use search_repository_context when the user asks about specific topics, features, bugs, or historical activity — not for general health or contributor overview questions.' : ''}
+- Use recall_sessions when the user references previous conversations, says "last time", "you said before", "we discussed", or when understanding trends over time would improve the response. Can be called in parallel with other tools.
 
 ## Response quality guidelines
 
@@ -460,6 +465,47 @@ export default async (req: Request, _context: Context) => {
           'Get repository health data: summary, PRs needing attention, health score, recommendations',
         inputSchema: jsonSchema({ type: 'object' as const, properties: {} }),
         execute: async () => runRepoHealthAgent(agentContext, conversationMessages),
+      }),
+      recall_sessions: tool({
+        description:
+          'Recall previous StarSearch conversations about this repository. Use when the user references past discussions, asks follow-up questions from previous sessions, or when historical context would improve the answer.',
+        inputSchema: jsonSchema({
+          type: 'object' as const,
+          properties: {
+            query: {
+              type: 'string' as const,
+              description: 'Optional search term to filter relevant past sessions',
+            },
+            limit: {
+              type: 'number' as const,
+              description: 'Max sessions to return (default 5)',
+            },
+          },
+        }),
+        execute: async (input: { query?: string; limit?: number }) => {
+          try {
+            const sessionLimit = Math.min(Math.max(input.limit ?? 5, 1), 20);
+            const { data, error } = await supabase
+              .from('tapes_sessions')
+              .select('role, content, created_at')
+              .eq('project', `${owner}/${repo}`)
+              .order('created_at', { ascending: false })
+              .limit(sessionLimit * 2); // Fetch pairs (user + assistant)
+
+            if (error || !data?.length) {
+              return { sessions: [], message: 'No previous sessions found' };
+            }
+
+            return {
+              sessions: data,
+              total: data.length,
+              repo: `${owner}/${repo}`,
+            };
+          } catch (err) {
+            console.error('[chat] recall_sessions error: %s', err);
+            return { sessions: [], message: 'Could not recall sessions' };
+          }
+        },
       }),
       ...(repoId
         ? {
