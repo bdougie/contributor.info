@@ -324,7 +324,6 @@ export function ActivityTable({
     // 2. Process each author to build stats
     for (const [key, userActivities] of activitiesByAuthor) {
       // Sort by date descending (non-mutating to preserve original array)
-      // ⚡ Bolt Optimization: Use Date.parse() instead of new Date().getTime() to avoid object allocation in loops
       const sortedActivities = [...userActivities].sort(
         (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)
       );
@@ -390,7 +389,6 @@ export function ActivityTable({
 
       switch (sortField) {
         case 'created_at':
-          // ⚡ Bolt Optimization: Use Date.parse() instead of new Date().getTime() to avoid object allocation in loops
           comparison = Date.parse(a.created_at) - Date.parse(b.created_at);
           break;
         case 'type':
