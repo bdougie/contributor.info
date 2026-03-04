@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { NavigationOverlay, NavSection, NavLink } from './navigation-overlay';
+import { useIsMobile } from '@/lib/utils/mobile-detection';
 import { WorkspaceSwitcher } from '@/components/navigation/WorkspaceSwitcher';
 import { NotificationDropdown } from '@/components/notifications';
 import { TourTriggerButton } from '@/components/features/onboarding';
@@ -47,6 +48,7 @@ export default function Layout() {
   const needsOnboarding = workspaces.length === 0;
   const onboardingLoading = workspacesLoading;
   const hasTrackedCTA = useRef(false);
+  const isMobile = useIsMobile();
 
   // PLG Tracking: First page view tracking
   const { trackFirstPageView } = useAnalytics();
@@ -320,8 +322,8 @@ export default function Layout() {
                 <p>Learn how to use contributor.info</p>
               </TooltipContent>
             </Tooltip>
-            {isLoggedIn && (
-              <div data-tour="notifications" className="hidden md:block">
+            {isLoggedIn && !isMobile && (
+              <div data-tour="notifications">
                 <NotificationDropdown />
               </div>
             )}
