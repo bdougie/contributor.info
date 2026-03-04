@@ -238,6 +238,9 @@ export function AuthButton() {
       // PLG Tracking: Mark OAuth redirect start time for duration calculation
       markAuthRedirectStart();
 
+      // Store current path so the auth hook redirects back here after OAuth
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+
       // Get the correct redirect URL for the current environment
       const redirectTo = window.location.origin + window.location.pathname;
 
