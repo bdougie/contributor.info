@@ -135,4 +135,9 @@ export type DataCaptureEvents = {
   'metrics/repository.capture': {
     data: Record<string, never>; // No data needed for manual trigger
   };
+  'capture/repository.events': {
+    data: {
+      repositoryId: string;
+    };
+  };
 };

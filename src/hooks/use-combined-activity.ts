@@ -12,6 +12,7 @@ interface UseCombinedActivityProps {
   repo?: string;
   includeStars?: boolean;
   includeForks?: boolean;
+  isLoggedIn?: boolean;
 }
 
 interface UseCombinedActivityResult {
@@ -64,8 +65,9 @@ export function useCombinedActivity({
   repo,
   includeStars = true,
   includeForks = true,
+  isLoggedIn = false,
 }: UseCombinedActivityProps): UseCombinedActivityResult {
-  const { events, loading, error } = useRepositoryEvents(owner, repo);
+  const { events, loading, error } = useRepositoryEvents(owner, repo, 100, isLoggedIn);
 
   const combinedActivities = useMemo(() => {
     const activities: CombinedActivity[] = [...pullRequestActivities];

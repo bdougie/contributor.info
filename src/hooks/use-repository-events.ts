@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
+import { inngest } from '@/lib/inngest/client';
 
 export interface RepositoryEvent {
   id: string;
@@ -28,14 +29,25 @@ interface UseRepositoryEventsResult {
   error: Error | null;
 }
 
+const STALENESS_HOURS = 4;
+
 export function useRepositoryEvents(
   owner?: string,
   repo?: string,
-  limit: number = 100
+  limit: number = 100,
+  isLoggedIn: boolean = false
 ): UseRepositoryEventsResult {
   const [events, setEvents] = useState<RepositoryEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const hasTriggeredBackfill = useRef(false);
+  const isLoggedInRef = useRef(isLoggedIn);
+  isLoggedInRef.current = isLoggedIn;
+
+  // Reset backfill guard only when owner/repo changes
+  useEffect(() => {
+    hasTriggeredBackfill.current = false;
+  }, [owner, repo]);
 
   useEffect(() => {
     if (!owner || !repo) {
@@ -88,6 +100,19 @@ export function useRepositoryEvents(
         }
 
         setEvents(enrichedEvents);
+
+        // Trigger on-demand backfill if data is empty or stale
+        if (isLoggedInRef.current && !hasTriggeredBackfill.current) {
+          const isStale =
+            enrichedEvents.length === 0 ||
+            (Date.now() - Date.parse(enrichedEvents[0].created_at)) / (1000 * 60 * 60) >
+              STALENESS_HOURS;
+
+          if (isStale) {
+            hasTriggeredBackfill.current = true;
+            triggerEventBackfill(owner, repo, supabase);
+          }
+        }
       } catch (err) {
         console.error('Error fetching repository events:', err);
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
@@ -100,4 +125,31 @@ export function useRepositoryEvents(
   }, [owner, repo, limit]);
 
   return { events, loading, error };
+}
+
+async function triggerEventBackfill(
+  owner: string,
+  repo: string,
+  supabase: Awaited<ReturnType<typeof getSupabase>>
+) {
+  try {
+    const { data: repoData } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    if (!repoData) return;
+
+    await inngest.send({
+      name: 'capture/repository.events',
+      data: { repositoryId: repoData.id },
+    });
+
+    console.log('Triggered star/fork event backfill for %s/%s', owner, repo);
+  } catch (err) {
+    // Non-critical — don't surface to user
+    console.warn('Failed to trigger event backfill:', err);
+  }
 }
