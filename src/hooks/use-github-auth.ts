@@ -85,14 +85,12 @@ export function useGitHubAuth() {
           setShowLoginDialog(false);
         }
 
-        // Only redirect if we're on the login page itself
-        // Otherwise let the OAuth redirect handle returning to the original page
-        if (window.location.pathname === '/login') {
-          const redirectPath = localStorage.getItem('redirectAfterLogin');
-          if (redirectPath) {
-            // Clear the stored path
-            localStorage.removeItem('redirectAfterLogin');
-            // Navigate to the stored path
+        // Redirect to the stored path if we landed on a different page after OAuth
+        const redirectPath = localStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          localStorage.removeItem('redirectAfterLogin');
+          // Only navigate if we're not already on the target path
+          if (window.location.pathname !== redirectPath) {
             navigate(redirectPath);
           }
         }
@@ -115,14 +113,11 @@ export function useGitHubAuth() {
               setShowLoginDialog(false);
             }
 
-            // Only redirect if we're on the login page
-            // OAuth redirect will handle returning to the original page
-            if (window.location.pathname === '/login') {
-              const redirectPath = localStorage.getItem('redirectAfterLogin');
-              if (redirectPath) {
-                // Clear the stored path
-                localStorage.removeItem('redirectAfterLogin');
-                // Navigate to the stored path
+            // Redirect to the stored path if we landed on a different page after OAuth
+            const redirectPath = localStorage.getItem('redirectAfterLogin');
+            if (redirectPath) {
+              localStorage.removeItem('redirectAfterLogin');
+              if (window.location.pathname !== redirectPath) {
                 navigate(redirectPath);
               }
             }
