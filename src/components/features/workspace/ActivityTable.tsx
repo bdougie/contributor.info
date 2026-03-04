@@ -324,8 +324,9 @@ export function ActivityTable({
     // 2. Process each author to build stats
     for (const [key, userActivities] of activitiesByAuthor) {
       // Sort by date descending (non-mutating to preserve original array)
-      const sortedActivities = [...userActivities].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      // Optimized: use string comparison for ISO dates to avoid object allocation in loop
+      const sortedActivities = [...userActivities].sort((a, b) =>
+        b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0
       );
 
       // Get top 5 recent activities
@@ -389,7 +390,8 @@ export function ActivityTable({
 
       switch (sortField) {
         case 'created_at':
-          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          // Optimized: use fast string comparison for ISO dates to avoid object allocation in loop
+          comparison = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
           break;
         case 'type':
           comparison = a.type.localeCompare(b.type);
