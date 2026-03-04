@@ -41,15 +41,19 @@ export function useRepositoryEvents(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const hasTriggeredBackfill = useRef(false);
+  const isLoggedInRef = useRef(isLoggedIn);
+  isLoggedInRef.current = isLoggedIn;
+
+  // Reset backfill guard only when owner/repo changes
+  useEffect(() => {
+    hasTriggeredBackfill.current = false;
+  }, [owner, repo]);
 
   useEffect(() => {
     if (!owner || !repo) {
       setLoading(false);
       return;
     }
-
-    // Reset backfill guard when owner/repo changes
-    hasTriggeredBackfill.current = false;
 
     const fetchEvents = async () => {
       try {
@@ -98,7 +102,7 @@ export function useRepositoryEvents(
         setEvents(enrichedEvents);
 
         // Trigger on-demand backfill if data is empty or stale
-        if (isLoggedIn && !hasTriggeredBackfill.current) {
+        if (isLoggedInRef.current && !hasTriggeredBackfill.current) {
           const isStale =
             enrichedEvents.length === 0 ||
             (Date.now() - Date.parse(enrichedEvents[0].created_at)) / (1000 * 60 * 60) >
@@ -118,7 +122,7 @@ export function useRepositoryEvents(
     };
 
     fetchEvents();
-  }, [owner, repo, limit, isLoggedIn]);
+  }, [owner, repo, limit]);
 
   return { events, loading, error };
 }
