@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
-import { inngest } from '@/lib/inngest/client';
 
 export interface RepositoryEvent {
   id: string;
@@ -110,7 +109,7 @@ export function useRepositoryEvents(
 
           if (isStale) {
             hasTriggeredBackfill.current = true;
-            triggerEventBackfill(owner, repo, supabase);
+            triggerEventBackfill(owner, repo);
           }
         }
       } catch (err) {
@@ -127,25 +126,19 @@ export function useRepositoryEvents(
   return { events, loading, error };
 }
 
-async function triggerEventBackfill(
-  owner: string,
-  repo: string,
-  supabase: Awaited<ReturnType<typeof getSupabase>>
-) {
+async function triggerEventBackfill(owner: string, repo: string) {
   try {
-    const { data: repoData } = await supabase
-      .from('repositories')
-      .select('id')
-      .eq('owner', owner)
-      .eq('name', repo)
-      .maybeSingle();
-
-    if (!repoData) return;
-
-    await inngest.send({
-      name: 'capture/repository.events',
-      data: { repositoryId: repoData.id },
+    const response = await fetch('/.netlify/functions/trigger-event-backfill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner, repo }),
     });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      console.warn('Event backfill returned %s: %s', response.status, data.error || '');
+      return;
+    }
 
     console.log('Triggered star/fork event backfill for %s/%s', owner, repo);
   } catch (err) {
