@@ -55,10 +55,12 @@ export const distillSessionKnowledge = inngest.createFunction(
       };
     }
 
-    // Step 2: Process each project
+    // Step 2: Process each project (capped to avoid runaway costs)
+    const MAX_PROJECTS_PER_RUN = 10;
+    const projectsToProcess = projects.slice(0, MAX_PROJECTS_PER_RUN);
     let totalInsights = 0;
 
-    for (const project of projects.slice(0, 10)) {
+    for (const project of projectsToProcess) {
       const result = await step.run(`distill-${project}`, async () => {
         // Fetch recent sessions for this project
         const { data: sessions, error: sessionsError } = await supabase
@@ -199,14 +201,16 @@ Only include meaningful, non-obvious insights. If the conversation is trivial, r
     }
 
     console.log(
-      '[Distill Knowledge] Completed: %d projects, %d insights',
+      '[Distill Knowledge] Completed: %d projects processed (%d total found), %d insights',
+      projectsToProcess.length,
       projects.length,
       totalInsights
     );
 
     return {
       success: true,
-      projectsProcessed: projects.length,
+      projectsProcessed: projectsToProcess.length,
+      projectsFound: projects.length,
       totalInsights,
       completedAt: new Date().toISOString(),
     };
