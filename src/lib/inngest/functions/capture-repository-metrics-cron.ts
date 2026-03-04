@@ -220,10 +220,26 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       );
     }
 
+    // Step 5: Trigger star/fork event capture for all active repositories
+    // This refreshes the github_events_cache so the activity feed stays up to date
+    let eventsTriggered = 0;
+    for (const repo of repositories) {
+      await step.sendEvent(`repo-events-${eventsTriggered}`, {
+        name: 'capture/repository.events',
+        data: {
+          repositoryId: repo.id,
+        },
+      });
+      eventsTriggered++;
+    }
+
+    console.log('[Metrics Cron] Triggered event capture for %d repositories', eventsTriggered);
+
     return {
       success: isSuccess,
       repositoriesProcessed: repositories.length,
       metricsInserted: totalMetricsInserted,
+      eventsTriggered,
       totalBatches,
       failedBatches,
       failedBatchErrors: failedBatchErrors.length > 0 ? failedBatchErrors : undefined,
