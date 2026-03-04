@@ -205,11 +205,15 @@ export function WorkspaceDiscussionsTable({
               return b.comment_count - a.comment_count;
             case 'activity':
               // Optimized: use fast string comparison for ISO dates to avoid object allocation in loop
-              return b.updated_at < a.updated_at ? -1 : b.updated_at > a.updated_at ? 1 : 0;
+              if (b.updated_at < a.updated_at) return -1;
+              if (b.updated_at > a.updated_at) return 1;
+              return 0;
             case 'newest':
             default:
               // Optimized: use fast string comparison for ISO dates to avoid object allocation in loop
-              return b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0;
+              if (b.created_at < a.created_at) return -1;
+              if (b.created_at > a.created_at) return 1;
+              return 0;
           }
         }),
     [discussions, searchTerm, filterBy, selectedCategory, sortBy]

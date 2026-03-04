@@ -325,9 +325,11 @@ export function ActivityTable({
     for (const [key, userActivities] of activitiesByAuthor) {
       // Sort by date descending (non-mutating to preserve original array)
       // Optimized: use string comparison for ISO dates to avoid object allocation in loop
-      const sortedActivities = [...userActivities].sort((a, b) =>
-        b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0
-      );
+      const sortedActivities = [...userActivities].sort((a, b) => {
+        if (b.created_at < a.created_at) return -1;
+        if (b.created_at > a.created_at) return 1;
+        return 0;
+      });
 
       // Get top 5 recent activities
       const recentActivities: RecentActivity[] = sortedActivities.slice(0, 5).map((a) => ({
@@ -391,7 +393,9 @@ export function ActivityTable({
       switch (sortField) {
         case 'created_at':
           // Optimized: use fast string comparison for ISO dates to avoid object allocation in loop
-          comparison = a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+          if (a.created_at < b.created_at) comparison = -1;
+          else if (a.created_at > b.created_at) comparison = 1;
+          else comparison = 0;
           break;
         case 'type':
           comparison = a.type.localeCompare(b.type);
