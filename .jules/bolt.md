@@ -21,3 +21,7 @@
 ## 2025-03-03 - OptimizedAvatar for GitHub Avatars
 **Learning:** Using the native `Avatar` and `AvatarImage` components from `shadcn/ui` for GitHub avatars can lead to performance issues because GitHub serves the original size image unless query parameters are used. The `OptimizedAvatar` component automatically resizes the image based on the size prop, saving bandwidth and improving load times.
 **Action:** Always use the `OptimizedAvatar` component instead of `AvatarImage` when rendering user avatars, especially in lists or grids.
+
+## 2026-01-14 - Date Comparison Performance
+**Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
+**Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.

@@ -303,9 +303,12 @@ export function WorkspaceActivityTab({
 
   // Memoize sorted activities to avoid unnecessary re-sorts
   const sortedActivities = useMemo(() => {
-    return [...activities].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    // Optimized: use fast string comparison for ISO dates to avoid object allocation in loop
+    return [...activities].sort((a, b) => {
+      if (b.created_at < a.created_at) return -1;
+      if (b.created_at > a.created_at) return 1;
+      return 0;
+    });
   }, [activities]);
 
   // Memoize trend data calculation for performance
