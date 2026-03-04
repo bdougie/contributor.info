@@ -53,3 +53,6 @@ export {
   captureRepositoryMetricsCron,
   captureRepositoryMetricsManual,
 } from './capture-repository-metrics-cron';
+
+// StarSearch session knowledge distillation
+export { distillSessionKnowledge } from './distill-session-knowledge';

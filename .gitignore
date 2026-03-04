@@ -93,3 +93,4 @@ supabase/functions/deno.lock
 /get-*.js
 scan-results.md
 jcard.toml
+.worktrees/
