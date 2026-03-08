@@ -30,15 +30,12 @@ function createDataHash(
   activities: ActivityItem[]
 ): string {
   // Get most recent timestamps from each dataset
-  const latestPR =
-    prs.length > 0 ? Math.max(...prs.map((pr) => new Date(pr.updated_at).getTime())) : 0;
+  const latestPR = prs.length > 0 ? Math.max(...prs.map((pr) => Date.parse(pr.updated_at))) : 0;
   const latestIssue =
-    issues.length > 0
-      ? Math.max(...issues.map((issue) => new Date(issue.updated_at).getTime()))
-      : 0;
+    issues.length > 0 ? Math.max(...issues.map((issue) => Date.parse(issue.updated_at))) : 0;
   const latestActivity =
     activities.length > 0
-      ? Math.max(...activities.map((activity) => new Date(activity.created_at).getTime()))
+      ? Math.max(...activities.map((activity) => Date.parse(activity.created_at)))
       : 0;
 
   // Combine counts and timestamps for a more robust cache key
@@ -146,7 +143,7 @@ export function groupWorkspaceDataByContributor(
     const sorted = prs
       .map((item) => ({
         original: item,
-        timestamp: new Date(item.updated_at).getTime(),
+        timestamp: Date.parse(item.updated_at),
       }))
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((wrapper) => wrapper.original);
@@ -179,7 +176,7 @@ export function groupWorkspaceDataByContributor(
     const sorted = issues
       .map((item) => ({
         original: item,
-        timestamp: new Date(item.updated_at).getTime(),
+        timestamp: Date.parse(item.updated_at),
       }))
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((wrapper) => wrapper.original);
@@ -218,7 +215,7 @@ export function groupWorkspaceDataByContributor(
     const sorted = prs
       .map((item) => ({
         original: item,
-        timestamp: new Date(item.updated_at).getTime(),
+        timestamp: Date.parse(item.updated_at),
       }))
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((wrapper) => wrapper.original);
@@ -247,7 +244,7 @@ export function groupWorkspaceDataByContributor(
     const sorted = activities
       .map((item) => ({
         original: item,
-        timestamp: new Date(item.created_at).getTime(),
+        timestamp: Date.parse(item.created_at),
       }))
       .sort((a, b) => b.timestamp - a.timestamp)
       .map((wrapper) => wrapper.original);
