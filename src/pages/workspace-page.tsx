@@ -170,6 +170,8 @@ function WorkspacePage() {
   const { syncWithUrl } = useWorkspaceContext();
   const isSlowConnection = useIsSlowConnection();
   const ssrData = useWorkspaceDetailSSRData();
+  const ssrDataRef = useRef(ssrData);
+  const ssrConsumedRef = useRef(false);
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -866,6 +868,7 @@ function WorkspacePage() {
         }
 
         if (commentData && Array.isArray(commentData)) {
+          type CommentContributorData = { username?: string; avatar_url?: string };
           const isValidComment = (
             comment: unknown
           ): comment is {
@@ -875,6 +878,7 @@ function WorkspacePage() {
             body: string;
             created_at: string;
             comment_type: string;
+            contributors?: CommentContributorData | CommentContributorData[];
             pull_requests?:
               | { title: string; number: number; repository_id: string }
               | Array<{ title: string; number: number; repository_id: string }>;
@@ -901,9 +905,9 @@ function WorkspacePage() {
               created_at: c.created_at,
               comment_type: c.comment_type,
               commenter_login: (() => {
-                const contrib = (c as Record<string, unknown>).contributors as
-                  | { username?: string; avatar_url?: string }
-                  | { username?: string; avatar_url?: string }[]
+                const contrib = c.contributors as
+                  | CommentContributorData
+                  | CommentContributorData[]
                   | undefined;
                 if (Array.isArray(contrib)) {
                   return contrib[0]?.username || 'Unknown';
@@ -1223,10 +1227,11 @@ function WorkspacePage() {
       return;
     }
 
-    // Seed from SSR data for instant first paint if available
-    if (ssrData?.workspace) {
-      const ws = ssrData.workspace;
-      setWorkspace(ws as unknown as Workspace);
+    // Seed from SSR data for instant first paint (consumed once via ref)
+    const cachedSSR = ssrDataRef.current;
+    if (!ssrConsumedRef.current && cachedSSR?.workspace) {
+      ssrConsumedRef.current = true;
+      const ws = cachedSSR.workspace;
       if (ws.repositories) {
         const ssrRepos: Repository[] = ws.repositories.map((r) => ({
           id: r.id,
@@ -1249,13 +1254,10 @@ function WorkspacePage() {
         setMetrics(calculateWorkspaceMetrics(ssrRepos));
         setTrendData({ labels: [], datasets: [] });
       }
-      // SSR data seeded — end initial loading immediately, then fetch fresh data
-      setLoading(false);
-      syncWithUrl(ws.slug || ws.id);
     }
 
     fetchWorkspace();
-  }, [fetchWorkspace, workspaceId, syncWithUrl, ssrData]);
+  }, [fetchWorkspace, workspaceId, syncWithUrl]);
 
   const handleTabChange = (value: string) => {
     if (value === 'overview') {
