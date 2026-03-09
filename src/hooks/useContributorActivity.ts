@@ -592,8 +592,9 @@ export function useContributorActivity({
         }
 
         // Sort all activities by date
+        // Optimization: Use native string comparison for ISO 8601 dates instead of Date allocation
         allActivities.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          (a, b) => (b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0)
         );
 
         // Properly paginate the combined results

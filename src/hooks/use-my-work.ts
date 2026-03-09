@@ -751,6 +751,7 @@ export function useMyWork(
           }) || [];
 
         // Combine and sort by updated_at
+        // Optimization: Use native string comparison for ISO 8601 dates instead of Date allocation
         const allItems = [
           ...reviewPrItems,
           ...issueItems,
@@ -760,7 +761,7 @@ export function useMyWork(
           ...followUpDiscussionItems,
           ...userCommentItems,
           ...userDiscussionCommentItems,
-        ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        ].sort((a, b) => (b.updated_at < a.updated_at ? -1 : b.updated_at > a.updated_at ? 1 : 0));
 
         // Processed items needing attention
 

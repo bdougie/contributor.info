@@ -130,7 +130,8 @@ export function useSpamFilteredFeed(
       }
 
       // If spam scores are equal (or both unanalyzed), sort by date descending (newest first)
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      // Optimization: Use native string comparison for ISO 8601 dates instead of Date allocation
+      return b.created_at < a.created_at ? -1 : b.created_at > a.created_at ? 1 : 0;
     });
 
     return filtered.slice(0, limit);
