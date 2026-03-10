@@ -195,7 +195,11 @@ export function generateActivityData(
     }
   });
 
-  activityData.sort((a, b) => a.date.localeCompare(b.date));
+  activityData.sort((a, b) => {
+    if (a.date < b.date) return -1;
+    if (a.date > b.date) return 1;
+    return 0;
+  });
 
   // Fill in gaps for continuous chart display (optional, only for recent dates)
   if (activityData.length > 0 && timeRange !== 'all') {
