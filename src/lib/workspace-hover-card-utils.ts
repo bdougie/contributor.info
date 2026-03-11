@@ -284,8 +284,13 @@ export function getRecentPRsForContributor(
     (pr) => pr.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  const sortedPRs = contributorPRs.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  // PERFORMANCE OPTIMIZATION: Use native string comparison (<, >) instead of localeCompare
+  // for ISO date strings to avoid locale context allocation overhead in sorting loops.
+  const sortedPRs = contributorPRs.sort((a, b) => {
+    if (a.updated_at < b.updated_at) return 1;
+    if (a.updated_at > b.updated_at) return -1;
+    return 0;
+  });
 
   return sortedPRs.slice(0, limit).map(transformPRToHoverCard);
 }
@@ -306,8 +311,13 @@ export function getRecentIssuesForContributor(
     (issue) => issue.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  const sortedIssues = contributorIssues.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  // PERFORMANCE OPTIMIZATION: Use native string comparison (<, >) instead of localeCompare
+  // for ISO date strings to avoid locale context allocation overhead in sorting loops.
+  const sortedIssues = contributorIssues.sort((a, b) => {
+    if (a.updated_at < b.updated_at) return 1;
+    if (a.updated_at > b.updated_at) return -1;
+    return 0;
+  });
 
   return sortedIssues.slice(0, limit).map((issue) => ({
     id: issue.id,
@@ -346,8 +356,13 @@ export function getRecentPRsForReviewer(
     return isRequestedReviewer || hasReviewed;
   });
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  const sortedPRs = reviewerPRs.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  // PERFORMANCE OPTIMIZATION: Use native string comparison (<, >) instead of localeCompare
+  // for ISO date strings to avoid locale context allocation overhead in sorting loops.
+  const sortedPRs = reviewerPRs.sort((a, b) => {
+    if (a.updated_at < b.updated_at) return 1;
+    if (a.updated_at > b.updated_at) return -1;
+    return 0;
+  });
 
   return sortedPRs.slice(0, limit).map(transformPRToHoverCard);
 }
@@ -368,10 +383,13 @@ export function getRecentActivitiesForContributor(
     (activity) => activity.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  const sortedActivities = contributorActivities.sort((a, b) =>
-    b.created_at.localeCompare(a.created_at)
-  );
+  // PERFORMANCE OPTIMIZATION: Use native string comparison (<, >) instead of localeCompare
+  // for ISO date strings to avoid locale context allocation overhead in sorting loops.
+  const sortedActivities = contributorActivities.sort((a, b) => {
+    if (a.created_at < b.created_at) return 1;
+    if (a.created_at > b.created_at) return -1;
+    return 0;
+  });
 
   return sortedActivities.slice(0, limit).map((activity) => ({
     id: activity.id,

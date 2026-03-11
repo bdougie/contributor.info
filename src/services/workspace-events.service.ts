@@ -524,12 +524,20 @@ class WorkspaceEventsService {
     );
 
     // Convert to timeline array
-    return Object.entries(dailyData)
-      .map(([date, data]) => ({
-        date,
-        ...data,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    return (
+      Object.entries(dailyData)
+        .map(([date, data]) => ({
+          date,
+          ...data,
+        }))
+        // PERFORMANCE OPTIMIZATION: Use native string comparison (<, >) instead of localeCompare
+        // for date strings to avoid locale context allocation overhead in sorting loops.
+        .sort((a, b) => {
+          if (a.date < b.date) return -1;
+          if (a.date > b.date) return 1;
+          return 0;
+        })
+    );
   }
 }
 
