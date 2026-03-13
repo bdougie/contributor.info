@@ -8,9 +8,17 @@ export function useTimeFormatter() {
    * @returns Formatted relative time string
    */
   const formatRelativeTime = (date: string | Date): string => {
-    const now = new Date();
-    const timestamp = typeof date === 'string' ? new Date(date) : date;
-    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
+    // ⚡ Bolt Performance Optimization:
+    // Using Date.now() and Date.parse() to get numeric timestamps avoids allocating new Date
+    // objects in memory. This is critical for performance when rendering large lists (like
+    // Activity Feeds or PR lists) where this function is called hundreds of times per render.
+    const nowTimestamp = Date.now();
+    const targetTimestamp = typeof date === 'string' ? Date.parse(date) : date.getTime();
+
+    // Fallback if Date.parse fails for some reason (returns NaN)
+    if (isNaN(targetTimestamp)) return 'Unknown';
+
+    const diffInSeconds = Math.floor((nowTimestamp - targetTimestamp) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
@@ -88,12 +96,23 @@ export function useTimeFormatter() {
    */
   const getTimeDifference = (
     startDate: string | Date,
+    // Note: Default value allocation is preserved here, but avoiding string allocations is preferred
     endDate: string | Date = new Date()
   ): string => {
-    const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+    // ⚡ Bolt Performance Optimization:
+    // Converting directly to timestamps using Date.parse() avoids O(N) object allocations
+    // when calculating differences across many list items.
+    const startTimestamp =
+      typeof startDate === 'string' ? Date.parse(startDate) : startDate.getTime();
+    const endTimestamp = typeof endDate === 'string' ? Date.parse(endDate) : endDate.getTime();
 
-    const diffInSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+    // Fallback if parsing fails
+    if (isNaN(startTimestamp) || isNaN(endTimestamp)) return 'Unknown duration';
+
+    const diffInSeconds = Math.floor((endTimestamp - startTimestamp) / 1000);
+
+    // Guard against negative durations
+    if (diffInSeconds < 0) return '0 seconds';
 
     if (diffInSeconds < 60) return `${diffInSeconds} seconds`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes`;
