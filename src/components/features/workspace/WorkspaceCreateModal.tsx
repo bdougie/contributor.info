@@ -166,7 +166,7 @@ export function WorkspaceCreateModal({
           );
         }
       } catch (err) {
-        console.error(`Error ${mode === 'create' ? 'creating' : 'updating'} workspace:`, err);
+        console.error('Error %s workspace:', mode === 'create' ? 'creating' : 'updating', err);
         setError('An unexpected error occurred. Please try again.');
       } finally {
         setLoading(false);

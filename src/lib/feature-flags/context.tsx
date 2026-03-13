@@ -106,7 +106,7 @@ export function FeatureFlagsProvider({
           const result = await featureFlagClient.evaluateFlag(flagName);
           return { flagName, result };
         } catch (err) {
-          console.error(`[FeatureFlags] Error evaluating flag ${flagName}:`, err);
+          console.error('[FeatureFlags] Error evaluating flag %s:', flagName, err);
           return {
             flagName,
             result: { enabled: false, value: false, reason: 'default' as const },

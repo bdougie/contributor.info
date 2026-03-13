@@ -460,7 +460,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
       maxMembers = 50; // Enterprise plan allows more members
       break;
     default:
-      console.warn(`Unknown subscription tier: ${limits.tier}. Using default member limit of 1.`);
+      console.warn('Unknown subscription tier: %s. Using default member limit of 1.', limits.tier);
       maxMembers = 1; // Safe default for unknown tiers
   }
   const canInviteMore = members.length < maxMembers;

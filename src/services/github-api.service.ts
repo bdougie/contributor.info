@@ -52,14 +52,14 @@ class GitHubAPIService {
       auth,
       throttle: {
         onRateLimit: (retryAfter: number, options: ThrottleOptions) => {
-          console.warn(`Rate limit detected, retrying after ${retryAfter} seconds`, {
+          console.warn('Rate limit detected, retrying after %s seconds', retryAfter, {
             method: options.method,
             url: options.url,
           });
           return true;
         },
         onSecondaryRateLimit: (retryAfter: number, options: ThrottleOptions) => {
-          console.warn(`Secondary rate limit detected, retrying after ${retryAfter} seconds`, {
+          console.warn('Secondary rate limit detected, retrying after %s seconds', retryAfter, {
             method: options.method,
             url: options.url,
           });

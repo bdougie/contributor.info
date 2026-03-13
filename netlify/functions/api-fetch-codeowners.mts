@@ -81,7 +81,7 @@ async function fetchCodeOwnersFromGitHub(
         }
       }
     } catch (error) {
-      console.error(`Error fetching CODEOWNERS from ${path}:`, error);
+      console.error('Error fetching CODEOWNERS from %s:', path, error);
     }
   }
 

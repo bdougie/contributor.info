@@ -418,7 +418,7 @@ export function useMyWork(
           console.error('Error fetching user comments:', userCommentsError);
         }
 
-        console.log(`Found ${rawUserComments?.length || 0} total user comments`);
+        console.log('Found %s total user comments', rawUserComments?.length || 0);
         console.log('Workspace repo IDs to filter:', workspaceRepoIds);
 
         // Query 8: User's recent discussion comments
@@ -452,7 +452,8 @@ export function useMyWork(
         }
 
         console.log(
-          `Found ${rawUserDiscussionComments?.length || 0} total user discussion comments`
+          'Found %s total user discussion comments',
+          rawUserDiscussionComments?.length || 0
         );
 
         // Type assertions for Supabase join responses
@@ -685,7 +686,7 @@ export function useMyWork(
           return workspaceRepoIds.includes(comment.pull_requests.repository_id);
         });
 
-        console.log(`After workspace filter: ${filteredUserComments?.length || 0} user comments`);
+        console.log('After workspace filter: %s user comments', filteredUserComments?.length || 0);
         if (filteredUserComments && filteredUserComments.length > 0) {
           console.log('Sample filtered comment:', {
             repo: filteredUserComments[0].pull_requests.repositories.full_name,
@@ -726,7 +727,8 @@ export function useMyWork(
         });
 
         console.log(
-          `After workspace filter: ${filteredDiscussionComments?.length || 0} discussion comments`
+          'After workspace filter: %s discussion comments',
+          filteredDiscussionComments?.length || 0
         );
 
         const userDiscussionCommentItems: MyWorkItem[] =

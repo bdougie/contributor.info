@@ -342,10 +342,10 @@ export default async (req, context) => {
 
     // Show error state if database query fails
     if (!stats) {
-      console.log(`No data available for ${owner}/${repo} - showing error state`);
+      console.log('No data available for %s/%s - showing error state', owner, repo);
       stats = generateErrorStats(repo);
     } else {
-      console.log(`Using real data for ${owner}/${repo}`);
+      console.log('Using real data for %s/%s', owner, repo);
     }
 
     // Generate SVG
@@ -357,7 +357,7 @@ export default async (req, context) => {
     });
 
     const endTime = Date.now();
-    console.log(`Stat card generated in ${endTime - startTime}ms for ${owner}/${repo}`);
+    console.log('Stat card generated in %sms for %s/%s', endTime - startTime, owner, repo);
 
     return new Response(svg, {
       status: 200,

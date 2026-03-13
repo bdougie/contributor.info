@@ -229,7 +229,7 @@ export function validateEnvironment(context) {
     if (!serverEnv.INNGEST_SIGNING_KEY) missing.push('INNGEST_SIGNING_KEY');
   }
   if (missing.length > 0) {
-    console.error(`❌ Missing required ${context} environment variables:`, missing);
+    console.error('❌ Missing required %s environment variables:', context, missing);
     return false;
   }
   return true;
