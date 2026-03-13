@@ -37,6 +37,11 @@ interface ConnectionMetrics {
   timestamp: Date;
 }
 
+function getRowCount(data: unknown): number {
+  if (Array.isArray(data)) return data.length;
+  return data ? 1 : 0;
+}
+
 class SupabaseMonitoring {
   private client: SupabaseClient;
   private queryMetrics: QueryMetrics[] = [];
@@ -149,7 +154,7 @@ class SupabaseMonitoring {
   }
 
   // Enhanced RPC with monitoring
-  async rpc(functionName: string, params?: any) {
+  async rpc(functionName: string, params?: Record<string, unknown>) {
     const startTime = performance.now();
 
     try {
@@ -162,7 +167,7 @@ class SupabaseMonitoring {
         duration,
         success: !result.error,
         errorMessage: result.error?.message,
-        rowCount: Array.isArray(result.data) ? result.data.length : result.data ? 1 : 0,
+        rowCount: getRowCount(result.data),
       });
 
       return result;

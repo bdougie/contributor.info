@@ -199,7 +199,7 @@ export function calculateFAQPriority(
 
 // Export for browser console access during development
 if (typeof window !== 'undefined') {
-  (window as any).faqSitemapGenerator = {
+  (window as unknown as Record<string, unknown>).faqSitemapGenerator = {
     generateFAQSitemapEntries,
     generateFAQSitemapXML,
     generateFAQStructuredData,

@@ -1,6 +1,6 @@
+import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { RepoView } from '../features/repository';
 import { MetaTagsProvider } from '../common/layout';
@@ -93,16 +93,18 @@ vi.mock('@/components/ui/github-search-input', () => ({
   ),
 }));
 
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual('react-router');
-  return {
-    ...actual,
-    useParams: vi.fn(() => ({ owner: 'testowner', repo: 'testrepo' })),
-    useNavigate: vi.fn(() => mockNavigate),
-    useLocation: vi.fn(() => ({ pathname: '/testowner/testrepo' })),
-    Outlet: () => <div data-testid="outlet-mock" />,
-  };
-});
+vi.mock('react-router', () => ({
+  useParams: vi.fn(() => ({ owner: 'testowner', repo: 'testrepo' })),
+  useNavigate: vi.fn(() => mockNavigate),
+  useLocation: vi.fn(() => ({ pathname: '/testowner/testrepo' })),
+  Outlet: () => <div data-testid="outlet-mock" />,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+  NavLink: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+}));
 
 // Mock the time range store
 vi.mock('@/lib/time-range-store', () => ({
@@ -126,9 +128,7 @@ describe('Login behavior for repository search', () => {
     });
   });
 
-  it('allows searching for a repo the first time while unauthenticated', async () => {
-    const user = userEvent.setup();
-
+  it('allows searching for a repo the first time while unauthenticated', () => {
     render(
       <MetaTagsProvider>
         <TestRouter>
@@ -146,17 +146,14 @@ describe('Login behavior for repository search', () => {
     const searchButton = screen.getByRole('button', { name: /search/i });
 
     // Enter a repo name and click search
-    await user.clear(searchInput);
-    await user.type(searchInput, 'facebook/react');
-    await user.click(searchButton);
+    fireEvent.change(searchInput, { target: { value: 'facebook/react' } });
+    fireEvent.click(searchButton);
 
     // Check that direct navigation to repo happens for the first search
     expect(mockNavigate).toHaveBeenCalledWith('/facebook/react');
   });
 
-  it('requires login for the second search when unauthenticated', async () => {
-    const user = userEvent.setup();
-
+  it('requires login for the second search when unauthenticated', () => {
     render(
       <MetaTagsProvider>
         <TestRouter>
@@ -170,26 +167,22 @@ describe('Login behavior for repository search', () => {
     const searchButton = screen.getByRole('button', { name: /search/i });
 
     // First search - should work without login
-    await user.clear(searchInput);
-    await user.type(searchInput, 'facebook/react');
-    await user.click(searchButton);
+    fireEvent.change(searchInput, { target: { value: 'facebook/react' } });
+    fireEvent.click(searchButton);
 
     expect(mockNavigate).toHaveBeenCalledWith('/facebook/react');
     mockNavigate.mockClear();
 
     // Second search - should redirect to login
-    await user.clear(searchInput);
-    await user.type(searchInput, 'vuejs/vue');
-    await user.click(searchButton);
+    fireEvent.change(searchInput, { target: { value: 'vuejs/vue' } });
+    fireEvent.click(searchButton);
 
     // Check that it navigates to login instead of the repo
     expect(mockNavigate).toHaveBeenCalledWith('/login');
     expect(localStorage.getItem('redirectAfterLogin')).toBe('/vuejs/vue');
   });
 
-  it('clicking an example repo navigates on first click, requires login on second', async () => {
-    const user = userEvent.setup();
-
+  it('clicking an example repo navigates on first click, requires login on second', () => {
     render(
       <MetaTagsProvider>
         <TestRouter>
@@ -199,7 +192,7 @@ describe('Login behavior for repository search', () => {
     );
 
     // Find example repo buttons
-    const exampleButtons = await screen.findAllByRole('button');
+    const exampleButtons = screen.getAllByRole('button');
     const firstExampleButton = exampleButtons.find((button) =>
       button.textContent?.includes('kubernetes/kubernetes')
     );
@@ -209,7 +202,7 @@ describe('Login behavior for repository search', () => {
 
     // First click - should navigate directly
     if (firstExampleButton) {
-      await user.click(firstExampleButton);
+      fireEvent.click(firstExampleButton);
       expect(mockNavigate).toHaveBeenCalledWith('/kubernetes/kubernetes');
     }
 
@@ -217,13 +210,13 @@ describe('Login behavior for repository search', () => {
 
     // Second click - should redirect to login
     if (secondExampleButton) {
-      await user.click(secondExampleButton);
+      fireEvent.click(secondExampleButton);
       expect(mockNavigate).toHaveBeenCalledWith('/login');
       expect(localStorage.getItem('redirectAfterLogin')).toBe('/facebook/react');
     }
   });
 
-  it('allows viewing repo details when logged in', async () => {
+  it('allows viewing repo details when logged in', () => {
     // Update auth mock to reflect logged in state
     vi.mocked(useGitHubAuth).mockReturnValue({
       isLoggedIn: true,

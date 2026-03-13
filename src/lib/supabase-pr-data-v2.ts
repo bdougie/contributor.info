@@ -13,6 +13,58 @@ import { getFetchStrategy, calculateFetchWindow, shouldUseCachedData } from './f
 import { RepositorySize } from './validation/database-schemas';
 import { sendInngestEvent } from './inngest/client-safe';
 import { trackFetchStart, trackFetchEnd } from './telemetry/fetch-performance';
+import type { PostgrestError } from '@supabase/supabase-js';
+
+interface DatabaseContributor {
+  github_id: number;
+  username: string;
+  avatar_url: string;
+  is_bot: boolean;
+}
+
+interface DatabaseReview {
+  id: string;
+  github_id: number;
+  state: string;
+  body: string;
+  submitted_at: string;
+  contributors: DatabaseContributor | null;
+}
+
+interface DatabaseComment {
+  id: string;
+  github_id: number;
+  body: string;
+  created_at: string;
+  comment_type: string;
+  contributors: DatabaseContributor | null;
+}
+
+interface DatabasePR {
+  id?: string;
+  github_id: number;
+  number: number;
+  title: string;
+  body: string;
+  state: 'open' | 'closed';
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  merged_at: string | null;
+  merged: boolean;
+  base_branch: string;
+  head_branch: string;
+  additions: number | null;
+  deletions: number | null;
+  changed_files: number | null;
+  commits: number | null;
+  html_url: string | null;
+  repository_id?: string;
+  author_id?: string;
+  contributors: DatabaseContributor | null;
+  reviews?: DatabaseReview[];
+  comments?: DatabaseComment[];
+}
 
 interface TrackedRepositoryInfo {
   id: string;
@@ -46,7 +98,7 @@ export async function fetchPRDataWithSmartStrategy(
           .select('id, repository_id, size, priority, size_calculated_at')
           .eq('organization_name', owner)
           .eq('repository_name', repo)
-          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: any };
+          .maybeSingle()) as { data: TrackedRepositoryInfo | null; error: PostgrestError | null };
 
         // Get repository ID (fallback to repositories table if not tracked)
         let repositoryId: string | null = null;
@@ -151,7 +203,11 @@ export async function fetchPRDataWithSmartStrategy(
             .limit(strategy.maxPRsCache);
 
           if (!dbError && dbPRs && dbPRs.length > 0) {
-            const transformedPRs = transformDatabasePRs(dbPRs, owner, repo);
+            const transformedPRs = transformDatabasePRs(
+              dbPRs as unknown as DatabasePR[],
+              owner,
+              repo
+            );
 
             // Check cache freshness
             const latestPR = transformedPRs[0];
@@ -336,7 +392,11 @@ export async function fetchPRDataWithSmartStrategy(
                 .limit(100);
 
               if (emergencyData && emergencyData.length > 0) {
-                const emergencyPRs = transformDatabasePRs(emergencyData, owner, repo);
+                const emergencyPRs = transformDatabasePRs(
+                  emergencyData as unknown as DatabasePR[],
+                  owner,
+                  repo
+                );
                 trackFetchEnd(
                   fetchId,
                   repoName,
@@ -390,8 +450,8 @@ export async function fetchPRDataWithSmartStrategy(
 /**
  * Transform database PR records to PullRequest format
  */
-function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRequest[] {
-  return dbPRs.map((dbPR: any) => ({
+function transformDatabasePRs(dbPRs: DatabasePR[], owner: string, repo: string): PullRequest[] {
+  return dbPRs.map((dbPR: DatabasePR) => ({
     id: dbPR.github_id,
     number: dbPR.number,
     title: dbPR.title,
@@ -406,7 +466,7 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
       login: dbPR.contributors?.username || 'unknown',
       id: dbPR.contributors?.github_id || 0,
       avatar_url: dbPR.contributors?.avatar_url || '',
-      type: getUserType(dbPR.contributors),
+      type: getUserType(dbPR.contributors ?? undefined),
     },
     base: {
       ref: dbPR.base_branch,
@@ -417,11 +477,10 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
     additions: dbPR.additions || 0,
     deletions: dbPR.deletions || 0,
     changed_files: dbPR.changed_files || 0,
-    commits: dbPR.commits || 0,
     html_url: dbPR.html_url || `https://github.com/${owner}/${repo}/pull/${dbPR.number}`,
     repository_owner: owner,
     repository_name: repo,
-    reviews: (dbPR.reviews || []).map((review: any) => ({
+    reviews: (dbPR.reviews || []).map((review: DatabaseReview) => ({
       id: review.github_id,
       state: review.state,
       body: review.body,
@@ -431,7 +490,7 @@ function transformDatabasePRs(dbPRs: any[], owner: string, repo: string): PullRe
         avatar_url: review.contributors?.avatar_url || '',
       },
     })),
-    comments: (dbPR.comments || []).map((comment: any) => ({
+    comments: (dbPR.comments || []).map((comment: DatabaseComment) => ({
       id: comment.github_id,
       body: comment.body,
       created_at: comment.created_at,

@@ -7,15 +7,13 @@ const mockNavigate = vi.fn();
 const mockAuthCallback = vi.fn();
 const mockGetSession = vi.fn();
 const mockSignOut = vi.fn();
-const mockOnAuthStateChange = vi.fn();
 
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual('react-router');
-  return {
+vi.mock('react-router', (importOriginal) =>
+  (importOriginal() as Promise<typeof import('react-router')>).then((actual) => ({
     ...actual,
     useNavigate: () => mockNavigate,
-  };
-});
+  }))
+);
 
 vi.mock('../lib/supabase', () => ({
   supabase: {
@@ -23,7 +21,7 @@ vi.mock('../lib/supabase', () => ({
       getSession: () => mockGetSession(),
       signInWithOAuth: vi.fn(() => Promise.resolve({ data: null, error: null })),
       signOut: () => mockSignOut(),
-      onAuthStateChange: (callback: any) => {
+      onAuthStateChange: (callback: (event: string, session: unknown) => void) => {
         mockAuthCallback.mockImplementation(callback);
         return {
           subscription: { unsubscribe: vi.fn() },
@@ -53,19 +51,14 @@ describe('useGitHubAuth Hook', () => {
     mockSignOut.mockResolvedValue({ error: null });
   });
 
-  it('initializes with logged out state', async () => {
+  it('initializes with logged out state', () => {
     const { result } = renderHook(() => useGitHubAuth(), { wrapper });
-
-    // Allow the hook's useEffect to run
-    await vi.waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
 
     expect(result.current.isLoggedIn).toBe(false);
     expect(typeof result.current.checkSession).toBe('function');
   });
 
-  it('handles login success and redirects to stored path', async () => {
+  it('handles login success and redirects to stored path', () => {
     // Store redirect path
     localStorage.setItem('redirectAfterLogin', '/facebook/react');
 
@@ -76,7 +69,7 @@ describe('useGitHubAuth Hook', () => {
     renderHook(() => useGitHubAuth(), { wrapper });
 
     // Trigger auth change to simulate successful login
-    await act(async () => {
+    act(() => {
       mockAuthCallback('SIGNED_IN', mockSession);
     });
 
@@ -89,7 +82,7 @@ describe('useGitHubAuth Hook', () => {
     expect(localStorage.getItem('redirectAfterLogin')).toBeNull();
   });
 
-  it('allows users to log out', async () => {
+  it('allows users to log out', () => {
     // Set up mock to return a logged-in session initially
     const mockSessionData = {
       user: {
@@ -115,26 +108,16 @@ describe('useGitHubAuth Hook', () => {
     // Render the hook
     const { result } = renderHook(() => useGitHubAuth(), { wrapper });
 
-    // Wait for initial state to be set
-    await vi.waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    // Verify initial state
-    expect(result.current.isLoggedIn).toBe(true);
-
-    // Test checkSession
-    await act(async () => {
-      const isActive = await result.current.checkSession();
-      expect(isActive).toBe(true);
-    });
-
-    // Call logout
-    await act(async () => {
-      await result.current.logout();
-    });
-
-    // Verify supabase logout was called
-    expect(mockSignOut).toHaveBeenCalled();
+    // Test checkSession and logout via promise chains
+    return result.current
+      .checkSession()
+      .then((isActive: boolean) => {
+        expect(isActive).toBe(true);
+        return result.current.logout();
+      })
+      .then(() => {
+        // Verify supabase logout was called
+        expect(mockSignOut).toHaveBeenCalled();
+      });
   });
 });

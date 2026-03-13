@@ -153,10 +153,10 @@ export class SyncMonitoring {
         acc[metric.repository].totalTime += metric.execution_time;
         return acc;
       },
-      {} as Record<string, any>
+      {} as Record<string, { repository: string; timeouts: number; totalTime: number }>
     );
 
-    return Object.values(grouped).map((g: any) => ({
+    return Object.values(grouped).map((g) => ({
       repository: g.repository,
       timeouts: g.timeouts,
       avgExecutionTime: g.totalTime / g.timeouts,

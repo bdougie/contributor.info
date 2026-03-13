@@ -35,7 +35,7 @@ export interface UseCachedGitHubApiOptions extends ApiCallOptions {
  */
 export function useCachedGitHubApi<T>(
   endpoint: string,
-  params: Record<string, unknown> = {},
+  params: Record<string, string | number | boolean> = {},
   options: UseCachedGitHubApiOptions = {}
 ): CachedApiState<T> {
   const [session, setSession] = useState<Session | null>(null);
@@ -193,7 +193,7 @@ export function useCachedUser(username: string, options: UseCachedGitHubApiOptio
 export function useCachedPullRequests(
   owner: string,
   repo: string,
-  queryParams: Record<string, unknown> = {},
+  queryParams: Record<string, string | number | boolean> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(`/repos/${owner}/${repo}/pulls`, queryParams, {
@@ -208,7 +208,7 @@ export function useCachedPullRequests(
 export function useCachedRepositoryEvents(
   owner: string,
   repo: string,
-  queryParams: Record<string, unknown> = {},
+  queryParams: Record<string, string | number | boolean> = {},
   options: UseCachedGitHubApiOptions = {}
 ) {
   return useCachedGitHubApi(`/repos/${owner}/${repo}/events`, queryParams, {
@@ -234,7 +234,11 @@ interface CacheStatsData {
  * Hook for batch API requests
  */
 export function useCachedBatchRequests<T>(
-  requests: Array<{ endpoint: string; params?: Record<string, unknown>; options?: ApiCallOptions }>,
+  requests: Array<{
+    endpoint: string;
+    params?: Record<string, string | number | boolean>;
+    options?: ApiCallOptions;
+  }>,
   options: UseCachedGitHubApiOptions = {}
 ) {
   const [state, setState] = useState<{

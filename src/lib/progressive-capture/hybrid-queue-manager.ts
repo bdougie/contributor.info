@@ -131,11 +131,10 @@ export class HybridQueueManager {
       const routingDecision = await enhancedHybridRouter.routeJob({
         job_type: jobType,
         repository_id: data.repositoryId,
-        repository_name: data.repositoryName,
+        repositoryId: data.repositoryId,
         time_range: data.timeRange,
         max_items: data.maxItems,
-        priority: data.metadata?.priority || 'medium',
-        trigger_source: data.triggerSource,
+        priority: typeof data.metadata?.priority === 'string' ? data.metadata.priority : 'medium',
       });
 
       processor = routingDecision.processor;
@@ -800,7 +799,7 @@ export class HybridQueueManager {
     try {
       const { data, error } = await supabase
         .from('repositories')
-        .select('id, owner, name, pull_request_count')
+        .select('id, owner, name, pull_request_count, created_at, updated_at')
         .eq('id', repositoryId)
         .maybeSingle();
 

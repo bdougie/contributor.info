@@ -91,14 +91,14 @@ export function ProgressiveRepoView() {
               </div>
             ) : (
               <div className="flex -space-x-2">
-                {progressiveData.basicInfo?.topContributors.map((contributor: any, i: number) => (
-                  <Avatar key={contributor.id} className="h-8 w-8 border-2 border-background">
+                {progressiveData.basicInfo?.topContributors.map((contributor, i) => (
+                  <Avatar key={contributor.login} className="h-8 w-8 border-2 border-background">
                     <AvatarImage
                       src={`${contributor.avatar_url}?s=64`}
-                      alt={contributor.username}
+                      alt={contributor.login}
                       loading={i < 3 ? 'eager' : 'lazy'} // Eager load first 3
                     />
-                    <AvatarFallback>{contributor.username[0]}</AvatarFallback>
+                    <AvatarFallback>{contributor.login[0]}</AvatarFallback>
                   </Avatar>
                 ))}
               </div>
@@ -176,7 +176,7 @@ export function ProgressiveRepoView() {
 
       {/* Lazy loaded chart section */}
       <div ref={chartRef}>
-        {chartLoading ? (
+        {chartLoading && (
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-32" />
@@ -185,7 +185,8 @@ export function ProgressiveRepoView() {
               <Skeleton className="h-64 w-full" />
             </CardContent>
           </Card>
-        ) : chartData ? (
+        )}
+        {!chartLoading && chartData && (
           <Card>
             <CardHeader>
               <CardTitle>Activity Chart</CardTitle>
@@ -196,7 +197,7 @@ export function ProgressiveRepoView() {
               </div>
             </CardContent>
           </Card>
-        ) : null}
+        )}
       </div>
     </div>
   );

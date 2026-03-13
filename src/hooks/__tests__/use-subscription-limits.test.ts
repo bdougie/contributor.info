@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useSubscriptionLimits } from '../use-subscription-limits';
 import { SubscriptionService } from '@/services/polar/subscription.service';
@@ -11,6 +11,13 @@ vi.mock('@/lib/subscription-limits');
 
 // Import after mocking
 import { useCurrentUser } from '../use-current-user';
+
+// Flush pending async effects and React state updates.
+// Wraps act's Thenable in a standard Promise to support .then() chaining.
+const flushEffects = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    act(() => new Promise<void>((r) => setTimeout(r, 0))).then(() => resolve());
+  });
 
 describe('useSubscriptionLimits', () => {
   const mockUser = {
@@ -31,7 +38,7 @@ describe('useSubscriptionLimits', () => {
   });
 
   describe('Subscription Tier Loading', () => {
-    it('should load free tier limits when no subscription exists', async () => {
+    it('should load free tier limits when no subscription exists', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue(null);
       vi.mocked(subscriptionLimits.checkWorkspaceLimit).mockResolvedValue({
         allowed: true,
@@ -45,18 +52,17 @@ describe('useSubscriptionLimits', () => {
 
       expect(result.current.loading).toBe(true);
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('free');
+        expect(result.current.workspaceLimit).toBe(1); // Default is 1, not 0
+        expect(result.current.canUsePrivateWorkspaces).toBe(false);
+        expect(result.current.canExportData).toBe(false);
+        expect(result.current.dataRetentionDays).toBe(30); // Default is 30
       });
-
-      expect(result.current.tier).toBe('free');
-      expect(result.current.workspaceLimit).toBe(1); // Default is 1, not 0
-      expect(result.current.canUsePrivateWorkspaces).toBe(false);
-      expect(result.current.canExportData).toBe(false);
-      expect(result.current.dataRetentionDays).toBe(30); // Default is 30
     });
 
-    it('should load pro tier limits when pro subscription exists', async () => {
+    it('should load pro tier limits when pro subscription exists', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -70,25 +76,24 @@ describe('useSubscriptionLimits', () => {
         limit: 1,
         current: 0,
       });
-      vi.mocked(SubscriptionService.checkFeatureAccess).mockImplementation(async (_, feature) => {
-        return feature === 'privateWorkspaces' || feature === 'exportsEnabled';
+      vi.mocked(SubscriptionService.checkFeatureAccess).mockImplementation((_, feature) => {
+        return Promise.resolve(feature === 'privateWorkspaces' || feature === 'exportsEnabled');
       });
       vi.mocked(SubscriptionService.getFeatureLimit).mockResolvedValue(30);
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('pro');
+        expect(result.current.workspaceLimit).toBe(1);
+        expect(result.current.canUsePrivateWorkspaces).toBe(true);
+        expect(result.current.canExportData).toBe(true);
+        expect(result.current.dataRetentionDays).toBe(30);
       });
-
-      expect(result.current.tier).toBe('pro');
-      expect(result.current.workspaceLimit).toBe(1);
-      expect(result.current.canUsePrivateWorkspaces).toBe(true);
-      expect(result.current.canExportData).toBe(true);
-      expect(result.current.dataRetentionDays).toBe(30);
     });
 
-    it('should load team tier limits when team subscription exists', async () => {
+    it('should load team tier limits when team subscription exists', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-456',
         user_id: 'test-user-123',
@@ -102,28 +107,27 @@ describe('useSubscriptionLimits', () => {
         limit: 3,
         current: 1,
       });
-      vi.mocked(SubscriptionService.checkFeatureAccess).mockImplementation(async (_, feature) => {
-        return feature === 'privateWorkspaces' || feature === 'exportsEnabled';
+      vi.mocked(SubscriptionService.checkFeatureAccess).mockImplementation((_, feature) => {
+        return Promise.resolve(feature === 'privateWorkspaces' || feature === 'exportsEnabled');
       });
       vi.mocked(SubscriptionService.getFeatureLimit).mockResolvedValue(30);
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('team');
+        expect(result.current.workspaceLimit).toBe(3);
+        expect(result.current.currentWorkspaceCount).toBe(1);
+        expect(result.current.canUsePrivateWorkspaces).toBe(true);
+        expect(result.current.canExportData).toBe(true);
+        expect(result.current.dataRetentionDays).toBe(30);
       });
-
-      expect(result.current.tier).toBe('team');
-      expect(result.current.workspaceLimit).toBe(3);
-      expect(result.current.currentWorkspaceCount).toBe(1);
-      expect(result.current.canUsePrivateWorkspaces).toBe(true);
-      expect(result.current.canExportData).toBe(true);
-      expect(result.current.dataRetentionDays).toBe(30);
     });
   });
 
   describe('Workspace Limit Checking', () => {
-    it('should check if user can create workspace', async () => {
+    it('should check if user can create workspace', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -141,16 +145,15 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.canCreateWorkspace).toBe(false);
+        expect(result.current.workspaceLimit).toBe(1);
+        expect(result.current.currentWorkspaceCount).toBe(1);
       });
-
-      expect(result.current.canCreateWorkspace).toBe(false);
-      expect(result.current.workspaceLimit).toBe(1);
-      expect(result.current.currentWorkspaceCount).toBe(1);
     });
 
-    it('should allow unlimited workspaces for certain tiers', async () => {
+    it('should allow unlimited workspaces for certain tiers', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-enterprise',
         user_id: 'test-user-123',
@@ -167,18 +170,17 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.canCreateWorkspace).toBe(true);
+        expect(result.current.workspaceLimit).toBe('unlimited');
+        expect(result.current.currentWorkspaceCount).toBe(50);
       });
-
-      expect(result.current.canCreateWorkspace).toBe(true);
-      expect(result.current.workspaceLimit).toBe('unlimited');
-      expect(result.current.currentWorkspaceCount).toBe(50);
     });
   });
 
   describe('Repository Limit Checking', () => {
-    it('should check if user can add repository to workspace', async () => {
+    it('should check if user can add repository to workspace', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -200,19 +202,18 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const canAdd = await result.current.canAddRepository('workspace-123');
-      expect(canAdd).toBe(true);
-      expect(subscriptionLimits.checkRepositoryLimit).toHaveBeenCalledWith(
-        'test-user-123',
-        'workspace-123'
-      );
+      return flushEffects()
+        .then(() => result.current.canAddRepository('workspace-123'))
+        .then((canAdd) => {
+          expect(canAdd).toBe(true);
+          expect(subscriptionLimits.checkRepositoryLimit).toHaveBeenCalledWith(
+            'test-user-123',
+            'workspace-123'
+          );
+        });
     });
 
-    it('should prevent adding repository when limit reached', async () => {
+    it('should prevent adding repository when limit reached', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -230,17 +231,16 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const canAdd = await result.current.canAddRepository('workspace-123');
-      expect(canAdd).toBe(false);
+      return flushEffects()
+        .then(() => result.current.canAddRepository('workspace-123'))
+        .then((canAdd) => {
+          expect(canAdd).toBe(false);
+        });
     });
   });
 
   describe('Member Limit Checking', () => {
-    it('should check if user can add member to workspace', async () => {
+    it('should check if user can add member to workspace', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-team',
         user_id: 'test-user-123',
@@ -257,19 +257,18 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const canAdd = await result.current.canAddMember('workspace-456');
-      expect(canAdd).toBe(true);
-      expect(subscriptionLimits.checkMemberLimit).toHaveBeenCalledWith(
-        'test-user-123',
-        'workspace-456'
-      );
+      return flushEffects()
+        .then(() => result.current.canAddMember('workspace-456'))
+        .then((canAdd) => {
+          expect(canAdd).toBe(true);
+          expect(subscriptionLimits.checkMemberLimit).toHaveBeenCalledWith(
+            'test-user-123',
+            'workspace-456'
+          );
+        });
     });
 
-    it('should prevent adding member when limit reached', async () => {
+    it('should prevent adding member when limit reached', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-team',
         user_id: 'test-user-123',
@@ -287,15 +286,14 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const canAdd = await result.current.canAddMember('workspace-456');
-      expect(canAdd).toBe(false);
+      return flushEffects()
+        .then(() => result.current.canAddMember('workspace-456'))
+        .then((canAdd) => {
+          expect(canAdd).toBe(false);
+        });
     });
 
-    it('should return false for pro tier (solo plan)', async () => {
+    it('should return false for pro tier (solo plan)', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-pro',
         user_id: 'test-user-123',
@@ -313,17 +311,16 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      const canAdd = await result.current.canAddMember('workspace-789');
-      expect(canAdd).toBe(false);
+      return flushEffects()
+        .then(() => result.current.canAddMember('workspace-789'))
+        .then((canAdd) => {
+          expect(canAdd).toBe(false);
+        });
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle errors gracefully when loading subscription', async () => {
+    it('should handle errors gracefully when loading subscription', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(SubscriptionService.getCurrentSubscription).mockRejectedValue(
         new Error('Network error')
@@ -331,21 +328,20 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Error loading subscription limits:',
+          expect.any(Error)
+        );
+        expect(result.current.tier).toBe('free');
+        expect(result.current.workspaceLimit).toBe(1);
+
+        consoleErrorSpy.mockRestore();
       });
-
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error loading subscription limits:',
-        expect.any(Error)
-      );
-      expect(result.current.tier).toBe('free');
-      expect(result.current.workspaceLimit).toBe(1);
-
-      consoleErrorSpy.mockRestore();
     });
 
-    it('should return false when user is not authenticated', async () => {
+    it('should return false when user is not authenticated', () => {
       vi.mocked(useCurrentUser).mockReturnValue({
         user: null,
         loading: false,
@@ -355,16 +351,18 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      const canAddRepo = await result.current.canAddRepository('workspace-123');
-      const canAddMember = await result.current.canAddMember('workspace-123');
-
-      expect(canAddRepo).toBe(false);
-      expect(canAddMember).toBe(false);
+      return Promise.all([
+        result.current.canAddRepository('workspace-123'),
+        result.current.canAddMember('workspace-123'),
+      ]).then(([canAddRepo, canAddMember]) => {
+        expect(canAddRepo).toBe(false);
+        expect(canAddMember).toBe(false);
+      });
     });
   });
 
   describe('Loading States', () => {
-    it('should show loading state while fetching subscription data', async () => {
+    it('should show loading state while fetching subscription data', () => {
       let resolvePromise: (value: unknown) => void;
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
@@ -392,14 +390,13 @@ describe('useSubscriptionLimits', () => {
         updated_at: '2024-01-01',
       });
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('pro');
       });
-
-      expect(result.current.tier).toBe('pro');
     });
 
-    it('should not load when user is not authenticated', async () => {
+    it('should not load when user is not authenticated', () => {
       vi.mocked(useCurrentUser).mockReturnValue({
         user: null,
         loading: false,
@@ -410,16 +407,15 @@ describe('useSubscriptionLimits', () => {
       const { result } = renderHook(() => useSubscriptionLimits());
 
       // The hook should immediately set loading to false when there's no user
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(SubscriptionService.getCurrentSubscription).not.toHaveBeenCalled();
       });
-
-      expect(SubscriptionService.getCurrentSubscription).not.toHaveBeenCalled();
     });
   });
 
   describe('Feature Access', () => {
-    it('should correctly determine feature access for free tier', async () => {
+    it('should correctly determine feature access for free tier', () => {
       // Test free tier
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue(null);
       vi.mocked(SubscriptionService.checkFeatureAccess).mockResolvedValue(false);
@@ -432,17 +428,16 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('free');
+        expect(result.current.canUsePrivateWorkspaces).toBe(false);
+        expect(result.current.canExportData).toBe(false);
+        expect(result.current.dataRetentionDays).toBe(30);
       });
-
-      expect(result.current.tier).toBe('free');
-      expect(result.current.canUsePrivateWorkspaces).toBe(false);
-      expect(result.current.canExportData).toBe(false);
-      expect(result.current.dataRetentionDays).toBe(30);
     });
 
-    it('should correctly determine feature access for team tier', async () => {
+    it('should correctly determine feature access for team tier', () => {
       // Test team tier
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-team',
@@ -462,19 +457,18 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('team');
+        expect(result.current.canUsePrivateWorkspaces).toBe(true);
+        expect(result.current.canExportData).toBe(true);
+        expect(result.current.dataRetentionDays).toBe(30);
       });
-
-      expect(result.current.tier).toBe('team');
-      expect(result.current.canUsePrivateWorkspaces).toBe(true);
-      expect(result.current.canExportData).toBe(true);
-      expect(result.current.dataRetentionDays).toBe(30);
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle subscription status transitions', async () => {
+    it('should handle subscription status transitions', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -491,14 +485,13 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
+      return flushEffects().then(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.tier).toBe('pro');
       });
-
-      expect(result.current.tier).toBe('pro');
     });
 
-    it('should handle concurrent async operations', async () => {
+    it('should handle concurrent async operations', () => {
       vi.mocked(SubscriptionService.getCurrentSubscription).mockResolvedValue({
         id: 'sub-123',
         user_id: 'test-user-123',
@@ -525,22 +518,21 @@ describe('useSubscriptionLimits', () => {
 
       const { result } = renderHook(() => useSubscriptionLimits());
 
-      await waitFor(() => {
-        expect(result.current.loading).toBe(false);
-      });
-
-      // Call multiple async functions concurrently
-      const [canAddRepo1, canAddRepo2, canAddMember] = await Promise.all([
-        result.current.canAddRepository('workspace-1'),
-        result.current.canAddRepository('workspace-2'),
-        result.current.canAddMember('workspace-1'),
-      ]);
-
-      expect(canAddRepo1).toBe(true);
-      expect(canAddRepo2).toBe(true);
-      expect(canAddMember).toBe(true);
-      expect(subscriptionLimits.checkRepositoryLimit).toHaveBeenCalledTimes(2);
-      expect(subscriptionLimits.checkMemberLimit).toHaveBeenCalledTimes(1);
+      return flushEffects()
+        .then(() =>
+          Promise.all([
+            result.current.canAddRepository('workspace-1'),
+            result.current.canAddRepository('workspace-2'),
+            result.current.canAddMember('workspace-1'),
+          ])
+        )
+        .then(([canAddRepo1, canAddRepo2, canAddMember]) => {
+          expect(canAddRepo1).toBe(true);
+          expect(canAddRepo2).toBe(true);
+          expect(canAddMember).toBe(true);
+          expect(subscriptionLimits.checkRepositoryLimit).toHaveBeenCalledTimes(2);
+          expect(subscriptionLimits.checkMemberLimit).toHaveBeenCalledTimes(1);
+        });
     });
   });
 });

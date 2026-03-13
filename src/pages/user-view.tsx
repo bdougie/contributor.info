@@ -324,7 +324,7 @@ export default function UserView() {
           </CardTitle>
         </CardHeader>
         <CardContent className="user-repos-table">
-          {isLoading ? (
+          {isLoading && (
             <div className="space-y-4">
               <Table>
                 <TableHeader>
@@ -368,7 +368,8 @@ export default function UserView() {
                 </TableBody>
               </Table>
             </div>
-          ) : repositories.length > 0 ? (
+          )}
+          {!isLoading && repositories.length > 0 && (
             <>
               <Table>
                 <TableHeader>
@@ -404,7 +405,8 @@ export default function UserView() {
                 </div>
               )}
             </>
-          ) : (
+          )}
+          {!isLoading && repositories.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
                 No collaborative repositories found for this user.

@@ -5,6 +5,7 @@ import {
   getBadgeColorClasses,
   calculateActivityStats,
   type ContributorActivity,
+  type EmptyStateType,
 } from '../contributor-empty-state-config';
 
 describe('getEmptyStateContent', () => {
@@ -56,7 +57,7 @@ describe('getEmptyStateContent', () => {
   });
 
   it('handles unknown type with default content', () => {
-    const content = getEmptyStateContent('unknown' as any);
+    const content = getEmptyStateContent('unknown' as EmptyStateType);
 
     expect(content.title).toBe('No Data Available');
     expect(content.severity).toBe('info');

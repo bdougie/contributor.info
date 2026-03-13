@@ -25,6 +25,10 @@ class LLMErrorHandler {
   private config: ErrorHandlingConfig;
   private errorLog: LLMError[] = [];
 
+  get maxRetries(): number {
+    return this.config.maxRetries;
+  }
+
   constructor(config: Partial<ErrorHandlingConfig> = {}) {
     this.config = {
       enableRetry: true,
@@ -248,7 +252,7 @@ export const withErrorHandling = <T extends unknown[], R>(
   return async (...args: T): Promise<R | null> => {
     let attemptCount = 0;
 
-    while (attemptCount <= (llmErrorHandler as any).config.maxRetries) {
+    while (attemptCount <= llmErrorHandler.maxRetries) {
       try {
         return await fn(...args);
       } catch (error) {

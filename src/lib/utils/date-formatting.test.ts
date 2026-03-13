@@ -43,19 +43,19 @@ describe('Date Formatting Utilities', () => {
     });
 
     it('should throw error for invalid dates', () => {
-      expect(() => toDateOnlyString(null as any)).toThrow(
+      expect(() => toDateOnlyString(null as unknown as Date)).toThrow(
         'Invalid date provided to toDateOnlyString'
       );
-      expect(() => toDateOnlyString(undefined as any)).toThrow(
+      expect(() => toDateOnlyString(undefined as unknown as Date)).toThrow(
         'Invalid date provided to toDateOnlyString'
       );
-      expect(() => toDateOnlyString('invalid' as any)).toThrow(
+      expect(() => toDateOnlyString('invalid' as unknown as Date)).toThrow(
         'Invalid date provided to toDateOnlyString'
       );
       expect(() => toDateOnlyString(new Date('invalid'))).toThrow(
         'Invalid date provided to toDateOnlyString'
       );
-      expect(() => toDateOnlyString({} as any)).toThrow(
+      expect(() => toDateOnlyString({} as unknown as Date)).toThrow(
         'Invalid date provided to toDateOnlyString'
       );
     });
@@ -80,7 +80,9 @@ describe('Date Formatting Utilities', () => {
     });
 
     it('should throw error for invalid dates', () => {
-      expect(() => toUTCTimestamp(null as any)).toThrow('Invalid date provided to toUTCTimestamp');
+      expect(() => toUTCTimestamp(null as unknown as Date)).toThrow(
+        'Invalid date provided to toUTCTimestamp'
+      );
       expect(() => toUTCTimestamp(new Date('invalid'))).toThrow(
         'Invalid date provided to toUTCTimestamp'
       );
@@ -194,9 +196,11 @@ describe('Date Formatting Utilities', () => {
 
     it('should throw error for invalid days parameter', () => {
       expect(() => getDateDaysAgo(-1)).toThrow('Invalid days parameter');
-      expect(() => getDateDaysAgo(null as any)).toThrow('Invalid days parameter');
-      expect(() => getDateDaysAgo(undefined as any)).toThrow('Invalid days parameter');
-      expect(() => getDateDaysAgo('10' as any)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(null as unknown as number)).toThrow('Invalid days parameter');
+      expect(() => getDateDaysAgo(undefined as unknown as number)).toThrow(
+        'Invalid days parameter'
+      );
+      expect(() => getDateDaysAgo('10' as unknown as number)).toThrow('Invalid days parameter');
       expect(() => getDateDaysAgo(Infinity)).toThrow('Invalid days parameter');
       expect(() => getDateDaysAgo(NaN)).toThrow('Invalid days parameter');
     });
@@ -320,11 +324,13 @@ describe('Date Formatting Utilities', () => {
       const invalidDate = new Date('invalid');
 
       expect(() => formatByType(invalidDate, 'date-only')).toThrow('Invalid date provided');
-      expect(() => formatByType(null as any, 'date-only')).toThrow('Invalid date provided');
+      expect(() => formatByType(null as unknown as Date, 'date-only')).toThrow(
+        'Invalid date provided'
+      );
     });
 
     it('should validate dates in createDateForDBQuery', () => {
-      expect(() => createDateForDBQuery(null as any)).toThrow('Invalid date provided');
+      expect(() => createDateForDBQuery(null as unknown as Date)).toThrow('Invalid date provided');
       expect(() => createDateForDBQuery(new Date('invalid'))).toThrow('Invalid date provided');
     });
   });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Simulate the rate limiting logic from inngest-prod-functions.mts
 function getMinHoursBetweenSyncs(reason?: string): number {

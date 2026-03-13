@@ -7,6 +7,28 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import type { EvaluationSample, GitHubEvent, ContributorMetrics, DatasetStats } from '../types';
 
+interface ContributorRoleRecord {
+  role: 'owner' | 'maintainer' | 'contributor';
+  contributor_id: string;
+  repo_id: string;
+  confidence_score: number;
+  detection_methods: string[];
+  contributors?: {
+    user_id: string;
+    username: string;
+    total_contributions: number;
+    first_contribution_date: string;
+    last_contribution_date: string;
+  };
+  repositories?: {
+    repo_id: string;
+    repo_name: string;
+    stars: number;
+    contributors_count: number;
+    created_at: string;
+  };
+}
+
 // Load environment variables
 dotenv.config();
 
@@ -79,14 +101,14 @@ export class GroundTruthExtractor {
     return evaluationSamples.filter((sample) => sample !== null) as EvaluationSample[];
   }
 
-  private balanceDataset(contributorRoles: any[]): any[] {
+  private balanceDataset(contributorRoles: ContributorRoleRecord[]): ContributorRoleRecord[] {
     const roleGroups = {
       owner: contributorRoles.filter((r) => r.role === 'owner'),
       maintainer: contributorRoles.filter((r) => r.role === 'maintainer'),
       contributor: contributorRoles.filter((r) => r.role === 'contributor'),
     };
 
-    const balanced: any[] = [];
+    const balanced: ContributorRoleRecord[] = [];
 
     // Take equal samples from each role type
     Object.entries(roleGroups).forEach(([role, samples]) => {
@@ -126,7 +148,7 @@ export class GroundTruthExtractor {
     );
   }
 
-  private calculateMetrics(role: any, events: GitHubEvent[]): ContributorMetrics {
+  private calculateMetrics(role: ContributorRoleRecord, events: GitHubEvent[]): ContributorMetrics {
     const mergeEvents = events.filter(
       (e) => e.type === 'PullRequestEvent' && e.merged === true
     ).length;
@@ -165,7 +187,7 @@ export class GroundTruthExtractor {
   }
 
   private createEvaluationSample(
-    role: any,
+    role: ContributorRoleRecord,
     events: GitHubEvent[],
     metrics: ContributorMetrics
   ): EvaluationSample {

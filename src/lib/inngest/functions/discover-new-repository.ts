@@ -33,7 +33,7 @@ interface GitHubRepository {
   archived: boolean;
   disabled: boolean;
   open_issues_count: number;
-  license: any;
+  license: { spdx_id: string | null } | null;
   topics: string[];
   visibility: string;
   default_branch: string;

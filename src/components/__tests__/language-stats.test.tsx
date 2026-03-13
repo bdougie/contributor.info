@@ -192,14 +192,14 @@ describe('Language Statistics Logic', () => {
 
     // Mock the languageMap.size check to force fallback data
     const originalMap = global.Map;
-    global.Map = class MockMap extends Map {
+    global.Map = class MockMap extends Map<unknown, unknown> {
       constructor() {
         super();
       }
       get size() {
         return 0; // Force fallback data path
       }
-    } as any;
+    } as unknown as typeof Map;
 
     const languageStats = getLanguageStats(prsWithoutLanguageInfo);
 

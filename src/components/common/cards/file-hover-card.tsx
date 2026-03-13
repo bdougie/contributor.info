@@ -86,11 +86,10 @@ export function FileHoverCard({ pullRequest, filesTouched, children }: FileHover
             <div className="text-xs text-muted-foreground">
               #{pullRequest.number} by{' '}
               {pullRequest.author?.login || pullRequest.user?.login || 'Unknown'} ·
-              {pullRequest.createdAt
-                ? ` ${new Date(pullRequest.createdAt).toLocaleDateString()}`
-                : pullRequest.created_at
-                  ? ` ${new Date(pullRequest.created_at).toLocaleDateString()}`
-                  : ' Unknown date'}
+              {(() => {
+                const dateStr = pullRequest.createdAt || pullRequest.created_at;
+                return dateStr ? ` ${new Date(dateStr).toLocaleDateString()}` : ' Unknown date';
+              })()}
             </div>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">

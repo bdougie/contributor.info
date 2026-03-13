@@ -44,7 +44,7 @@ describe('ManualBackfill', () => {
 
       // Immediately check button state (synchronous)
       rerender(<ManualBackfill repository="owner/repo" />);
-      const loadingButton = screen.queryByText(/Triggering.../i);
+      screen.queryByText(/Triggering.../i);
       // Note: We can't test actual loading state without async
     });
 
@@ -110,7 +110,7 @@ describe('ManualBackfill', () => {
         cancelled: 'text-gray-500',
       };
 
-      Object.entries(statusIconMap).forEach(([status, className]) => {
+      Object.values(statusIconMap).forEach((className) => {
         expect(className).toContain('text-');
         expect(className).toContain('-500');
       });

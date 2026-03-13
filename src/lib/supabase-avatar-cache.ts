@@ -161,7 +161,7 @@ class SupabaseAvatarCache {
       };
       this.addToMemoryCache(githubId, result);
       return result;
-    } catch (error) {
+    } catch {
       // On error, use fallback or localStorage
       const localCached = localCache.get(username);
       if (localCached) {
@@ -286,7 +286,7 @@ class SupabaseAvatarCache {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // On error, use fallbacks for remaining contributors
       for (const contributor of uncachedContributors) {
         if (!results.has(contributor.githubId)) {
@@ -338,7 +338,7 @@ class SupabaseAvatarCache {
         source: 'supabase',
       };
       this.addToMemoryCache(githubId, result);
-    } catch (error) {
+    } catch {
       // Fallback to localStorage only
       localCache.set(username, avatarUrl);
     }

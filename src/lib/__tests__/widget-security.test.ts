@@ -6,17 +6,25 @@
 import { describe, it, expect } from 'vitest';
 
 // Replicate the escape functions from the widget generation
-function escapeXml(text: any): string {
+function escapeXml(text: string | number | null | undefined): string {
+  let str: string;
   if (typeof text !== 'string') {
-    text = String(text);
+    str = String(text);
+  } else {
+    str = text;
   }
-  return text
+  const c = String.fromCharCode;
+  const controlChars = new RegExp(
+    '[' + c(0) + '-' + c(8) + c(11) + c(12) + c(14) + '-' + c(31) + c(127) + ']',
+    'g'
+  );
+  return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    .replace(controlChars, '');
 }
 
 function sanitizeColor(color: string): string {

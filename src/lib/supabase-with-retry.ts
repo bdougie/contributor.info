@@ -2,6 +2,10 @@
  * Supabase operations with retry logic and circuit breaker
  */
 
+interface HttpError extends Error {
+  status: number;
+}
+
 import { supabase } from './supabase';
 import { withRetry, type RetryConfig } from './retry-utils';
 
@@ -128,8 +132,8 @@ export async function fetchWithRetry(
 
       // Check for rate limit or server errors
       if (response.status === 429 || response.status >= 500) {
-        const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        (error as any).status = response.status;
+        const error = new Error(`HTTP ${response.status}: ${response.statusText}`) as HttpError;
+        error.status = response.status;
         throw error;
       }
 
@@ -137,8 +141,8 @@ export async function fetchWithRetry(
       if (response.status === 403) {
         const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
         if (rateLimitRemaining === '0') {
-          const error = new Error('GitHub API rate limit exceeded');
-          (error as any).status = 429; // Treat as rate limit
+          const error = new Error('GitHub API rate limit exceeded') as HttpError;
+          error.status = 429; // Treat as rate limit
           throw error;
         }
       }

@@ -61,7 +61,7 @@ const simulateIntersection = (isIntersecting: boolean) => {
       time: Date.now(),
     } as IntersectionObserverEntry;
 
-    intersectionCallback([mockEntry], observerInstance as any);
+    intersectionCallback([mockEntry], observerInstance as unknown as IntersectionObserver);
   }
 };
 
@@ -172,10 +172,6 @@ function ProgressiveRepositoryView({ owner, repo }: { owner: string; repo: strin
   );
 }
 
-// Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) =>
-  waitFor(callback, { timeout: 10000, ...options });
-
 describe('Progressive Loading Integration Tests', () => {
   const fetchDirectCommitsMock = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;
   const fetchPRDataMock = fetchPRDataSmart as ReturnType<typeof vi.fn>;
@@ -183,8 +179,8 @@ describe('Progressive Loading Integration Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    intersectionCallback = undefined as any;
-    observerInstance = undefined as any;
+    intersectionCallback = undefined as unknown as IntersectionObserverCallback;
+    observerInstance = undefined as unknown as typeof observerInstance;
 
     // Set up default mock implementations
     fetchPRDataMock.mockResolvedValue({

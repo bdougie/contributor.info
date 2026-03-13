@@ -31,7 +31,7 @@ describe('syncPullRequestReviewers', () => {
     vi.restoreAllMocks();
   });
 
-  it('should successfully sync PR reviewers with default options', async () => {
+  it('should successfully sync PR reviewers with default options', () => {
     const mockPRData = [
       {
         github_id: 123,
@@ -74,39 +74,39 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('testowner', 'testrepo', 'workspace-123');
+    return syncPullRequestReviewers('testowner', 'testrepo', 'workspace-123').then((result) => {
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
+        body: {
+          owner: 'testowner',
+          repo: 'testrepo',
+          workspace_id: 'workspace-123',
+          include_closed: true,
+          max_closed_days: 30,
+          update_database: true,
+        },
+      });
 
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
-      body: {
-        owner: 'testowner',
-        repo: 'testrepo',
-        workspace_id: 'workspace-123',
-        include_closed: true,
-        max_closed_days: 30,
-        update_database: true,
-      },
+      expect(result).toEqual(mockPRData);
+      expect(console.log).toHaveBeenCalledWith(
+        'Syncing PR reviewers for %s/%s',
+        'testowner',
+        'testrepo',
+        {
+          includeClosedPRs: true,
+          maxClosedDays: 30,
+          useLocalBackoff: false,
+        }
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        'Successfully synced %d PRs (%d open, %d closed)',
+        1,
+        1,
+        0
+      );
     });
-
-    expect(result).toEqual(mockPRData);
-    expect(console.log).toHaveBeenCalledWith(
-      'Syncing PR reviewers for %s/%s',
-      'testowner',
-      'testrepo',
-      {
-        includeClosedPRs: true,
-        maxClosedDays: 30,
-        useLocalBackoff: false,
-      }
-    );
-    expect(console.log).toHaveBeenCalledWith(
-      'Successfully synced %d PRs (%d open, %d closed)',
-      1,
-      1,
-      0
-    );
   });
 
-  it('should handle custom sync options', async () => {
+  it('should handle custom sync options', () => {
     const mockResponse = {
       data: {
         success: true,
@@ -119,27 +119,27 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('owner', 'repo', 'workspace-456', {
+    return syncPullRequestReviewers('owner', 'repo', 'workspace-456', {
       includeClosedPRs: false,
       maxClosedDays: 7,
       updateDatabase: false,
-    });
+    }).then((result) => {
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
+        body: {
+          owner: 'owner',
+          repo: 'repo',
+          workspace_id: 'workspace-456',
+          include_closed: false,
+          max_closed_days: 7,
+          update_database: false,
+        },
+      });
 
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
-      body: {
-        owner: 'owner',
-        repo: 'repo',
-        workspace_id: 'workspace-456',
-        include_closed: false,
-        max_closed_days: 7,
-        update_database: false,
-      },
+      expect(result).toEqual([]);
     });
-
-    expect(result).toEqual([]);
   });
 
-  it('should handle edge function errors gracefully', async () => {
+  it('should handle edge function errors gracefully', () => {
     const mockError = new Error('Edge function error');
     const mockResponse = {
       data: null,
@@ -148,16 +148,16 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('owner', 'repo');
-
-    expect(console.error).toHaveBeenCalledWith(
-      'Error syncing PR reviewers via edge function:',
-      mockError
-    );
-    expect(result).toEqual([]); // Should return empty array on error
+    return syncPullRequestReviewers('owner', 'repo').then((result) => {
+      expect(console.error).toHaveBeenCalledWith(
+        'Error syncing PR reviewers via edge function:',
+        mockError
+      );
+      expect(result).toEqual([]); // Should return empty array on error
+    });
   });
 
-  it('should handle unsuccessful sync response', async () => {
+  it('should handle unsuccessful sync response', () => {
     const mockResponse = {
       data: {
         success: false,
@@ -168,23 +168,23 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('owner', 'repo');
-
-    expect(console.error).toHaveBeenCalledWith('Sync failed:', 'GitHub token not configured');
-    expect(result).toEqual([]);
+    return syncPullRequestReviewers('owner', 'repo').then((result) => {
+      expect(console.error).toHaveBeenCalledWith('Sync failed:', 'GitHub token not configured');
+      expect(result).toEqual([]);
+    });
   });
 
-  it('should handle network errors', async () => {
+  it('should handle network errors', () => {
     const networkError = new Error('Network error');
     vi.mocked(supabase.functions.invoke).mockRejectedValueOnce(networkError);
 
-    const result = await syncPullRequestReviewers('owner', 'repo');
-
-    expect(console.error).toHaveBeenCalledWith('Failed to sync PR reviewers:', networkError);
-    expect(result).toEqual([]);
+    return syncPullRequestReviewers('owner', 'repo').then((result) => {
+      expect(console.error).toHaveBeenCalledWith('Failed to sync PR reviewers:', networkError);
+      expect(result).toEqual([]);
+    });
   });
 
-  it('should handle large PR datasets', async () => {
+  it('should handle large PR datasets', () => {
     const largePRDataset = Array.from({ length: 100 }, (_, i) => ({
       github_id: i,
       number: i + 1,
@@ -217,18 +217,18 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('owner', 'repo', 'workspace-789');
-
-    expect(result).toHaveLength(100);
-    expect(console.log).toHaveBeenCalledWith(
-      'Successfully synced %d PRs (%d open, %d closed)',
-      100,
-      50,
-      50
-    );
+    return syncPullRequestReviewers('owner', 'repo', 'workspace-789').then((result) => {
+      expect(result).toHaveLength(100);
+      expect(console.log).toHaveBeenCalledWith(
+        'Successfully synced %d PRs (%d open, %d closed)',
+        100,
+        50,
+        50
+      );
+    });
   });
 
-  it('should handle missing workspace ID', async () => {
+  it('should handle missing workspace ID', () => {
     const mockResponse = {
       data: {
         success: true,
@@ -241,21 +241,22 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    await syncPullRequestReviewers('owner', 'repo'); // No workspace ID
-
-    expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
-      body: {
-        owner: 'owner',
-        repo: 'repo',
-        workspace_id: undefined,
-        include_closed: true,
-        max_closed_days: 30,
-        update_database: true,
-      },
+    // No workspace ID
+    return syncPullRequestReviewers('owner', 'repo').then(() => {
+      expect(supabase.functions.invoke).toHaveBeenCalledWith('sync-pr-reviewers', {
+        body: {
+          owner: 'owner',
+          repo: 'repo',
+          workspace_id: undefined,
+          include_closed: true,
+          max_closed_days: 30,
+          update_database: true,
+        },
+      });
     });
   });
 
-  it('should handle PR data with team reviewers', async () => {
+  it('should handle PR data with team reviewers', () => {
     const mockPRWithTeams = [
       {
         github_id: 456,
@@ -299,10 +300,10 @@ describe('syncPullRequestReviewers', () => {
 
     vi.mocked(supabase.functions.invoke).mockResolvedValueOnce(mockResponse);
 
-    const result = await syncPullRequestReviewers('owner', 'repo');
-
-    expect(result).toEqual(mockPRWithTeams);
-    expect(result[0].requested_reviewers).toHaveLength(2);
-    expect(result[0].requested_reviewers[0].username).toBe('team:backend');
+    return syncPullRequestReviewers('owner', 'repo').then((result) => {
+      expect(result).toEqual(mockPRWithTeams);
+      expect(result[0].requested_reviewers).toHaveLength(2);
+      expect(result[0].requested_reviewers[0].username).toBe('team:backend');
+    });
   });
 });

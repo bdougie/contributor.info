@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+interface NetworkInformation {
+  effectiveType?: string;
+  downlink?: number;
+}
+
 // Mobile breakpoint (matches Tailwind's 'md' breakpoint)
 const MOBILE_BREAKPOINT = 768;
 
@@ -147,16 +152,18 @@ export function useNetworkAwareDetection() {
 
   useEffect(() => {
     const updateNetworkInfo = () => {
-      const connection =
-        (navigator as any).connection ||
-        (navigator as any).mozConnection ||
-        (navigator as any).webkitConnection;
+      const nav = navigator as Navigator & {
+        connection?: NetworkInformation;
+        mozConnection?: NetworkInformation;
+        webkitConnection?: NetworkInformation;
+      };
+      const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
 
       if (connection) {
         const isSlowConnection =
           connection.effectiveType === 'slow-2g' ||
           connection.effectiveType === '2g' ||
-          connection.downlink < 1.5;
+          (connection.downlink != null && connection.downlink < 1.5);
 
         setNetworkInfo({
           isSlowConnection,

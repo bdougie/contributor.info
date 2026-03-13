@@ -1,6 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import GitHubAPIService from './github-api.service';
 
+/** Exposes private methods for testing without `any`. */
+interface GitHubAPIServiceTestable {
+  parseRateLimitHeaders(headers: Record<string, string | undefined>): {
+    remaining: number;
+    reset: number;
+    limit: number;
+    used: number;
+  } | null;
+  shouldRetry(error: { status?: number }, attempt: number, maxRetries: number): boolean;
+  calculateDelay(
+    attempt: number,
+    config: { initialDelay: number; maxDelay: number; factor: number; jitter: boolean }
+  ): number;
+}
+
 // Mock Octokit to prevent real API calls
 vi.mock('@octokit/rest', () => {
   const OctokitMock = vi.fn(() => ({
@@ -39,10 +54,12 @@ vi.mock('@octokit/plugin-throttling', () => ({
 
 describe('GitHubAPIService', () => {
   let service: GitHubAPIService;
+  let testable: GitHubAPIServiceTestable;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new GitHubAPIService();
+    testable = service as unknown as GitHubAPIServiceTestable;
   });
 
   describe('Configuration', () => {
@@ -62,7 +79,7 @@ describe('GitHubAPIService', () => {
       };
 
       // Use private method through type assertion for testing
-      const result = (service as any).parseRateLimitHeaders(mockHeaders);
+      const result = testable.parseRateLimitHeaders(mockHeaders);
 
       expect(result).toEqual({
         remaining: 4999,
@@ -77,33 +94,33 @@ describe('GitHubAPIService', () => {
         'x-ratelimit-remaining': '4999',
       };
 
-      const result = (service as any).parseRateLimitHeaders(mockHeaders);
+      const result = testable.parseRateLimitHeaders(mockHeaders);
       expect(result).toBeNull();
     });
   });
 
   describe('Retry Logic', () => {
     it('should retry on 429 status', () => {
-      const error = { status: 429 } as any;
-      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      const error = { status: 429 };
+      const shouldRetry = testable.shouldRetry(error, 0, 3);
       expect(shouldRetry).toBe(true);
     });
 
     it('should retry on 5xx status', () => {
-      const error = { status: 503 } as any;
-      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      const error = { status: 503 };
+      const shouldRetry = testable.shouldRetry(error, 0, 3);
       expect(shouldRetry).toBe(true);
     });
 
     it('should not retry on 4xx status except 429', () => {
-      const error = { status: 404 } as any;
-      const shouldRetry = (service as any).shouldRetry(error, 0, 3);
+      const error = { status: 404 };
+      const shouldRetry = testable.shouldRetry(error, 0, 3);
       expect(shouldRetry).toBe(false);
     });
 
     it('should not retry when max retries reached', () => {
-      const error = { status: 503 } as any;
-      const shouldRetry = (service as any).shouldRetry(error, 3, 3);
+      const error = { status: 503 };
+      const shouldRetry = testable.shouldRetry(error, 3, 3);
       expect(shouldRetry).toBe(false);
     });
   });
@@ -117,9 +134,9 @@ describe('GitHubAPIService', () => {
         jitter: false,
       };
 
-      const delay0 = (service as any).calculateDelay(0, config);
-      const delay1 = (service as any).calculateDelay(1, config);
-      const delay2 = (service as any).calculateDelay(2, config);
+      const delay0 = testable.calculateDelay(0, config);
+      const delay1 = testable.calculateDelay(1, config);
+      const delay2 = testable.calculateDelay(2, config);
 
       expect(delay0).toBe(100);
       expect(delay1).toBe(200);
@@ -134,7 +151,7 @@ describe('GitHubAPIService', () => {
         jitter: false,
       };
 
-      const delay5 = (service as any).calculateDelay(5, config);
+      const delay5 = testable.calculateDelay(5, config);
       expect(delay5).toBe(300);
     });
 
@@ -148,7 +165,7 @@ describe('GitHubAPIService', () => {
 
       const delays = [];
       for (let i = 0; i < 5; i++) {
-        delays.push((service as any).calculateDelay(1, config));
+        delays.push(testable.calculateDelay(1, config));
       }
 
       // With jitter, not all delays should be identical

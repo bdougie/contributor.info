@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
-
 // Mock Supabase client
 const mockSupabase = {
   from: vi.fn(() => ({
@@ -136,7 +134,7 @@ describe('Repository Sync Event Flow Integration', () => {
   describe('GitHub Actions Sync Query', () => {
     it('should use correct column names for tracked_repositories', async () => {
       // Simulate the query from scheduled-data-sync.yml
-      const query = mockSupabase
+      mockSupabase
         .from('tracked_repositories')
         .select(
           `
@@ -155,10 +153,6 @@ describe('Repository Sync Event Flow Integration', () => {
       expect(mockSupabase.from).toHaveBeenCalledWith('tracked_repositories');
 
       // The actual query would fail with is_active
-      const incorrectQuery = () => {
-        return mockSupabase.from('tracked_repositories').select('*').eq('is_active', true); // This would fail in production
-      };
-
       // Document that is_active is incorrect
       expect(() => {
         // This would throw in production with error code 42703

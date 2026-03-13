@@ -3,7 +3,6 @@ import { renderHook, cleanup } from '@testing-library/react';
 import { useIntersectionLoader } from '../use-intersection-loader';
 
 // Simple IntersectionObserver mock
-let observerCallback: IntersectionObserverCallback | null = null;
 const mockObserver = {
   observe: vi.fn(),
   unobserve: vi.fn(),
@@ -11,15 +10,11 @@ const mockObserver = {
   takeRecords: vi.fn(() => []),
 };
 
-global.IntersectionObserver = vi.fn((callback) => {
-  observerCallback = callback;
-  return mockObserver;
-}) as any;
+global.IntersectionObserver = vi.fn(() => mockObserver) as unknown as typeof IntersectionObserver;
 
 describe('useIntersectionLoader - Basic Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    observerCallback = null;
   });
 
   afterEach(() => {
@@ -46,32 +41,23 @@ describe('useIntersectionLoader - Basic Tests', () => {
     expect(typeof result.current.ref).toBe('object');
   });
 
-  it('should call load function manually', async () => {
+  it('should call load function manually', () => {
     const loadFn = vi.fn().mockResolvedValue('test data');
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
-    const loadPromise = result.current.load();
+    result.current.load();
 
     expect(loadFn).toHaveBeenCalled();
-
-    // Wait for the promise to resolve
-    await loadPromise;
-
-    // The hook may not update immediately, that's okay for this basic test
     expect(loadFn).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle load errors', async () => {
+  it('should handle load errors', () => {
     const error = new Error('Load failed');
     const loadFn = vi.fn().mockRejectedValue(error);
     const { result } = renderHook(() => useIntersectionLoader(loadFn));
 
-    // Try to load and catch the error
-    try {
-      await result.current.load();
-    } catch (_e) {
-      // Error is expected
-    }
+    // Call load - the rejected promise is handled internally by the hook
+    result.current.load();
 
     expect(loadFn).toHaveBeenCalled();
   });

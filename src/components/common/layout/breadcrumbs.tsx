@@ -14,6 +14,37 @@ import { useIsMobile } from '@/lib/utils/mobile-detection';
 import { cn } from '@/lib/utils';
 import { usePrefetchOnIntent } from '@/lib/route-prefetch';
 
+interface CrumbData {
+  name: string;
+  to: string;
+  isLast: boolean;
+  isStatic: boolean;
+}
+
+const BreadcrumbItemContent = ({ crumb, isMobile }: { crumb: CrumbData; isMobile: boolean }) => {
+  const prefetchHandlers = usePrefetchOnIntent(crumb.to);
+
+  if (crumb.isLast) {
+    return (
+      <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>
+        {crumb.name}
+      </BreadcrumbPage>
+    );
+  }
+
+  if (crumb.isStatic) {
+    return <span className="text-muted-foreground">{crumb.name}</span>;
+  }
+
+  return (
+    <BreadcrumbLink asChild>
+      <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>
+        {crumb.name}
+      </Link>
+    </BreadcrumbLink>
+  );
+};
+
 const breadcrumbNameMap: { [key: string]: string } = {
   '': 'home',
   activity: 'activity',
@@ -93,30 +124,14 @@ export const Breadcrumbs = () => {
     );
   };
 
-  const items = displayBreadcrumbs.map((crumb) => {
-    const prefetchHandlers = !crumb.isLast && !crumb.isStatic ? usePrefetchOnIntent(crumb.to) : {};
-
-    return (
-      <React.Fragment key={crumb.to || crumb.name}>
-        <BreadcrumbItem>
-          {crumb.isLast ? (
-            <BreadcrumbPage className={cn(isMobile && 'text-sm font-medium')}>
-              {crumb.name}
-            </BreadcrumbPage>
-          ) : crumb.isStatic ? (
-            <span className="text-muted-foreground">{crumb.name}</span>
-          ) : (
-            <BreadcrumbLink asChild>
-              <Link to={crumb.to} className={cn(isMobile && 'text-sm')} {...prefetchHandlers}>
-                {crumb.name}
-              </Link>
-            </BreadcrumbLink>
-          )}
-        </BreadcrumbItem>
-        {!crumb.isLast && <BreadcrumbSeparator />}
-      </React.Fragment>
-    );
-  });
+  const items = displayBreadcrumbs.map((crumb) => (
+    <React.Fragment key={crumb.to || crumb.name}>
+      <BreadcrumbItem>
+        <BreadcrumbItemContent crumb={crumb} isMobile={isMobile} />
+      </BreadcrumbItem>
+      {!crumb.isLast && <BreadcrumbSeparator />}
+    </React.Fragment>
+  ));
 
   // Use dynamic origin for JSON-LD to support different environments
   const origin =

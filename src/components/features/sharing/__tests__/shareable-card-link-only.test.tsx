@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createChartShareUrl } from '@/lib/dub';
 
+vi.mock('@/lib/dub', () => ({
+  createChartShareUrl: vi.fn().mockReturnValue('https://oss.fyi/facebook/react'),
+}));
+
 // Mock ClipboardItem
 global.ClipboardItem = class ClipboardItem {
-  constructor(data: Record<string, any>) {
+  constructor(data: Record<string, Blob>) {
     Object.assign(this, data);
   }
-} as any;
+} as typeof ClipboardItem;
 
 // Mock clipboard API
 const mockClipboard = {
-  writeText: vi.fn().mockResolvedValue(undefined),
-  write: vi.fn().mockResolvedValue(undefined),
+  writeText: vi.fn().mockReturnValue(undefined),
+  write: vi.fn().mockReturnValue(undefined),
 };
 Object.defineProperty(navigator, 'clipboard', {
   value: mockClipboard,
@@ -36,15 +40,16 @@ describe('ShareableCard Link Capture - URL Only', () => {
       },
       writable: true,
     });
+    vi.mocked(createChartShareUrl).mockReturnValue('https://oss.fyi/facebook/react');
   });
 
-  it('should copy only the URL without descriptive text for link capture', async () => {
+  it('should copy only the URL without descriptive text for link capture', () => {
     // Simulate the updated handleShareUrl logic
     const currentUrl = window.location.href;
-    const shortUrl = await createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
+    const shortUrl = createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
 
     // Copy only the URL (no descriptive text)
-    await navigator.clipboard.writeText(shortUrl);
+    navigator.clipboard.writeText(shortUrl as string);
 
     // Verify only the URL was copied
     expect(mockClipboard.writeText).toHaveBeenCalledWith(shortUrl);
@@ -53,24 +58,26 @@ describe('ShareableCard Link Capture - URL Only', () => {
     );
   });
 
-  it('should fallback to original URL only on error', async () => {
+  it('should fallback to original URL only on error', () => {
     // Mock createChartShareUrl to throw an error
-    const mockCreateChartShareUrl = vi.fn().mockRejectedValue(new Error('API Error'));
+    const mockCreateChartShareUrl = vi.fn().mockImplementation(() => {
+      throw new Error('API Error');
+    });
 
     try {
-      await mockCreateChartShareUrl();
-    } catch (err) {
+      mockCreateChartShareUrl();
+    } catch {
       // Fallback: copy original URL only (no descriptive text)
-      await navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(window.location.href);
     }
 
     expect(mockClipboard.writeText).toHaveBeenCalledWith(window.location.href);
     expect(mockClipboard.writeText).not.toHaveBeenCalledWith(expect.stringContaining('Check out'));
   });
 
-  it('should demonstrate difference between link capture and native share', async () => {
+  it('should demonstrate difference between link capture and native share', () => {
     const currentUrl = window.location.href;
-    const shortUrl = await createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
+    const shortUrl = createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
 
     // Link capture: URL only
     const linkCaptureContent = shortUrl;
@@ -91,22 +98,22 @@ describe('ShareableCard Link Capture - URL Only', () => {
     expect(nativeShareContent.url).toBe(shortUrl);
   });
 
-  it('should use short URL for both link capture and image copy', async () => {
+  it('should use short URL for both link capture and image copy', () => {
     const currentUrl = window.location.href;
-    const shortUrl = await createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
+    const shortUrl = createChartShareUrl(currentUrl, 'contributors-chart', 'facebook/react');
 
     // Link capture: short URL only
-    await navigator.clipboard.writeText(shortUrl);
+    navigator.clipboard.writeText(shortUrl as string);
 
     // Image copy: short URL as text part
     const mockBlob = new Blob(['mock image data'], { type: 'image/png' });
     const clipboardItems = [
       new ClipboardItem({
         'image/png': mockBlob,
-        'text/plain': new Blob([shortUrl], { type: 'text/plain' }),
+        'text/plain': new Blob([shortUrl as string], { type: 'text/plain' }),
       }),
     ];
-    await navigator.clipboard.write(clipboardItems);
+    navigator.clipboard.write(clipboardItems);
 
     // Verify both use the same short URL
     expect(mockClipboard.writeText).toHaveBeenCalledWith(shortUrl);

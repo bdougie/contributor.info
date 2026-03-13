@@ -5,11 +5,45 @@ import {
   getPriorityFactor,
 } from '../utils/performance-helpers';
 
+interface RoutingJob {
+  job_type?: string;
+  type?: string;
+  repository_id?: string;
+  repositoryId?: string;
+  time_range?: number;
+  timeRange?: number;
+  max_items?: number;
+  maxItems?: number;
+  priority?: string;
+}
+
+interface RepositoryMetadata {
+  id: string;
+  owner: string;
+  name: string;
+  pull_request_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RoutingFactors {
+  timeSensitivity: number;
+  batchSizeFactor: number;
+  repoSizeFactor: number;
+  dataAgeFactor: number;
+  systemLoad: { inngestLoad: number; actionsLoad: number };
+  priorityFactor: number;
+  isHistorical: boolean;
+  repositorySize: number;
+  timeRange: number;
+  maxItems: number;
+}
+
 export interface RoutingDecision {
   processor: 'inngest' | 'github_actions';
   reason: string;
   confidence: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BackfillState {
@@ -29,7 +63,7 @@ export class EnhancedHybridRouter {
   /**
    * Route a job to the appropriate processor based on multiple factors
    */
-  async routeJob(job: any): Promise<RoutingDecision> {
+  async routeJob(job: RoutingJob): Promise<RoutingDecision> {
     try {
       // Always use GitHub Actions for progressive backfill
       if (job.job_type === 'progressive_backfill' || job.type === 'progressive_backfill') {
@@ -42,7 +76,15 @@ export class EnhancedHybridRouter {
       }
 
       // Get repository metadata
-      const repository = await this.getRepositoryMetadata(job.repository_id || job.repositoryId);
+      const repoId = job.repository_id || job.repositoryId;
+      if (!repoId) {
+        return {
+          processor: 'inngest',
+          reason: 'no_repository_id',
+          confidence: 0.5,
+        };
+      }
+      const repository = await this.getRepositoryMetadata(repoId);
 
       if (!repository) {
         // Default to Inngest if we can't find repository info
@@ -101,7 +143,7 @@ export class EnhancedHybridRouter {
   /**
    * Calculate routing factors for decision making
    */
-  private async calculateRoutingFactors(job: any, repository: any) {
+  private async calculateRoutingFactors(job: RoutingJob, repository: RepositoryMetadata) {
     const timeRange = job.time_range || job.timeRange || 30;
     const maxItems = job.max_items || job.maxItems || 100;
 
@@ -142,7 +184,7 @@ export class EnhancedHybridRouter {
   /**
    * Make routing decision based on factors
    */
-  private makeRoutingDecision(factors: any): RoutingDecision {
+  private makeRoutingDecision(factors: RoutingFactors): RoutingDecision {
     // Calculate weighted scores
     const inngestScore =
       factors.timeSensitivity * 0.3 +
@@ -273,7 +315,7 @@ export class EnhancedHybridRouter {
   /**
    * Check if a repository should initiate backfill
    */
-  async shouldInitiateBackfill(repository: any): Promise<boolean> {
+  async shouldInitiateBackfill(repository: RepositoryMetadata): Promise<boolean> {
     // Check if repository needs backfill
     if (!repository.pull_request_count || repository.pull_request_count < 100) {
       return false; // Small repos don't need backfill

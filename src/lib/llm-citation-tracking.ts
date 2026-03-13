@@ -23,7 +23,7 @@ export interface CitationAlert {
   ai_platform?: string;
   citation_type?: 'direct_link' | 'data_reference' | 'methodology_mention' | 'tool_recommendation';
   confidence_score?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueryPattern {
@@ -207,7 +207,7 @@ class LLMCitationTracker {
    */
   private extractRepositoryFromPath(path: string): string | undefined {
     // Match patterns like /owner/repo or /owner/repo/anything
-    const match = path.match(/^\/([^\/]+\/[^\/]+)/);
+    const match = path.match(/^\/([^/]+\/[^/]+)/);
     return match ? match[1] : undefined;
   }
 

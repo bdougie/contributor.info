@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  calculateRepositoryConfidence,
-  calculateHealthMetrics,
-  clearConfidenceCache,
-} from './health-metrics';
+import { calculateRepositoryConfidence, clearConfidenceCache } from './health-metrics';
+import { supabase } from '@/lib/supabase';
 
 // Mock the entire supabase module
 vi.mock('@/lib/supabase', () => ({
@@ -12,12 +9,20 @@ vi.mock('@/lib/supabase', () => ({
   },
 }));
 
+// Cast to allow mock reassignment in tests
+const mockSupabase = supabase as { from: ReturnType<typeof vi.fn> };
+
+interface QueryResult {
+  data: unknown;
+  error: unknown;
+}
+
 // Helper function to create a chainable query mock
-function createChainableMock(finalResult: any) {
+function createChainableMock(finalResult: QueryResult) {
   // Create a resolved promise that will be returned when the query is awaited
   const resolvedPromise = Promise.resolve(finalResult);
 
-  const mock: any = {
+  const mock: Record<string, unknown> = {
     select: vi.fn(),
     eq: vi.fn(),
     neq: vi.fn(),
@@ -38,7 +43,7 @@ function createChainableMock(finalResult: any) {
   // Make each method return the mock itself for chaining
   Object.keys(mock).forEach((key) => {
     if (key !== 'single' && key !== 'upsert') {
-      mock[key].mockReturnValue(mock);
+      (mock[key] as ReturnType<typeof vi.fn>).mockReturnValue(mock);
     }
   });
 
@@ -58,9 +63,7 @@ describe('calculateRepositoryConfidence', () => {
   });
 
   describe('Star/Fork Confidence Calculation', () => {
-    it('should calculate high confidence when many stargazers become contributors', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should calculate high confidence when many stargazers become contributors', () => {
       // Mock repository data
       const mockRepo = {
         data: {
@@ -104,18 +107,21 @@ describe('calculateRepositoryConfidence', () => {
       };
 
       // Setup mock chain
-      let callCount = 0;
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
         if (table === 'github_events_cache') {
-          // Track the call count to return different data for different queries
-          callCount++;
           // Return star events data with both stars and forks
           const allEvents = [
-            ...mockStarEvents.data.map((d: any) => ({ ...d, event_type: 'WatchEvent' })),
-            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' })),
+            ...mockStarEvents.data.map((d: { actor_login: string }) => ({
+              ...d,
+              event_type: 'WatchEvent',
+            })),
+            ...mockForkEvents.data.map((d: { actor_login: string }) => ({
+              ...d,
+              event_type: 'ForkEvent',
+            })),
           ];
           return createChainableMock({ data: allEvents, error: null });
         }
@@ -137,17 +143,15 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // With the mock data provided, should calculate some reasonable confidence
-      // The exact algorithm may use fallback due to mock limitations
-      expect(result).toBeGreaterThanOrEqual(0);
-      expect(result).toBeLessThanOrEqual(100);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // With the mock data provided, should calculate some reasonable confidence
+        // The exact algorithm may use fallback due to mock limitations
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(100);
+      });
     });
 
-    it('should calculate low confidence when few stargazers become contributors', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should calculate low confidence when few stargazers become contributors', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -188,18 +192,21 @@ describe('calculateRepositoryConfidence', () => {
       };
 
       // Setup mock chain
-      let callCount = 0;
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
         if (table === 'github_events_cache') {
-          // Track the call count to return different data for different queries
-          callCount++;
           // Return star events data with both stars and forks
           const allEvents = [
-            ...mockStarEvents.data.map((d: any) => ({ ...d, event_type: 'WatchEvent' })),
-            ...mockForkEvents.data.map((d: any) => ({ ...d, event_type: 'ForkEvent' })),
+            ...mockStarEvents.data.map((d: { actor_login: string }) => ({
+              ...d,
+              event_type: 'WatchEvent',
+            })),
+            ...mockForkEvents.data.map((d: { actor_login: string }) => ({
+              ...d,
+              event_type: 'ForkEvent',
+            })),
           ];
           return createChainableMock({ data: allEvents, error: null });
         }
@@ -221,17 +228,15 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should be in the "intimidating" range (0-30%)
-      expect(result).toBeLessThan(30);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should be in the "intimidating" range (0-30%)
+        expect(result).toBeLessThan(30);
+      });
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle repositories with no stars or forks', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should handle repositories with no stars or forks', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -242,7 +247,7 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
@@ -271,35 +276,31 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should return 0 for repos with absolutely no engagement or contributors
-      // The fallback calculation with 0 stars, 0 forks, 0 contributors should return 0
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('number');
-      expect(result).toBeLessThanOrEqual(20); // Should be very low for empty repos
-      expect(result).toBeGreaterThanOrEqual(0); // Should not be negative
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should return 0 for repos with absolutely no engagement or contributors
+        // The fallback calculation with 0 stars, 0 forks, 0 contributors should return 0
+        expect(result).toBeDefined();
+        expect(typeof result).toBe('number');
+        expect(result).toBeLessThanOrEqual(20); // Should be very low for empty repos
+        expect(result).toBeGreaterThanOrEqual(0); // Should not be negative
+      });
     });
 
-    it('should handle database errors gracefully', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
-      supabase.from = vi.fn().mockImplementation(() => {
+    it('should handle database errors gracefully', () => {
+      mockSupabase.from = vi.fn().mockImplementation(() => {
         return createChainableMock({
           data: null,
           error: new Error('Database error'),
         });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should return 0 on error
-      expect(result).toBe(0);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should return 0 on error
+        expect(result).toBe(0);
+      });
     });
 
-    it('should handle new repositories appropriately', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should handle new repositories appropriately', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -312,7 +313,7 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
@@ -331,17 +332,15 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // New repos should get a boost to avoid showing 0%
-      expect(result).toBeGreaterThan(0);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // New repos should get a boost to avoid showing 0%
+        expect(result).toBeGreaterThan(0);
+      });
     });
   });
 
   describe('Time Range Handling', () => {
-    it('should respect different time ranges', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should respect different time ranges', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -354,7 +353,7 @@ describe('calculateRepositoryConfidence', () => {
 
       let capturedDateFilter: string | undefined;
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
@@ -374,31 +373,34 @@ describe('calculateRepositoryConfidence', () => {
         return mock;
       });
 
-      // Test 30-day range
-      await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-      if (capturedDateFilter) {
-        const date30 = new Date(capturedDateFilter);
-        const now = new Date();
-        const daysDiff = Math.floor((now.getTime() - date30.getTime()) / (1000 * 60 * 60 * 24));
-        expect(daysDiff).toBeCloseTo(30, 0);
-      }
+      // Test 30-day range, then 90-day range
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30')
+        .then(() => {
+          if (capturedDateFilter) {
+            const date30 = new Date(capturedDateFilter);
+            const now = new Date();
+            const daysDiff = Math.floor((now.getTime() - date30.getTime()) / (1000 * 60 * 60 * 24));
+            expect(daysDiff).toBeCloseTo(30, 0);
+          }
 
-      // Test 90-day range
-      capturedDateFilter = undefined;
-      await calculateRepositoryConfidence('test-owner', 'test-repo', '90');
-      if (capturedDateFilter) {
-        const date90 = new Date(capturedDateFilter);
-        const now = new Date();
-        const daysDiff90 = Math.floor((now.getTime() - date90.getTime()) / (1000 * 60 * 60 * 24));
-        expect(daysDiff90).toBeCloseTo(90, 0);
-      }
+          capturedDateFilter = undefined;
+          return calculateRepositoryConfidence('test-owner', 'test-repo', '90');
+        })
+        .then(() => {
+          if (capturedDateFilter) {
+            const date90 = new Date(capturedDateFilter);
+            const now = new Date();
+            const daysDiff90 = Math.floor(
+              (now.getTime() - date90.getTime()) / (1000 * 60 * 60 * 24)
+            );
+            expect(daysDiff90).toBeCloseTo(90, 0);
+          }
+        });
     });
   });
 
   describe('Fallback Calculation', () => {
-    it('should use fallback calculation when event data is unavailable', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should use fallback calculation when event data is unavailable', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -413,7 +415,7 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
@@ -433,18 +435,16 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should use fallback calculation based on repo metrics
-      expect(result).toBeGreaterThan(0);
-      expect(result).toBeLessThan(100);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should use fallback calculation based on repo metrics
+        expect(result).toBeGreaterThan(0);
+        expect(result).toBeLessThan(100);
+      });
     });
   });
 
   describe('Expanded Contributor Definition', () => {
-    it('should count issue authors as contributors', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should count issue authors as contributors', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -463,14 +463,14 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
         if (table === 'github_events_cache') {
           const mock = createChainableMock({ data: [], error: null });
           // Override in to detect IssuesEvent query
-          const originalIn = mock.in;
+          const originalIn = mock.in as ReturnType<typeof vi.fn>;
           mock.in = vi.fn().mockImplementation((field: string, values: string[]) => {
             if (values.includes('IssuesEvent')) {
               return createChainableMock(mockIssueAuthors);
@@ -478,7 +478,7 @@ describe('calculateRepositoryConfidence', () => {
             return originalIn.call(mock, field, values);
           });
           // Override eq to detect IssuesEvent query
-          const originalEq = mock.eq;
+          const originalEq = mock.eq as ReturnType<typeof vi.fn>;
           mock.eq = vi.fn().mockImplementation((field: string, value: string) => {
             if (field === 'event_type' && value === 'IssuesEvent') {
               return createChainableMock(mockIssueAuthors);
@@ -501,16 +501,14 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should calculate confidence including issue authors
-      expect(result).toBeGreaterThanOrEqual(0);
-      expect(result).toBeLessThanOrEqual(100);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should calculate confidence including issue authors
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(100);
+      });
     });
 
-    it('should count discussion participants as contributors', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should count discussion participants as contributors', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -529,7 +527,7 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
@@ -544,16 +542,14 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should calculate confidence including discussion participants
-      expect(result).toBeGreaterThanOrEqual(0);
-      expect(result).toBeLessThanOrEqual(100);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should calculate confidence including discussion participants
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(100);
+      });
     });
 
-    it('should count reviewers as contributors', async () => {
-      const { supabase } = await import('@/lib/supabase');
-
+    it('should count reviewers as contributors', () => {
       const mockRepo = {
         data: {
           id: 1,
@@ -572,14 +568,14 @@ describe('calculateRepositoryConfidence', () => {
         error: null,
       };
 
-      supabase.from = vi.fn().mockImplementation((table: string) => {
+      mockSupabase.from = vi.fn().mockImplementation((table: string) => {
         if (table === 'repositories') {
           return createChainableMock(mockRepo);
         }
         if (table === 'github_events_cache') {
           const mock = createChainableMock({ data: [], error: null });
           // Override in to detect review event queries
-          const originalIn = mock.in;
+          const originalIn = mock.in as ReturnType<typeof vi.fn>;
           mock.in = vi.fn().mockImplementation((field: string, values: string[]) => {
             if (
               values.includes('PullRequestReviewEvent') ||
@@ -599,11 +595,11 @@ describe('calculateRepositoryConfidence', () => {
         return createChainableMock({ data: [], error: null });
       });
 
-      const result = await calculateRepositoryConfidence('test-owner', 'test-repo', '30');
-
-      // Should calculate confidence including reviewers
-      expect(result).toBeGreaterThanOrEqual(0);
-      expect(result).toBeLessThanOrEqual(100);
+      return calculateRepositoryConfidence('test-owner', 'test-repo', '30').then((result) => {
+        // Should calculate confidence including reviewers
+        expect(result).toBeGreaterThanOrEqual(0);
+        expect(result).toBeLessThanOrEqual(100);
+      });
     });
   });
 });

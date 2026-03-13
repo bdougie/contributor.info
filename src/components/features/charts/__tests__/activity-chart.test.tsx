@@ -19,7 +19,7 @@ describe('Activity Chart', () => {
     });
 
     it('handles empty data gracefully', () => {
-      const emptyData: any[] = [];
+      const emptyData: { date: string; count: number }[] = [];
       expect(emptyData).toHaveLength(0);
     });
 
