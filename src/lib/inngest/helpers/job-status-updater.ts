@@ -29,8 +29,8 @@ export async function updateJobStatus(
     .eq('id', jobId);
 
   if (updateError) {
-    console.error(`[JobStatusUpdater] Failed to update job ${jobId}:`, updateError);
+    console.error('[JobStatusUpdater] Failed to update job %s:', jobId, updateError);
   } else {
-    console.log(`[JobStatusUpdater] Job ${jobId} marked as ${status}`);
+    console.log('[JobStatusUpdater] Job %s marked as %s', jobId, status);
   }
 }

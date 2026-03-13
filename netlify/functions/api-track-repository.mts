@@ -168,7 +168,7 @@ export default async (req: Request, context: Context) => {
 
     // Block app routes that aren't GitHub repositories
     if (BLOCKED_OWNERS.has(owner.toLowerCase())) {
-      console.warn(`Blocked tracking attempt for app route: ${owner}/${repo}`);
+      console.warn('Blocked tracking attempt for app route: %s/%s', owner, repo);
       return withHeaders(
         new Response(
           JSON.stringify({
@@ -711,18 +711,37 @@ export default async (req: Request, context: Context) => {
         is_active: true,
       };
 
-      const { data: repository, error: insertError } = await supabase
+      let { data: repository, error: insertError } = await supabase
         .from('repositories')
         .insert(repositoryData)
         .select()
         .single();
 
       if (insertError) {
-        console.error('Failed to insert repository:', insertError);
-        console.error('Insert error details:', JSON.stringify(insertError, null, 2));
-        throw new Error(
-          `Failed to create repository record: ${insertError.message || 'Unknown error'}`
-        );
+        // Handle duplicate key constraint violation (race condition with concurrent tracking)
+        if (insertError.code === '23505') {
+          console.log('Repository already exists (concurrent insert), fetching existing record');
+          const { data: existingRepo, error: fetchError } = await supabase
+            .from('repositories')
+            .select()
+            .eq('github_id', githubData.id)
+            .maybeSingle();
+
+          if (fetchError || !existingRepo) {
+            throw new Error(
+              `Failed to fetch existing repository after duplicate key: ${fetchError?.message || 'Not found'}`
+            );
+          }
+
+          // Use existing repo and continue to tracking step
+          repository = existingRepo;
+        } else {
+          console.error('Failed to insert repository:', insertError);
+          console.error('Insert error details:', JSON.stringify(insertError, null, 2));
+          throw new Error(
+            `Failed to create repository record: ${insertError.message || 'Unknown error'}`
+          );
+        }
       }
 
       if (!repository) {

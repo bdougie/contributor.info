@@ -81,7 +81,7 @@ export class DataLoadingErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const loadingError = error as LoadingError;
 
-    console.error(`DataLoadingErrorBoundary (${this.props.stage}):`, error, errorInfo);
+    console.error('DataLoadingErrorBoundary (%s):', this.props.stage, error, errorInfo);
 
     // Track error for monitoring
     this.props.onError?.(loadingError, errorInfo);

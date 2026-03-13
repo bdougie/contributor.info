@@ -151,14 +151,18 @@ async function fetchLinkedPRsForIssue(
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch linked PRs for issue #${issueNumber}: ${response.statusText}`);
+      console.error(
+        'Failed to fetch linked PRs for issue #%s: %s',
+        issueNumber,
+        response.statusText
+      );
       return undefined;
     }
 
     const result = await response.json();
 
     if (result.errors) {
-      console.error(`GraphQL errors for issue #${issueNumber}:`, result.errors);
+      console.error('GraphQL errors for issue #%s:', issueNumber, result.errors);
       return undefined;
     }
 
@@ -197,7 +201,7 @@ async function fetchLinkedPRsForIssue(
       state: pr.merged ? 'merged' : (pr.state.toLowerCase() as 'open' | 'closed' | 'merged'),
     }));
   } catch (error) {
-    console.error(`Error fetching linked PRs for issue #${issueNumber}:`, error);
+    console.error('Error fetching linked PRs for issue #%s:', issueNumber, error);
     return undefined;
   }
 }

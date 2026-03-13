@@ -390,7 +390,7 @@ function renderRepoContent(
 async function handler(request: Request, context: Context) {
   const url = new URL(request.url);
 
-  console.log(`[ssr-repo] Handling request for ${url.pathname}`);
+  console.log('[ssr-repo] Handling request for %s', url.pathname);
 
   // Parse owner/repo from path
   const parsed = parseRepoPath(url.pathname);
@@ -434,7 +434,11 @@ async function handler(request: Request, context: Context) {
     // If repo not found or error, render the skeleton as a fallback
     // This ensures the user sees the Repo structure while the client-side tries to fetch/handle 404
     if (!repoData) {
-      console.warn(`[ssr-repo] Repository ${owner}/${repo} not found or error, rendering skeleton`);
+      console.warn(
+        '[ssr-repo] Repository %s/%s not found or error, rendering skeleton',
+        owner,
+        repo
+      );
       addBreadcrumb({
         message: 'Repository not found or error, rendering skeleton',
         category: 'ssr',

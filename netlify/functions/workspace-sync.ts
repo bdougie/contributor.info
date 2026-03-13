@@ -274,7 +274,7 @@ export const handler: Handler = async (event) => {
     const results = await Promise.allSettled(
       repositoryIds.map(async (repoId: string) => {
         try {
-          console.log(`[workspace-sync] Sending event for repository: ${repoId}`);
+          console.log('[workspace-sync] Sending event for repository: %s', repoId);
 
           // Send PR sync event
           const prEventData = {
@@ -286,7 +286,7 @@ export const handler: Handler = async (event) => {
               reason: `Manual workspace sync ${workspaceId ? `for workspace ${workspaceId}` : ''}`,
             },
           };
-          console.log(`[workspace-sync] PR sync event data:`, prEventData);
+          console.log('[workspace-sync] PR sync event data:', prEventData);
 
           await inngest.send(prEventData);
 
@@ -299,7 +299,7 @@ export const handler: Handler = async (event) => {
               source: `workspace-sync${workspaceId ? `:${workspaceId}` : ''}`,
             },
           };
-          console.log(`[workspace-sync] Discussion sync event data:`, discussionEventData);
+          console.log('[workspace-sync] Discussion sync event data:', discussionEventData);
 
           await inngest.send(discussionEventData);
 
@@ -312,14 +312,14 @@ export const handler: Handler = async (event) => {
               source: `workspace-sync${workspaceId ? `:${workspaceId}` : ''}`,
             },
           };
-          console.log(`[workspace-sync] Issue sync event data:`, issueEventData);
+          console.log('[workspace-sync] Issue sync event data:', issueEventData);
 
           await inngest.send(issueEventData);
-          console.log(`[workspace-sync] All events sent successfully for ${repoId}`);
+          console.log('[workspace-sync] All events sent successfully for %s', repoId);
 
           return { repositoryId: repoId, status: 'success' };
         } catch (error) {
-          console.error(`[workspace-sync] Failed to sync repository ${repoId}:`, error);
+          console.error('[workspace-sync] Failed to sync repository %s:', repoId, error);
           return {
             repositoryId: repoId,
             status: 'failed',

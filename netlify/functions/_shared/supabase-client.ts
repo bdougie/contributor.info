@@ -113,7 +113,7 @@ export async function executeWithRetry<T>(
 
       // On connection error, refresh client and retry
       if (attempts < maxAttempts) {
-        console.log(`Connection error, refreshing client (attempt ${attempts}/${maxAttempts})`);
+        console.log('Connection error, refreshing client (attempt %s/%s)', attempts, maxAttempts);
         refreshSupabaseClient();
       }
     } catch (error) {

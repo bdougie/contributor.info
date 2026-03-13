@@ -137,33 +137,39 @@ Format the response in clear markdown sections.`;
     try {
       // Call OpenAI API with improved error handling and timeout
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeout = setTimeout(
+        () => controller.abort(new Error('OpenAI API request timed out after 30s')),
+        30000
+      );
 
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4-1106-preview',
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: 0.7,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
+      let response: Response;
+      try {
+        response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4-1106-preview',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are an expert software development analyst. Analyze GitHub pull requests and provide clear, actionable insights.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: 0.7,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
 
       console.log('OpenAI API response status:', response.status);
 

@@ -218,7 +218,7 @@ export function SyncTrackedRepos() {
 
             result.synced.push(fullName);
           } catch (error) {
-            console.error(`Failed to sync ${fullName}:`, error);
+            console.error('Failed to sync %s:', fullName, error);
             result.failed.push(fullName);
           }
         });

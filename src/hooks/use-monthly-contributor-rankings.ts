@@ -133,10 +133,12 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
           // Track edge function errors to Sentry + PostHog
           const errorMessage = err instanceof Error ? err.message : 'Unknown edge function error';
 
-          // Only track non-404 errors as actual errors (404 = repo not set up yet, expected)
+          // Only track unexpected errors (filter out expected/transient errors)
           const is404 = errorMessage.includes('not found') || errorMessage.includes('404');
+          const isAbortError =
+            errorMessage.includes('signal is aborted') || errorMessage.includes('AbortError');
 
-          if (!is404) {
+          if (!is404 && !isAbortError) {
             captureException(new Error(`Monthly rankings edge function error: ${errorMessage}`), {
               level: 'warning',
               tags: {

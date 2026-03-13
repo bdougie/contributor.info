@@ -470,7 +470,7 @@ Answer:`;
         .filter(
           (q) =>
             q.question.toLowerCase().includes(lowerQuestion) ||
-            q.context.toLowerCase().includes(lowerQuestion)
+            (q.context && q.context.toLowerCase().includes(lowerQuestion))
         )
         .slice(0, 3);
     }

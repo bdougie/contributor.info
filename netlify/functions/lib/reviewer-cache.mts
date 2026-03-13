@@ -59,11 +59,11 @@ export class ReviewerCache {
       }
 
       if (data) {
-        console.log(`Cache hit for repository ${repositoryId}, hash ${fileHash}`);
+        console.log('Cache hit for repository %s, hash %s', repositoryId, fileHash);
         return data.suggestions;
       }
 
-      console.log(`Cache miss for repository ${repositoryId}, hash ${fileHash}`);
+      console.log('Cache miss for repository %s, hash %s', repositoryId, fileHash);
       return null;
     } catch (error) {
       console.error('Error reading from cache:', error);
@@ -104,7 +104,7 @@ export class ReviewerCache {
       if (error) {
         console.warn('Cache write error:', error);
       } else {
-        console.log(`Cached suggestions for repository ${repositoryId}, hash ${fileHash}`);
+        console.log('Cached suggestions for repository %s, hash %s', repositoryId, fileHash);
       }
     } catch (error) {
       console.error('Error writing to cache:', error);
@@ -141,7 +141,7 @@ export class ReviewerCache {
       if (error) {
         console.warn('Error invalidating cache:', error);
       } else {
-        console.log(`Invalidated cache for repository ${repositoryId}`);
+        console.log('Invalidated cache for repository %s', repositoryId);
       }
     } catch (error) {
       console.error('Error during cache invalidation:', error);

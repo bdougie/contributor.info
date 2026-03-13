@@ -283,15 +283,9 @@ export function getRecentIssuesForContributor(
     (issue) => issue.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  // PERF: Native operators are ~20x faster than localeCompare
-  const sortedIssues = contributorIssues.sort((a, b) => {
-    if (a.updated_at < b.updated_at) return 1;
-    if (a.updated_at > b.updated_at) return -1;
-    return 0;
-  });
+  sortDescByKey(contributorIssues, 'updated_at');
 
-  return sortedIssues.slice(0, limit).map((issue) => ({
+  return contributorIssues.slice(0, limit).map((issue) => ({
     id: issue.id,
     number: issue.number,
     title: issue.title,
@@ -328,15 +322,9 @@ export function getRecentPRsForReviewer(
     return isRequestedReviewer || hasReviewed;
   });
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  // PERF: Native operators are ~20x faster than localeCompare
-  const sortedPRs = reviewerPRs.sort((a, b) => {
-    if (a.updated_at < b.updated_at) return 1;
-    if (a.updated_at > b.updated_at) return -1;
-    return 0;
-  });
+  sortDescByKey(reviewerPRs, 'updated_at');
 
-  return sortedPRs.slice(0, limit).map(transformPRToHoverCard);
+  return reviewerPRs.slice(0, limit).map(transformPRToHoverCard);
 }
 
 /**
@@ -355,15 +343,9 @@ export function getRecentActivitiesForContributor(
     (activity) => activity.author.username.toLowerCase() === contributorUsername.toLowerCase()
   );
 
-  // Use string comparison for sorting - ISO date strings sort lexicographically
-  // PERF: Native operators are ~20x faster than localeCompare
-  const sortedActivities = contributorActivities.sort((a, b) => {
-    if (a.created_at < b.created_at) return 1;
-    if (a.created_at > b.created_at) return -1;
-    return 0;
-  });
+  sortDescByKey(contributorActivities, 'created_at');
 
-  return sortedActivities.slice(0, limit).map((activity) => ({
+  return contributorActivities.slice(0, limit).map((activity) => ({
     id: activity.id,
     type: activity.type,
     title: activity.title,

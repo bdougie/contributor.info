@@ -65,7 +65,7 @@ function extractLinkedInUrl(text: string): string | null {
  */
 export async function fetchGitHubProfileSocialLinks(username: string): Promise<SocialLinks> {
   try {
-    console.log(`=== Fetching GitHub profile for ${username} ===`);
+    console.log('=== Fetching GitHub profile for %s ===', username);
 
     const supabase = await getSupabase();
 
@@ -206,7 +206,7 @@ export async function fetchGitHubProfileSocialLinks(username: string): Promise<S
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch GitHub profile for ${username}: ${response.status}`);
+      console.error('Failed to fetch GitHub profile for %s: %s', username, response.status);
       const errorText = await response.text();
       console.error('GitHub API error:', errorText);
       return { discord_url: null, linkedin_url: null };
@@ -229,7 +229,7 @@ export async function fetchGitHubProfileSocialLinks(username: string): Promise<S
 
     return { discord_url, linkedin_url };
   } catch (error) {
-    console.error(`Error fetching GitHub profile for ${username}:`, error);
+    console.error('Error fetching GitHub profile for %s:', username, error);
     return { discord_url: null, linkedin_url: null };
   }
 }
@@ -292,7 +292,7 @@ export async function batchFetchSocialLinks(
     try {
       await fetchAndUpdateSocialLinks(contributor.id, contributor.username);
     } catch (error) {
-      console.error(`Failed to fetch social links for ${contributor.username}:`, error);
+      console.error('Failed to fetch social links for %s:', contributor.username, error);
     }
   });
 

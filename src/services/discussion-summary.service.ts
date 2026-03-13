@@ -161,7 +161,7 @@ export async function generateSummariesForRepository(
   }
 
   const discussionIds = discussions.map((d) => d.id);
-  console.log(`Generating summaries for ${discussionIds.length} discussions in repository`);
+  console.log('Generating summaries for %s discussions in repository', discussionIds.length);
 
   return batchGenerateDiscussionSummaries(discussionIds, onProgress);
 }

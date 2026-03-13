@@ -125,7 +125,11 @@ export async function getWorkspaceConfidenceTrends(
         history,
       };
     } catch (error) {
-      console.warn(`[Workspace Confidence] Failed to get confidence for ${repo.full_name}:`, error);
+      console.warn(
+        '[Workspace Confidence] Failed to get confidence for %s:',
+        repo.full_name,
+        error
+      );
       return null;
     }
   });
