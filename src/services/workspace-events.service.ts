@@ -529,7 +529,11 @@ class WorkspaceEventsService {
         date,
         ...data,
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        return 0;
+      });
   }
 }
 
