@@ -23,9 +23,9 @@
 **Action:** Always use the `OptimizedAvatar` component instead of `AvatarImage` when rendering user avatars, especially in lists or grids.
 
 ## 2026-01-14 - Date Comparison Performance
-**Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
-**Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+**Learning:** For *sorting/comparing* ISO 8601 date strings, `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). ISO 8601 strings sort correctly with lexicographic comparison, so no parsing is needed.
+**Action:** When sorting or comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
 
-## 2026-01-28 - Date Formatting String Allocation
-**Learning:** Functions that parse date strings into relative times or calculate differences often default to allocating `new Date()` multiple times per call. In lists rendering hundreds of items, this creates significant garbage collection pressure.
-**Action:** Always use `Date.now()` and `Date.parse()` to retrieve and compare numeric timestamps instead of instantiating new `Date` objects when working with strings.
+## 2026-01-28 - Date Arithmetic Allocation
+**Learning:** For *arithmetic* on dates (calculating durations, relative times), `Date.now()` and `Date.parse()` return numeric timestamps without allocating a `Date` object wrapper. In lists rendering hundreds of items, avoiding `new Date()` reduces GC pressure.
+**Action:** When computing time differences or durations, use `Date.now()` and `Date.parse()` for numeric timestamps instead of `new Date()`. (This does not apply to sorting/comparing — see above.)
