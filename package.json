@@ -155,7 +155,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
-    "dompurify": "^3.2.7",
+    "dompurify": "^3.3.2",
     "dub": "^0.69.0",
     "embla-carousel-react": "^8.3.0",
     "html2canvas": "^1.4.1",
