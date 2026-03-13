@@ -8,12 +8,12 @@ const mockAuthCallback = vi.fn();
 const mockGetSession = vi.fn();
 const mockSignOut = vi.fn();
 
-vi.mock('react-router', (importOriginal) => {
-  return (importOriginal() as Promise<Record<string, unknown>>).then((actual) => ({
+vi.mock('react-router', (importOriginal) =>
+  (importOriginal() as Promise<typeof import('react-router')>).then((actual) => ({
     ...actual,
     useNavigate: () => mockNavigate,
-  }));
-});
+  }))
+);
 
 vi.mock('../lib/supabase', () => ({
   supabase: {

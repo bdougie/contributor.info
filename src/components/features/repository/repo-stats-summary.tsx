@@ -75,7 +75,7 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
 
   // Get the most recent PR - memoized for performance
   const mostRecentPR = useMemo(() => {
-    return filteredPRs.sort(
+    return [...filteredPRs].sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
   }, [filteredPRs]);

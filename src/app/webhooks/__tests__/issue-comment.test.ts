@@ -171,18 +171,18 @@ describe('handleIssueCommentEvent', () => {
   it('ignores non-.issues comments', () => {
     const mockEvent = createMockEvent('Just a regular comment');
 
-    handleIssueCommentEvent(mockEvent);
-
-    expect(mockCreateComment).not.toHaveBeenCalled();
-    expect(mockDeleteComment).not.toHaveBeenCalled();
+    return handleIssueCommentEvent(mockEvent).then(() => {
+      expect(mockCreateComment).not.toHaveBeenCalled();
+      expect(mockDeleteComment).not.toHaveBeenCalled();
+    });
   });
 
   it('ignores comments on issues (not PRs)', () => {
     const mockEvent = createMockEvent('.issues', false);
 
-    handleIssueCommentEvent(mockEvent);
-
-    expect(mockCreateComment).not.toHaveBeenCalled();
-    expect(mockDeleteComment).not.toHaveBeenCalled();
+    return handleIssueCommentEvent(mockEvent).then(() => {
+      expect(mockCreateComment).not.toHaveBeenCalled();
+      expect(mockDeleteComment).not.toHaveBeenCalled();
+    });
   });
 });

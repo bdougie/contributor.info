@@ -182,8 +182,9 @@ export function ShareableCard({
         share_type: type as 'url' | 'image' | 'native',
         domain: dubConfig.isDev ? 'dub.co' : 'oss.fyi',
         metadata: {
-          title,
           ...(metadata as Record<string, string | number | boolean | null> | undefined),
+          title,
+          isShortened: typeof metadata?.isShortened === 'boolean' ? metadata.isShortened : null,
         },
       });
     } catch (error) {
