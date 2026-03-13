@@ -59,7 +59,10 @@ class ServiceWorkerClient {
       // Check for updates every hour
       setInterval(
         () => {
-          registration.update();
+          registration.update().catch((err: Error) => {
+            // InvalidStateError can occur during service worker lifecycle transitions
+            console.warn('[SW Client] Update check failed:', err.message);
+          });
         },
         60 * 60 * 1000
       );
