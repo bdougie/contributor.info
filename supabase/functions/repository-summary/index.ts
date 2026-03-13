@@ -99,7 +99,10 @@ Keep it concise and informative for potential contributors.
 Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referring to metrics.`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(
+    () => controller.abort(new Error('OpenAI API request timed out after 30s')),
+    30000
+  );
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -144,7 +147,10 @@ Always use humanized numbers (1.2k, 5.7M) rather than full numbers when referrin
 // Generate embedding using OpenAI
 async function generateEmbedding(text: string): Promise<number[]> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(
+    () => controller.abort(new Error('OpenAI API request timed out after 30s')),
+    30000
+  );
 
   try {
     const response = await fetch('https://api.openai.com/v1/embeddings', {
