@@ -29,9 +29,10 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
 
   if (mergedPRs.length > 0) {
     const mergeTimes = mergedPRs.map((pr: PullRequest) => {
-      const created = new Date(pr.created_at);
-      const merged = new Date(pr.merged_at!);
-      return (merged.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
+      // Optimization: Use Date.parse() instead of new Date() to avoid object allocation in loop
+      const created = Date.parse(pr.created_at);
+      const merged = Date.parse(pr.merged_at!);
+      return (merged - created) / (1000 * 60 * 60); // hours
     });
     avgMergeTime = mergeTimes.reduce((a, b) => a + b, 0) / mergeTimes.length;
   }
@@ -146,9 +147,10 @@ function calculateHealthMetricsFromStats(stats: RepoStats, timeRange: string): H
     .filter((pr: PullRequest) => pr.comments && pr.comments.length > 0)
     .map((pr: PullRequest) => {
       // Estimate response time (simplified)
-      const created = new Date(pr.created_at);
-      const updated = new Date(pr.updated_at);
-      return (updated.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
+      // Optimization: Use Date.parse() instead of new Date() to avoid object allocation
+      const created = Date.parse(pr.created_at);
+      const updated = Date.parse(pr.updated_at);
+      return (updated - created) / (1000 * 60 * 60); // hours
     });
 
   const avgResponseTime =
