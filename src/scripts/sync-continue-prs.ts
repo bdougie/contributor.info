@@ -16,7 +16,7 @@ async function syncContinuePRs() {
   }
 
   const repoId = repoData.id;
-  console.log(`✅ Found repository: ${repoId}`);
+  console.log('✅ Found repository: %s', repoId);
 
   // Fetch PRs from GitHub
   console.log('🔄 Fetching PRs from GitHub API...');
@@ -65,10 +65,10 @@ async function syncContinuePRs() {
     return;
   }
 
-  console.log(`✅ Found ${targetPRs.length} PRs to insert`);
+  console.log('✅ Found %s PRs to insert', targetPRs.length);
 
   for (const pr of targetPRs) {
-    console.log(`\n📝 Processing PR #${pr.number}: ${pr.title}`);
+    console.log('\n📝 Processing PR #%s: %s', pr.number, pr.title);
 
     // First ensure the contributor exists
     let contributorId = null;
@@ -90,7 +90,7 @@ async function syncContinuePRs() {
 
       if (contribData) {
         contributorId = contribData.id;
-        console.log(`  ✅ Contributor: ${pr.user.login} (${contributorId})`);
+        console.log('  ✅ Contributor: %s (%s)', pr.user.login, contributorId);
       }
     }
 
@@ -120,9 +120,9 @@ async function syncContinuePRs() {
       last_synced_at: new Date().toISOString(),
     };
 
-    console.log(`  📅 Created: ${pr.created_at}`);
-    console.log(`  🔧 State: ${pr.state}`);
-    console.log(`  🆔 GitHub ID: ${pr.id}`);
+    console.log('  📅 Created: %s', pr.created_at);
+    console.log('  🔧 State: %s', pr.state);
+    console.log('  🆔 GitHub ID: %s', pr.id);
 
     // Insert/update the PR
     const { error } = await supabase.from('pull_requests').upsert(prData, {
@@ -130,9 +130,9 @@ async function syncContinuePRs() {
     });
 
     if (error) {
-      console.error(`  ❌ Failed to insert PR #${pr.number}:`, error);
+      console.error('  ❌ Failed to insert PR #%s:', pr.number, error);
     } else {
-      console.log(`  ✅ Successfully upserted PR #${pr.number}`);
+      console.log('  ✅ Successfully upserted PR #%s', pr.number);
     }
   }
 
@@ -147,9 +147,9 @@ async function syncContinuePRs() {
   if (verifyData && verifyData.length > 0) {
     console.log('✅ PRs in database:');
     verifyData.forEach((pr) => {
-      console.log(`  PR #${pr.number}: ${pr.title}`);
-      console.log(`    Created: ${pr.created_at}`);
-      console.log(`    GitHub ID: ${pr.github_id}`);
+      console.log('  PR #%s: %s', pr.number, pr.title);
+      console.log('    Created: %s', pr.created_at);
+      console.log('    GitHub ID: %s', pr.github_id);
     });
   } else {
     console.log('❌ PRs not found in database');

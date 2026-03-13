@@ -58,7 +58,7 @@ export default async (req, context) => {
 
     // Block app routes that aren't GitHub repositories
     if (BLOCKED_OWNERS.has(owner.toLowerCase())) {
-      console.warn(`Blocked discovery attempt for app route: ${owner}/${repo}`);
+      console.warn('Blocked discovery attempt for app route: %s/%s', owner, repo);
       return new Response(
         JSON.stringify({
           error: 'Invalid repository',
@@ -96,7 +96,7 @@ export default async (req, context) => {
         timestamp: new Date().toISOString(),
       },
     });
-    console.log(`Repository discovery initiated for ${owner}/${repo}`, result);
+    console.log('Repository discovery initiated for %s/%s', owner, repo, result);
     return new Response(
       JSON.stringify({
         success: true,

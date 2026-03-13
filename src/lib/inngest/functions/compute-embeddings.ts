@@ -167,7 +167,7 @@ export const computeEmbeddings = inngest.createFunction(
             .limit(50);
 
           if (forceError) {
-            console.error(`[Embeddings] Failed to fetch existing ${itemType}:`, {
+            console.error('[Embeddings] Failed to fetch existing %s:', itemType, {
               error: forceError.message,
               code: forceError.code,
               table,
@@ -176,7 +176,9 @@ export const computeEmbeddings = inngest.createFunction(
 
           if (forceItems) {
             console.log(
-              `[Embeddings] Found ${forceItems.length} existing ${itemType} to regenerate`
+              '[Embeddings] Found %s existing %s to regenerate',
+              forceItems.length,
+              itemType
             );
             items.push(
               ...forceItems.map((item) => ({
@@ -240,7 +242,7 @@ export const computeEmbeddings = inngest.createFunction(
       const batchNumber = i / batchSize;
 
       await step.run(`process-batch-${batchNumber}`, async () => {
-        console.log(`[Embeddings] Processing batch ${batchNumber + 1}:`, {
+        console.log('[Embeddings] Processing batch %s:', batchNumber + 1, {
           batchSize: batch.length,
           itemIds: batch.map((item) => item.id).slice(0, 5), // Log first 5 IDs
         });
@@ -278,7 +280,7 @@ export const computeEmbeddings = inngest.createFunction(
             `[${item.type.toUpperCase()}] ${item.title} ${item.body || ''}`.substring(0, 2000)
           );
 
-          console.log(`[Embeddings] Calling OpenAI API for ${texts.length} texts`);
+          console.log('[Embeddings] Calling OpenAI API for %s texts', texts.length);
 
           const response = await fetch('https://api.openai.com/v1/embeddings', {
             method: 'POST',
@@ -309,7 +311,9 @@ export const computeEmbeddings = inngest.createFunction(
           const embeddings = data.data;
 
           console.log(
-            `[Embeddings] Generated ${embeddings.length} embeddings for batch ${batchNumber + 1}`
+            '[Embeddings] Generated %s embeddings for batch %s',
+            embeddings.length,
+            batchNumber + 1
           );
 
           // Update database with embeddings
@@ -318,7 +322,11 @@ export const computeEmbeddings = inngest.createFunction(
             const embedding = embeddings[j]?.embedding;
 
             if (!embedding) {
-              console.warn(`[Embeddings] No embedding returned for item ${item.id} at index ${j}`);
+              console.warn(
+                '[Embeddings] No embedding returned for item %s at index %s',
+                item.id,
+                j
+              );
               continue;
             }
 
@@ -381,7 +389,7 @@ export const computeEmbeddings = inngest.createFunction(
             processedCount++;
           }
 
-          console.log(`[Embeddings] Batch ${batchNumber + 1} complete:`, {
+          console.log('[Embeddings] Batch %s complete:', batchNumber + 1, {
             processed: processedCount,
             batchErrors: errors.length,
           });

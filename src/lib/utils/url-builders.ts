@@ -14,7 +14,7 @@ function validateGitHubName(name: string): string {
   // GitHub usernames can only contain alphanumeric characters or hyphens
   const sanitized = name.replace(/[^a-zA-Z0-9-]/g, '');
   if (sanitized !== name) {
-    console.warn(`GitHub name contained invalid characters: ${name}`);
+    console.warn('GitHub name contained invalid characters: %s', name);
   }
   return sanitized;
 }
@@ -29,7 +29,7 @@ function validateRepoName(name: string): string {
   // Repository names can contain alphanumeric, hyphens, underscores, and dots
   const sanitized = name.replace(/[^a-zA-Z0-9-_.]/g, '');
   if (sanitized !== name) {
-    console.warn(`Repository name contained invalid characters: ${name}`);
+    console.warn('Repository name contained invalid characters: %s', name);
   }
   return sanitized;
 }

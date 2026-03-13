@@ -168,7 +168,7 @@ export default async (req: Request, context: Context) => {
 
     // Block app routes that aren't GitHub repositories
     if (BLOCKED_OWNERS.has(owner.toLowerCase())) {
-      console.warn(`Blocked tracking attempt for app route: ${owner}/${repo}`);
+      console.warn('Blocked tracking attempt for app route: %s/%s', owner, repo);
       return withHeaders(
         new Response(
           JSON.stringify({

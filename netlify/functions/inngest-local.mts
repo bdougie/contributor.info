@@ -49,7 +49,7 @@ const capturePrDetailsLocal = inngest.createFunction(
     const { repositoryId, prNumber } = event.data;
 
     const result = await step.run('process-pr', async () => {
-      console.log(`Processing PR #${prNumber} for repository ${repositoryId}`);
+      console.log('Processing PR #%s for repository %s', prNumber, repositoryId);
       return {
         repositoryId,
         prNumber,
@@ -76,7 +76,7 @@ const syncRepositoryLocal = inngest.createFunction(
     const { repositoryId, days } = event.data;
 
     const result = await step.run('sync-data', async () => {
-      console.log(`Syncing ${days} days of data for repository ${repositoryId}`);
+      console.log('Syncing %s days of data for repository %s', days, repositoryId);
       return {
         repositoryId,
         days,

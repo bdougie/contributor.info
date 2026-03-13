@@ -276,7 +276,7 @@ export default async (req: Request, context: Context) => {
         const matches = codeowners.content.match(teamPattern);
         if (matches) {
           existingTeams = [...new Set(matches)]; // Unique teams
-          console.log(`Found existing teams in CODEOWNERS: ${existingTeams.join(', ')}`);
+          console.log('Found existing teams in CODEOWNERS: %s', existingTeams.join(', '));
         }
       }
     } catch (e) {

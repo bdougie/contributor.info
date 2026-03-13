@@ -24,7 +24,7 @@ interface GitHubUserProfile {
  */
 export async function fetchGitHubUserProfile(username: string): Promise<GitHubUserProfile | null> {
   try {
-    console.log(`Fetching GitHub profile for ${username}`);
+    console.log('Fetching GitHub profile for %s', username);
 
     const supabase = await getSupabase();
 
@@ -51,19 +51,19 @@ export async function fetchGitHubUserProfile(username: string): Promise<GitHubUs
     });
 
     if (!response.ok) {
-      console.error(`Failed to fetch GitHub profile for ${username}: ${response.status}`);
+      console.error('Failed to fetch GitHub profile for %s: %s', username, response.status);
       return null;
     }
 
     const profile: GitHubUserProfile = await response.json();
-    console.log(`Successfully fetched profile for ${username}`, {
+    console.log('Successfully fetched profile for %s', username, {
       company: profile.company,
       location: profile.location,
     });
 
     return profile;
   } catch (error) {
-    console.error(`Error fetching GitHub profile for ${username}:`, error);
+    console.error('Error fetching GitHub profile for %s:', username, error);
     return null;
   }
 }
@@ -87,7 +87,7 @@ export async function fetchGitHubUserProfileGraphQL(username: string): Promise<{
   }>;
 } | null> {
   try {
-    console.log(`Fetching GitHub profile via GraphQL for ${username}`);
+    console.log('Fetching GitHub profile via GraphQL for %s', username);
 
     const supabase = await getSupabase();
 
@@ -180,7 +180,7 @@ export async function fetchGitHubUserProfileGraphQL(username: string): Promise<{
     }
 
     const user = data.data.user;
-    console.log(`Successfully fetched profile via GraphQL for ${username}`, {
+    console.log('Successfully fetched profile via GraphQL for %s', username, {
       company: user.company,
       location: user.location,
       organizationCount: user.organizations?.nodes?.length || 0,
@@ -196,7 +196,7 @@ export async function fetchGitHubUserProfileGraphQL(username: string): Promise<{
       organizations: user.organizations?.nodes || [],
     };
   } catch (error) {
-    console.error(`Error fetching GitHub profile via GraphQL for ${username}:`, error);
+    console.error('Error fetching GitHub profile via GraphQL for %s:', username, error);
     return null;
   }
 }
@@ -236,9 +236,9 @@ export async function updateContributorProfile(
       throw error;
     }
 
-    console.log(`Successfully updated profile for ${username}`);
+    console.log('Successfully updated profile for %s', username);
   } catch (error) {
-    console.error(`Failed to update contributor profile for ${username}:`, error);
+    console.error('Failed to update contributor profile for %s:', username, error);
   }
 }
 
@@ -277,7 +277,7 @@ export async function fetchAndCacheUserProfile(username: string): Promise<{
 
     return profile;
   } catch (error) {
-    console.error(`Error fetching and caching profile for ${username}:`, error);
+    console.error('Error fetching and caching profile for %s:', username, error);
     return null;
   }
 }

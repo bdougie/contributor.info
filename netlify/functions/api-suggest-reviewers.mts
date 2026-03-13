@@ -448,7 +448,7 @@ export default async (req: Request, context: Context) => {
     let owner = parts[apiIndex + 2];
     let repo = parts[apiIndex + 3];
 
-    console.log(`Validating repository: ${owner}/${repo}`);
+    console.log('Validating repository: %s/%s', owner, repo);
     const validation = await validateRepository(owner, repo);
     if (validation.error) {
       console.error('Validation error:', validation.error);
@@ -497,7 +497,7 @@ export default async (req: Request, context: Context) => {
             headers['Authorization'] = `Bearer ${ghToken}`;
           }
 
-          console.log(`Attempting to fetch PR details and files for: ${prUrl}`);
+          console.log('Attempting to fetch PR details and files for: %s', prUrl);
 
           // Fetch PR details first to get the author
           if (!prAuthor) {
@@ -511,10 +511,11 @@ export default async (req: Request, context: Context) => {
                 const prDetails = await prDetailsResp.json();
                 // Get the author's username from the PR
                 prAuthor = prDetails.user?.login;
-                console.log(`PR author extracted: ${prAuthor}`);
+                console.log('PR author extracted: %s', prAuthor);
               } else {
                 console.warn(
-                  `Could not fetch PR details (${prDetailsResp.status}). Proceeding without author.`
+                  'Could not fetch PR details (%s). Proceeding without author.',
+                  prDetailsResp.status
                 );
               }
             } catch (e) {
@@ -532,7 +533,10 @@ export default async (req: Request, context: Context) => {
             if (!r.ok) {
               const errorBody = await r.text();
               console.error(
-                `Failed to fetch PR files: ${r.status} ${r.statusText}. Body: ${errorBody}`
+                'Failed to fetch PR files: %s %s. Body: %s',
+                r.status,
+                r.statusText,
+                errorBody
               );
 
               // Try without auth if 401
@@ -562,7 +566,8 @@ export default async (req: Request, context: Context) => {
               if (page === 1 && collected.length === 0) {
                 // Only fail if we couldn't get any files
                 console.warn(
-                  `Could not fetch PR files from GitHub (${r.status}). Will proceed without file analysis.`
+                  'Could not fetch PR files from GitHub (%s). Will proceed without file analysis.',
+                  r.status
                 );
                 // Don't return error - continue with empty files array
               }
@@ -664,7 +669,7 @@ export default async (req: Request, context: Context) => {
         const prMatch = url.pathname.match(/\/pull\/(\d+)/);
         if (prMatch) {
           const prNumber = parseInt(prMatch[1], 10);
-          console.log(`Attempting to fetch PR author from database for PR #${prNumber}`);
+          console.log('Attempting to fetch PR author from database for PR #%s', prNumber);
 
           // Try to get the PR author from the database
           const { data: prData, error: prError } = await supabase
@@ -676,9 +681,9 @@ export default async (req: Request, context: Context) => {
 
           if (prData?.author?.username) {
             prAuthor = prData.author.username;
-            console.log(`PR author found in database: ${prAuthor}`);
+            console.log('PR author found in database: %s', prAuthor);
           } else {
-            console.warn(`Could not find PR #${prNumber} in database`);
+            console.warn('Could not find PR #%s in database', prNumber);
           }
         }
       } catch (e) {
@@ -691,7 +696,7 @@ export default async (req: Request, context: Context) => {
     const cachedData = await cache.get(repository.id, cacheKey, prAuthor);
 
     if (cachedData) {
-      console.log(`Returning cached reviewer suggestions for ${owner}/${repo}`);
+      console.log('Returning cached reviewer suggestions for %s/%s', owner, repo);
 
       // Return cached response with cache hit header
       const resp = new Response(JSON.stringify(cachedData), {
@@ -731,7 +736,7 @@ export default async (req: Request, context: Context) => {
       for (const codeOwner of codeOwners) {
         // Skip if code owner is the PR author
         if (codeOwner === prAuthor) {
-          console.log(`Skipping code owner ${codeOwner} as they are the PR author`);
+          console.log('Skipping code owner %s as they are the PR author', codeOwner);
           continue;
         }
 

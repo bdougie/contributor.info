@@ -47,7 +47,7 @@ export async function clusterContributionsByTopic(
       return [];
     }
 
-    console.log(`[Topic Clustering] Clustering ${embeddings.length} items into ${opts.k} topics`);
+    console.log('[Topic Clustering] Clustering %s items into %s topics', embeddings.length, opts.k);
 
     // Step 2: Run K-means clustering
     const clusteringResult = await kMeansClustering(embeddings, opts);

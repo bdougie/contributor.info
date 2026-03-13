@@ -29,7 +29,7 @@ export interface ApiConfig {
 function getEnvVar(name: string, defaultValue?: string): string {
   const value = process.env[name];
   if (!value && !defaultValue) {
-    console.error(`Missing required environment variable: ${name}`);
+    console.error('Missing required environment variable: %s', name);
     throw new Error(`Configuration error: ${name} is required`);
   }
   return value || defaultValue || '';

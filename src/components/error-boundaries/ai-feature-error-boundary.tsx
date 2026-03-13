@@ -41,7 +41,7 @@ export class AIFeatureErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error(`[AIFeatureErrorBoundary] ${this.props.featureName || 'AI Feature'} error:`, {
+      console.error('[AIFeatureErrorBoundary] %s error:', this.props.featureName || 'AI Feature', {
         error,
         errorInfo,
         componentStack: errorInfo.componentStack,

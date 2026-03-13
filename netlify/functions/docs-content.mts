@@ -79,7 +79,7 @@ export default async (req: Request, context: Context) => {
     }
 
     if (!content) {
-      console.error(`Doc file ${filename} not found. Tried paths:`, errors);
+      console.error('Doc file %s not found. Tried paths:', filename, errors);
       console.error('Current directory:', process.cwd());
       console.error('Environment:', {
         NETLIFY: process.env.NETLIFY,
@@ -138,7 +138,7 @@ export default async (req: Request, context: Context) => {
       );
     }
 
-    console.log(`Successfully read doc from: ${successPath}`);
+    console.log('Successfully read doc from: %s', successPath);
 
     return new Response(content, {
       status: 200,
@@ -150,7 +150,7 @@ export default async (req: Request, context: Context) => {
     });
   } catch (error) {
     // Log stack trace and error server-side only
-    console.error(`Error in docs-content function for ${filename}:`, error);
+    console.error('Error in docs-content function for %s:', filename, error);
 
     return new Response(
       JSON.stringify({
