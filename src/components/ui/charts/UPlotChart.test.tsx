@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { UPlotChart } from './UPlotChart';
 import type { AlignedData } from 'uplot';
@@ -28,12 +28,12 @@ class MockResizeObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
 
-  constructor(...args: any[]) {
+  constructor(...args: unknown[]) {
     mockResizeObserverConstructor(...args);
   }
 }
 
-global.ResizeObserver = MockResizeObserver as any;
+global.ResizeObserver = MockResizeObserver as typeof ResizeObserver;
 
 describe('UPlotChart', () => {
   const mockData: AlignedData = [
@@ -83,14 +83,12 @@ describe('UPlotChart', () => {
     expect(chartDiv).toHaveStyle({ width: '800px' });
   });
 
-  it('calls onReady callback when chart is created', async () => {
+  it('calls onReady callback when chart is created', () => {
     const onReady = vi.fn();
 
     render(<UPlotChart data={mockData} options={mockOptions} onReady={onReady} />);
 
-    await waitFor(() => {
-      expect(onReady).toHaveBeenCalled();
-    });
+    expect(onReady).toHaveBeenCalled();
   });
 
   it('calls onDestroy callback when component unmounts', () => {
@@ -130,29 +128,23 @@ describe('UPlotChart', () => {
     expect(chartDiv).toHaveStyle({ width: '100%' });
   });
 
-  it('syncs wrapper div width with uPlot dimensions when responsive is false', async () => {
+  it('syncs wrapper div width with uPlot dimensions when responsive is false', () => {
     const { container } = render(
       <UPlotChart data={mockData} options={mockOptions} width={500} responsive={false} />
     );
 
-    // Wait for the chart to be initialized and dimensions to be set
-    await waitFor(() => {
-      const chartDiv = container.querySelector('.uplot-chart');
-      // Should match the uPlot width (500px) rather than being undefined
-      expect(chartDiv).toHaveStyle({ width: '500px' });
-    });
+    const chartDiv = container.querySelector('.uplot-chart');
+    // Should match the uPlot width (500px) rather than being undefined
+    expect(chartDiv).toHaveStyle({ width: '500px' });
   });
 
-  it('uses default width when no width provided and responsive is false', async () => {
+  it('uses default width when no width provided and responsive is false', () => {
     const { container } = render(
       <UPlotChart data={mockData} options={mockOptions} responsive={false} />
     );
 
-    // Wait for the chart to be initialized
-    await waitFor(() => {
-      const chartDiv = container.querySelector('.uplot-chart');
-      // Should use default 600px width
-      expect(chartDiv).toHaveStyle({ width: '600px' });
-    });
+    const chartDiv = container.querySelector('.uplot-chart');
+    // Should use default 600px width
+    expect(chartDiv).toHaveStyle({ width: '600px' });
   });
 });

@@ -96,7 +96,7 @@ describe('useContributorData', () => {
     cleanup();
   });
 
-  it('should return contributor data for a user with PRs', async () => {
+  it('should return contributor data for a user with PRs', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RepoStatsContext.Provider
         value={{
@@ -131,17 +131,15 @@ describe('useContributorData', () => {
     expect(result.current.percentage).toBe(0);
 
     // Wait for the effect to run - using Vitest's waitFor
-    await vi.waitFor(() => {
+    return vi.waitFor(() => {
       expect(result.current.pullRequests).toBe(2); // Should find 2 PRs for testuser
+      expect(result.current.percentage).toBe((2 / mockPullRequests.length) * 100);
+      expect(result.current.organizations).toEqual(mockOrgs);
+      expect(result.current.recentPRs?.length).toBe(2);
     });
-
-    // Check updated state
-    expect(result.current.percentage).toBe((2 / mockPullRequests.length) * 100);
-    expect(result.current.organizations).toEqual(mockOrgs);
-    expect(result.current.recentPRs?.length).toBe(2);
   });
 
-  it('should handle API errors gracefully', async () => {
+  it('should handle API errors gracefully', () => {
     // Setup error case and clear any cached data
     vi.mocked(fetchUserOrganizations).mockRejectedValue(new Error('API Error'));
 
@@ -177,14 +175,13 @@ describe('useContributorData', () => {
     );
 
     // Wait for the effect to run and verify organizations is empty
-    await vi.waitFor(() => {
+    // Should still have PR data but empty organizations due to error handling
+    return vi.waitFor(() => {
       expect(result.current.organizations).toEqual([]);
     });
-
-    // Should still have PR data but empty organizations due to error handling
   });
 
-  it('should handle users with no PRs', async () => {
+  it('should handle users with no PRs', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RepoStatsContext.Provider
         value={{
@@ -212,17 +209,15 @@ describe('useContributorData', () => {
       { wrapper }
     );
 
-    // Wait for the effect to run
-    await vi.waitFor(() => {
+    // Wait for the effect to run and verify 0 PRs and 0 percentage
+    return vi.waitFor(() => {
       expect(result.current.login).toBe('nonexistentuser');
+      expect(result.current.pullRequests).toBe(0);
+      expect(result.current.percentage).toBe(0);
     });
-
-    // Should have 0 PRs and 0 percentage
-    expect(result.current.pullRequests).toBe(0);
-    expect(result.current.percentage).toBe(0);
   });
 
-  it('should use cache for repeat requests for the same user', async () => {
+  it('should use cache for repeat requests for the same user', () => {
     // Reset mock counters before this test
     vi.clearAllMocks();
 
@@ -254,31 +249,32 @@ describe('useContributorData', () => {
       { wrapper }
     );
 
-    // Wait for the first render to complete
-    await vi.waitFor(() => {
-      // Make sure the organizations API was called
-      expect(fetchUserOrganizations).toHaveBeenCalled();
-    });
+    // Wait for the first render to complete, then verify cache behavior
+    return vi
+      .waitFor(() => {
+        // Make sure the organizations API was called
+        expect(fetchUserOrganizations).toHaveBeenCalled();
+      })
+      .then(() => {
+        // Reset the mock to track new calls
+        vi.mocked(fetchUserOrganizations).mockClear();
 
-    // Reset the mock to track new calls
-    vi.mocked(fetchUserOrganizations).mockClear();
+        // Second render - should use cache and not call the API again
+        const { result: result2 } = renderHook(
+          () =>
+            useContributorData({
+              username: 'cache-test-user',
+              avatarUrl: 'https://example.com/testuser.png',
+            }),
+          { wrapper }
+        );
 
-    // Second render - should use cache and not call the API again
-    const { result: result2 } = renderHook(
-      () =>
-        useContributorData({
-          username: 'cache-test-user',
-          avatarUrl: 'https://example.com/testuser.png',
-        }),
-      { wrapper }
-    );
-
-    // Wait for the second hook to complete rendering
-    await vi.waitFor(() => {
-      expect(result2.current.login).toBe('cache-test-user');
-    });
-
-    // The API should not be called again for the second render
-    expect(fetchUserOrganizations).not.toHaveBeenCalled();
+        // Wait for the second hook to complete rendering
+        return vi.waitFor(() => {
+          expect(result2.current.login).toBe('cache-test-user');
+          // The API should not be called again for the second render
+          expect(fetchUserOrganizations).not.toHaveBeenCalled();
+        });
+      });
   });
 });

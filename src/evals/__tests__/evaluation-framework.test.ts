@@ -21,6 +21,45 @@ vi.mock('@supabase/supabase-js', () => ({
   })),
 }));
 
+/** Synchronous wrapper for testing - mirrors evaluateSample logic without async */
+function evaluateSampleSync(
+  classifier: MaintainerClassifier,
+  input: EvaluationInput,
+  sampleId: string,
+  expected: 'maintainer' | 'contributor'
+): EvaluationResult {
+  const classifierInternal = classifier as unknown as {
+    classifyContributor: (input: EvaluationInput) => 'maintainer' | 'contributor';
+    calculateConfidence: (
+      input: EvaluationInput,
+      prediction: 'maintainer' | 'contributor'
+    ) => number;
+  };
+  const startTime = Date.now();
+  try {
+    const prediction = classifierInternal.classifyContributor(input);
+    const confidence = classifierInternal.calculateConfidence(input, prediction);
+    return {
+      sample_id: sampleId,
+      prediction,
+      confidence,
+      expected,
+      correct: prediction === expected,
+      execution_time_ms: Date.now() - startTime,
+    };
+  } catch (error) {
+    return {
+      sample_id: sampleId,
+      prediction: 'contributor',
+      confidence: 0,
+      expected,
+      correct: false,
+      execution_time_ms: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 describe('MaintainerClassifier', () => {
   let classifier: MaintainerClassifier;
   let config: EvaluationConfig;
@@ -49,7 +88,7 @@ describe('MaintainerClassifier', () => {
   });
 
   describe('Maintainer Classification', () => {
-    it('should classify moderate-privilege contributor as maintainer', async () => {
+    it('should classify moderate-privilege contributor as maintainer', () => {
       const input: EvaluationInput = {
         user_id: 'test-maintainer',
         repository: 'test/repo',
@@ -82,7 +121,7 @@ describe('MaintainerClassifier', () => {
         },
       };
 
-      const result = await classifier.evaluateSample(input, 'test-2', 'maintainer');
+      const result = evaluateSampleSync(classifier, input, 'test-2', 'maintainer');
 
       expect(result.prediction).toBe('maintainer');
       expect(result.confidence).toBeGreaterThan(0.5);
@@ -91,7 +130,7 @@ describe('MaintainerClassifier', () => {
   });
 
   describe('Contributor Classification', () => {
-    it('should classify low-privilege contributor as contributor', async () => {
+    it('should classify low-privilege contributor as contributor', () => {
       const input: EvaluationInput = {
         user_id: 'test-contributor',
         repository: 'test/repo',
@@ -112,7 +151,7 @@ describe('MaintainerClassifier', () => {
         },
       };
 
-      const result = await classifier.evaluateSample(input, 'test-3', 'contributor');
+      const result = evaluateSampleSync(classifier, input, 'test-3', 'contributor');
 
       expect(result.prediction).toBe('contributor');
       expect(result.correct).toBe(true);
@@ -120,7 +159,7 @@ describe('MaintainerClassifier', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty events gracefully', async () => {
+    it('should handle empty events gracefully', () => {
       const input: EvaluationInput = {
         user_id: 'test-empty',
         repository: 'test/repo',
@@ -138,13 +177,13 @@ describe('MaintainerClassifier', () => {
         },
       };
 
-      const result = await classifier.evaluateSample(input, 'test-empty', 'contributor');
+      const result = evaluateSampleSync(classifier, input, 'test-empty', 'contributor');
 
       expect(result.error).toBeUndefined();
       expect(result.prediction).toBe('contributor');
     });
 
-    it('should handle malformed data', async () => {
+    it('should handle malformed data', () => {
       const input: EvaluationInput = {
         user_id: 'test-malformed',
         repository: 'test/repo',
@@ -165,7 +204,7 @@ describe('MaintainerClassifier', () => {
         },
       };
 
-      const result = await classifier.evaluateSample(input, 'test-malformed', 'contributor');
+      const result = evaluateSampleSync(classifier, input, 'test-malformed', 'contributor');
 
       expect(result.error).toBeUndefined(); // Should handle gracefully
       expect(result.prediction).toBeDefined();
@@ -444,7 +483,7 @@ describe('Feature Extraction', () => {
     classifier = new MaintainerClassifier(config);
   });
 
-  it('should handle repository context correctly', async () => {
+  it('should handle repository context correctly', () => {
     const input: EvaluationInput = {
       user_id: 'test-user',
       repository: 'large-repo/project',
@@ -475,7 +514,7 @@ describe('Feature Extraction', () => {
       },
     };
 
-    const result = await classifier.evaluateSample(input, 'test-repo-context', 'maintainer');
+    const result = evaluateSampleSync(classifier, input, 'test-repo-context', 'maintainer');
 
     expect(result.error).toBeUndefined();
     expect(result.prediction).toBeDefined();

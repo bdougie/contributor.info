@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
 import { indexGitHistory } from '../../../../app/services/git-history';
-import { Logger } from '../../../../app/services/logger';
 import { Octokit } from '@octokit/rest';
 import { Repository } from '../../../../app/types/github';
+import { supabase } from '../../../lib/supabase';
 
 // Create mock logger instance
 const mockLoggerInstance = {
@@ -69,9 +69,7 @@ describe('Git History Service', () => {
   });
 
   describe('Structured Logging', () => {
-    it('should use structured logging instead of console.error', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
+    it('should use structured logging instead of console.error', () => {
       // Mock database error
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -84,22 +82,20 @@ describe('Git History Service', () => {
         }),
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify structured logger was used for errors
+        expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+          'Error fetching repository from database: %s',
+          'Database connection failed'
+        );
 
-      // Verify structured logger was used for errors
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        'Error fetching repository from database: %s',
-        'Database connection failed'
-      );
-
-      // Verify console.error was NOT called directly
-      const consoleErrorSpy = vi.spyOn(console, 'error');
-      expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('[Git History]'));
+        // Verify console.error was NOT called directly
+        const consoleErrorSpy = vi.spyOn(console, 'error');
+        expect(consoleErrorSpy).not.toHaveBeenCalledWith(expect.stringContaining('[Git History]'));
+      });
     });
 
-    it('should use parameterized logging to prevent format string vulnerabilities', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
+    it('should use parameterized logging to prevent format string vulnerabilities', () => {
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -167,19 +163,17 @@ describe('Git History Service', () => {
         };
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
-
-      // Verify parameterized logging was used (prevents format string attacks)
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        'Error fetching contributor %s: %s',
-        maliciousUsername,
-        'Contributor not found'
-      );
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify parameterized logging was used (prevents format string attacks)
+        expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+          'Error fetching contributor %s: %s',
+          maliciousUsername,
+          'Contributor not found'
+        );
+      });
     });
 
-    it('should log progress updates using structured logging', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
+    it('should log progress updates using structured logging', () => {
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -218,27 +212,25 @@ describe('Git History Service', () => {
         };
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify progress logging
+        expect(mockLoggerInstance.info).toHaveBeenCalledWith(
+          'Starting git history indexing for %s',
+          'test/repo'
+        );
 
-      // Verify progress logging
-      expect(mockLoggerInstance.info).toHaveBeenCalledWith(
-        'Starting git history indexing for %s',
-        'test/repo'
-      );
-
-      expect(mockLoggerInstance.info).toHaveBeenCalledWith(
-        'Git history indexing completed for %s',
-        'test/repo'
-      );
+        expect(mockLoggerInstance.info).toHaveBeenCalledWith(
+          'Git history indexing completed for %s',
+          'test/repo'
+        );
+      });
     });
   });
 
   describe('Schema Field Corrections', () => {
-    it('should use correct schema field names (username not github_login)', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
-      let contributorQuery: any = null;
-      let contributorInsert: any = null;
+    it('should use correct schema field names (username not github_login)', () => {
+      let contributorQuery: { field: string; value: string } | null = null;
+      let contributorInsert: Record<string, unknown> | null = null;
 
       // Mock repository lookup
       (supabase.from as Mock).mockImplementation((table: string) => {
@@ -258,7 +250,7 @@ describe('Git History Service', () => {
         if (table === 'contributors') {
           return {
             select: vi.fn().mockReturnValue({
-              eq: vi.fn((field: string, value: any) => {
+              eq: vi.fn((field: string, value: string) => {
                 contributorQuery = { field, value };
                 return {
                   maybeSingle: vi.fn().mockResolvedValue({
@@ -268,7 +260,7 @@ describe('Git History Service', () => {
                 };
               }),
             }),
-            insert: vi.fn((data: any) => {
+            insert: vi.fn((data: Record<string, unknown>) => {
               contributorInsert = data;
               return {
                 select: vi.fn().mockReturnValue({
@@ -330,28 +322,26 @@ describe('Git History Service', () => {
         },
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify correct field names were used
+        expect(contributorQuery).toEqual({
+          field: 'username', // Should be 'username', not 'github_login'
+          value: 'testuser',
+        });
 
-      // Verify correct field names were used
-      expect(contributorQuery).toEqual({
-        field: 'username', // Should be 'username', not 'github_login'
-        value: 'testuser',
-      });
-
-      expect(contributorInsert).toMatchObject({
-        github_id: 999,
-        username: 'testuser', // Should be 'username', not 'github_login'
-        display_name: 'Test User', // Should be 'display_name', not 'name'
-        avatar_url: 'https://github.com/testuser.png',
-        profile_url: 'https://github.com/testuser',
+        expect(contributorInsert).toMatchObject({
+          github_id: 999,
+          username: 'testuser', // Should be 'username', not 'github_login'
+          display_name: 'Test User', // Should be 'display_name', not 'name'
+          avatar_url: 'https://github.com/testuser.png',
+          profile_url: 'https://github.com/testuser',
+        });
       });
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle commit processing errors gracefully', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
+    it('should handle commit processing errors gracefully', () => {
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -410,19 +400,17 @@ describe('Git History Service', () => {
         };
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
-
-      // Verify error was logged properly
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        'Error processing commit %s: %s',
-        'abc123',
-        'API rate limit exceeded'
-      );
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify error was logged properly
+        expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+          'Error processing commit %s: %s',
+          'abc123',
+          'API rate limit exceeded'
+        );
+      });
     });
 
-    it('should handle pagination errors gracefully', async () => {
-      const { supabase } = await import('../../../lib/supabase');
-
+    it('should handle pagination errors gracefully', () => {
       // Mock successful repository lookup
       (supabase.from as Mock).mockReturnValue({
         select: vi.fn().mockReturnValue({
@@ -459,14 +447,14 @@ describe('Git History Service', () => {
         };
       });
 
-      await indexGitHistory(mockRepository, mockOctokit as Octokit);
-
-      // Verify error was logged
-      expect(mockLoggerInstance.error).toHaveBeenCalledWith(
-        'Error fetching commits page %d: %s',
-        1,
-        'Network error'
-      );
+      return indexGitHistory(mockRepository, mockOctokit as Octokit).then(() => {
+        // Verify error was logged
+        expect(mockLoggerInstance.error).toHaveBeenCalledWith(
+          'Error fetching commits page %d: %s',
+          1,
+          'Network error'
+        );
+      });
     });
   });
 });

@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import type { CSSProperties, ReactNode, Ref } from 'react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { OptimizedAvatar } from '../optimized-avatar';
@@ -15,22 +16,43 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock the Avatar UI components
-vi.mock('@/components/ui/avatar', () => {
-  const React = require('react');
-  return {
-    Avatar: React.forwardRef(({ children, className, style }: any, ref: any) =>
-      React.createElement('div', { ref, className, style }, children)
-    ),
-    AvatarImage: ({ src, alt, onLoad, onError, className }: any) =>
-      React.createElement('img', { src, alt, onLoad, onError, className }),
-    AvatarFallback: ({ children, className }: any) =>
-      React.createElement('div', { className }, children),
-  };
-});
+vi.mock('@/components/ui/avatar', () => ({
+  Avatar: ({
+    children,
+    className,
+    style,
+    ref,
+  }: {
+    children?: ReactNode;
+    className?: string;
+    style?: CSSProperties;
+    ref?: Ref<HTMLDivElement>;
+  }) => (
+    <div ref={ref as never} className={className} style={style}>
+      {children}
+    </div>
+  ),
+  AvatarImage: ({
+    src,
+    alt,
+    onLoad,
+    onError,
+    className,
+  }: {
+    src?: string;
+    alt?: string;
+    onLoad?: () => void;
+    onError?: () => void;
+    className?: string;
+  }) => <img src={src} alt={alt} onLoad={onLoad} onError={onError} className={className} />,
+  AvatarFallback: ({ children, className }: { children?: ReactNode; className?: string }) => (
+    <div className={className}>{children}</div>
+  ),
+}));
 
 // Mock cn utility
 vi.mock('@/lib/utils', () => ({
-  cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
+  cn: (...classes: string[]) => classes.filter(Boolean).join(' '),
 }));
 
 describe('OptimizedAvatar', () => {
@@ -65,7 +87,7 @@ describe('OptimizedAvatar', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('generates fallback initials from alt text', async () => {
+  it('generates fallback initials from alt text', () => {
     const { container } = render(
       <OptimizedAvatar src="invalid-url" alt="Jane Smith" lazy={false} />
     );

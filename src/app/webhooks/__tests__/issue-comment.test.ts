@@ -5,18 +5,24 @@ import {
 } from '../../../../app/webhooks/issue-comment';
 import type { IssueCommentEvent } from '../../../../app/types/github';
 
+const { mockCreateComment, mockDeleteComment, mockListFiles } = vi.hoisted(() => ({
+  mockCreateComment: vi.fn().mockResolvedValue({ data: { id: 12345 } }),
+  mockDeleteComment: vi.fn().mockResolvedValue({}),
+  mockListFiles: vi.fn().mockResolvedValue({
+    data: [{ filename: 'src/auth.js' }, { filename: 'src/utils.js' }],
+  }),
+}));
+
 // Mock the auth module
 vi.mock('../../../../app/lib/auth', () => ({
   githubAppAuth: {
     getInstallationOctokit: vi.fn(() => ({
       issues: {
-        createComment: vi.fn().mockResolvedValue({ data: { id: 12345 } }),
-        deleteComment: vi.fn().mockResolvedValue({}),
+        createComment: mockCreateComment,
+        deleteComment: mockDeleteComment,
       },
       pulls: {
-        listFiles: vi.fn().mockResolvedValue({
-          data: [{ filename: 'src/auth.js' }, { filename: 'src/utils.js' }],
-        }),
+        listFiles: mockListFiles,
       },
     })),
   },
@@ -71,6 +77,15 @@ vi.mock('../../../../app/services/comments', () => ({
   formatContextComment: vi.fn().mockReturnValue('## Context Analysis\nTest response'),
 }));
 
+const mockUser = {
+  login: 'testuser',
+  id: 1,
+  node_id: 'U_1',
+  avatar_url: 'https://example.com/avatar',
+  html_url: 'https://github.com/testuser',
+  type: 'User' as const,
+};
+
 describe('containsIssuesCommand', () => {
   it('detects .issues command correctly', () => {
     expect(containsIssuesCommand('.issues')).toBe(true);
@@ -85,50 +100,89 @@ describe('handleIssueCommentEvent', () => {
     action: 'created',
     issue: {
       id: 1,
+      node_id: 'I_1',
+      url: 'https://api.github.com/repos/test/repo/issues/42',
+      html_url: 'https://github.com/test/repo/pull/42',
       number: 42,
       title: 'Test PR',
       body: 'Test body',
       state: 'open',
+      user: mockUser,
+      labels: [],
+      assignee: null,
+      assignees: [],
+      comments: 0,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      closed_at: null,
+      author_association: 'CONTRIBUTOR',
       pull_request: isPR ? { url: 'test', html_url: 'test' } : undefined,
-    } as any,
+    },
     comment: {
       id: 999,
+      node_id: 'IC_999',
+      url: 'https://api.github.com/repos/test/repo/issues/comments/999',
+      html_url: 'https://github.com/test/repo/pull/42#issuecomment-999',
       body: commentBody,
-      user: { id: 1, login: 'testuser' } as any,
-    } as any,
+      user: mockUser,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      author_association: 'CONTRIBUTOR',
+    },
     repository: {
       id: 1,
-      full_name: 'test/repo',
-      owner: { login: 'test' },
+      node_id: 'R_1',
       name: 'repo',
-    } as any,
-    installation: { id: 123 } as any,
-    sender: {} as any,
+      full_name: 'test/repo',
+      private: false,
+      owner: { login: 'test', id: 1, type: 'Organization' },
+      html_url: 'https://github.com/test/repo',
+      description: null,
+      fork: false,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      pushed_at: '2024-01-01T00:00:00Z',
+      size: 0,
+      stargazers_count: 0,
+      language: 'TypeScript',
+      default_branch: 'main',
+    },
+    installation: {
+      id: 123,
+      account: { login: 'test', id: 1, type: 'Organization' },
+      repository_selection: 'selected',
+      access_tokens_url: 'https://api.github.com/installations/123/access_tokens',
+      repositories_url: 'https://api.github.com/installations/123/repositories',
+      html_url: 'https://github.com/settings/installations/123',
+      app_id: 1,
+      app_slug: 'test-app',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      suspended_by: null,
+      suspended_at: null,
+    },
+    sender: mockUser,
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('ignores non-.issues comments', async () => {
+  it('ignores non-.issues comments', () => {
     const mockEvent = createMockEvent('Just a regular comment');
-    const { githubAppAuth } = await import('../../../../app/lib/auth');
-    const mockOctokit = await githubAppAuth.getInstallationOctokit(123);
 
-    await handleIssueCommentEvent(mockEvent);
+    handleIssueCommentEvent(mockEvent);
 
-    expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
-    expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
+    expect(mockCreateComment).not.toHaveBeenCalled();
+    expect(mockDeleteComment).not.toHaveBeenCalled();
   });
 
-  it('ignores comments on issues (not PRs)', async () => {
+  it('ignores comments on issues (not PRs)', () => {
     const mockEvent = createMockEvent('.issues', false);
-    const { githubAppAuth } = await import('../../../../app/lib/auth');
-    const mockOctokit = await githubAppAuth.getInstallationOctokit(123);
 
-    await handleIssueCommentEvent(mockEvent);
+    handleIssueCommentEvent(mockEvent);
 
-    expect(mockOctokit.issues.createComment).not.toHaveBeenCalled();
-    expect(mockOctokit.issues.deleteComment).not.toHaveBeenCalled();
+    expect(mockCreateComment).not.toHaveBeenCalled();
+    expect(mockDeleteComment).not.toHaveBeenCalled();
   });
 });

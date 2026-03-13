@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { DonutChart, type DonutChartData } from './DonutChart';
 
 // Mock canvas context
@@ -26,7 +25,7 @@ const mockContext = {
 let animationFrameId = 0;
 const mockRequestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
   const id = ++animationFrameId;
-  setTimeout(() => callback(0), 0);
+  callback(0);
   return id;
 });
 
@@ -86,7 +85,7 @@ describe('DonutChart', () => {
     expect(description).toHaveClass('sr-only');
   });
 
-  it('should handle mouse interactions correctly', async () => {
+  it('should handle mouse interactions correctly', () => {
     const onHover = vi.fn();
     const onClick = vi.fn();
 
@@ -111,7 +110,7 @@ describe('DonutChart', () => {
     expect(canvas).toHaveProperty('onclick');
   });
 
-  it('should handle keyboard navigation', async () => {
+  it('should handle keyboard navigation', () => {
     const onClick = vi.fn();
     const onHover = vi.fn();
 
@@ -131,17 +130,15 @@ describe('DonutChart', () => {
     fireEvent.keyDown(canvas, { key: 'Escape' });
   });
 
-  it('should animate segments on mount', async () => {
+  it('should animate segments on mount', () => {
     render(<DonutChart data={mockData} />);
 
     // Check that animation was initiated
     expect(mockRequestAnimationFrame).toHaveBeenCalled();
 
-    // Wait for animation to progress
-    await waitFor(() => {
-      expect(mockContext.clearRect).toHaveBeenCalled();
-      expect(mockContext.arc).toHaveBeenCalled();
-    });
+    // Animation runs synchronously via mock RAF
+    expect(mockContext.clearRect).toHaveBeenCalled();
+    expect(mockContext.arc).toHaveBeenCalled();
   });
 
   it('should clean up resources on unmount', () => {
@@ -161,7 +158,7 @@ describe('DonutChart', () => {
     expect(mockContext.clearRect).toHaveBeenCalled();
   });
 
-  it('should update when data changes', async () => {
+  it('should update when data changes', () => {
     const { rerender } = render(<DonutChart data={mockData} />);
 
     const newData: DonutChartData[] = [
@@ -171,10 +168,8 @@ describe('DonutChart', () => {
 
     rerender(<DonutChart data={newData} />);
 
-    await waitFor(() => {
-      // Canvas should be redrawn with new data
-      expect(mockContext.clearRect).toHaveBeenCalled();
-    });
+    // Canvas should be redrawn with new data
+    expect(mockContext.clearRect).toHaveBeenCalled();
   });
 
   it('should handle responsive sizing', () => {
@@ -184,22 +179,20 @@ describe('DonutChart', () => {
     expect(wrapper).toHaveStyle({ width: '100%' });
   });
 
-  it('should display center labels when provided', async () => {
+  it('should display center labels when provided', () => {
     render(<DonutChart data={mockData} centerLabel="100" centerSubLabel="Total PRs" />);
 
-    await waitFor(() => {
-      // Check that fillText was called for center labels
-      expect(mockContext.fillText).toHaveBeenCalledWith(
-        '100',
-        expect.any(Number),
-        expect.any(Number)
-      );
-      expect(mockContext.fillText).toHaveBeenCalledWith(
-        'Total PRs',
-        expect.any(Number),
-        expect.any(Number)
-      );
-    });
+    // Check that fillText was called for center labels
+    expect(mockContext.fillText).toHaveBeenCalledWith(
+      '100',
+      expect.any(Number),
+      expect.any(Number)
+    );
+    expect(mockContext.fillText).toHaveBeenCalledWith(
+      'Total PRs',
+      expect.any(Number),
+      expect.any(Number)
+    );
   });
 
   it('should handle canvas context errors gracefully', () => {
@@ -217,12 +210,10 @@ describe('DonutChart', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should apply active segment styling', async () => {
+  it('should apply active segment styling', () => {
     render(<DonutChart data={mockData} activeSegmentId="segment2" />);
 
-    await waitFor(() => {
-      // Active segment should trigger stroke
-      expect(mockContext.stroke).toHaveBeenCalled();
-    });
+    // Active segment should trigger stroke
+    expect(mockContext.stroke).toHaveBeenCalled();
   });
 });

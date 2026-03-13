@@ -89,108 +89,110 @@ describe('HybridQueueManager', () => {
   });
 
   describe('Event Data Mapping', () => {
-    it('should properly map timeRange to days parameter for Inngest events', async () => {
+    it('should properly map timeRange to days parameter for Inngest events', () => {
       const mockFetch = vi.mocked(fetch);
 
-      await manager.queueRecentDataCapture('test-repo-id', 'owner/repo');
+      return manager.queueRecentDataCapture('test-repo-id', 'owner/repo').then(() => {
+        expect(mockFetch).toHaveBeenCalled();
+        const [url, options] = mockFetch.mock.calls[0];
+        expect(url).toBe('/api/queue-event');
+        expect(options.method).toBe('POST');
 
-      expect(mockFetch).toHaveBeenCalled();
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('/api/queue-event');
-      expect(options.method).toBe('POST');
-
-      const body = JSON.parse(options.body);
-      expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data).toMatchObject({
-        repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo',
-        days: 1, // timeRange of 1 should map to days: 1
-        priority: 'medium',
-        reason: 'automatic',
-        maxItems: 50,
+        const body = JSON.parse(options.body);
+        expect(body.eventName).toBe('capture/repository.sync.graphql');
+        expect(body.data).toMatchObject({
+          repositoryId: 'test-repo-id',
+          repositoryName: 'owner/repo',
+          days: 1, // timeRange of 1 should map to days: 1
+          priority: 'medium',
+          reason: 'automatic',
+          maxItems: 50,
+        });
       });
     });
 
-    it('should queue both PR and comment capture when calling queueRecentDataCapture', async () => {
+    it('should queue both PR and comment capture when calling queueRecentDataCapture', () => {
       const mockFetch = vi.mocked(fetch);
 
-      await manager.queueRecentDataCapture('test-repo-id', 'owner/repo');
+      return manager.queueRecentDataCapture('test-repo-id', 'owner/repo').then(() => {
+        // Should be called twice - once for PRs, once for comments
+        expect(mockFetch).toHaveBeenCalledTimes(2);
 
-      // Should be called twice - once for PRs, once for comments
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+        // First call should be for recent PRs
+        const [url1, options1] = mockFetch.mock.calls[0];
+        expect(url1).toBe('/api/queue-event');
+        const body1 = JSON.parse(options1.body);
+        expect(body1.eventName).toBe('capture/repository.sync.graphql');
+        expect(body1.data).toMatchObject({
+          repositoryId: 'test-repo-id',
+          repositoryName: 'owner/repo',
+          days: 1, // Recent data uses 1 day timeRange
+          reason: 'automatic',
+        });
 
-      // First call should be for recent PRs
-      const [url1, options1] = mockFetch.mock.calls[0];
-      expect(url1).toBe('/api/queue-event');
-      const body1 = JSON.parse(options1.body);
-      expect(body1.eventName).toBe('capture/repository.sync.graphql');
-      expect(body1.data).toMatchObject({
-        repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo',
-        days: 1, // Recent data uses 1 day timeRange
-        reason: 'automatic',
-      });
-
-      // Second call should be for comments (including issue comments)
-      const [url2, options2] = mockFetch.mock.calls[1];
-      expect(url2).toBe('/api/queue-event');
-      const body2 = JSON.parse(options2.body);
-      expect(body2.eventName).toBe('capture/pr.comments');
-      expect(body2.data).toMatchObject({
-        repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo',
-        days: 7, // Comments use 7 day timeRange for better first responder data
-        reason: 'automatic',
-        maxItems: 100, // Higher limit for comments to get better first responder data
+        // Second call should be for comments (including issue comments)
+        const [url2, options2] = mockFetch.mock.calls[1];
+        expect(url2).toBe('/api/queue-event');
+        const body2 = JSON.parse(options2.body);
+        expect(body2.eventName).toBe('capture/pr.comments');
+        expect(body2.data).toMatchObject({
+          repositoryId: 'test-repo-id',
+          repositoryName: 'owner/repo',
+          days: 7, // Comments use 7 day timeRange for better first responder data
+          reason: 'automatic',
+          maxItems: 100, // Higher limit for comments to get better first responder data
+        });
       });
     });
 
-    it('should include all required parameters for repository sync events', async () => {
+    it('should include all required parameters for repository sync events', () => {
       const mockFetch = vi.mocked(fetch);
 
-      await manager.queueHistoricalDataCapture('test-repo-id', 'owner/repo', 30);
+      return manager.queueHistoricalDataCapture('test-repo-id', 'owner/repo', 30).then(() => {
+        expect(mockFetch).toHaveBeenCalled();
+        const [url, options] = mockFetch.mock.calls[0];
+        expect(url).toBe('/api/queue-event');
+        expect(options.method).toBe('POST');
 
-      expect(mockFetch).toHaveBeenCalled();
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('/api/queue-event');
-      expect(options.method).toBe('POST');
-
-      const body = JSON.parse(options.body);
-      expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data).toMatchObject({
-        repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo',
-        days: 30, // Should map timeRange to days
-        priority: 'medium',
-        reason: 'scheduled',
-        maxItems: 50, // Capped at INNGEST_MAX_ITEMS
+        const body = JSON.parse(options.body);
+        expect(body.eventName).toBe('capture/repository.sync.graphql');
+        expect(body.data).toMatchObject({
+          repositoryId: 'test-repo-id',
+          repositoryName: 'owner/repo',
+          days: 30, // Should map timeRange to days
+          priority: 'medium',
+          reason: 'scheduled',
+          maxItems: 50, // Capped at INNGEST_MAX_ITEMS
+        });
       });
     });
 
-    it('should provide default values for missing parameters', async () => {
+    it('should provide default values for missing parameters', () => {
       const mockFetch = vi.mocked(fetch);
 
       // Direct call to queueJob to test default handling
-      await manager.queueJob('recent-prs', {
-        repositoryId: 'test-repo-id',
-        repositoryName: 'owner/repo',
-        // Missing timeRange and triggerSource
-      });
+      return manager
+        .queueJob('recent-prs', {
+          repositoryId: 'test-repo-id',
+          repositoryName: 'owner/repo',
+          // Missing timeRange and triggerSource
+        })
+        .then(() => {
+          expect(mockFetch).toHaveBeenCalled();
+          const [url, options] = mockFetch.mock.calls[0];
+          expect(url).toBe('/api/queue-event');
+          expect(options.method).toBe('POST');
 
-      expect(mockFetch).toHaveBeenCalled();
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('/api/queue-event');
-      expect(options.method).toBe('POST');
-
-      const body = JSON.parse(options.body);
-      expect(body.eventName).toBe('capture/repository.sync.graphql');
-      expect(body.data.days).toBe(7); // Default when timeRange is missing
-      expect(body.data.reason).toBe('automatic'); // Default when triggerSource is missing
+          const body = JSON.parse(options.body);
+          expect(body.eventName).toBe('capture/repository.sync.graphql');
+          expect(body.data.days).toBe(7); // Default when timeRange is missing
+          expect(body.data.reason).toBe('automatic'); // Default when triggerSource is missing
+        });
     });
 
-    it('should validate required fields are present', async () => {
+    it('should validate required fields are present', () => {
       // Test that repositoryId is required
-      await expect(
+      return expect(
         manager.queueJob('recent-prs', {
           repositoryName: 'owner/repo',
           // Missing repositoryId
@@ -200,7 +202,7 @@ describe('HybridQueueManager', () => {
   });
 
   describe('Event Type Mapping', () => {
-    it('should map job types to correct Inngest event names', async () => {
+    it('should map job types to correct Inngest event names', () => {
       const mockFetch = vi.mocked(fetch);
 
       const testCases = [
@@ -211,26 +213,30 @@ describe('HybridQueueManager', () => {
         { jobType: 'comments', expectedEvent: 'capture/pr.comments' },
       ];
 
-      for (const { jobType, expectedEvent } of testCases) {
-        vi.clearAllMocks();
+      return testCases.reduce((chain, { jobType, expectedEvent }) => {
+        return chain.then(() => {
+          vi.clearAllMocks();
 
-        await manager.queueJob(jobType, {
-          repositoryId: 'test-repo-id',
-          repositoryName: 'owner/repo',
-          timeRange: 1,
+          return manager
+            .queueJob(jobType, {
+              repositoryId: 'test-repo-id',
+              repositoryName: 'owner/repo',
+              timeRange: 1,
+            })
+            .then(() => {
+              expect(mockFetch).toHaveBeenCalled();
+              const [url, options] = mockFetch.mock.calls[0];
+              expect(url).toBe('/api/queue-event');
+
+              const body = JSON.parse(options.body);
+              expect(body.eventName).toBe(expectedEvent);
+            });
         });
-
-        expect(mockFetch).toHaveBeenCalled();
-        const [url, options] = mockFetch.mock.calls[0];
-        expect(url).toBe('/api/queue-event');
-
-        const body = JSON.parse(options.body);
-        expect(body.eventName).toBe(expectedEvent);
-      }
+      }, Promise.resolve());
     });
 
-    it('should throw error for unknown job types', async () => {
-      await expect(
+    it('should throw error for unknown job types', () => {
+      return expect(
         manager.queueJob('unknown-job-type', {
           repositoryId: 'test-repo-id',
           repositoryName: 'owner/repo',

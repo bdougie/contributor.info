@@ -33,7 +33,7 @@ export interface GitHubPullRequest {
   id: number;
   number: number;
   title: string;
-  state: string;
+  state: 'open' | 'closed';
   created_at: string;
   updated_at: string;
   merged_at: string | null;
@@ -43,7 +43,7 @@ export interface GitHubPullRequest {
     id: number;
     login: string;
     avatar_url: string;
-    type?: string;
+    type?: 'User' | 'Bot';
   };
   additions?: number;
   deletions?: number;
@@ -504,7 +504,7 @@ export async function fetchPullRequests(
 
         // Fetch additional details for each PR to get additions/deletions
         const detailedPRs = await Promise.all(
-          filteredPRs.map(async (pr: GitHubPullRequest) => {
+          filteredPRs.map(async (pr: GitHubPullRequest): Promise<PullRequest> => {
             const detailsResponse = await fetch(
               `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${pr.number}`,
               { headers }
@@ -515,6 +515,8 @@ export async function fetchPullRequests(
                 ...pr,
                 additions: 0,
                 deletions: 0,
+                repository_owner: owner,
+                repository_name: repo,
               };
             }
 

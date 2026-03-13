@@ -208,10 +208,10 @@ export const getDubKeyStatus = (key?: string): '✅ Valid' | '❌ Invalid' => {
  * // Instead of: const contributor = quadrant?.children?.find((c: any) => c.id === selectedContributor);
  * ```
  */
-export const findContributorInQuadrant = (
-  quadrant?: { children?: Array<{ id: string; [key: string]: any }> },
+export const findContributorInQuadrant = <T extends { id: string }>(
+  quadrant?: { children?: T[] },
   selectedContributor?: string
-) => {
+): T | undefined => {
   if (!quadrant?.children || !selectedContributor) return undefined;
-  return quadrant.children.find((c: any) => c.id === selectedContributor);
+  return quadrant.children.find((c) => c.id === selectedContributor);
 };

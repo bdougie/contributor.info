@@ -41,13 +41,13 @@ describe('PostHog API Key Validation', () => {
 
   it('should handle edge cases', () => {
     // Null/undefined would fail in real usage
-    expect(posthogKeyPattern.test(null as any)).toBe(false);
-    expect(posthogKeyPattern.test(undefined as any)).toBe(false);
+    expect(posthogKeyPattern.test(null as unknown as string)).toBe(false);
+    expect(posthogKeyPattern.test(undefined as unknown as string)).toBe(false);
 
     // Numbers would be converted to string
-    expect(posthogKeyPattern.test(123 as any)).toBe(false);
+    expect(posthogKeyPattern.test(123 as unknown as string)).toBe(false);
 
     // Objects would fail
-    expect(posthogKeyPattern.test({} as any)).toBe(false);
+    expect(posthogKeyPattern.test({} as unknown as string)).toBe(false);
   });
 });

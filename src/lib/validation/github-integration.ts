@@ -3,6 +3,7 @@
  * Shows how to integrate validation schemas with existing GitHub API functions
  */
 
+import type { ZodSchema } from 'zod';
 import {
   githubUserSchema,
   githubRepositorySchema,
@@ -342,10 +343,10 @@ export function validateAndTransformGitHubPullRequests(
  * Safely validates GitHub API response with detailed error logging
  */
 export function safeValidateGitHubResponse<T>(
-  schema: any,
+  schema: ZodSchema<T>,
   data: unknown,
   context: string,
-  logger?: (message: string, data?: any) => void
+  logger?: (message: string, data?: Record<string, unknown>) => void
 ): T | null {
   const result = validateData(schema, data, context);
 
@@ -371,9 +372,9 @@ export function safeValidateGitHubResponse<T>(
  * Creates a standardized error handler for GitHub API validation
  */
 export function createGitHubValidationErrorHandler(
-  onError: (error: string, context: string, data?: any) => void
+  onError: (error: string, context: string, data?: Record<string, unknown>) => void
 ) {
-  return <T>(schema: any, data: unknown, context: string): T | null => {
+  return <T>(schema: ZodSchema<T>, data: unknown, context: string): T | null => {
     return safeValidateGitHubResponse<T>(schema, data, context, (message, errorData) => {
       onError(message, context, errorData);
     });

@@ -65,14 +65,16 @@ export function ConfidenceAlgorithmExplainer({
       eventDiversity * 0.4 + methodDiversity * 0.4 + activityVolume * 0.2;
 
     // Temporal Consistency Component
-    const recencyScore =
-      inputs.daysSinceLastSeen <= 7
-        ? 1
-        : inputs.daysSinceLastSeen <= 30
-          ? 0.8
-          : inputs.daysSinceLastSeen <= 90
-            ? 0.6
-            : 0.4;
+    let recencyScore: number;
+    if (inputs.daysSinceLastSeen <= 7) {
+      recencyScore = 1;
+    } else if (inputs.daysSinceLastSeen <= 30) {
+      recencyScore = 0.8;
+    } else if (inputs.daysSinceLastSeen <= 90) {
+      recencyScore = 0.6;
+    } else {
+      recencyScore = 0.4;
+    }
 
     const expectedDays = Math.min(inputs.daysSinceFirstSeen, 90);
     const consistencyRatio = expectedDays > 0 ? inputs.activitySpreadDays / expectedDays : 0;

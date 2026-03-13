@@ -82,7 +82,7 @@ describe('GitHub API Service', () => {
   describe('fetchFromGitHub', () => {
     it('should fetch data successfully', async () => {
       const mockData = { id: 123, name: 'test-repo' };
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: true,
         status: 200,
         statusText: 'OK',
@@ -95,7 +95,7 @@ describe('GitHub API Service', () => {
         json: vi.fn().mockResolvedValue(mockData),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       const result = await GitHubApiService.fetchFromGitHub('/repos/test/repo', {
         token: 'test-token',
@@ -118,7 +118,7 @@ describe('GitHub API Service', () => {
     });
 
     it('should throw error on non-ok response', async () => {
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: false,
         status: 404,
         statusText: 'Not Found',
@@ -126,7 +126,7 @@ describe('GitHub API Service', () => {
         text: vi.fn().mockResolvedValue('Not Found'),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       await expect(
         GitHubApiService.fetchFromGitHub('/repos/nonexistent/repo', { token: null })
@@ -137,13 +137,13 @@ describe('GitHub API Service', () => {
   describe('fetchRepository', () => {
     it('should fetch repository data', async () => {
       const mockData = { id: 123, name: 'test-repo' };
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: true,
         headers: new Headers(),
         json: vi.fn().mockResolvedValue(mockData),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       const result = await GitHubApiService.fetchRepository('owner', 'repo', {
         token: 'test-token',
@@ -160,13 +160,13 @@ describe('GitHub API Service', () => {
   describe('fetchUser', () => {
     it('should fetch user data', async () => {
       const mockData = { login: 'testuser', id: 123 };
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: true,
         headers: new Headers(),
         json: vi.fn().mockResolvedValue(mockData),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       const result = await GitHubApiService.fetchUser('testuser', { token: 'test-token' });
 
@@ -181,13 +181,13 @@ describe('GitHub API Service', () => {
   describe('fetchUserOrganizations', () => {
     it('should fetch user organizations', async () => {
       const mockData = [{ login: 'org1' }, { login: 'org2' }];
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: true,
         headers: new Headers(),
         json: vi.fn().mockResolvedValue(mockData),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       const result = await GitHubApiService.fetchUserOrganizations('testuser', {
         token: 'test-token',
@@ -207,13 +207,13 @@ describe('GitHub API Service', () => {
         { id: 1, number: 123 },
         { id: 2, number: 124 },
       ];
-      const mockResponse = {
+      const mockResponse: Partial<Response> = {
         ok: true,
         headers: new Headers(),
         json: vi.fn().mockResolvedValue(mockData),
       };
 
-      (global.fetch as any).mockResolvedValue(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValue(mockResponse as Response);
 
       const result = await GitHubApiService.fetchPullRequests('owner', 'repo', 'all', {
         token: 'test-token',

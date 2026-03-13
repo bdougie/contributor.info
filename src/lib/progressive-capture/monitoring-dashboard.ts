@@ -127,7 +127,7 @@ export class HybridMonitoringDashboard {
   /**
    * Calculate metrics for a set of jobs
    */
-  private static calculateJobMetrics(jobs: any[]): JobMetrics {
+  private static calculateJobMetrics(jobs: Record<string, unknown>[]): JobMetrics {
     const total = jobs.length;
     const successful = jobs.filter((j) => j.status === 'completed').length;
     const failed = jobs.filter((j) => j.status === 'failed').length;
@@ -140,8 +140,8 @@ export class HybridMonitoringDashboard {
     const avgProcessingTime =
       completedJobs.length > 0
         ? completedJobs.reduce((sum, job) => {
-            const start = new Date(job.started_at).getTime();
-            const end = new Date(job.completed_at).getTime();
+            const start = new Date(job.started_at as string).getTime();
+            const end = new Date(job.completed_at as string).getTime();
             return sum + (end - start);
           }, 0) /
           completedJobs.length /
@@ -382,7 +382,7 @@ export class HybridMonitoringDashboard {
       repository_id: string;
       error: string;
       created_at: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
     }>;
     errorSummary: Record<string, number>;
     topErrors: Array<{ error: string; count: number }>;
@@ -418,12 +418,14 @@ export class HybridMonitoringDashboard {
         errorSummary[job.processor_type] = (errorSummary[job.processor_type] || 0) + 1;
 
         // Count specific errors
-        const errorMessage =
-          typeof job.error === 'string'
-            ? job.error
-            : job.error
-              ? JSON.stringify(job.error)
-              : 'Unknown error';
+        let errorMessage: string;
+        if (typeof job.error === 'string') {
+          errorMessage = job.error;
+        } else if (job.error) {
+          errorMessage = JSON.stringify(job.error);
+        } else {
+          errorMessage = 'Unknown error';
+        }
         const errorKey = errorMessage.substring(0, 100);
         errorCounts[errorKey] = (errorCounts[errorKey] || 0) + 1;
       });
@@ -539,7 +541,7 @@ Report generated at: ${new Date().toISOString()}
 
 // Make it available globally for console access
 if (typeof window !== 'undefined') {
-  (window as any).HybridMonitoring = HybridMonitoringDashboard;
+  (window as unknown as Record<string, unknown>).HybridMonitoring = HybridMonitoringDashboard;
 
   // Enable console tools in development
   if (import.meta.env?.DEV) {

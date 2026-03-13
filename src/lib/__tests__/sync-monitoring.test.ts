@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SyncMonitoring } from '../sync-monitoring';
+import { SyncMonitoring, SyncMetrics } from '../sync-monitoring';
 
 // Mock supabase
 vi.mock('../supabase', () => ({
@@ -29,15 +29,23 @@ describe('SyncMonitoring', () => {
 
   it('should calculate percentiles correctly', () => {
     // Add test metrics - pure calculation test
-    const testMetrics = [
-      { executionTime: 10 },
-      { executionTime: 20 },
-      { executionTime: 30 },
-      { executionTime: 40 },
-      { executionTime: 50 },
+    const base = {
+      functionName: 'test',
+      repository: 'test/repo',
+      success: true,
+      timedOut: false,
+      router: 'supabase' as const,
+      timestamp: new Date(),
+    };
+    const testMetrics: SyncMetrics[] = [
+      { ...base, executionTime: 10 },
+      { ...base, executionTime: 20 },
+      { ...base, executionTime: 30 },
+      { ...base, executionTime: 40 },
+      { ...base, executionTime: 50 },
     ];
 
-    SyncMonitoring['metrics'] = testMetrics as any;
+    SyncMonitoring['metrics'] = testMetrics;
 
     const percentiles = SyncMonitoring.getPercentiles();
     expect(percentiles.p50).toBe(30);

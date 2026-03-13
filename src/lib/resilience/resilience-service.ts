@@ -198,9 +198,9 @@ class EnhancedCircuitBreaker {
 class Bulkhead {
   private activeCalls = 0;
   private queue: Array<{
-    operation: () => Promise<any>;
-    resolve: (value: any) => void;
-    reject: (error: any) => void;
+    operation: () => Promise<unknown>;
+    resolve: (value: unknown) => void;
+    reject: (reason: Error) => void;
     timestamp: number;
   }> = [];
 
@@ -216,9 +216,9 @@ class Bulkhead {
 
     // Queue the operation
     return new Promise<T>((resolve, reject) => {
-      const queueItem = {
-        operation: operation as () => Promise<any>,
-        resolve,
+      const queueItem: (typeof this.queue)[number] = {
+        operation: operation as () => Promise<unknown>,
+        resolve: resolve as (value: unknown) => void,
         reject,
         timestamp: Date.now(),
       };

@@ -40,9 +40,9 @@ export function useGitHubOrganizations(username: string, token?: string) {
           throw new Error(`Failed to fetch organizations: ${response.status}`);
         }
 
-        const orgs = await response.json();
+        const orgs = (await response.json()) as Organization[];
         setOrganizations(
-          orgs.slice(0, 3).map((org: any) => ({
+          orgs.slice(0, 3).map((org) => ({
             login: org.login,
             avatar_url: org.avatar_url,
           }))

@@ -31,7 +31,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
     const checkIfStandalone = () => {
       return (
         window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
         document.referrer.includes('android-app://')
       );
     };
@@ -170,7 +170,7 @@ export function PWAInstallPrompt({ className, onInstall, onDismiss }: PWAInstall
   );
 }
 
-// Hook for programmatic PWA install
+// eslint-disable-next-line react-refresh/only-export-components -- hook co-located with component
 export function usePWAInstall() {
   const [canInstall, setCanInstall] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);

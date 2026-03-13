@@ -1,6 +1,27 @@
 import { supabase } from '../supabase';
 import { hybridRolloutManager } from './rollout-manager';
 
+export interface RepositoryCategoryWithRepository {
+  repository_id: string;
+  category: string;
+  priority_level: number;
+  is_test_repository: boolean;
+  star_count: number;
+  contributor_count: number;
+  pr_count: number;
+  monthly_activity_score: number;
+  updated_at: string;
+  repositories: {
+    id: string;
+    name: string;
+    owner: string;
+    description: string | null;
+    stargazers_count: number;
+    contributors_count: number;
+    updated_at: string;
+  } | null;
+}
+
 export interface RepositoryCategoryStats {
   category: string;
   count: number;
@@ -14,7 +35,7 @@ export interface RepositoryCategorizer {
   categorizeAll(): Promise<void>;
   categorizeRepository(repositoryId: string): Promise<string | null>;
   getCategoryStats(): Promise<RepositoryCategoryStats[]>;
-  getRepositoriesByCategory(category: string): Promise<any[]>;
+  getRepositoriesByCategory(category: string): Promise<RepositoryCategoryWithRepository[]>;
   markAsTestRepository(repositoryId: string): Promise<boolean>;
   unmarkAsTestRepository(repositoryId: string): Promise<boolean>;
 }
@@ -172,7 +193,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get repositories by category
    */
-  async getRepositoriesByCategory(category: string): Promise<any[]> {
+  async getRepositoriesByCategory(category: string): Promise<RepositoryCategoryWithRepository[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')
@@ -296,7 +317,7 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get test repositories for rollout
    */
-  async getTestRepositories(): Promise<any[]> {
+  async getTestRepositories(): Promise<RepositoryCategoryWithRepository[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')
@@ -332,7 +353,9 @@ export class RepositoryCategorizationManager implements RepositoryCategorizer {
   /**
    * Get rollout-ready repositories by priority
    */
-  async getRolloutReadyRepositories(limit: number = 10): Promise<any[]> {
+  async getRolloutReadyRepositories(
+    limit: number = 10
+  ): Promise<RepositoryCategoryWithRepository[]> {
     try {
       const { data, error } = await supabase
         .from('repository_categories')

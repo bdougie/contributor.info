@@ -95,7 +95,13 @@ export function useCachedRepoData(
     hasFreshCache ? cachedEntry.directCommitsData : null
   );
   const [dataStatus, setDataStatus] = useState<{
-    status: 'success' | 'pending' | 'no_data' | 'partial_data' | 'large_repository_protected';
+    status:
+      | 'success'
+      | 'pending'
+      | 'no_data'
+      | 'partial_data'
+      | 'large_repository_protected'
+      | 'error';
     message?: string;
     metadata?: {
       isStale?: boolean;

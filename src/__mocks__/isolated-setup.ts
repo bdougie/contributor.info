@@ -51,9 +51,10 @@ beforeEach(() => {
 
   // Create fresh global mocks
   global.fetch = createFetchMock();
-  global.IntersectionObserver = createIntersectionObserverMock() as any;
-  global.ResizeObserver = createResizeObserverMock() as any;
-  global.matchMedia = createMatchMediaMock() as any;
+  global.IntersectionObserver =
+    createIntersectionObserverMock() as unknown as typeof IntersectionObserver;
+  global.ResizeObserver = createResizeObserverMock() as unknown as typeof ResizeObserver;
+  global.matchMedia = createMatchMediaMock() as unknown as typeof window.matchMedia;
 
   // Clear console mocks
   vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -76,10 +77,10 @@ afterEach(() => {
   vi.restoreAllMocks();
 
   // Remove all global mock references
-  delete (global as any).fetch;
-  delete (global as any).IntersectionObserver;
-  delete (global as any).ResizeObserver;
-  delete (global as any).matchMedia;
+  delete (global as Record<string, unknown>).fetch;
+  delete (global as Record<string, unknown>).IntersectionObserver;
+  delete (global as Record<string, unknown>).ResizeObserver;
+  delete (global as Record<string, unknown>).matchMedia;
 
   // Reset modules to clear module-level state
   vi.resetModules();
@@ -88,7 +89,7 @@ afterEach(() => {
 // Isolated Supabase mock factory
 export const createSupabaseMock = () => {
   const createQueryBuilder = () => {
-    const queryBuilder: any = {
+    const queryBuilder: Record<string, ReturnType<typeof vi.fn>> = {
       select: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
@@ -106,7 +107,9 @@ export const createSupabaseMock = () => {
       limit: vi.fn().mockReturnThis(),
       single: vi.fn(() => Promise.resolve({ data: null, error: null })),
       maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      then: vi.fn((resolve: any) => resolve({ data: [], error: null })),
+      then: vi.fn((resolve: (value: { data: unknown[]; error: null }) => void) =>
+        resolve({ data: [], error: null })
+      ),
     };
 
     // Make each method return the builder for chaining
@@ -134,7 +137,7 @@ export const createSupabaseMock = () => {
 // Mock Supabase with isolation
 vi.mock('@/lib/supabase', () => {
   // Create a new mock for each import
-  let supabaseMock: any = null;
+  let supabaseMock: ReturnType<typeof createSupabaseMock> | null = null;
 
   return {
     get supabase() {
@@ -152,7 +155,9 @@ vi.mock('@/lib/supabase', () => {
 
 // Reset Supabase mock before each test
 beforeEach(() => {
-  const supabaseModule = vi.importActual('@/lib/supabase') as any;
+  const supabaseModule = vi.importActual('@/lib/supabase') as unknown as {
+    __resetMock?: () => void;
+  };
   if (supabaseModule.__resetMock) {
     supabaseModule.__resetMock();
   }

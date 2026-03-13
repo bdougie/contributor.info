@@ -6,6 +6,8 @@ import { githubApiRequest, RateLimitInfo } from '@/lib/github-rate-limit';
 import { githubCache, repositoryCache, userCache, contributorCache } from './github-cache-service';
 import { githubResilienceService } from '@/lib/resilience/resilience-service';
 
+type QueryParamValue = string | number | boolean;
+
 export interface ApiCallOptions {
   useCache?: boolean;
   cacheTtl?: number;
@@ -36,7 +38,7 @@ export class CachedGitHubApiClient {
    */
   async makeRequest<T>(
     endpoint: string,
-    params: Record<string, any> = {},
+    params: Record<string, QueryParamValue> = {},
     options: ApiCallOptions = {}
   ): Promise<ApiResponse<T>> {
     const startTime = performance.now();
@@ -106,15 +108,15 @@ export class CachedGitHubApiClient {
   /**
    * Repository-specific API calls with specialized caching
    */
-  async getRepository(
+  async getRepository<T = Record<string, unknown>>(
     owner: string,
     repo: string,
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<T>> {
     const cacheKey = repositoryCache.createKey('repo', { owner, repo });
 
     if (options.useCache !== false && !options.forceRefresh) {
-      const cached = await repositoryCache.get(cacheKey);
+      const cached = await repositoryCache.get<T>(cacheKey);
       if (cached) {
         return {
           data: cached,
@@ -126,7 +128,7 @@ export class CachedGitHubApiClient {
       }
     }
 
-    const result = await this.makeRequest(
+    const result = await this.makeRequest<T>(
       `/repos/${owner}/${repo}`,
       {},
       {
@@ -145,11 +147,14 @@ export class CachedGitHubApiClient {
   /**
    * User-specific API calls with specialized caching
    */
-  async getUser(username: string, options: ApiCallOptions = {}): Promise<ApiResponse<any>> {
+  async getUser<T = Record<string, unknown>>(
+    username: string,
+    options: ApiCallOptions = {}
+  ): Promise<ApiResponse<T>> {
     const cacheKey = userCache.createKey('user', { username });
 
     if (options.useCache !== false && !options.forceRefresh) {
-      const cached = await userCache.get(cacheKey);
+      const cached = await userCache.get<T>(cacheKey);
       if (cached) {
         return {
           data: cached,
@@ -161,7 +166,7 @@ export class CachedGitHubApiClient {
       }
     }
 
-    const result = await this.makeRequest(
+    const result = await this.makeRequest<T>(
       `/users/${username}`,
       {},
       {
@@ -180,13 +185,13 @@ export class CachedGitHubApiClient {
   /**
    * Pull requests with caching
    */
-  async getPullRequests(
+  async getPullRequests<T = Record<string, unknown>>(
     owner: string,
     repo: string,
-    params: Record<string, any> = {},
+    params: Record<string, QueryParamValue> = {},
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/repos/${owner}/${repo}/pulls`, params, {
+  ): Promise<ApiResponse<T[]>> {
+    return this.makeRequest<T[]>(`/repos/${owner}/${repo}/pulls`, params, {
       ...options,
       cacheTtl: 5 * 60 * 1000, // 5 minutes for PR data
     });
@@ -195,13 +200,13 @@ export class CachedGitHubApiClient {
   /**
    * Repository events with caching
    */
-  async getRepositoryEvents(
+  async getRepositoryEvents<T = Record<string, unknown>>(
     owner: string,
     repo: string,
-    params: Record<string, any> = {},
+    params: Record<string, QueryParamValue> = {},
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any[]>> {
-    return this.makeRequest(`/repos/${owner}/${repo}/events`, params, {
+  ): Promise<ApiResponse<T[]>> {
+    return this.makeRequest<T[]>(`/repos/${owner}/${repo}/events`, params, {
       ...options,
       cacheTtl: 2 * 60 * 1000, // 2 minutes for events
     });
@@ -210,18 +215,18 @@ export class CachedGitHubApiClient {
   /**
    * Contributor activity with specialized caching
    */
-  async getContributorActivity(
+  async getContributorActivity<T = Record<string, unknown>>(
     repositories: string[],
     timeframe: { month: number; year: number },
     options: ApiCallOptions = {}
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<T>> {
     const cacheKey = contributorCache.createKey('contributor-activity', {
       repositories: repositories.sort(),
       ...timeframe,
     });
 
     if (options.useCache !== false && !options.forceRefresh) {
-      const cached = await contributorCache.get(cacheKey);
+      const cached = await contributorCache.get<T>(cacheKey);
       if (cached) {
         return {
           data: cached,
@@ -235,7 +240,7 @@ export class CachedGitHubApiClient {
 
     // This would typically aggregate multiple API calls
     // For now, return a placeholder that would be implemented with actual logic
-    const result: ApiResponse<any> = {
+    const result: ApiResponse<T> = {
       data: null,
       success: false,
       fromCache: false,
@@ -251,7 +256,11 @@ export class CachedGitHubApiClient {
    * Batch API calls with intelligent caching
    */
   async batchRequest<T>(
-    requests: Array<{ endpoint: string; params?: Record<string, any>; options?: ApiCallOptions }>,
+    requests: Array<{
+      endpoint: string;
+      params?: Record<string, QueryParamValue>;
+      options?: ApiCallOptions;
+    }>,
     concurrencyLimit = 5
   ): Promise<ApiResponse<T>[]> {
     const results: ApiResponse<T>[] = [];
@@ -305,7 +314,7 @@ export class CachedGitHubApiClient {
   /**
    * Private helper methods
    */
-  private buildUrl(endpoint: string, params: Record<string, any>): string {
+  private buildUrl(endpoint: string, params: Record<string, QueryParamValue>): string {
     const url = new URL(`${this.baseUrl}${endpoint}`);
 
     Object.entries(params).forEach(([key, value]) => {

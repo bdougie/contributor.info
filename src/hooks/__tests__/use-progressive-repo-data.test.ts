@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, cleanup } from '@testing-library/react';
+import { renderHook, act, cleanup } from '@testing-library/react';
 import { useProgressiveRepoData, resetProgressiveCache } from '../use-progressive-repo-data';
 
 // Mock the dependencies
@@ -72,9 +72,16 @@ const mockLotteryFactor = {
   category: 'balanced' as const,
 };
 
-// Helper for consistent waitFor configuration
-const waitForWithTimeout = (callback: () => void, options = {}) =>
-  waitFor(callback, { timeout: 10000, ...options });
+// Helper to flush microtasks without async/await or waitFor.
+// Uses a Promise.resolve chain inside act() — microtasks are unaffected by fake timers.
+const flushMicrotasks = () =>
+  act(() => {
+    let p: Promise<void> = Promise.resolve();
+    for (let i = 0; i < 20; i++) {
+      p = p.then(() => Promise.resolve());
+    }
+    return p;
+  });
 
 describe('useProgressiveRepoData', () => {
   const fetchDirectCommitsMock = fetchDirectCommitsWithDatabaseFallback as ReturnType<typeof vi.fn>;
@@ -130,15 +137,11 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Stage 1: Critical data loading', () => {
-    it('should load critical data first', async () => {
+    it('should load critical data first', () => {
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
-        // It might have progressed beyond critical, but critical should be done
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.critical).toBe(true);
-      });
-
-      await waitFor(() => {
         expect(result.current.basicInfo).toBeDefined();
         expect(result.current.basicInfo?.prCount).toBe(3);
         expect(result.current.basicInfo?.contributorCount).toBe(2);
@@ -148,14 +151,14 @@ describe('useProgressiveRepoData', () => {
           avatar_url: 'avatar1.jpg',
           contributions: 2,
         });
-      });
 
-      expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-        timeRange: '90d',
+        expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
+          timeRange: '90d',
+        });
       });
     });
 
-    it('should handle critical data loading errors', async () => {
+    it('should handle critical data loading errors', () => {
       fetchPRDataMock.mockResolvedValueOnce({
         data: null,
         status: 'error',
@@ -164,37 +167,29 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.basicInfo).toBe(null);
       });
     });
   });
 
   describe('Stage 2: Full data loading', () => {
-    it('should progress to full data loading after critical', async () => {
+    it('should progress to full data loading after critical', () => {
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      // Wait for critical stage
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.critical).toBe(true);
-      });
-
-      // Wait for full stage
-      await waitFor(() => {
         expect(result.current.stageProgress.full).toBe(true);
-      });
-
-      await waitFor(() => {
         expect(result.current.stats.loading).toBe(false);
         expect(result.current.stats.pullRequests).toEqual(mockPRData);
         expect(result.current.lotteryFactor).toEqual(mockLotteryFactor);
         expect(result.current.dataStatus.status).toBe('success');
-      });
 
-      expect(calculateLotteryFactorMock).toHaveBeenCalledWith(mockPRData);
+        expect(calculateLotteryFactorMock).toHaveBeenCalledWith(mockPRData);
+      });
     });
 
-    it('should handle full data loading errors', async () => {
+    it('should handle full data loading errors', () => {
       fetchPRDataMock
         .mockResolvedValueOnce({
           // First call for critical stage
@@ -210,7 +205,7 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.full).toBe(true);
         expect(result.current.stats.loading).toBe(false);
         expect(result.current.stats.error).toBe('Database connection failed');
@@ -219,7 +214,7 @@ describe('useProgressiveRepoData', () => {
       });
     });
 
-    it('should not calculate lottery factor for empty data', async () => {
+    it('should not calculate lottery factor for empty data', () => {
       fetchPRDataMock.mockResolvedValue({
         data: [],
         status: 'success',
@@ -227,42 +222,33 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.full).toBe(true);
         expect(result.current.lotteryFactor).toBe(null);
-      });
 
-      expect(calculateLotteryFactorMock).not.toHaveBeenCalled();
+        expect(calculateLotteryFactorMock).not.toHaveBeenCalled();
+      });
     });
   });
 
   describe('Stage 3: Enhancement data loading', () => {
-    it('should load enhancement data in background using requestIdleCallback', async () => {
+    it('should load enhancement data in background using requestIdleCallback', () => {
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      // Wait for full stage to complete
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.full).toBe(true);
-      });
-
-      // Wait for enhancement stage
-      await waitFor(() => {
         expect(result.current.stageProgress.enhancement).toBe(true);
-      });
-
-      // Wait for completion
-      await waitFor(() => {
         expect(result.current.currentStage).toBe('complete');
         expect(result.current.stageProgress.complete).toBe(true);
         expect(result.current.directCommitsData).toEqual(mockDirectCommitsData);
         expect(result.current.historicalTrends).toBe(null);
-      });
 
-      expect(fetchDirectCommitsMock).toHaveBeenCalledWith('owner', 'repo', '90d');
-      expect(mockRequestIdleCallback).toHaveBeenCalled();
+        expect(fetchDirectCommitsMock).toHaveBeenCalledWith('owner', 'repo', '90d');
+        expect(mockRequestIdleCallback).toHaveBeenCalled();
+      });
     });
 
-    it('should use setTimeout fallback when requestIdleCallback is not available', async () => {
+    it('should use setTimeout fallback when requestIdleCallback is not available', () => {
       const originalRequestIdleCallback = window.requestIdleCallback;
       Object.defineProperty(window, 'requestIdleCallback', {
         value: undefined,
@@ -271,38 +257,33 @@ describe('useProgressiveRepoData', () => {
 
       vi.useFakeTimers();
 
-      try {
-        const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-        // Wait for full stage
-        await waitFor(() => {
+      return flushMicrotasks()
+        .then(() => {
           expect(result.current.stageProgress.full).toBe(true);
-        });
 
-        // Advance timers to trigger fallback
-        vi.advanceTimersByTime(2000);
+          // Advance timers to trigger fallback setTimeout(fn, 2000)
+          vi.advanceTimersByTime(2000);
 
-        await waitFor(() => {
+          return flushMicrotasks();
+        })
+        .then(() => {
           expect(result.current.stageProgress.enhancement).toBe(true);
+        })
+        .finally(() => {
+          vi.useRealTimers();
+          window.requestIdleCallback = originalRequestIdleCallback;
         });
-      } finally {
-        vi.useRealTimers();
-        window.requestIdleCallback = originalRequestIdleCallback;
-      }
     });
 
-    it('should handle enhancement data loading errors gracefully', async () => {
+    it('should handle enhancement data loading errors gracefully', () => {
       fetchDirectCommitsMock.mockRejectedValue(new Error('API rate limit exceeded'));
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      // Wait for full stage
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.stageProgress.full).toBe(true);
-      });
-
-      // Enhancement stage should still complete even with errors
-      await waitFor(() => {
         expect(result.current.stageProgress.enhancement).toBe(true);
         expect(result.current.directCommitsData).toBe(null);
       });
@@ -310,128 +291,121 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Abort and cleanup', () => {
-    it('should abort previous request when parameters change', async () => {
-      const { result, rerender } = renderHook(
+    it('should abort previous request when parameters change', () => {
+      const { rerender } = renderHook(
         ({ owner, repo }) => useProgressiveRepoData(owner, repo, '90d', false),
         { initialProps: { owner: 'owner1', repo: 'repo1' } }
       );
 
-      // Wait for initial loading to start
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledTimes(2); // Critical + Full stages
-      });
+      return flushMicrotasks()
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(2); // Critical + Full stages
 
-      // Change parameters
-      rerender({ owner: 'owner2', repo: 'repo2' });
+          // Change parameters
+          rerender({ owner: 'owner2', repo: 'repo2' });
 
-      // Should abort previous and start new request
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledWith('owner2', 'repo2', {
-          timeRange: '90d',
+          return flushMicrotasks();
+        })
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledWith('owner2', 'repo2', {
+            timeRange: '90d',
+          });
         });
-      });
     });
 
-    it('should prevent loading when component unmounts', async () => {
+    it('should prevent loading when component unmounts', () => {
       // Delay the fetch to allow unmount to happen
-      fetchPRDataMock.mockImplementationOnce(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        return {
+      fetchPRDataMock.mockImplementationOnce(() =>
+        new Promise((resolve) => setTimeout(resolve, 100)).then(() => ({
           data: mockPRData,
           status: 'success',
           message: 'Data loaded successfully',
-        };
-      });
-
-      const { result, unmount } = renderHook(() =>
-        useProgressiveRepoData('owner', 'repo', '90d', false)
+        }))
       );
 
-      // Start loading (critical stage starts)
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalled();
-      });
+      const { unmount } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      // Unmount before completion
+      // fetchPRDataMock is called synchronously during render
+      expect(fetchPRDataMock).toHaveBeenCalled();
+
+      // Unmount before the delayed mock resolves
       unmount();
 
       // Enhancement stage should not execute after unmount
-      // Note: We need to wait a bit to ensure it doesn't get called
-      await new Promise((resolve) => setTimeout(resolve, 200));
       expect(fetchDirectCommitsMock).not.toHaveBeenCalled();
     });
   });
 
   describe('Caching behavior', () => {
-    it('should use cached data when available and fresh', async () => {
+    it('should use cached data when available and fresh', () => {
       // First render to populate cache
       const { unmount: unmount1 } = renderHook(() =>
         useProgressiveRepoData('owner', 'repo', '90d', false)
       );
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
-      });
-
-      unmount1();
-
-      // Second render should use cache
-      const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
-
-      await waitFor(() => {
-        expect(result.current.stageProgress.critical).toBe(true);
-      });
-
-      // Should not make additional API calls for cached data
-      expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
-    });
-
-    it('should invalidate cache after expiration', async () => {
-      vi.useFakeTimers();
-      resetProgressiveCache(); // Reset to ensure clean slate with fake timers
-
-      try {
-        // First render
-        const { unmount: unmount1 } = renderHook(() =>
-          useProgressiveRepoData('owner', 'repo', '90d', false)
-        );
-
-        await waitFor(() => {
-          expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
-        });
 
         unmount1();
 
-        // Advance time beyond cache duration (5 minutes)
-        vi.advanceTimersByTime(6 * 60 * 1000);
+        // Second render should use cache
+        const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-        // Second render should not use expired cache
-        renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+        return flushMicrotasks().then(() => {
+          expect(result.current.stageProgress.critical).toBe(true);
 
-        await waitFor(() => {
-          expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // 2 more calls
+          // Should not make additional API calls for cached data
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
         });
-      } finally {
-        vi.useRealTimers();
-      }
+      });
+    });
+
+    it('should invalidate cache after expiration', () => {
+      vi.useFakeTimers();
+      resetProgressiveCache(); // Reset to ensure clean slate with fake timers
+
+      // First render
+      const { unmount: unmount1 } = renderHook(() =>
+        useProgressiveRepoData('owner', 'repo', '90d', false)
+      );
+
+      return flushMicrotasks()
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(2);
+
+          unmount1();
+
+          // Advance time beyond cache duration (5 minutes)
+          vi.advanceTimersByTime(6 * 60 * 1000);
+
+          // Second render should not use expired cache
+          renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
+
+          return flushMicrotasks();
+        })
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // 2 more calls
+        })
+        .finally(() => {
+          vi.useRealTimers();
+        });
     });
   });
 
   describe('Error scenarios', () => {
-    it('should handle network errors during any stage', async () => {
+    it('should handle network errors during any stage', () => {
       const networkError = new Error('Network connection failed');
       fetchPRDataMock.mockRejectedValue(networkError);
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      // Should not crash and should maintain initial state
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.basicInfo).toBe(null);
         expect(result.current.stats.loading).toBe(true);
       });
     });
 
-    it('should handle malformed response data', async () => {
+    it('should handle malformed response data', () => {
       fetchPRDataMock.mockResolvedValue({
         data: null,
         status: 'partial_data',
@@ -440,7 +414,7 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.dataStatus.status).toBe('no_data');
         expect(result.current.dataStatus.message).toBe('Some data may be missing');
       });
@@ -448,47 +422,51 @@ describe('useProgressiveRepoData', () => {
   });
 
   describe('Different time ranges and options', () => {
-    it('should handle different time ranges', async () => {
+    it('should handle different time ranges', () => {
       const { rerender } = renderHook(
         ({ timeRange }) => useProgressiveRepoData('owner', 'repo', timeRange, false),
         { initialProps: { timeRange: '30d' as const } }
       );
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-          timeRange: '30d',
-        });
-      });
+      return flushMicrotasks()
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
+            timeRange: '30d',
+          });
 
-      rerender({ timeRange: '1y' as const });
+          rerender({ timeRange: '1y' as const });
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
-          timeRange: '1y',
+          return flushMicrotasks();
+        })
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledWith('owner', 'repo', {
+            timeRange: '1y',
+          });
         });
-      });
     });
 
-    it('should handle includeBots parameter changes', async () => {
+    it('should handle includeBots parameter changes', () => {
       const { rerender } = renderHook(
         ({ includeBots }) => useProgressiveRepoData('owner', 'repo', '90d', includeBots),
         { initialProps: { includeBots: false } }
       );
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalled();
-      });
+      return flushMicrotasks()
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalled();
 
-      rerender({ includeBots: true });
+          rerender({ includeBots: true });
 
-      await waitFor(() => {
-        expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // New requests for changed parameter
-      });
+          return flushMicrotasks();
+        })
+        .then(() => {
+          expect(fetchPRDataMock).toHaveBeenCalledTimes(4); // New requests for changed parameter
+        });
     });
   });
 
   describe('Edge cases', () => {
-    it('should handle empty repository data gracefully', async () => {
+    it('should handle empty repository data gracefully', () => {
       fetchPRDataMock.mockResolvedValue({
         data: [],
         status: 'success',
@@ -497,14 +475,14 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.basicInfo?.prCount).toBe(0);
         expect(result.current.basicInfo?.contributorCount).toBe(0);
         expect(result.current.basicInfo?.topContributors).toHaveLength(0);
       });
     });
 
-    it('should handle PRs with missing user data', async () => {
+    it('should handle PRs with missing user data', () => {
       const prDataWithMissingUser = [
         { id: 1, title: 'Test PR', user: null, state: 'open' },
         {
@@ -522,7 +500,7 @@ describe('useProgressiveRepoData', () => {
 
       const { result } = renderHook(() => useProgressiveRepoData('owner', 'repo', '90d', false));
 
-      await waitFor(() => {
+      return flushMicrotasks().then(() => {
         expect(result.current.basicInfo?.contributorCount).toBe(1);
         expect(result.current.basicInfo?.topContributors).toHaveLength(1);
       });

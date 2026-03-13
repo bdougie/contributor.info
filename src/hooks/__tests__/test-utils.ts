@@ -53,7 +53,7 @@ export const setupBasicMocks = () => {
       observe: vi.fn(),
       unobserve: vi.fn(),
       takeRecords: vi.fn(() => []),
-    })) as any;
+    })) as unknown as typeof IntersectionObserver;
   }
 };
 

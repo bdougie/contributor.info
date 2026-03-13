@@ -21,7 +21,7 @@ global.IntersectionObserver = vi.fn(() => ({
   observe: vi.fn(),
   unobserve: vi.fn(),
   takeRecords: vi.fn(() => []),
-})) as any;
+})) as unknown as typeof IntersectionObserver;
 
 // Mock console to reduce noise
 global.console = {

@@ -8,6 +8,21 @@ export interface QueuePriority {
   maxItems: number;
 }
 
+export interface ProgressiveCaptureJob {
+  id: string;
+  job_type: string;
+  repository_id: string | null;
+  processor_type: string;
+  status: string | null;
+  time_range_days: number | null;
+  workflow_run_id: number | null;
+  metadata: Record<string, unknown>;
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
 export interface RepositoryMetadata {
   id: string;
   name: string;
@@ -209,7 +224,7 @@ export class QueuePrioritizationService {
   /**
    * Get next job to process based on priority
    */
-  async getNextJob(processor: 'inngest' | 'github_actions'): Promise<any | null> {
+  async getNextJob(processor: 'inngest' | 'github_actions'): Promise<ProgressiveCaptureJob | null> {
     try {
       // Prioritize queue first
       await this.prioritizeQueue();

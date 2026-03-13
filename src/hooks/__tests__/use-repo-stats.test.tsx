@@ -163,7 +163,7 @@ describe('useRepoStats', () => {
     try {
       // We need to access the hook directly to trigger the error
       useRepoStats();
-    } catch (_error) {
+    } catch {
       // Just check that some error was thrown
       errorThrown = true;
     }
@@ -245,7 +245,7 @@ describe('useRepoStats', () => {
     expect(statsWithBots.totalPullRequests).toBe(4); // Include the bot PR
   });
 
-  it('should fetch repo data directly when needed', async () => {
+  it('should fetch repo data directly when needed', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RepoStatsContext.Provider
         value={{
@@ -268,23 +268,23 @@ describe('useRepoStats', () => {
 
     const timeRange = '30';
 
-    const data = await result.current.fetchRepoData('testorg', 'testrepo', timeRange, true);
+    return result.current.fetchRepoData('testorg', 'testrepo', timeRange, true).then((data) => {
+      // Verify API calls
+      expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', timeRange);
+      expect(fetchDirectCommitsWithDatabaseFallback).toHaveBeenCalledWith(
+        'testorg',
+        'testrepo',
+        timeRange
+      );
+      expect(calculateLotteryFactor).toHaveBeenCalledWith(mockPullRequests, timeRange, true);
 
-    // Verify API calls
-    expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', timeRange);
-    expect(fetchDirectCommitsWithDatabaseFallback).toHaveBeenCalledWith(
-      'testorg',
-      'testrepo',
-      timeRange
-    );
-    expect(calculateLotteryFactor).toHaveBeenCalledWith(mockPullRequests, timeRange, true);
-
-    // Check returned data
-    expect(data.pullRequests).toEqual(mockPullRequests);
-    expect(data.lotteryFactor).toEqual(mockLotteryFactor);
-    expect(data.directCommitsData).toEqual({
-      hasYoloCoders: mockDirectCommits.hasYoloCoders,
-      yoloCoderStats: mockDirectCommits.yoloCoderStats,
+      // Check returned data
+      expect(data.pullRequests).toEqual(mockPullRequests);
+      expect(data.lotteryFactor).toEqual(mockLotteryFactor);
+      expect(data.directCommitsData).toEqual({
+        hasYoloCoders: mockDirectCommits.hasYoloCoders,
+        yoloCoderStats: mockDirectCommits.yoloCoderStats,
+      });
     });
   });
 });

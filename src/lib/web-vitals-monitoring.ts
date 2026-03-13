@@ -13,6 +13,14 @@ import {
 import { getWebVitalsAnalytics } from './web-vitals-analytics';
 import { logger } from './logger';
 
+interface NetworkInformation {
+  effectiveType?: string;
+}
+
+type NavigatorWithConnection = Navigator & {
+  connection?: NetworkInformation;
+};
+
 // Core Web Vitals thresholds (in milliseconds)
 const THRESHOLDS = {
   LCP: 2500, // Largest Contentful Paint
@@ -272,7 +280,7 @@ class WebVitalsMonitor {
             width: window.innerWidth,
             height: window.innerHeight,
           },
-          connection: (navigator as any).connection?.effectiveType || 'unknown',
+          connection: (navigator as NavigatorWithConnection).connection?.effectiveType || 'unknown',
         }),
       });
     } catch (error) {
@@ -315,7 +323,10 @@ class WebVitalsMonitor {
 
   public getSummary() {
     const metrics = this.getMetrics();
-    const summary: Record<string, any> = {};
+    const summary: Record<
+      string,
+      { value: number; rating: string; threshold: number | undefined; pass: boolean }
+    > = {};
 
     metrics.metrics.forEach((metric, name) => {
       summary[name] = {

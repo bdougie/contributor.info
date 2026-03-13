@@ -19,12 +19,16 @@ interface ExtendedLotteryFactorType extends LotteryFactor {
 }
 
 // Type guard for ExtendedLotteryFactorType
-const isExtendedLotteryFactor = (factor: any): factor is ExtendedLotteryFactorType => {
+const isExtendedLotteryFactor = (
+  factor: LotteryFactor | null | undefined
+): factor is ExtendedLotteryFactorType => {
   return (
-    factor &&
+    !!factor &&
     typeof factor === 'object' &&
-    typeof factor.score === 'number' &&
-    typeof factor.rating === 'string'
+    'score' in factor &&
+    typeof (factor as ExtendedLotteryFactorType).score === 'number' &&
+    'rating' in factor &&
+    typeof (factor as ExtendedLotteryFactorType).rating === 'string'
   );
 };
 
@@ -51,6 +55,30 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
   const includeBots = true; // This could be a prop or state
   const filteredPRs = getFilteredPullRequests(includeBots);
   const contributorStats = getContributorStats(includeBots);
+
+  // Handle cleanup of refresh timeout
+  useEffect(() => {
+    let refreshTimeout: NodeJS.Timeout;
+
+    if (isRefreshing) {
+      refreshTimeout = setTimeout(() => {
+        setIsRefreshing(false);
+      }, 2000);
+    }
+
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [isRefreshing]);
+
+  // Get the most recent PR - memoized for performance
+  const mostRecentPR = useMemo(() => {
+    return filteredPRs.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+  }, [filteredPRs]);
 
   if (stats.loading) {
     return (
@@ -174,30 +202,6 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
       setIsRefreshing(false);
     }
   };
-
-  // Handle cleanup of refresh timeout
-  useEffect(() => {
-    let refreshTimeout: NodeJS.Timeout;
-
-    if (isRefreshing) {
-      refreshTimeout = setTimeout(() => {
-        setIsRefreshing(false);
-      }, 2000);
-    }
-
-    return () => {
-      if (refreshTimeout) {
-        clearTimeout(refreshTimeout);
-      }
-    };
-  }, [isRefreshing]);
-
-  // Get the most recent PR - memoized for performance
-  const mostRecentPR = useMemo(() => {
-    return filteredPRs.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
-  }, [filteredPRs]);
 
   return (
     <Card>

@@ -127,7 +127,7 @@ export function useRepositorySummary(
           const { data, error } = await supabase
             .from('repositories')
             .select(
-              'id, full_name, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash'
+              'id, full_name, name, owner, description, language, stargazers_count, forks_count, ai_summary, summary_generated_at, recent_activity_hash'
             )
             .eq('owner', owner)
             .eq('name', repo)
@@ -149,7 +149,7 @@ export function useRepositorySummary(
 
       // Calculate activity hash
       const activityHash = createActivityHash(pullRequests || []);
-      const shouldRegenerate = needsRegeneration(repositoryData, activityHash);
+      const shouldRegenerate = needsRegeneration(repositoryData as Repository, activityHash);
 
       // Use cached summary if available and fresh
       if (repositoryData.ai_summary && !shouldRegenerate) {

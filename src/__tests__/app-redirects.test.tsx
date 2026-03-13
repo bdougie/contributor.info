@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { Navigate } from 'react-router';
 
 // Mock the router Navigate component to track redirects
 const mockNavigate = vi.fn();
-vi.mock('react-router', async () => {
-  const actual = await vi.importActual('react-router');
+vi.mock('react-router', () => {
+  const actual = vi.importActual('react-router');
   return {
     ...actual,
     Navigate: ({ to, replace }: { to: string; replace?: boolean }) => {

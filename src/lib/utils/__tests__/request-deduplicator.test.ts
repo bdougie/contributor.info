@@ -19,9 +19,9 @@ describe('RequestDeduplicator', () => {
       const mockFetcher = vi.fn().mockReturnValue(Promise.resolve('test-data'));
       const key = 'test-key';
 
-      // Start multiple requests with same key
-      const promise1 = requestDeduplicator.dedupe(key, mockFetcher);
-      const promise2 = requestDeduplicator.dedupe(key, mockFetcher);
+      // Start multiple requests with same key - verifying deduplication, not return values
+      void requestDeduplicator.dedupe(key, mockFetcher);
+      void requestDeduplicator.dedupe(key, mockFetcher);
 
       // Should only call fetcher once
       expect(mockFetcher).toHaveBeenCalledTimes(1);
@@ -140,7 +140,7 @@ describe('RequestDeduplicator', () => {
     it('should handle custom key generator', () => {
       const originalFetcher = vi.fn().mockReturnValue(Promise.resolve('result'));
       // Custom key generator that creates a key from all arguments
-      const keyGen = (...args: any[]) => args.join(':');
+      const keyGen = (...args: string[]) => args.join(':');
       const wrappedFetcher = withRequestDeduplication(originalFetcher, keyGen);
 
       // Call with same arguments

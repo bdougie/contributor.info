@@ -284,50 +284,62 @@ export function ProgressiveRepoViewWithErrorBoundaries() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!progressiveData.stageProgress.enhancement && !progressiveData.directCommitsData ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              ) : progressiveData.directCommitsData ? (
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    {progressiveData.directCommitsData?.hasYoloCoders
-                      ? `${progressiveData.directCommitsData.yoloCoderStats?.length || 0} YOLO coders detected`
-                      : 'No YOLO coders detected'}
-                  </p>
-                  {progressiveData.directCommitsData?.yoloCoderStats &&
-                    progressiveData.directCommitsData.yoloCoderStats.length > 0 && (
-                      <p className="text-sm mt-1">
-                        Top YOLO coder: {progressiveData.directCommitsData.yoloCoderStats[0].login}(
-                        {progressiveData.directCommitsData.yoloCoderStats[0].directCommitPercentage.toFixed(
-                          1
-                        )}
-                        % direct commits)
-                      </p>
-                    )}
-
-                  {progressiveData.stageErrors.enhancement && (
-                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                      <p className="text-sm text-yellow-800">
-                        ℹ️ Enhancement features partially unavailable:{' '}
-                        {progressiveData.stageErrors.enhancement.userMessage}
-                      </p>
-                      <button
-                        onClick={() => handleManualRetry('enhancement')}
-                        className="text-sm text-yellow-700 hover:text-yellow-900 mt-1 underline"
-                        disabled={progressiveData.isRetrying === 'enhancement'}
-                      >
-                        {progressiveData.isRetrying === 'enhancement'
-                          ? 'Retrying...'
-                          : 'Try loading enhancements'}
-                      </button>
+              {(() => {
+                if (
+                  !progressiveData.stageProgress.enhancement &&
+                  !progressiveData.directCommitsData
+                ) {
+                  return (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">Loading advanced analytics...</div>
-              )}
+                  );
+                }
+                if (progressiveData.directCommitsData) {
+                  return (
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {progressiveData.directCommitsData?.hasYoloCoders
+                          ? `${progressiveData.directCommitsData.yoloCoderStats?.length || 0} YOLO coders detected`
+                          : 'No YOLO coders detected'}
+                      </p>
+                      {progressiveData.directCommitsData?.yoloCoderStats &&
+                        progressiveData.directCommitsData.yoloCoderStats.length > 0 && (
+                          <p className="text-sm mt-1">
+                            Top YOLO coder:{' '}
+                            {progressiveData.directCommitsData.yoloCoderStats[0].login}(
+                            {progressiveData.directCommitsData.yoloCoderStats[0].directCommitPercentage.toFixed(
+                              1
+                            )}
+                            % direct commits)
+                          </p>
+                        )}
+
+                      {progressiveData.stageErrors.enhancement && (
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            ℹ️ Enhancement features partially unavailable:{' '}
+                            {progressiveData.stageErrors.enhancement.userMessage}
+                          </p>
+                          <button
+                            onClick={() => handleManualRetry('enhancement')}
+                            className="text-sm text-yellow-700 hover:text-yellow-900 mt-1 underline"
+                            disabled={progressiveData.isRetrying === 'enhancement'}
+                          >
+                            {progressiveData.isRetrying === 'enhancement'
+                              ? 'Retrying...'
+                              : 'Try loading enhancements'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="text-sm text-muted-foreground">Loading advanced analytics...</div>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
@@ -380,6 +392,6 @@ export const ProgressiveRepoViewWithHOC = () => {
   return <EnhancedComponent />;
 };
 
-// Re-export the HOC for convenience
 import { withDataLoadingErrorBoundary } from '@/components/error-boundaries/data-loading-error-boundary';
+// eslint-disable-next-line react-refresh/only-export-components -- HOC re-export, not a component
 export { withDataLoadingErrorBoundary };
