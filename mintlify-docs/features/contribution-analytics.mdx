@@ -1,13 +1,44 @@
+---
+title: Contribution Analytics
+description: See which contributors drive the most impactful work — quadrant classification, impact scores, and effort metrics reveal who does what and where to invest next.
+---
+
 The **Contribution Analytics** feature provides detailed analysis of individual contributions using advanced metrics and categorization systems. This analytical view helps understand the nature and impact of different types of work within your repository.
+
+<Frame>
+  <img src="/images/features/contribution-analytics.png" alt="Contribution scatter plot showing PR activity over 30 days" />
+</Frame>
 
 ## Overview
 
 Contribution Analytics goes beyond simple commit counts to analyze the characteristics, complexity, and impact of each contribution. The system categorizes contributions into meaningful segments that help identify work patterns and contributor specializations.
 
-## Quadrant Classification System  
+## Quadrant Classification System
 
 ### The Four Contribution Quadrants
-![Contribution quadrant visualization](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contribution-analytics/quadrant-scatter-plot.png)
+
+Every contribution is automatically classified into one of four categories based on impact and effort analysis:
+
+- **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
+- **🟡 High Impact, Low Effort**: Critical bug fixes, security patches, and targeted improvements
+- **🔵 Low Impact, High Effort**: Documentation updates, test additions, and infrastructure work
+- **⚪ Low Impact, Low Effort**: Minor tweaks, typo fixes, and routine maintenance
+
+### Impact Calculation
+Impact is determined by analyzing:
+
+- **Files Modified**: Number and type of files affected
+- **Lines Changed**: Total additions and deletions
+- **Code Complexity**: Structural changes to the codebase
+- **Review Activity**: Discussion volume and reviewer engagement
+
+### Effort Assessment
+Effort metrics consider:
+
+- **Development Time**: Time between commits and PR lifecycle
+- **Revision Cycles**: Number of review iterations required
+- **Change Scope**: Breadth of modifications across the codebase
+- **Testing Requirements**: Associated test changes and coverage impact
 
 ## Visual Analytics
 
@@ -26,28 +57,60 @@ Each contributor's work patterns become visible through their distribution acros
 
 *Contributors mapped by impact and effort metrics*
 
-Every contribution is automatically classified into one of four categories based on impact and effort analysis:
+## Code Examples
 
-- **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
-- **🟡 High Impact, Low Effort**: Critical bug fixes, security patches, and targeted improvements
-- **🔵 Low Impact, High Effort**: Documentation updates, test additions, and infrastructure work  
-- **⚪ Low Impact, Low Effort**: Minor tweaks, typo fixes, and routine maintenance
+### Querying Contribution Quadrants
 
-### Impact Calculation
-Impact is determined by analyzing:
+Fetch contributions with their quadrant classifications using the Supabase client:
 
-- **Files Modified**: Number and type of files affected
-- **Lines Changed**: Total additions and deletions
-- **Code Complexity**: Structural changes to the codebase
-- **Review Activity**: Discussion volume and reviewer engagement
+```typescript
+import { createClient } from '@supabase/supabase-js'
 
-### Effort Assessment
-Effort metrics consider:
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-- **Development Time**: Time between commits and PR lifecycle
-- **Revision Cycles**: Number of review iterations required
-- **Change Scope**: Breadth of modifications across the codebase
-- **Testing Requirements**: Associated test changes and coverage impact
+// Fetch contributions classified by quadrant for a repository
+const { data, error } = await supabase
+  .from('pull_requests')
+  .select('author, additions, deletions, changed_files, review_comments')
+  .eq('repo_id', repoId)
+  .order('created_at', { ascending: false })
+  .limit(100)
+
+// Classify into quadrants based on impact and effort
+function classifyContribution(pr) {
+  const impact = pr.additions + pr.deletions + pr.changed_files * 10
+  const effort = pr.review_comments + pr.changed_files
+
+  const highImpact = impact > 200
+  const highEffort = effort > 5
+
+  if (highImpact && highEffort) return 'high-impact-high-effort'
+  if (highImpact && !highEffort) return 'high-impact-low-effort'
+  if (!highImpact && highEffort) return 'low-impact-high-effort'
+  return 'low-impact-low-effort'
+}
+
+const classified = data.map(pr => ({
+  ...pr,
+  quadrant: classifyContribution(pr),
+}))
+```
+
+### Filtering by Quadrant
+
+Use the UI's quadrant filter or construct a query manually:
+
+```typescript
+// Count contributions per quadrant for a contributor
+const quadrantCounts = classified.reduce((acc, pr) => {
+  acc[pr.quadrant] = (acc[pr.quadrant] ?? 0) + 1
+  return acc
+}, {})
+
+console.log('%s quadrant distribution:', contributor, quadrantCounts)
+// Example output:
+// { 'high-impact-high-effort': 12, 'high-impact-low-effort': 5, ... }
+```
 
 ## Insights and Patterns
 
@@ -90,27 +153,3 @@ Identify contributors who might benefit from expanding into different quadrants 
 Understand the balance between feature development, maintenance, and infrastructure work to inform future planning and resource allocation.
 
 Contribution Analytics transforms raw GitHub data into strategic insights that help teams understand not just what work is being done, but the nature and impact of that work on project success.
-*Contributors mapped by impact and effort metrics*
-
-Every contribution is automatically classified into one of four categories based on impact and effort analysis:
-
-- **🟢 High Impact, High Effort**: Major features, significant refactoring, and architectural changes
-- **🟡 High Impact, Low Effort**: Critical bug fixes, security patches, and targeted improvements
-- **🔵 Low Impact, High Effort**: Documentation updates, test additions, and infrastructure work  
-- **⚪ Low Impact, Low Effort**: Minor tweaks, typo fixes, and routine maintenance
-
-### Impact Calculation
-Impact is determined by analyzing:
-
-- **Files Modified**: Number and type of files affected
-- **Lines Changed**: Total additions and deletions
-- **Code Complexity**: Structural changes to the codebase
-- **Review Activity**: Discussion volume and reviewer engagement
-
-### Effort Assessment
-Effort metrics consider:
-
-- **Development Time**: Time between commits and PR lifecycle
-- **Revision Cycles**: Number of review iterations required
-- **Change Scope**: Breadth of modifications across the codebase
-- **Testing Requirements**: Associated test changes and coverage impact

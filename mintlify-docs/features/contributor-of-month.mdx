@@ -1,13 +1,22 @@
+---
+title: Contributor of the Month
+description: Rank contributors by merged PRs, review activity, and code impact each month so you can spotlight your most valuable community members and encourage consistent participation.
+---
+
 The **Contributor of the Month** feature recognizes and celebrates the most impactful contributors to your repository during monthly periods. This gamified recognition system helps maintain contributor engagement and highlights valuable community members.
+
+<Frame>
+  <img src="/images/features/contributor-of-month.png" alt="Monthly leaderboard ranking top contributors by score" />
+</Frame>
 
 ## Overview
 
-This feature automatically calculates contributor rankings based on pull request activity, impact metrics, and overall engagement. Contributors earn points through various activities including successful PR merges, code reviews, and community participation.
+This feature calculates contributor rankings from pull request merges, lines of code changed, review comments, and contribution frequency. Contributors earn points for merged PRs, approved reviews, and sustained activity throughout the calendar month.
 
 ## How Rankings Work
 
 ### Scoring Algorithm
-Contributors are ranked using a comprehensive scoring system that considers:
+Contributors earn points across five categories:
 
 - **Pull Request Volume**: Number of successful PR contributions
 - **Impact Score**: Lines changed, files affected, and complexity metrics
@@ -18,10 +27,37 @@ Contributors are ranked using a comprehensive scoring system that considers:
 ### Monthly Cycles
 Rankings reset monthly, creating fresh opportunities for all contributors to be recognized. The system tracks both current month activity and historical performance trends.
 
+## Example: Contributor Score Breakdown
+
+The following shows how a contributor's monthly score is calculated:
+
+```
+Contributor: alice
+  Merged PRs:       12   ×  10 pts  =  120 pts
+  Lines changed:  2,400   ×   0.05  =  120 pts
+  Reviews given:    18   ×   5 pts  =   90 pts
+  Consistency:            streak ×3  =   30 pts
+  ─────────────────────────────────────────────
+  Total score:                         360 pts
+```
+
+To query the current month's top contributors via the API:
+
+```ts
+import { supabase } from '@/lib/supabase';
+
+const { data } = await supabase
+  .from('contributor_rankings')
+  .select('login, avatar_url, score, merged_prs, reviews')
+  .eq('period', 'monthly')
+  .order('score', { ascending: false })
+  .limit(5);
+```
+
 ## Display Modes
 
 ### Winner Announcement Phase
-![Contributor of the month winner](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/contributor-of-month/winner-display.png)
+At the end of each month, the top-ranked contributor is highlighted with their GitHub avatar, total score, and a breakdown of their contributions — merged PRs, review activity, and lines changed.
 
 ## Recognition Elements
 

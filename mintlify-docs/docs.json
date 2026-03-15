@@ -50,19 +50,21 @@
         ]
       },
       {
-        "group": "Insights",
+        "group": "Workspaces",
         "pages": [
-          "insights/pr-activity",
-          "insights/repository-health",
-          "insights/needs-attention",
-          "insights/recommendations"
+          "workspaces/overview",
+          "workspaces/repository-tracking",
+          "workspaces/slack-integration",
+          "workspaces/priority-indexing"
         ]
       },
       {
+        "group": "StarSearch",
+        "pages": ["starsearch/overview"]
+      },
+      {
         "group": "Resources",
-        "pages": [
-          "changelog"
-        ]
+        "pages": ["changelog"]
       }
     ],
     "global": {
