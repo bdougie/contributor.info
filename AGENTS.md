@@ -2,6 +2,22 @@
 
 React + TypeScript application that visualizes GitHub contributors and their contributions.
 
+## General Rules
+
+When editing code, always verify you are working in the correct repository before making changes. Confirm the repo path if multiple repos are checked out.
+
+## Git Workflow
+
+When working with git, always create a feature branch before committing. Never push directly to main unless explicitly told to.
+
+## Environment Setup
+
+This machine uses fnm (not nvm or nix) for Node.js version management. Run `eval "$(fnm env)"` before any npm/node commands. Go projects may need GOEXPERIMENT flag for tests.
+
+## Code Review
+
+When asked to "review a PR", read the PR description, comments, and diff first. Do not immediately try to build/test or check merge conflicts unless asked.
+
 ## Architecture
 
 - **Frontend**: React + TypeScript + Vite
