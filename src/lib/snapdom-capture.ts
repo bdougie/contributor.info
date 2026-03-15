@@ -4,8 +4,8 @@
  * Captures DOM elements as high-fidelity PNG images for social sharing cards
  * and Open Graph previews. Lazy-loads the SnapDOM and html2canvas libraries
  * on demand (only when the user clicks share/download) to keep the main
- * bundle small. Sanitizes HTML content before capture to prevent XSS in
- * rendered output.
+ * bundle small. Escapes only the generated fallback initials used in the
+ * attribution header; callers must sanitize any untrusted DOM before capture.
  *
  * @module
  */

@@ -1,10 +1,10 @@
 /**
  * GitHub API Layer
  *
- * Primary interface for fetching repository data from GitHub. Implements a
- * database-first strategy: queries Supabase for cached data before falling
- * back to the GitHub REST API. Handles rate-limit tracking, exponential
- * backoff, bot detection, and pagination for large result sets.
+ * Primary interface for fetching repository data from the GitHub REST API.
+ * Uses Supabase only for session-backed token lookup. Handles rate-limit
+ * tracking, exponential backoff, bot detection, and pagination for large
+ * result sets.
  *
  * @see https://docs.contributor.info/features/repository-health - Repository Health (user docs)
  * @see /docs/architecture/github-api-exponential-backoff.md - Rate limit strategy (internal docs)

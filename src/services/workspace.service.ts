@@ -2,7 +2,9 @@
  * Workspace Service Layer
  *
  * Orchestrates business logic for workspace CRUD, membership management,
- * and repository tracking. Validates inputs via Zod schemas, enforces
+ * and repository tracking. Core create/update flows validate inputs via
+ * Zod schemas, while invitation and repository operations use service-level
+ * checks. Enforces
  * tier-based limits through the permission service, and triggers
  * background sync jobs via Inngest when repositories are added.
  *

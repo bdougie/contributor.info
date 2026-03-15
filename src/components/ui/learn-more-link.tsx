@@ -1,5 +1,6 @@
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from '@/components/ui/icon';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { cn } from '@/lib/utils';
 
 interface LearnMoreLinkProps {
   href: string;
@@ -23,7 +24,10 @@ export function LearnMoreLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors ${className ?? ''}`}
+      className={cn(
+        'inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors',
+        className
+      )}
       onClick={() => trackDocsLinkClicked(feature, source, href)}
     >
       <ExternalLink className="h-3 w-3" />

@@ -773,7 +773,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="text-sm text-muted-foreground flex items-center gap-2">
-            <span>{data[0].data.length} pull requests shown</span>
+            <span>{data[0]?.data?.length ?? 0} pull requests shown</span>
             <LearnMoreLink
               href="https://docs.contributor.info/features/contribution-analytics"
               feature="contribution_analytics"
