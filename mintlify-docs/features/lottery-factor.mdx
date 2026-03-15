@@ -1,28 +1,65 @@
-Measures knowledge concentration risk - how many contributors could you lose before the project fails?
+---
+title: Lottery Factor
+description: Find out if your project has a single point of failure — see how many contributors you can afford to lose before critical work stalls.
+---
+
+The Lottery Factor measures knowledge concentration risk — how many contributors could you lose before the project fails? It answers: *if key contributors won the lottery and left tomorrow, how resilient is the project?*
+
+<Frame>
+  <img src="/images/features/lottery-factor.png" alt="Lottery factor analysis showing contributor risk levels" />
+</Frame>
+
+## How It Works
+
+contributor.info analyzes the last 30 days of merged pull requests to calculate what percentage of contributions come from each contributor. The result is a risk score based on how concentrated that work is.
+
+**Example calculation:**
+
+A project with 10 contributors where the top 2 contributors authored 85% of merged PRs has a **High Risk** lottery factor. If those 2 contributors left, the project would lose the majority of its active development capacity.
+
+```
+Top contributor:   52% of merged PRs
+2nd contributor:   33% of merged PRs
+Remaining 8:       15% of merged PRs
+─────────────────────────────────────
+Top 2 total:       85%  →  High Risk
+```
 
 ## Risk Levels
 
-🟢 **Low Risk** - Well-distributed contributions  
-🟡 **Medium Risk** - Moderate concentration  
-🔴 **High Risk** - Heavy reliance on few people
+🟢 **Low Risk** — Well-distributed contributions. Top 5 contributors account for less than 60% of work. The project can sustain contributor turnover.
+
+🟡 **Medium Risk** — Moderate concentration. A few contributors are doing most of the work, but the project isn't fully dependent on any single person.
+
+🔴 **High Risk** — Heavy reliance on a small number of people. Losing one or two contributors could stall or block the project.
 
 ## Thresholds
 
-**Healthy:** Top 5 contributors < 60% of work  
-**Concerning:** Top 2-3 contributors > 80% of work
+| Condition | Risk Level |
+|---|---|
+| Top 5 contributors < 60% of work | 🟢 Low Risk |
+| Top 2–3 contributors > 80% of work | 🔴 High Risk |
+| In between | 🟡 Medium Risk |
 
 ## YOLO Coders
 
-Shows who commits directly to main branch without PRs:
-- Bypasses code review
-- Security concern
-- Process violation
+contributor.info also identifies contributors who commit directly to the main branch without opening pull requests. These direct pushes:
+
+- Bypass code review, which can introduce bugs or security issues
+- May bypass CI/CD checks configured only for pull requests
+- Create gaps in the audit trail
+
+**Example:** A repository where 1 contributor makes 30% of changes via direct commits to `main` represents both a lottery factor risk and a process risk.
 
 ## Actions for High Risk
 
-1. Add beginner-friendly issues
-2. Organize knowledge sharing
-3. Start mentorship program
-4. Document everything
+If your project shows High Risk:
 
-Based on 30 days of merged PRs.
+1. **Add beginner-friendly issues** — Label `good first issue` tickets to invite new contributors and spread knowledge.
+2. **Organize knowledge sharing** — Pair high-concentration contributors with others through regular syncs or review rotations.
+3. **Start a mentorship program** — Actively bring newer contributors up to speed on critical areas.
+4. **Document everything** — Architecture decisions, onboarding guides, and runbooks reduce the cost of contributor turnover.
+
+## Data Window
+
+The lottery factor is based on **30 days of merged pull requests**. This window captures recent activity rather than historical contributions, so it reflects the current state of your project's contributor health.

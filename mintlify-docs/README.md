@@ -20,11 +20,14 @@ mintlify-docs/
 │   ├── repository-health.mdx
 │   ├── repository-search.mdx
 │   └── github-app-setup.mdx
-└── insights/           # Insights documentation
-    ├── pr-activity.mdx
-    ├── repository-health.mdx
-    ├── needs-attention.mdx
-    └── recommendations.mdx
+├── workspaces/         # Workspaces documentation (paid)
+│   ├── overview.mdx
+│   ├── repository-tracking.mdx
+│   ├── slack-integration.mdx
+│   └── priority-indexing.mdx
+├── starsearch/         # StarSearch documentation
+│   └── overview.mdx
+└── images/             # Feature screenshots
 ```
 
 ## Setup
@@ -69,7 +72,7 @@ docker run -p 3000:3000 -v $(pwd)/mintlify-docs:/docs mintlify/mintlify
 
 The `docs.json` file contains all configuration:
 
-- **Navigation**: Organized into Features and Insights sections
+- **Navigation**: Organized into Features, Workspaces, StarSearch, and Resources sections
 - **Branding**: Custom colors matching Contributor.info theme
 - **Analytics**: PostHog integration for docs analytics
 - **Social Links**: GitHub, Twitter, Discord

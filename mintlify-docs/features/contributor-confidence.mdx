@@ -1,3 +1,12 @@
+---
+title: Contributor Confidence
+description: See what percentage of your stargazers and forkers become active contributors, identify barriers to entry, and get targeted steps to grow your contributor base.
+---
+
+<Frame>
+  <img src="/images/features/contributor-confidence.png" alt="Health tab showing contributor confidence and repository metrics" />
+</Frame>
+
 ## What is Contributor Confidence?
 
 Contributor Confidence measures the likelihood that people who star or fork your repository will return to make meaningful contributions. This metric helps you understand how welcoming and approachable your project is to potential contributors.
@@ -71,7 +80,7 @@ The algorithm applies intelligent adjustments based on repository characteristic
 
 ## Data Sources
 
-The confidence calculation uses comprehensive GitHub event data:
+The confidence calculation uses the following GitHub event types, fetched via the GitHub Events API:
 
 ### Event Types Analyzed
 - **WatchEvent**: Repository stars
@@ -108,7 +117,7 @@ The confidence calculation analyzes the most recent 30 days of activity to provi
 ## Improving Your Confidence Score
 
 ### Documentation & Onboarding
-1. **Create comprehensive README**: Clear installation, usage, and contribution instructions
+1. **Write a structured README**: Cover installation steps, usage examples, and a labeled path for first-time contributors
 2. **Add contribution guidelines**: Step-by-step process for new contributors
 3. **Maintain code of conduct**: Set expectations for community interaction
 4. **Provide good first issues**: Label beginner-friendly tasks
@@ -124,6 +133,10 @@ The confidence calculation analyzes the most recent 30 days of activity to provi
 2. **Improve test coverage**: Make it easier for contributors to verify their changes
 3. **Use clear coding standards**: Consistent style reduces contribution friction
 4. **Automate workflows**: CI/CD and automated checks help contributors succeed
+
+## How the Score Works
+
+The confidence score is computed from three components: privileged event analysis, activity patterns, and temporal consistency. The final score is bounded by the algorithm before display in the UI. Refer to the in-product confidence label (Intimidating, Challenging, Approachable, Welcoming) as the source of truth for your repository's rating.
 
 ## Frequently Asked Questions
 

@@ -1,4 +1,13 @@
+---
+title: "Activity Feed"
+description: "See who's contributing, what's merged, and how your project is moving — all in one live feed."
+---
+
 The **Repository Activity Feed** provides a real-time stream of pull request activity and contributor interactions within your repository. This chronological view helps you stay current with project developments and track team engagement patterns.
+
+<Frame>
+  <img src="/images/features/activity-feed.png" alt="Repository activity feed showing recent PR events" />
+</Frame>
 
 ## Overview
 
@@ -7,7 +16,8 @@ The activity feed presents a timeline of repository events including pull reques
 ## Feed Components
 
 ### Pull Request Timeline
-![Pull request activity timeline](https://egcxzonpmmcirmgqdrla.supabase.co/storage/v1/object/public/assets/docs/images/features/activity-feed/pr-timeline.png)
+
+The timeline displays pull request events in chronological order, showing creation, review, and merge activity across all contributors.
 
 ## Activity Insights
 
@@ -18,11 +28,11 @@ The activity feed presents a timeline of repository events including pull reques
 The feed displays PR events in reverse chronological order with key details:
 
 - **PR Creation**: New pull requests with title, author, and creation timestamp
-- **Merge Events**: Successfully merged PRs with merge time and reviewer information  
+- **Merge Events**: Successfully merged PRs with merge time and reviewer information
 - **Review Activity**: Code review submissions, approvals, and change requests
 - **Status Changes**: PR state transitions from draft to ready, or open to closed
 
-**Note**: The feed includes "Reviewed" and "Commented" activity toggles. For repositories synced before January 2025, these toggles may show limited results due to previous data capture limits. Use the backfill scripts in `scripts/` to capture missing review and comment data for complete activity visibility.
+The feed includes **Reviewed** and **Commented** activity toggles to filter by event type.
 
 ### Contributor Highlights
 Special feed items celebrate contributor achievements and milestones:
@@ -60,28 +70,20 @@ The feed helps foster community by celebrating contributions and making all team
 ### Historical Context
 The chronological format provides valuable historical context for understanding how the project has evolved and which contributors have been most active during specific periods.
 
+## Usage Example
+
+Navigate to a tracked repository and open the **Activity** tab to view the feed. The URL pattern follows:
+
+```
+https://contributor.info/{owner}/{repo}/activity
+```
+
+For example, to view activity for the `openSauced/pizza-cli` repository:
+
+```
+https://contributor.info/openSauced/pizza-cli/activity
+```
+
+Each feed item shows the contributor avatar, PR title, event type, and relative timestamp. Filter the feed using the **Reviewed** and **Commented** toggles at the top of the feed panel.
+
 The Repository Activity Feed transforms repository data into an engaging, informative stream that keeps all stakeholders connected to project progress and community activity.
-*Real-time feed of repository activity*
-
-The feed displays PR events in reverse chronological order with key details:
-
-- **PR Creation**: New pull requests with title, author, and creation timestamp
-- **Merge Events**: Successfully merged PRs with merge time and reviewer information  
-- **Review Activity**: Code review submissions, approvals, and change requests
-- **Status Changes**: PR state transitions from draft to ready, or open to closed
-
-**Note**: The feed includes "Reviewed" and "Commented" activity toggles. For repositories synced before January 2025, these toggles may show limited results due to previous data capture limits. Use the backfill scripts in `scripts/` to capture missing review and comment data for complete activity visibility.
-
-### Contributor Highlights
-Special feed items celebrate contributor achievements and milestones:
-
-- **First-time Contributors**: Welcome messages for new project contributors
-- **Contribution Streaks**: Recognition for contributors with consecutive PR activity
-- **Review Milestones**: Acknowledgment of significant review activity
-- **Top Performer Badges**: Monthly and weekly top contributor recognitions
-
-
-The system analyzes the most recent 30 days of activity.
-
-### Real-Time Updates
-The feed refreshes automatically to show the latest activity without requiring manual page reloads, ensuring you always have current information.

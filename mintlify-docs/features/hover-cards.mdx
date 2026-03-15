@@ -1,30 +1,101 @@
-Quick contributor information displayed on hover.
+---
+title: "Hover Cards"
+description: "See any contributor's PR count, commits, review activity, and GitHub profile in a 500ms hover overlay — no navigation required."
+---
+
+Hover cards surface contributor details the moment you need them. Move your cursor over any contributor avatar or username and a card appears within 500ms, showing their stats inline so you never have to navigate away to get context.
+
+<Frame>
+  <img src="/images/features/hover-cards.png" alt="Hover card displaying contributor stats on mouseover" />
+</Frame>
 
 ## Overview
 
-Hover cards appear when you hover over a contributor's avatar or username, providing instant access to their key statistics without navigating away from your current view.
+Every contributor mention across the dashboard is interactive. The hover card pulls live data from the contributor's GitHub profile and their activity within the repository, displaying it in a compact overlay anchored to the element you hovered.
 
 ## Information Displayed
 
-- **Avatar & Username**: GitHub profile picture and handle
-- **Contribution Stats**: Total PRs, commits, and reviews
-- **Recent Activity**: Last contribution date
-- **Primary Language**: Most used programming language
-- **GitHub Link**: Direct link to their profile
+Each hover card shows:
 
-## Where They Appear
+- **Avatar and Username**: GitHub profile picture and handle
+- **Contribution Stats**: Total PRs opened, commits merged, and code reviews submitted
+- **Recent Activity**: Date of the contributor's last contribution
+- **Primary Language**: The programming language they use most in this repository
+- **GitHub Link**: Direct link to their GitHub profile
 
-- Contributor lists
-- PR activity feeds
-- Lottery factor analysis
-- Distribution charts
-- Any contributor mention
+**Example card output for a contributor:**
 
-## Interaction
+```
+┌─────────────────────────────────────┐
+│ ● @janedoe                          │
+│   Jane Doe                          │
+│                                     │
+│   PRs: 42    Commits: 128           │
+│   Reviews: 31                       │
+│                                     │
+│   Last active: 2 days ago           │
+│   Primary language: TypeScript      │
+│                                     │
+│   github.com/janedoe →              │
+└─────────────────────────────────────┘
+```
 
-- **Hover**: Shows card after 500ms delay
-- **Click Username**: Opens GitHub profile
-- **Click Away**: Dismisses card
-- **Keyboard**: ESC to close
+## Where Hover Cards Appear
 
-Cards position themselves intelligently to stay within viewport bounds.
+Hover cards are available on every contributor reference in the dashboard:
+
+- **Contributor lists**: The main contributors view on any repository page
+- **PR activity feeds**: Author and reviewer names in feed items
+- **Lottery factor analysis**: Contributor names in the risk breakdown table
+- **Distribution charts**: Labels on pie and bar chart segments
+- **Any contributor mention**: Username text anywhere in the UI
+
+This means you can get a contributor's full context without leaving the lottery factor view, the activity feed, or any other panel.
+
+## Interaction Model
+
+| Action | Result |
+|---|---|
+| Hover over avatar or username | Card appears after 500ms |
+| Click username in card | Opens GitHub profile in new tab |
+| Move cursor away | Card dismisses |
+| Click outside the card | Card dismisses |
+| Press `ESC` | Card closes immediately |
+
+The 500ms delay prevents cards from appearing during normal cursor movement. A card only shows when you pause on a contributor element.
+
+## Viewport Positioning
+
+Cards position themselves to stay fully visible regardless of where the trigger element sits on screen. If a contributor appears near the right edge, the card opens to the left. Near the bottom, it opens upward. This keeps the card content readable without scrolling.
+
+## Usage Example
+
+Navigate to any tracked repository and open the **Contributors** tab:
+
+```
+https://contributor.info/{owner}/{repo}
+```
+
+For example, to explore contributors for `openSauced/pizza-cli`:
+
+```
+https://contributor.info/openSauced/pizza-cli
+```
+
+Hover over any avatar in the contributor grid. After the 500ms delay, the card appears with that contributor's stats for this specific repository. Click the GitHub link in the card to open their full profile.
+
+The same hover interaction works from the **Activity** tab feed:
+
+```
+https://contributor.info/openSauced/pizza-cli/activity
+```
+
+Each feed item shows the PR author's avatar. Hover it to see their stats without leaving the feed.
+
+## Use Cases
+
+**Reviewing unfamiliar contributors**: When you see a username you don't recognize in the activity feed, hover to see their contribution volume and recency before deciding whether to dig deeper.
+
+**Comparing reviewer depth**: Hover reviewers listed in PR feed items to compare their review counts and understand who is most active in code review.
+
+**Quick profile access**: Instead of opening a new tab and searching GitHub, use the card's direct profile link to jump straight to the contributor's GitHub page.
