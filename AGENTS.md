@@ -57,7 +57,7 @@ This project follows an **invisible, Netflix-like user experience**:
 - Vitest for testing — never jest
 - Bulletproof testing practices: `/docs/testing/BULLETPROOF_TESTING_GUIDELINES.md`
 - Match the existing design language for all components
-- Use `console.log(%s, owner)` not template literals for logging (security)
+- Use `console.log('%s', owner)` not template literals for logging (security)
 
 ### Data & Security
 

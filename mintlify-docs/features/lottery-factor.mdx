@@ -46,7 +46,7 @@ Top 2 total:       85%  →  High Risk
 contributor.info also identifies contributors who commit directly to the main branch without opening pull requests. These direct pushes:
 
 - Bypass code review, which can introduce bugs or security issues
-- Skip CI/CD checks that run on PRs
+- May bypass CI/CD checks configured only for pull requests
 - Create gaps in the audit trail
 
 **Example:** A repository where 1 contributor makes 30% of changes via direct commits to `main` represents both a lottery factor risk and a process risk.

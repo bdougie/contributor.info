@@ -1,6 +1,6 @@
 # Claude Development Guidelines
 
-See @AGENTS.md for project overview, architecture, and contributing conventions.
+See [AGENTS.md](./AGENTS.md) for project overview, architecture, and contributing conventions.
 
 <critical>
     Never write env variables inline into scripts. Especially SUPABASE tokens keys and urls.
@@ -20,7 +20,7 @@ Checks TypeScript types and builds the production bundle.
 - never use jest. only vitest
 - never use "any" types in typescript - always create proper interfaces/types
 - never use "unknown" as a lazy fix - define real types
-- `console.log(\`${owner}\`)` is a security vulnerability. Use `console.log(%s, owner)`
+- `console.log(\`${owner}\`)` is a security vulnerability. Use `console.log('%s', owner)`
 - use the supabase mcp server for migrations
 - use bulletproof testing practices, e2e tests only when necessary
 - check `/docs/testing/BULLETPROOF_TESTING_GUIDELINES.md` before fixing tests

@@ -134,28 +134,9 @@ The confidence calculation analyzes the most recent 30 days of activity to provi
 3. **Use clear coding standards**: Consistent style reduces contribution friction
 4. **Automate workflows**: CI/CD and automated checks help contributors succeed
 
-## Example Score Breakdown
+## How the Score Works
 
-A repository with 500 stars, 80 forks, and 12 contributors over 30 days might produce:
-
-```
-Star/Fork Conversion (35%):  forks=80, stars=500, contributors=12
-  → weighted stargazers = (80 × 0.7) + (500 × 0.3) = 206
-  → conversion rate     = 12 / 206 = 5.8%  → score: 0.058
-
-Engagement Confidence (25%): 30 commenters, 6 became contributors
-  → conversion rate = 6 / 30 = 20%         → score: 0.20
-
-Retention Confidence (25%):  8 of 10 prior contributors returned
-  → retention rate = 8 / 10 = 80%          → score: 0.80
-
-Quality Confidence (15%):    9 of 12 PRs merged
-  → merge rate = 9 / 12 = 75%              → score: 0.75
-
-Final score = (0.058 × 0.35) + (0.20 × 0.25) + (0.80 × 0.25) + (0.75 × 0.15)
-            = 0.020 + 0.050 + 0.200 + 0.113
-            = 38.3%  →  🟠 Challenging
-```
+The confidence score is computed from three components: privileged event analysis, activity patterns, and temporal consistency. The final score is bounded by the algorithm before display in the UI. Refer to the in-product confidence label (Intimidating, Challenging, Approachable, Welcoming) as the source of truth for your repository's rating.
 
 ## Frequently Asked Questions
 
