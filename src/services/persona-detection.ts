@@ -1,8 +1,14 @@
 /**
  * Persona Detection Service
  *
- * Analyzes real contributor activity patterns to detect personas
- * Uses heuristics based on contribution types, keywords, and behavior
+ * Classifies contributors into role-based personas (e.g., Security Champion,
+ * Performance Engineer, Documentation Author, Bug Hunter) by analyzing their
+ * activity patterns. Examines PR titles, issue keywords, review frequency,
+ * and discussion topics to build an activity fingerprint, then matches against
+ * persona archetypes using weighted keyword scoring and contribution ratios.
+ *
+ * @see https://docs.contributor.info/features/contributor-confidence - Contributor Confidence (user docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

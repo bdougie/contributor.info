@@ -1,3 +1,16 @@
+/**
+ * GitHub API Layer
+ *
+ * Primary interface for fetching repository data from GitHub. Implements a
+ * database-first strategy: queries Supabase for cached data before falling
+ * back to the GitHub REST API. Handles rate-limit tracking, exponential
+ * backoff, bot detection, and pagination for large result sets.
+ *
+ * @see https://docs.contributor.info/features/repository-health - Repository Health (user docs)
+ * @see /docs/architecture/github-api-exponential-backoff.md - Rate limit strategy (internal docs)
+ * @see /docs/data-fetching/database-first-smart-fetching.md - DB-first pattern (internal docs)
+ * @module
+ */
 import { getSupabase } from './supabase-lazy';
 import type { PullRequest } from './types';
 import { env } from './env';

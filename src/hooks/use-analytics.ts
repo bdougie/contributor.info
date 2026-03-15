@@ -1,3 +1,16 @@
+/**
+ * Analytics Hook — Privacy-First PostHog Tracking
+ *
+ * Provides typed tracking helpers for all product events. Every helper
+ * enriches the event with timestamp, page path, and page URL before
+ * forwarding to the lazy-loaded PostHog client. No PII is captured —
+ * only anonymized interaction metrics for funnel analysis and PLG
+ * measurement.
+ *
+ * @see /docs/analytics/posthog-strategy.md - Tracking strategy (internal docs)
+ * @see /docs/analytics/plg-funnels.md - PLG funnel definitions (internal docs)
+ * @module
+ */
 import { useCallback } from 'react';
 import { trackEvent } from '@/lib/posthog-lazy';
 import {
@@ -484,6 +497,23 @@ export function useAnalytics() {
     [track]
   );
 
+  // --- Docs Link Tracking ---
+
+  /**
+   * Track when user clicks a "Learn more" docs link
+   * Used to measure docs-to-conversion impact
+   */
+  const trackDocsLinkClicked = useCallback(
+    (feature: string, source: string, docsUrl: string) => {
+      track('docs_link_clicked', {
+        feature,
+        source,
+        docs_url: docsUrl,
+      });
+    },
+    [track]
+  );
+
   return {
     // Generic tracking
     track,
@@ -537,5 +567,8 @@ export function useAnalytics() {
     trackRepoSearchCompleted,
     trackSearchSuggestionViewed,
     trackSearchSuggestionClicked,
+
+    // Docs Link Tracking
+    trackDocsLinkClicked,
   };
 }

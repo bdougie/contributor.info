@@ -25,6 +25,7 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { YoloIcon } from '@/components/icons/YoloIcon';
 import { LotteryIcon } from '@/components/icons/LotteryIcon';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 import type { RepoStats, LotteryFactor as LotteryFactorType, ContributorStats } from '@/lib/types';
 
 function LotteryFactorSkeleton() {
@@ -354,6 +355,11 @@ export function LotteryFactorContent({
                   </p>
                 </TooltipContent>
               </Tooltip>
+              <LearnMoreLink
+                href="https://docs.contributor.info/features/lottery-factor"
+                feature="lottery_factor"
+                source="lottery_factor_card"
+              />
             </div>
             <Badge
               variant="secondary"

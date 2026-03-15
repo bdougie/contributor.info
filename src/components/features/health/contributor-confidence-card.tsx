@@ -15,6 +15,7 @@ import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 import { ConfidenceBreakdownTooltip } from './confidence-breakdown-tooltip';
 import { ContributorConfidenceLearnMore } from './contributor-confidence-learn-more';
 import { ConfidenceSkeleton } from './confidence-skeleton';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 // Semicircle progress component that grows from left to right
 const SemicircleProgress = memo(function SemicircleProgress({ value }: { value: number }) {
@@ -325,6 +326,13 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               </div>
             )}
             <div className="ml-auto flex items-center gap-2">
+              <LearnMoreLink
+                href="https://docs.contributor.info/features/contributor-confidence"
+                feature="contributor_confidence"
+                source="confidence_card"
+                label="Docs"
+                className="hidden sm:inline-flex"
+              />
               <button
                 onClick={() => setShowLearnMore(true)}
                 className="font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline hidden sm:block"

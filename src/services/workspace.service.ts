@@ -1,6 +1,14 @@
 /**
  * Workspace Service Layer
- * Business logic for workspace operations
+ *
+ * Orchestrates business logic for workspace CRUD, membership management,
+ * and repository tracking. Validates inputs via Zod schemas, enforces
+ * tier-based limits through the permission service, and triggers
+ * background sync jobs via Inngest when repositories are added.
+ *
+ * @see https://docs.contributor.info/workspaces/overview - Workspaces (user docs)
+ * @see /docs/database/workspace-schema.md - Workspace schema (internal docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

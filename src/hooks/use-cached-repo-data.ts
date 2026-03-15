@@ -1,3 +1,15 @@
+/**
+ * Cached Repository Data Hook
+ *
+ * Provides in-memory caching for repository stats, lottery factor, and direct
+ * commits data. Uses a 5-minute TTL with LRU eviction (max 20 entries, cleanup
+ * at 25) to balance freshness against redundant API calls during navigation.
+ * Falls back to smart data fetching when the cache misses.
+ *
+ * @see https://docs.contributor.info/features/repository-health - Repository Health (user docs)
+ * @see /docs/data-fetching/smart-data-fetching.md - Smart fetching strategy (internal docs)
+ * @module
+ */
 import { useState, useEffect, useRef } from 'react';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
 import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';

@@ -20,6 +20,7 @@ import {
   ConfidenceTrendData,
 } from '@/lib/insights/health-metrics';
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -171,7 +172,14 @@ export function RepositoryHealthCard() {
   return (
     <Card className="health-metrics-container">
       <CardHeader>
-        <CardTitle>Repository Health</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Repository Health</CardTitle>
+          <LearnMoreLink
+            href="https://docs.contributor.info/features/repository-health"
+            feature="repository_health"
+            source="repo_health_card"
+          />
+        </div>
         <CardDescription>
           Analyze the distribution of contributions, self-selection rates, and maintainer activity
         </CardDescription>

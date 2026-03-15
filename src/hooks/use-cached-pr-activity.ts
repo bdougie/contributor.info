@@ -1,3 +1,16 @@
+/**
+ * Cached PR Activity Hook
+ *
+ * Transforms raw pull request data into a chronological activity feed
+ * (opens, merges, reviews, comments) with 10-minute in-memory caching.
+ * Uses a JSON hash of PR metadata to detect upstream changes — if the hash
+ * matches, the cached feed is reused; otherwise it recomputes. Filters out
+ * bot accounts via the bot detection utility.
+ *
+ * @see https://docs.contributor.info/features/activity-feed - Activity Feed (user docs)
+ * @see /docs/data-fetching/bot-detection.md - Bot filtering (internal docs)
+ * @module
+ */
 import { useState, useEffect, useRef } from 'react';
 import { PullRequestActivity, PullRequest } from '@/lib/types';
 import { detectBot } from '@/lib/utils/bot-detection';

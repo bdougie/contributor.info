@@ -1,11 +1,19 @@
 /**
  * Topic Clustering Service
  *
- * Implements both content-based and contributor-based clustering:
- * 1. Content Clustering: Groups issues/PRs/discussions by technical topics
- * 2. Contributor Clustering: Groups contributors by similar expertise
+ * Implements K-means clustering over 384-dimensional embeddings to group
+ * repository content and contributors by topic similarity. Two modes:
+ * 1. Content Clustering — groups issues/PRs/discussions into technical topics
+ *    using pre-computed sentence embeddings stored in Supabase.
+ * 2. Contributor Clustering — groups contributors by expertise overlap
+ *    based on their aggregated content embeddings.
  *
- * Uses existing 384-dimension embeddings and K-means algorithm
+ * Iterates up to 50 rounds with a convergence threshold of 0.01, enforcing
+ * a minimum cluster size of 3 to avoid noise clusters.
+ *
+ * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
+ * @see /docs/data-fetching/embedding-computation.md - Embedding pipeline (internal docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

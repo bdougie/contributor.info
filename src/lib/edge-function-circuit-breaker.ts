@@ -1,8 +1,15 @@
 /**
- * Enhanced Circuit Breaker for Edge Functions with Concurrency Awareness
+ * Edge Function Circuit Breaker
  *
- * Implements the circuit breaker pattern with additional concurrency monitoring
- * to prevent overwhelming Edge Functions and provide graceful degradation.
+ * Implements the circuit breaker pattern (closed → open → half-open) with
+ * concurrency-aware tripping. When failure rate exceeds the configured
+ * threshold, the circuit opens and requests fail fast for a timeout period.
+ * After timeout, half-open state allows a probe request through — success
+ * closes the circuit, failure reopens it. Integrates with the concurrency
+ * manager to also trip when concurrent request counts signal overload.
+ *
+ * @see /docs/architecture/retry-logic-and-resilience.md - Resilience patterns (internal docs)
+ * @module
  */
 
 import { concurrencyManager } from './edge-function-concurrency-manager';

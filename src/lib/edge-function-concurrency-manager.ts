@@ -1,8 +1,14 @@
 /**
  * Edge Function Concurrency Manager
  *
- * Monitors and manages concurrent executions for Supabase Edge Functions
- * to prevent hitting concurrency limits and ensure graceful degradation.
+ * Tracks in-flight Supabase Edge Function calls and enforces tier-based
+ * concurrency limits. When the limit is reached, excess requests are queued
+ * with a bounded queue capacity and processed as slots free up. Exposes
+ * real-time metrics (current/peak concurrent, throttle count, avg execution
+ * time) for observability and circuit breaker integration.
+ *
+ * @see /docs/architecture/retry-logic-and-resilience.md - Resilience patterns (internal docs)
+ * @module
  */
 
 import { supabase } from './supabase';

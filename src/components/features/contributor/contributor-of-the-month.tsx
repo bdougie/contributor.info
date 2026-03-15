@@ -15,6 +15,7 @@ import { trackEvent } from '@/lib/posthog-lazy';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 // Lazy load Slack button to avoid impacting initial page load
 const RepositorySlackButton = lazy(() =>
@@ -137,9 +138,16 @@ export function ContributorOfTheMonth({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle id="contributor-heading">
-                  {isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard'}
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle id="contributor-heading">
+                    {isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard'}
+                  </CardTitle>
+                  <LearnMoreLink
+                    href="https://docs.contributor.info/features/contributor-of-the-month"
+                    feature="contributor_of_month"
+                    source="cotm_card"
+                  />
+                </div>
                 <CardDescription>
                   {isWinnerPhase
                     ? `Celebrating ${ranking.month} ${ranking.year}'s top contributor`
