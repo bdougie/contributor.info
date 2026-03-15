@@ -3,6 +3,7 @@
 # Outputs file:line:col: message format for sweeper to parse
 
 DIR="mintlify-docs"
+shopt -s globstar
 
 for f in "$DIR"/**/*.mdx; do
   [ -f "$f" ] || continue
@@ -50,8 +51,8 @@ for f in "$DIR"/**/*.mdx; do
     fi
   fi
 
-  # Check for generic descriptions that don't sell value
-  if grep -qin 'understanding\|tracking\|measuring' "$f" | head -5 "$f" | grep -q "description:"; then
+  # Check for generic frontmatter description
+  if grep -q "^description:" "$f" && head -10 "$f" | grep -qi "^description:.*\(understanding\|tracking\|measuring\)"; then
     echo "$f:1:1: frontmatter description is generic - rewrite to show user value"
   fi
 

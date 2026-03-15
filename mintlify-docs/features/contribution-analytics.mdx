@@ -57,61 +57,6 @@ Each contributor's work patterns become visible through their distribution acros
 
 *Contributors mapped by impact and effort metrics*
 
-## Code Examples
-
-### Querying Contribution Quadrants
-
-Fetch contributions with their quadrant classifications using the Supabase client:
-
-```typescript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
-// Fetch contributions classified by quadrant for a repository
-const { data, error } = await supabase
-  .from('pull_requests')
-  .select('author, additions, deletions, changed_files, review_comments')
-  .eq('repo_id', repoId)
-  .order('created_at', { ascending: false })
-  .limit(100)
-
-// Classify into quadrants based on impact and effort
-function classifyContribution(pr) {
-  const impact = pr.additions + pr.deletions + pr.changed_files * 10
-  const effort = pr.review_comments + pr.changed_files
-
-  const highImpact = impact > 200
-  const highEffort = effort > 5
-
-  if (highImpact && highEffort) return 'high-impact-high-effort'
-  if (highImpact && !highEffort) return 'high-impact-low-effort'
-  if (!highImpact && highEffort) return 'low-impact-high-effort'
-  return 'low-impact-low-effort'
-}
-
-const classified = data.map(pr => ({
-  ...pr,
-  quadrant: classifyContribution(pr),
-}))
-```
-
-### Filtering by Quadrant
-
-Use the UI's quadrant filter or construct a query manually:
-
-```typescript
-// Count contributions per quadrant for a contributor
-const quadrantCounts = classified.reduce((acc, pr) => {
-  acc[pr.quadrant] = (acc[pr.quadrant] ?? 0) + 1
-  return acc
-}, {})
-
-console.log('%s quadrant distribution:', contributor, quadrantCounts)
-// Example output:
-// { 'high-impact-high-effort': 12, 'high-impact-low-effort': 5, ... }
-```
-
 ## Insights and Patterns
 
 ### Contributor Specialization

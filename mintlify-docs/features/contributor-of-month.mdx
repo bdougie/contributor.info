@@ -41,19 +41,6 @@ Contributor: alice
   Total score:                         360 pts
 ```
 
-To query the current month's top contributors via the API:
-
-```ts
-import { supabase } from '@/lib/supabase';
-
-const { data } = await supabase
-  .from('contributor_rankings')
-  .select('login, avatar_url, score, merged_prs, reviews')
-  .eq('period', 'monthly')
-  .order('score', { ascending: false })
-  .limit(5);
-```
-
 ## Display Modes
 
 ### Winner Announcement Phase
@@ -95,12 +82,3 @@ The algorithm balances quantity with quality to ensure that both prolific contri
 The monthly reset ensures that new contributors and those with varying schedules have equal opportunities to be recognized for their contributions.
 
 The Contributor of the Month feature transforms routine development activity into an engaging, community-building experience that celebrates the people who make open source projects successful.
-*Track top contributors throughout the month*
-
-During active contribution periods, the feature shows a live leaderboard of the top 5 contributors with real-time updates as contributions are made throughout the month.
-
-### Activity States
-- **High Activity**: Multiple contributors actively competing with substantial contributions
-- **Moderate Activity**: Steady contribution flow with clear leader emerging
-- **Low Activity**: Minimal contributions, encouraging more participation
-- **No Activity**: Empty state with motivational messaging to start contributing

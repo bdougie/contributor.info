@@ -70,9 +70,9 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "icon": "book",
-          "href": "https://docs.contributor.info"
+          "anchor": "App",
+          "icon": "rocket",
+          "href": "https://contributor.info"
         },
         {
           "anchor": "Community",
