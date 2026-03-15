@@ -81,6 +81,16 @@ This project follows an **invisible, Netflix-like user experience**:
 - Use the Supabase MCP server for migrations
 - RLS policies are critical — public read access, authenticated write
 
+### Public Docs Site
+
+Published docs live at `https://docs.contributor.info` (Mintlify). Source files are in `mintlify-docs/`.
+
+When linking to docs pages, use the slug from `mintlify-docs/` — **not** the app route. For example:
+- Docs: `https://docs.contributor.info/features/contributor-of-month` (matches `mintlify-docs/features/contributor-of-month.mdx`)
+- App: `https://contributor.info/continuedev/continue` (matches route `/:owner/:repo`)
+
+The app does **not** use a `/repo/` prefix in its routes. Routes are `/:owner/:repo`, `/:owner/:repo/health`, etc.
+
 ### Quality Standards
 
 - Run `npm run build` before submitting — checks types and builds production bundle

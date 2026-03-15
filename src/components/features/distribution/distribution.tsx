@@ -13,6 +13,7 @@ import type { PullRequest } from '@/lib/types';
 import { useDistribution } from '@/hooks/use-distribution';
 import { ContributionAnalyzer } from '@/lib/contribution-analyzer';
 import { useNetworkAwareDetection } from '@/lib/utils';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 export default function Distribution() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -171,7 +172,14 @@ export default function Distribution() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
             {/* Statistics - full width on mobile, left-aligned on desktop */}
             <div className="text-sm text-muted-foreground flex-shrink min-w-0">
-              <div>{totalFiles.toLocaleString()} files touched</div>
+              <div className="flex items-center gap-2">
+                <span>{totalFiles.toLocaleString()} files touched</span>
+                <LearnMoreLink
+                  href="https://docs.contributor.info/features/distribution-charts"
+                  feature="distribution_charts"
+                  source="distribution_section"
+                />
+              </div>
               <div className="break-words">
                 {selectedQuadrant ? filteredPRs.length : totalContributions} merged pull requests{' '}
                 {selectedQuadrant ? 'shown' : 'analyzed'}

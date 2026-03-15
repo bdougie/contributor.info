@@ -25,6 +25,7 @@ import { useTimeRange } from '@/lib/time-range-store';
 import { YoloIcon } from '@/components/icons/YoloIcon';
 import { LotteryIcon } from '@/components/icons/LotteryIcon';
 import { ShareableCard } from '@/components/features/sharing/shareable-card';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 import type { RepoStats, LotteryFactor as LotteryFactorType, ContributorStats } from '@/lib/types';
 
 function LotteryFactorSkeleton() {
@@ -362,6 +363,11 @@ export function LotteryFactorContent({
               {safeLotteryFactor.riskLevel}
             </Badge>
           </div>
+          <LearnMoreLink
+            href="https://docs.contributor.info/features/lottery-factor"
+            feature="lottery_factor"
+            source="lottery_factor_card"
+          />
 
           {showYoloButton && (
             <button

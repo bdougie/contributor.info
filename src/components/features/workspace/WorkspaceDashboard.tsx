@@ -5,6 +5,7 @@ import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
 import { Star, GitPullRequest, Users, AlertCircle, UserPlus } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 export interface WorkspaceMetrics {
   totalStars: number;
@@ -155,6 +156,14 @@ export function WorkspaceDashboard({
 
   return (
     <div className={cn('space-y-6', className)} data-testid="workspace-dashboard">
+      {/* Header with docs link */}
+      <div className="flex justify-end">
+        <LearnMoreLink
+          href="https://docs.contributor.info/workspaces/overview"
+          feature="workspaces"
+          source="workspace_dashboard"
+        />
+      </div>
       {/* Metrics Grid */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <MetricCard

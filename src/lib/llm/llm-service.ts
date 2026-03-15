@@ -1,7 +1,15 @@
 /**
- * LLM Service with caching and fallbacks
- * Manages multiple LLM providers and implements smart caching
- * Now supports PostHog LLM analytics for comprehensive observability
+ * LLM Orchestration Service
+ *
+ * Central gateway for all LLM calls. Routes requests through a provider
+ * fallback chain (primary → secondary → tertiary), caches responses by
+ * content hash to avoid redundant API spend, and instruments every call
+ * via PostHog LLM analytics for latency/cost observability. Supports
+ * health summaries, PR recommendations, contributor narratives, and
+ * discussion summaries as typed request types.
+ *
+ * @see /docs/analytics/posthog-strategy.md - PostHog instrumentation (internal docs)
+ * @module
  */
 
 import { openAIService, type LLMInsight } from './openai-service';

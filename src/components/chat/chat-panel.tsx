@@ -13,6 +13,7 @@ import { safeGetSession } from '@/lib/auth/safe-auth';
 import { cn } from '@/lib/utils';
 import { ChatMessages } from './chat-messages';
 import { ChatInput } from './chat-input';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 function LoginPrompt({ onLogin }: { onLogin: () => void }) {
   return (
@@ -167,6 +168,11 @@ export function ChatPanel({ className }: ChatPanelProps) {
           <>
             <Star className="h-5 w-5 text-orange-400 shrink-0" />
             <h2 className="flex-1 text-sm font-semibold tracking-wider text-center">StarSearch</h2>
+            <LearnMoreLink
+              href="https://docs.contributor.info/starsearch/overview"
+              feature="starsearch"
+              source="chat_panel_header"
+            />
           </>
         )}
         <div className="flex items-center gap-1 shrink-0">

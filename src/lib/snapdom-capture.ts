@@ -1,3 +1,14 @@
+/**
+ * Social Card Generation via SnapDOM
+ *
+ * Captures DOM elements as high-fidelity PNG images for social sharing cards
+ * and Open Graph previews. Lazy-loads the SnapDOM and html2canvas libraries
+ * on demand (only when the user clicks share/download) to keep the main
+ * bundle small. Escapes only the generated fallback initials used in the
+ * attribution header; callers must sanitize any untrusted DOM before capture.
+ *
+ * @module
+ */
 import { env } from './env';
 
 // Lazy-loaded capture libraries to avoid bundle bloat

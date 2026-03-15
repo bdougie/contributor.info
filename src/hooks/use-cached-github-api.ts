@@ -1,5 +1,15 @@
 /**
- * React hook for cached GitHub API access with performance monitoring
+ * Cached GitHub API Hook
+ *
+ * React hook that wraps the GitHub API client with transparent caching
+ * and resilience. Requests are served from cache when fresh, with automatic
+ * background revalidation. Integrates with the circuit breaker and rate-limit
+ * layers so callers get a simple data/loading/error interface without managing
+ * retry logic or cache invalidation.
+ *
+ * @see /docs/architecture/retry-logic-and-resilience.md - Resilience patterns (internal docs)
+ * @see /docs/architecture/github-api-exponential-backoff.md - Backoff strategy (internal docs)
+ * @module
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';

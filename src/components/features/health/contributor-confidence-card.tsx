@@ -15,6 +15,7 @@ import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 import { ConfidenceBreakdownTooltip } from './confidence-breakdown-tooltip';
 import { ContributorConfidenceLearnMore } from './contributor-confidence-learn-more';
 import { ConfidenceSkeleton } from './confidence-skeleton';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 // Semicircle progress component that grows from left to right
 const SemicircleProgress = memo(function SemicircleProgress({ value }: { value: number }) {
@@ -399,6 +400,12 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             <div className="text-sm text-muted-foreground leading-relaxed">
               {confidence.description}
             </div>
+            <LearnMoreLink
+              href="https://docs.contributor.info/features/contributor-confidence"
+              feature="contributor_confidence"
+              source="confidence_card"
+              className="mt-1"
+            />
           </div>
         </div>
       </CardContent>

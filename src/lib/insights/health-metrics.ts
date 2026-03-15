@@ -1,3 +1,15 @@
+/**
+ * Repository Health Metrics
+ *
+ * Computes a 6-factor health score for repositories based on PR activity,
+ * contributor diversity, review coverage, merge velocity, issue responsiveness,
+ * and community engagement. Each factor is normalized 0–100 and weighted to
+ * produce a composite score that reflects sustainable project health.
+ *
+ * @see https://docs.contributor.info/features/repository-health - Repository Health (user docs)
+ * @see /docs/data-fetching/smart-data-fetching.md - Data fetching strategy (internal docs)
+ * @module
+ */
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import { toUTCTimestamp } from '../utils/date-formatting';
 import type { PullRequest } from '../types';

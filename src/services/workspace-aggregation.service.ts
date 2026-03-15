@@ -1,6 +1,14 @@
 /**
  * Workspace Aggregation Service
- * Handles the aggregation of metrics across all repositories in a workspace
+ *
+ * Aggregates per-repository metrics into workspace-level summaries: total
+ * contributors, combined activity timelines, language distribution, and
+ * cross-repo contributor overlap. Queries are run through a Supabase admin
+ * client to bypass RLS for server-side aggregation jobs.
+ *
+ * @see https://docs.contributor.info/workspaces/overview - Workspaces (user docs)
+ * @see /docs/database/workspace-schema.md - Workspace schema (internal docs)
+ * @module
  */
 
 import type {

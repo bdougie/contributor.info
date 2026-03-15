@@ -14,6 +14,7 @@ import { useCombinedActivity } from '@/hooks/use-combined-activity';
 import { ContributorRolesProvider } from '@/hooks/useContributorRoles';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { LogIn } from '@/components/ui/icon';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 export default function PRActivity() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -86,6 +87,11 @@ export default function PRActivity() {
         <CardDescription>
           Track detailed activity on pull requests in this repository
         </CardDescription>
+        <LearnMoreLink
+          href="https://docs.contributor.info/features/activity-feed"
+          feature="activity_feed"
+          source="pr_activity_card"
+        />
       </CardHeader>
       <CardContent className="p-6">
         <div className="flex flex-wrap gap-4 mb-4">

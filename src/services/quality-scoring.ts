@@ -1,6 +1,14 @@
 /**
  * Quality Scoring Service
- * Multi-factor scoring for contributor engagement quality
+ *
+ * Computes a weighted quality score for contributors across four factors:
+ * discussion impact (0.25), code review depth (0.30), issue quality (0.25),
+ * and mentorship score (0.20). Each factor queries Supabase for real activity
+ * data, normalizes to 0–100, and combines via weighted sum. The breakdown
+ * is returned alongside the composite for transparent scoring.
+ *
+ * @see https://docs.contributor.info/features/contributor-confidence - Contributor Confidence (user docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

@@ -1,3 +1,14 @@
+/**
+ * Trend Metrics & Period Comparison
+ *
+ * Compares repository and contributor metrics across time periods to detect
+ * acceleration, deceleration, or stability in project activity. Splits PR data
+ * into current vs. previous windows, computes deltas for merge rate, review
+ * turnaround, and contributor growth, then classifies each as up/down/stable.
+ *
+ * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
+ * @module
+ */
 import { fetchPRDataWithFallback } from '../supabase-pr-data';
 import type { PullRequest } from '../types';
 import { getTrendDirection, getTrendDirectionReverse } from '@/lib/utils/performance-helpers';

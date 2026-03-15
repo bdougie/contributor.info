@@ -1,6 +1,15 @@
 /**
- * Workspace Supabase Client Functions
- * Helper functions for workspace database operations
+ * Workspace Supabase Client
+ *
+ * Data-access layer for workspace operations. Wraps Supabase queries for
+ * workspace CRUD, repository linking, member invites, and metrics retrieval.
+ * All queries respect RLS policies via the user's session-scoped client.
+ * Integrates with the workspace metrics cache for read-heavy dashboard loads.
+ *
+ * @see https://docs.contributor.info/workspaces/overview - Workspaces (user docs)
+ * @see /docs/database/workspace-schema.md - Workspace schema (internal docs)
+ * @see /docs/database/rls-policy-quick-reference.md - RLS policies (internal docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

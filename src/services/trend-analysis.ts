@@ -1,6 +1,13 @@
 /**
  * Contribution Trend Analysis Service
- * Analyzes contributor velocity and topic shifts over time
+ *
+ * Measures contributor velocity (contributions per week, acceleration rate)
+ * and detects topic shifts by comparing stored topic snapshots across time
+ * windows. Outputs trend direction, magnitude, and heuristic shift confidence
+ * to power the trends visualization and contributor activity summaries.
+ *
+ * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
+ * @module
  */
 
 import { getSupabase } from '@/lib/supabase-lazy';

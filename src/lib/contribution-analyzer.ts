@@ -1,3 +1,15 @@
+/**
+ * Contribution Analyzer — PR Quadrant Model
+ *
+ * Classifies pull requests into four quadrants based on code-change
+ * characteristics: New (high additions, new files), Refinement (modifications
+ * to existing code), Refactoring (restructuring with balanced add/delete),
+ * and Maintenance (config, deps, CI). Uses file extension heuristics and
+ * add/delete ratios to place each PR on an x/y axis for visualization.
+ *
+ * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
+ * @module
+ */
 import { PullRequest, QuadrantDistribution } from './types';
 
 export interface ContributionMetrics {

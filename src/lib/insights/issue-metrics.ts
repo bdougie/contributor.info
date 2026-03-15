@@ -1,3 +1,14 @@
+/**
+ * Issue Health Metrics
+ *
+ * Analyzes issue lifecycle patterns to surface triage health and community
+ * responsiveness. Computes stale-vs-active ratios, issue half-life (median
+ * days from open to close), legitimate bug percentages, and identifies
+ * the most active triagers by comment/label activity.
+ *
+ * @see https://docs.contributor.info/features/repository-health - Repository Health (user docs)
+ * @module
+ */
 import { supabase } from '../supabase';
 import { trackDatabaseOperation } from '../simple-logging';
 

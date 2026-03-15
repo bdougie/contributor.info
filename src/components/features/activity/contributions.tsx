@@ -16,6 +16,7 @@ import { detectBot } from '@/lib/utils/bot-detection';
 import { Link } from 'react-router';
 import { YoloIcon } from '@/components/icons/YoloIcon';
 import { ArrowRight } from '@/components/ui/icon';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 // Lazy load the ScatterPlot component to reduce initial bundle size
 const ResponsiveScatterPlot = lazy(() =>
@@ -771,8 +772,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
         )}
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            {data[0].data.length} pull requests shown
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>{data[0]?.data?.length ?? 0} pull requests shown</span>
+            <LearnMoreLink
+              href="https://docs.contributor.info/features/contribution-analytics"
+              feature="contribution_analytics"
+              source="contributions_chart"
+            />
           </div>
 
           {/* Status Filter Tabs */}

@@ -14,6 +14,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from '@/components/ui/icon';
+import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
 // Status colors matching ActivityTable
 const STATUS_COLORS = {
@@ -416,6 +417,12 @@ export function ContributorHoverCard({
                   </div>
                 </>
               )}
+              <Separator className="my-2" />
+              <LearnMoreLink
+                href="https://docs.contributor.info/features/hover-cards"
+                feature="hover_cards"
+                source="contributor_hover_card"
+              />
             </>
           )}
         </HoverCardPrimitive.Content>
