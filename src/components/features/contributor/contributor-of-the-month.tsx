@@ -143,7 +143,7 @@ export function ContributorOfTheMonth({
                     {isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard'}
                   </CardTitle>
                   <LearnMoreLink
-                    href="https://docs.contributor.info/features/contributor-of-the-month"
+                    href="https://docs.contributor.info/features/contributor-of-month"
                     feature="contributor_of_month"
                     source="cotm_card"
                   />
