@@ -83,17 +83,15 @@ export default function PRActivity() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Pull Request Activity Feed</CardTitle>
-          <LearnMoreLink
-            href="https://docs.contributor.info/features/activity-feed"
-            feature="activity_feed"
-            source="pr_activity_card"
-          />
-        </div>
+        <CardTitle>Pull Request Activity Feed</CardTitle>
         <CardDescription>
           Track detailed activity on pull requests in this repository
         </CardDescription>
+        <LearnMoreLink
+          href="https://docs.contributor.info/features/activity-feed"
+          feature="activity_feed"
+          source="pr_activity_card"
+        />
       </CardHeader>
       <CardContent className="p-6">
         <div className="flex flex-wrap gap-4 mb-4">

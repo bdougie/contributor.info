@@ -326,13 +326,6 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               </div>
             )}
             <div className="ml-auto flex items-center gap-2">
-              <LearnMoreLink
-                href="https://docs.contributor.info/features/contributor-confidence"
-                feature="contributor_confidence"
-                source="confidence_card"
-                label="Docs"
-                className="hidden sm:inline-flex"
-              />
               <button
                 onClick={() => setShowLearnMore(true)}
                 className="font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline hidden sm:block"
@@ -407,6 +400,12 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             <div className="text-sm text-muted-foreground leading-relaxed">
               {confidence.description}
             </div>
+            <LearnMoreLink
+              href="https://docs.contributor.info/features/contributor-confidence"
+              feature="contributor_confidence"
+              source="confidence_card"
+              className="mt-1"
+            />
           </div>
         </div>
       </CardContent>

@@ -138,21 +138,19 @@ export function ContributorOfTheMonth({
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <CardTitle id="contributor-heading">
-                    {isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard'}
-                  </CardTitle>
-                  <LearnMoreLink
-                    href="https://docs.contributor.info/features/contributor-of-month"
-                    feature="contributor_of_month"
-                    source="cotm_card"
-                  />
-                </div>
+                <CardTitle id="contributor-heading">
+                  {isWinnerPhase ? 'Contributor of the Month' : 'Monthly Leaderboard'}
+                </CardTitle>
                 <CardDescription>
                   {isWinnerPhase
                     ? `Celebrating ${ranking.month} ${ranking.year}'s top contributor`
                     : `Top contributors for ${ranking.month} ${ranking.year}`}
                 </CardDescription>
+                <LearnMoreLink
+                  href="https://docs.contributor.info/features/contributor-of-month"
+                  feature="contributor_of_month"
+                  source="cotm_card"
+                />
               </div>
               <Badge variant={isWinnerPhase ? 'default' : 'secondary'}>
                 {isWinnerPhase ? 'Winner' : 'Current'}

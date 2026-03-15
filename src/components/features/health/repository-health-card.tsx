@@ -172,17 +172,15 @@ export function RepositoryHealthCard() {
   return (
     <Card className="health-metrics-container">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Repository Health</CardTitle>
-          <LearnMoreLink
-            href="https://docs.contributor.info/features/repository-health"
-            feature="repository_health"
-            source="repo_health_card"
-          />
-        </div>
+        <CardTitle>Repository Health</CardTitle>
         <CardDescription>
           Analyze the distribution of contributions, self-selection rates, and maintainer activity
         </CardDescription>
+        <LearnMoreLink
+          href="https://docs.contributor.info/features/repository-health"
+          feature="repository_health"
+          source="repo_health_card"
+        />
       </CardHeader>
       <CardContent>
         <div className="space-y-6">

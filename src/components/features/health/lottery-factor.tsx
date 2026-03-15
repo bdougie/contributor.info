@@ -355,11 +355,6 @@ export function LotteryFactorContent({
                   </p>
                 </TooltipContent>
               </Tooltip>
-              <LearnMoreLink
-                href="https://docs.contributor.info/features/lottery-factor"
-                feature="lottery_factor"
-                source="lottery_factor_card"
-              />
             </div>
             <Badge
               variant="secondary"
@@ -368,6 +363,11 @@ export function LotteryFactorContent({
               {safeLotteryFactor.riskLevel}
             </Badge>
           </div>
+          <LearnMoreLink
+            href="https://docs.contributor.info/features/lottery-factor"
+            feature="lottery_factor"
+            source="lottery_factor_card"
+          />
 
           {showYoloButton && (
             <button
