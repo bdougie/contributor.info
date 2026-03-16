@@ -217,6 +217,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
     try {
       // Sort by created_at and filter based on preferences
+      // ⚡ Bolt Optimization: Use native string comparison for ISO 8601 dates to avoid new Date() object allocation overhead
       const filteredPRs = [...safeStats.pullRequests]
         .filter((pr) => localIncludeBots || !detectBot({ githubUser: pr.user }).isBot)
         .filter((pr) => {
@@ -226,16 +227,24 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (statusFilter === 'merged') return pr.merged_at !== null;
           return true;
         })
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        .sort((a, b) => {
+          if (a.created_at < b.created_at) return 1;
+          if (a.created_at > b.created_at) return -1;
+          return 0;
+        });
 
       // Group PRs by day to implement quarter-based staggering
       const prsByDay = new Map<number, PullRequest[]>();
 
+      // ⚡ Bolt Optimization: Calculate current timestamp once outside the loop instead of creating new Date objects per PR
+      const nowTimestamp = Date.now();
+
       // First pass: create base contribution data
       const baseContributions: ContributionDataPoint[] = filteredPRs
         .map((pr) => {
+          // ⚡ Bolt Optimization: Use Date.parse() for the PR timestamp to avoid object allocation
           const daysAgo = Math.floor(
-            (new Date().getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60 * 24)
+            (nowTimestamp - Date.parse(pr.created_at)) / (1000 * 60 * 60 * 24)
           );
 
           // Skip PRs older than our limit
