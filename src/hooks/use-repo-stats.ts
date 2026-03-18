@@ -45,31 +45,42 @@ export function useRepoStats() {
     (includeBots: boolean = false) => {
       const pullRequests = getFilteredPullRequests(includeBots);
 
-      // Get unique contributors
-      const contributorSet = new Set(pullRequests.map((pr) => pr.user.login));
-      const uniqueContributors = Array.from(contributorSet);
+      // ⚡ Bolt Optimization: Replace O(N*U) nested find with single O(N) pass
+      // N = number of PRs, U = number of unique contributors
+      // We use a Map to track unique contributors and their counts/avatars simultaneously
+      // reducing both iterations and array allocations.
+      const contributorCounts: Record<string, number> = {};
+      const topContributorsMap = new Map<
+        string,
+        { login: string; count: number; avatarUrl: string }
+      >();
 
-      // Calculate PRs per contributor
-      const contributorCounts = pullRequests.reduce(
-        (acc, pr) => {
-          const login = pr.user.login;
-          acc[login] = (acc[login] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
+      for (let i = 0; i < pullRequests.length; i++) {
+        const pr = pullRequests[i];
+        const login = pr.user.login;
+
+        const count = (contributorCounts[login] || 0) + 1;
+        contributorCounts[login] = count;
+
+        const existing = topContributorsMap.get(login);
+        if (existing) {
+          existing.count = count;
+        } else {
+          topContributorsMap.set(login, {
+            login,
+            count: 1,
+            avatarUrl: pr.user.avatar_url || '',
+          });
+        }
+      }
 
       // Sort contributors by PR count
-      const sortedContributors = uniqueContributors
-        .map((login) => ({
-          login,
-          count: contributorCounts[login],
-          avatarUrl: pullRequests.find((pr) => pr.user.login === login)?.user.avatar_url || '',
-        }))
-        .sort((a, b) => b.count - a.count);
+      const sortedContributors = Array.from(topContributorsMap.values()).sort(
+        (a, b) => b.count - a.count
+      );
 
       return {
-        totalContributors: uniqueContributors.length,
+        totalContributors: topContributorsMap.size,
         totalPullRequests: pullRequests.length,
         topContributors: sortedContributors.slice(0, 5),
         contributorCounts,

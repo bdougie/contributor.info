@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - Nested Array Searches in Map Calls
+**Learning:** Using `array.find()` inside a `.map()` or `.filter()` loop results in $O(N^2)$ or $O(N \cdot M)$ complexity. When processing large lists (like thousands of pull requests), this causes significant performance degradation due to redundant iterations.
+**Action:** When aggregating data (like counting contributors from PRs), replace multiple passes and nested searches with a single $O(N)$ pass using a `Map` or object to build counts and collect unique properties simultaneously.
