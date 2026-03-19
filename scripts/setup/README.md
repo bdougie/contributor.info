@@ -2,9 +2,27 @@
 
 Configuration and initialization scripts for setting up the contributor.info platform infrastructure.
 
+## Quick Start
+
+New to the project? Run a single command:
+
+```bash
+npm run setup
+```
+
+This handles everything: prerequisites, environment files, Supabase, and migrations.
+
+Other setup commands:
+
+```bash
+npm run setup:verify   # Check if your local environment is healthy
+npm run setup:reset    # Tear down and start fresh
+```
+
 ## 🔧 Overview
 
 Setup scripts handle:
+- First-time local development setup
 - Infrastructure initialization
 - Security configuration
 - Storage setup
@@ -14,6 +32,12 @@ Setup scripts handle:
 
 | Script | Purpose | When to Run |
 |--------|---------|-------------|
+| `first-time-setup.mjs` | Universal first-time setup | New contributor onboarding |
+| `verify-setup.mjs` | Validate local dev environment | After setup or to diagnose issues |
+| `reset-setup.mjs` | Clean reset of local state | When you want a fresh start |
+| `start-local-supabase.js` | Start Supabase without auto-migrations | Manual Supabase control |
+| `switch-environment.js` | Switch between local/production env | Changing environments |
+| `generate-seed-data.mjs` | Generate seed data from GitHub repos | After setup, with GitHub token |
 | `setup-supabase-storage.js` | Configure storage buckets | Initial deployment |
 | `setup-card-regeneration.js` | Initialize social card system | Feature setup |
 | `setup-chromatic-baselines.sh` | Setup visual testing | CI/CD configuration |
@@ -23,6 +47,29 @@ Setup scripts handle:
 | `upload-private-key.sh` | Upload keys to secure storage | Deployment |
 
 ## 💡 Usage Examples
+
+### First-Time Local Development Setup
+```bash
+# One command does it all
+npm run setup
+
+# Or step by step:
+npm run env:local                       # Configure .env.local for local dev
+npm run supabase:start                  # Start Supabase containers
+npm run supabase:migrate:consolidated   # Apply database migrations
+npm run db:seed                         # Generate seed data (requires GitHub token)
+```
+
+### Verify Your Setup
+```bash
+npm run setup:verify
+```
+
+### Reset Everything
+```bash
+npm run setup:reset   # Stop Supabase, clean backups, reset DB
+npm run setup         # Set up again from scratch
+```
 
 ### Initial Platform Setup
 ```bash
