@@ -19,14 +19,14 @@ _If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
 
 3. **Set up your development environment**
    ```bash
-   # Copy the environment template
-   cp .env.example .env.local
-   
-   # Choose your development approach:
+   # One command does it all (recommended)
+   npm run setup
+
+   # Or manually:
    # Option A: Local Supabase (recommended for contributors)
    npm run env:local
    npm run db:setup  # Automated setup with consolidated migration
-   
+
    # Option B: Production database (maintainers only)
    npm run env:production
    # Add your production credentials to .env.local
@@ -36,6 +36,8 @@ _If you would like to work an issue, please read the [TRIAGE.md](/TRIAGE.md)_
    ```bash
    npm run dev
    ```
+
+> **Tip:** Run `npm run setup:verify` to check your environment health, or `npm run setup:reset` to tear down and start fresh.
 
 ## 📋 Prerequisites
 
@@ -253,6 +255,10 @@ contributor.info/
 
 ```bash
 # Quick Start (Recommended for New Contributors)
+npm run setup            # One-command setup: prerequisites, env, Supabase, migrations
+npm run dev              # Start development server
+
+# Or step by step:
 npm run env:local        # Switch to local environment
 npm run db:setup         # Complete database setup with consolidated migration
 npm run dev              # Start development server
@@ -269,7 +275,10 @@ npm run lint:edge-functions           # Lint edge functions
 npm run format:edge-functions         # Format edge functions
 npm run format:edge-functions:check   # Check edge function formatting
 
-# Environment Management
+# Setup & Environment Management
+npm run setup            # First-time setup (prerequisites, env, Supabase, migrations)
+npm run setup:verify     # Check local environment health
+npm run setup:reset      # Tear down and reset local state
 npm run env:local        # Switch to local Supabase
 npm run env:production   # Switch to production database
 
