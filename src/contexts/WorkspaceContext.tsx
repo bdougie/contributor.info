@@ -34,6 +34,7 @@ interface WorkspaceContextValue {
   switchWorkspace: (idOrSlug: string) => Promise<void>;
   findWorkspace: (idOrSlug: string) => Workspace | undefined;
   syncWithUrl: (idOrSlug: string) => void;
+  refreshWorkspaces: () => void;
   isLoading: boolean;
   recentWorkspaces: string[];
   addToRecent: (id: string) => void;
@@ -405,12 +406,19 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     }, backoffDelay);
   }, [refetch]);
 
+  const refreshWorkspaces = useCallback(() => {
+    if (refetch) {
+      refetch();
+    }
+  }, [refetch]);
+
   const value: WorkspaceContextValue = {
     activeWorkspace,
     workspaces: workspaces as Workspace[],
     switchWorkspace,
     findWorkspace,
     syncWithUrl,
+    refreshWorkspaces,
     isLoading: isLoading || (workspacesLoading && !hasTimedOut),
     recentWorkspaces,
     addToRecent,
