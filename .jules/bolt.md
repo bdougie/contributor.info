@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - Avoid Premature Closure Optimization in Lists
+**Learning:** Wrapping handlers in `useCallback` and changing component prop signatures (e.g., from `onClick: () => void` to `onClick: (id: string) => void`) to avoid inline closures in list items is often considered premature optimization. If `React.memo` is already used and there are no benchmarks proving a bottleneck, changing the component API is unjustified.
+**Action:** Do not refactor component APIs to eliminate inline closures unless there is a measured, significant performance bottleneck and benchmarks are provided to justify the change.
