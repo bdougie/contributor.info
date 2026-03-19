@@ -105,6 +105,11 @@ DROP POLICY IF EXISTS "Owners and maintainers can update members" ON public.work
 DROP POLICY IF EXISTS "Members can remove themselves" ON public.workspace_members;
 DROP POLICY IF EXISTS "Admins can remove members" ON public.workspace_members;
 DROP POLICY IF EXISTS "Owners and maintainers can remove members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Admins can delete members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Admins can insert members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Admins can update members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Authenticated users can view all workspace members" ON public.workspace_members;
+DROP POLICY IF EXISTS "Public users can view workspace members" ON public.workspace_members;
 
 -- SELECT: Public workspace members visible to all
 CREATE POLICY "rls_wm_select_public"
