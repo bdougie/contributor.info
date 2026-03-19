@@ -24,6 +24,7 @@ import type { Workspace, WorkspaceMember, WorkspaceVisibility } from '@/types/wo
 import { WorkspaceBackfillManager } from '../WorkspaceBackfillManager';
 import { SlackIntegrationCard } from './SlackIntegrationCard';
 import { TUISetupTab } from './TUISetupTab';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 
 interface Repository {
   id: string;
@@ -52,6 +53,7 @@ export function WorkspaceSettings({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { refreshWorkspaces } = useWorkspaceContext();
 
   // Form state for general settings
   const [formData, setFormData] = useState({
@@ -149,6 +151,7 @@ export function WorkspaceSettings({
           description: 'Workspace settings have been updated successfully',
         });
         onWorkspaceUpdate?.(response.data);
+        refreshWorkspaces();
       } else {
         throw new Error(response.error || 'Failed to update settings');
       }
