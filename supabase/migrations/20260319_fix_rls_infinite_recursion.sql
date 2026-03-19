@@ -168,7 +168,7 @@ CREATE POLICY "rls_wm_update_admin"
             -- Owners can set maintainer or contributor roles
             WHEN public.rls_workspace_owner_id(workspace_id) = public.rls_current_app_user_id()
                 OR public.rls_user_workspace_role(workspace_id, public.rls_current_app_user_id()) = 'owner'
-            THEN role IN ('maintainer', 'contributor')
+            THEN role IN ('owner', 'maintainer', 'contributor')
             -- Maintainers can only set contributor role
             WHEN public.rls_user_workspace_role(workspace_id, public.rls_current_app_user_id()) = 'maintainer'
             THEN role = 'contributor'
