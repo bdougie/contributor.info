@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-15 - localeCompare vs Native String Comparison for UI text
+**Learning:** While native string comparison (`<`, `>`) is much faster than `localeCompare()` for sorting strings, replacing `localeCompare()` with `<`/`>` for standard UI text (e.g., usernames, repository names, types) introduces a functional regression. Native operators compare by ASCII values, meaning uppercase letters sort before lowercase letters (e.g., "Zebra" comes before "apple"), breaking expected alphabetical order.
+**Action:** Only use native string comparison (`<`, `>`) to optimize sorting of machine-readable or standardized strings (like ISO 8601 dates). Preserve `localeCompare()` when sorting human-readable text to ensure correct case-insensitive and locale-aware alphabetical order.
