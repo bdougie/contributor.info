@@ -1,13 +1,14 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
+import { makeGitHubRequest } from '../github-client';
 
 /**
  * Cron job to capture repository metrics for trending detection
  *
  * This function:
  * 1. Fetches all active, public repositories
- * 2. Captures current metrics (stars, forks, contributors, PRs, issues, watchers)
- * 3. Stores them in repository_metrics_history table
+ * 2. Refreshes metadata (stars, forks, issues, watchers) from GitHub REST API
+ * 3. Captures current metrics into repository_metrics_history table
  * 4. The database trigger automatically marks significant changes
  *
  * Runs daily at midnight UTC to capture metrics for trending detection.
@@ -27,6 +28,13 @@ interface MetricCapture {
   repository_id: string;
   metric_type: string;
   current_value: number;
+}
+
+interface GitHubRepoResponse {
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+  watchers_count: number;
 }
 
 // Use Record instead of Map for JSON serialization through Inngest steps
@@ -76,7 +84,76 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
 
     console.log('[Metrics Cron] Found %d repositories to process', repositories.length);
 
-    // Step 2: Get contributor counts for all repositories (using Record for JSON serialization)
+    // Step 2: Refresh repository metadata from GitHub API before capturing metrics
+    // This ensures stargazers_count, forks_count, etc. are current — not stale from discovery time
+    const refreshBatches = Math.ceil(repositories.length / BATCH_SIZE);
+    let totalRefreshed = 0;
+
+    for (let i = 0; i < refreshBatches; i++) {
+      const batchStart = i * BATCH_SIZE;
+      const batchEnd = Math.min((i + 1) * BATCH_SIZE, repositories.length);
+      const batch = repositories.slice(batchStart, batchEnd);
+
+      const refreshed = await step.run(`refresh-metadata-batch-${i}`, async () => {
+        let updated = 0;
+
+        for (const repo of batch) {
+          try {
+            const ghData = await makeGitHubRequest<GitHubRepoResponse>(
+              `/repos/${repo.owner}/${repo.name}`
+            );
+
+            // Update the repositories table with fresh counts
+            const { error } = await supabase
+              .from('repositories')
+              .update({
+                stargazers_count: ghData.stargazers_count,
+                forks_count: ghData.forks_count,
+                open_issues_count: ghData.open_issues_count,
+                watchers_count: ghData.watchers_count,
+                last_updated_at: new Date().toISOString(),
+              })
+              .eq('id', repo.id);
+
+            if (error) {
+              console.warn(
+                '[Metrics Cron] Failed to update metadata for %s/%s: %s',
+                repo.owner,
+                repo.name,
+                error.message
+              );
+            } else {
+              // Update the in-memory repo object so metrics capture uses fresh values
+              repo.stargazers_count = ghData.stargazers_count;
+              repo.forks_count = ghData.forks_count;
+              repo.open_issues_count = ghData.open_issues_count;
+              repo.watchers_count = ghData.watchers_count;
+              updated++;
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.warn(
+              '[Metrics Cron] GitHub API error for %s/%s: %s',
+              repo.owner,
+              repo.name,
+              message
+            );
+          }
+        }
+
+        return updated;
+      });
+
+      totalRefreshed += refreshed;
+    }
+
+    console.log(
+      '[Metrics Cron] Refreshed metadata for %d/%d repositories',
+      totalRefreshed,
+      repositories.length
+    );
+
+    // Step 3: Get contributor counts for all repositories (using Record for JSON serialization)
     const contributorCounts = await step.run(
       'fetch-contributor-counts',
       async (): Promise<CountsRecord> => {
@@ -95,7 +172,7 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       }
     );
 
-    // Step 3: Get PR counts for all repositories (using Record for JSON serialization)
+    // Step 4: Get PR counts for all repositories (using Record for JSON serialization)
     const prCounts = await step.run('fetch-pr-counts', async (): Promise<CountsRecord> => {
       const { data, error } = await supabase.rpc('get_repository_pr_counts');
 
@@ -111,7 +188,7 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       return counts;
     });
 
-    // Step 4: Capture metrics in batches, tracking failures
+    // Step 5: Capture metrics in batches, tracking failures
     let totalMetricsInserted = 0;
     let failedBatches = 0;
     const totalBatches = Math.ceil(repositories.length / BATCH_SIZE);
@@ -220,7 +297,7 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
       );
     }
 
-    // Step 5: Trigger star/fork event capture for all active repositories
+    // Step 6: Trigger star/fork event capture for all active repositories
     // This refreshes the github_events_cache so the activity feed stays up to date
     let eventsTriggered = 0;
     for (const repo of repositories) {
@@ -238,6 +315,7 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
     return {
       success: isSuccess,
       repositoriesProcessed: repositories.length,
+      metadataRefreshed: totalRefreshed,
       metricsInserted: totalMetricsInserted,
       eventsTriggered,
       totalBatches,
