@@ -29,3 +29,7 @@
 ## 2026-01-15 - localeCompare vs Native String Comparison for UI text
 **Learning:** While native string comparison (`<`, `>`) is much faster than `localeCompare()` for sorting strings, replacing `localeCompare()` with `<`/`>` for standard UI text (e.g., usernames, repository names, types) introduces a functional regression. Native operators compare by ASCII values, meaning uppercase letters sort before lowercase letters (e.g., "Zebra" comes before "apple"), breaking expected alphabetical order.
 **Action:** Only use native string comparison (`<`, `>`) to optimize sorting of machine-readable or standardized strings (like ISO 8601 dates). Preserve `localeCompare()` when sorting human-readable text to ensure correct case-insensitive and locale-aware alphabetical order.
+
+## 2026-01-15 - Micro-optimizations on Small Datasets
+**Learning:** Performing micro-optimizations (like swapping `localeCompare` for `<`/`>`) on very small datasets (e.g., a 14-item array) is considered "noise" and adds review burden without providing any real performance benefit.
+**Action:** Do not generate daily micro-optimization PRs without actual profiling data proving a bottleneck exists. Only optimize when there is a measurable impact on a large dataset or a proven critical path.
