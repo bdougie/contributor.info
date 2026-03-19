@@ -29,3 +29,11 @@
 ## 2026-01-14 - Nested Array Searches in Map Calls
 **Learning:** Using `array.find()` inside a `.map()` or `.filter()` loop results in $O(N^2)$ or $O(N \cdot M)$ complexity. When processing large lists (like thousands of pull requests), this causes significant performance degradation due to redundant iterations.
 **Action:** When aggregating data (like counting contributors from PRs), replace multiple passes and nested searches with a single $O(N)$ pass using a `Map` or object to build counts and collect unique properties simultaneously.
+
+## 2026-01-14 - Premature Optimization on Small Datasets
+**Learning:** While replacing an $O(N \cdot M)$ nested array search (like `.find()` inside a `.map()`) with a single-pass $O(N)$ Map is algorithmically superior, applying this to naturally small datasets (e.g., the number of top contributors in a single repository) is textbook premature optimization. The overhead of instantiating Maps and objects can sometimes outweigh the algorithmic benefits when $N$ and $M$ are small, resulting in no measurable performance gain and slightly more complex code.
+**Action:** Do not optimize algorithmic complexity on datasets known to be small unless profiling explicitly identifies it as a bottleneck. Focus optimizations on code paths that handle unbounded or large datasets (e.g., thousands of events or PRs across an entire workspace).
+
+## 2026-01-14 - Premature Optimization on Small Datasets
+**Learning:** While replacing an $O(N \cdot M)$ nested array search (like `.find()` inside a `.map()`) with a single-pass $O(N)$ Map is algorithmically superior, applying this to naturally small datasets (e.g., the number of top contributors in a single repository) is textbook premature optimization. The overhead of instantiating Maps and objects can sometimes outweigh the algorithmic benefits when $N$ and $M$ are small, resulting in no measurable performance gain and slightly more complex code.
+**Action:** Do not optimize algorithmic complexity on datasets known to be small unless profiling explicitly identifies it as a bottleneck. Focus optimizations on code paths that handle unbounded or large datasets (e.g., thousands of events or PRs across an entire workspace).
