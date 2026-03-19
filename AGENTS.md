@@ -14,6 +14,8 @@ When working with git, always create a feature branch before committing. Never p
 
 This machine uses fnm (not nvm or nix) for Node.js version management. Run `eval "$(fnm env)"` before any npm/node commands. Go projects may need GOEXPERIMENT flag for tests.
 
+For first-time local development setup, run `npm run setup`. This handles prerequisites, environment files, Supabase, and migrations in one command. Use `npm run setup:verify` to check health and `npm run setup:reset` to start fresh.
+
 ## Code Review
 
 When asked to "review a PR", read the PR description, comments, and diff first. Do not immediately try to build/test or check merge conflicts unless asked.
