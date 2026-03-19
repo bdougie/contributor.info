@@ -32,3 +32,7 @@
 1.  Compute static reference timestamps (like `Date.now()`) outside the loop.
 2.  Use string comparison (`a.created_at < b.created_at`) to sort dates directly.
 3.  Use `Date.parse()` instead of `new Date().getTime()` to retrieve numerical timestamps when arithmetic operations are needed inside the loop.
+
+## 2026-03-16 - Rejected Premature Date Optimization
+**Learning:** Replacing `new Date()` with `Date.parse()` or string comparison on small datasets (like the typical number of pull requests shown in a UI) is a premature micro-optimization with no measurable impact. Changes without profiling evidence of an actual performance problem will be rejected.
+**Action:** Do not submit micro-optimizations (like date parsing tweaks) without concrete benchmark data proving a bottleneck. Always measure first and ensure the dataset size warrants the optimization.
