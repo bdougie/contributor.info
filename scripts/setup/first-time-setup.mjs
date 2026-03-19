@@ -119,14 +119,10 @@ function checkNode() {
   const major = parseInt(version.replace('v', '').split('.')[0], 10);
 
   if (major < 20) {
-    logError('Node.js >= 20 required. Current: %s');
-    console.log('  Current: %s', version);
+    logError('  Node.js >= 20 required. Current: ' + version);
     console.log('  Install: https://nodejs.org/');
     return false;
   }
-  logSuccess('  Node.js %s');
-  // Print the actual version after the checkmark
-  process.stdout.write('\x1b[1A'); // move up
   logSuccess('  Node.js ' + version);
   return true;
 }

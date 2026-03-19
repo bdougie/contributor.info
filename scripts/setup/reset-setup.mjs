@@ -4,9 +4,9 @@
  * Reset Setup Script
  *
  * Tears down the local development environment for a clean start:
- * 1. Stop Supabase containers
- * 2. Remove .env.local backup files
- * 3. Reset database
+ * 1. Reset database (while Supabase is still running)
+ * 2. Stop Supabase containers
+ * 3. Restore temp files and remove backup/lock files
  * 4. Print re-setup instructions
  *
  * Usage: npm run setup:reset
@@ -116,6 +116,33 @@ function cleanBackupFiles() {
     // Ignore errors
   }
 
+  // Restore any temp directories from interrupted operations before deleting locks
+  const tempDirs = [
+    {
+      temp: path.join(ROOT, 'supabase', 'migrations.temp'),
+      target: path.join(ROOT, 'supabase', 'migrations'),
+    },
+    {
+      temp: path.join(ROOT, 'supabase', 'seed.sql.temp'),
+      target: path.join(ROOT, 'supabase', 'seed.sql'),
+    },
+  ];
+
+  for (const { temp, target } of tempDirs) {
+    if (fs.existsSync(temp)) {
+      try {
+        if (!fs.existsSync(target)) {
+          fs.renameSync(temp, target);
+        } else {
+          fs.rmSync(temp, { recursive: true, force: true });
+        }
+        cleaned++;
+      } catch {
+        // Ignore errors
+      }
+    }
+  }
+
   // Clean any stale lock files in supabase directory
   const lockFiles = [
     path.join(ROOT, 'supabase', '.migrations-lock.json'),
@@ -167,19 +194,19 @@ async function main() {
   log('='.repeat(60), colors.cyan);
   console.log('');
 
-  // Step 1: Stop Supabase
-  log('1. Stopping Supabase containers', colors.bright);
+  // Step 1: Reset database (must happen while Supabase is still running)
+  log('1. Resetting database', colors.bright);
+  await resetDatabase();
+  console.log('');
+
+  // Step 2: Stop Supabase
+  log('2. Stopping Supabase containers', colors.bright);
   await stopSupabase();
   console.log('');
 
-  // Step 2: Clean backup and lock files
-  log('2. Cleaning backup and lock files', colors.bright);
+  // Step 3: Clean backup and lock files
+  log('3. Cleaning backup and lock files', colors.bright);
   cleanBackupFiles();
-  console.log('');
-
-  // Step 3: Reset database (only if Supabase was still running after stop attempt)
-  log('3. Resetting database', colors.bright);
-  await resetDatabase();
   console.log('');
 
   // Summary
