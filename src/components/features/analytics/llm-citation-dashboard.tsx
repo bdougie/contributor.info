@@ -74,9 +74,16 @@ export function LLMCitationDashboard() {
 
   const getDailyTrendData = () => {
     if (!metrics?.dailyTrend) return [];
-    return Object.entries(metrics.dailyTrend)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-14); // Last 14 days
+    return (
+      Object.entries(metrics.dailyTrend)
+        // Optimized: use native string comparison operators for ISO dates to avoid localeCompare overhead
+        .sort(([a], [b]) => {
+          if (a < b) return -1;
+          if (a > b) return 1;
+          return 0;
+        })
+        .slice(-14)
+    ); // Last 14 days
   };
 
   const getPlatformData = () => {
