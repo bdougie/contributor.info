@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-03-22 - React.memo Component Callbacks
+**Learning:** Passing inline closure functions (e.g., `onClick={() => onContributorClick?.(contributor)}`) directly into `React.memo()`-wrapped child components defeats the memoization entirely, as new function references are created on every render of the parent component.
+**Action:** When using `React.memo()` for list items (like `ContributorCard`), pass stable callback functions from the parent and handle the argument mapping (like passing `contributor.id`) within the child component itself.

@@ -70,6 +70,9 @@ const VIRTUALIZATION_CONFIG = {
   RESIZE_DEBOUNCE_MS: 150,
 } as const;
 
+// ⚡ Bolt: ContributorCard is memoized and now accepts stable callbacks (e.g., onTrack(id))
+// instead of inline closures. This prevents unnecessary re-renders of the entire list
+// when the parent component updates, as the function references remain stable.
 const ContributorCard = memo(function ContributorCard({
   contributor,
   isTracked,
@@ -80,10 +83,10 @@ const ContributorCard = memo(function ContributorCard({
 }: {
   contributor: Contributor;
   isTracked: boolean;
-  onTrack?: () => void;
-  onUntrack?: () => void;
-  onClick?: () => void;
-  onAddToGroup?: () => void;
+  onTrack?: (id: string) => void;
+  onUntrack?: (id: string) => void;
+  onClick?: (contributor: Contributor) => void;
+  onAddToGroup?: (id: string) => void;
 }) {
   const trend = contributor.stats.contribution_trend;
   let TrendIcon = Minus;
@@ -100,7 +103,7 @@ const ContributorCard = memo(function ContributorCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={onAddToGroup || onClick}
+              onClick={() => (onAddToGroup ? onAddToGroup(contributor.id) : onClick?.(contributor))}
               className="hover:opacity-80 transition-opacity"
               aria-label={
                 onAddToGroup
@@ -117,7 +120,7 @@ const ContributorCard = memo(function ContributorCard({
               />
             </button>
             <button
-              onClick={onClick}
+              onClick={() => onClick?.(contributor)}
               className="text-left hover:opacity-80 transition-opacity"
               aria-label={`View ${contributor.username} details`}
             >
@@ -131,7 +134,9 @@ const ContributorCard = memo(function ContributorCard({
                 variant={isTracked ? 'ghost' : 'outline'}
                 size="icon"
                 className="h-10 w-10 min-h-[44px] min-w-[44px] p-0"
-                onClick={isTracked ? onUntrack : onTrack}
+                onClick={() =>
+                  isTracked ? onUntrack?.(contributor.id) : onTrack?.(contributor.id)
+                }
                 aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
               >
                 {isTracked ? <X className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
@@ -195,6 +200,7 @@ const ContributorCard = memo(function ContributorCard({
   );
 });
 
+// ⚡ Bolt: ContributorListItem is memoized and now accepts stable callbacks.
 const ContributorListItem = memo(function ContributorListItem({
   contributor,
   isTracked,
@@ -204,9 +210,9 @@ const ContributorListItem = memo(function ContributorListItem({
 }: {
   contributor: Contributor;
   isTracked: boolean;
-  onTrack?: () => void;
-  onUntrack?: () => void;
-  onClick?: () => void;
+  onTrack?: (id: string) => void;
+  onUntrack?: (id: string) => void;
+  onClick?: (contributor: Contributor) => void;
 }) {
   const trend = contributor.stats.contribution_trend;
   let TrendIcon = Minus;
@@ -220,7 +226,7 @@ const ContributorListItem = memo(function ContributorListItem({
   return (
     <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
       <button
-        onClick={onClick}
+        onClick={() => onClick?.(contributor)}
         className="flex items-center gap-4 flex-1"
         aria-label={`View ${contributor.username} profile`}
       >
@@ -277,9 +283,9 @@ const ContributorListItem = memo(function ContributorListItem({
               onClick={(e) => {
                 e.stopPropagation();
                 if (isTracked) {
-                  onUntrack?.();
+                  onUntrack?.(contributor.id);
                 } else {
-                  onTrack?.();
+                  onTrack?.(contributor.id);
                 }
               }}
               aria-label={isTracked ? 'Untrack contributor' : 'Track contributor'}
@@ -391,10 +397,10 @@ export function ContributorsList({
           key={contributor.id}
           contributor={contributor}
           isTracked={isTracked}
-          onTrack={() => onTrackContributor?.(contributor.id)}
-          onUntrack={() => onUntrackContributor?.(contributor.id)}
-          onClick={() => onContributorClick?.(contributor)}
-          onAddToGroup={() => onAddToGroup?.(contributor.id)}
+          onTrack={onTrackContributor}
+          onUntrack={onUntrackContributor}
+          onClick={onContributorClick}
+          onAddToGroup={onAddToGroup}
         />
       );
     },
@@ -481,9 +487,9 @@ export function ContributorsList({
                   key={contributor.id}
                   contributor={contributor}
                   isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
+                  onTrack={onTrackContributor}
+                  onUntrack={onUntrackContributor}
+                  onClick={onContributorClick}
                 />
               );
             })}
@@ -554,9 +560,9 @@ export function ContributorsList({
                   key={contributor.id}
                   contributor={contributor}
                   isTracked={isTracked}
-                  onTrack={() => onTrackContributor?.(contributor.id)}
-                  onUntrack={() => onUntrackContributor?.(contributor.id)}
-                  onClick={() => onContributorClick?.(contributor)}
+                  onTrack={onTrackContributor}
+                  onUntrack={onUntrackContributor}
+                  onClick={onContributorClick}
                 />
               );
             })}
