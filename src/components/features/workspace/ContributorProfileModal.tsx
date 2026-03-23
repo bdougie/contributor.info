@@ -53,6 +53,7 @@ import type { ContributorNote } from './ContributorNotesDialog';
 import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 import { ContributorInsights } from './enrichment/ContributorInsights';
 import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
+import { getRelativeTime } from '@/lib/utils/date-helpers';
 
 export interface Activity {
   id: string;
@@ -79,20 +80,6 @@ export interface ContributorProfileModalProps {
   userRole?: WorkspaceRole;
   workspaceTier?: WorkspaceTier;
   isLoggedIn?: boolean;
-}
-
-function getRelativeTime(date: string) {
-  const now = new Date();
-  const past = new Date(date);
-  const diffInMs = now.getTime() - past.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) return 'today';
-  if (diffInDays === 1) return 'yesterday';
-  if (diffInDays < 7) return `${diffInDays} days ago`;
-  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-  if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-  return `${Math.floor(diffInDays / 365)} years ago`;
 }
 
 function getActivityIcon(type: Activity['type']) {

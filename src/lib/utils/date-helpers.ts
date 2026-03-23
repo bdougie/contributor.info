@@ -1,7 +1,3 @@
-/**
- * Date utility functions for monthly cycle calculations and contributor tracking
- */
-
 import { MonthlyCycleState, CyclePhase } from '../contributors/types';
 
 /**
@@ -180,4 +176,33 @@ export function getCurrentWeekDateRange(): { startDate: Date; endDate: Date } {
   endDate.setHours(23, 59, 59, 999);
 
   return { startDate, endDate };
+}
+
+/**
+ * Optimized relative time formatter.
+ * Uses Date.now() and Date.parse() to avoid instantiating new Date objects
+ * which can cause significant GC overhead when called in large render loops.
+ *
+ * Includes support for precise minute/hour granularity.
+ */
+export function getRelativeTime(date: string): string {
+  const nowMs = Date.now();
+  const pastMs = Date.parse(date);
+
+  if (isNaN(pastMs)) return 'unknown time';
+
+  const diffInMs = nowMs - pastMs;
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInMinutes < 1) return 'just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
+  if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+  if (diffInDays < 7) return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+  if (diffInDays < 30)
+    return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) === 1 ? '' : 's'} ago`;
+  if (diffInDays < 365)
+    return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) === 1 ? '' : 's'} ago`;
+  return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) === 1 ? '' : 's'} ago`;
 }

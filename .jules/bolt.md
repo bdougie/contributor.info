@@ -25,3 +25,11 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - String localeCompare vs Native Operators for Sorting UI Text
+**Learning:** While native string comparison operators (`<`, `>`) are faster than `localeCompare()` for ISO 8601 dates, using them for general UI text sorting (like usernames or repository names) causes functional regressions because they sort by ASCII values (uppercase before lowercase) rather than alphabetically.
+**Action:** Always use `localeCompare()` when sorting user-facing text alphabetically, and restrict the use of native string comparison operators (`<`, `>`) to machine-generated strings where ASCII ordering matches logical ordering, such as ISO 8601 dates.
+
+## 2026-01-14 - Time Difference Calculations in Loops
+**Learning:** Instantiating `new Date()` objects repeatedly inside formatting functions (like `getRelativeTime`) called within list/table render loops causes excessive object allocation and garbage collection overhead.
+**Action:** Use `Date.now()` to get the current timestamp as a primitive number, and `Date.parse()` to get the reference timestamp, avoiding `new Date()` allocation entirely when calculating time differences in loops.

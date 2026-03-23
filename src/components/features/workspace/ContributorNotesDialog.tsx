@@ -16,6 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MessageSquare, Clock, AlertCircle, Settings, Trash2 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import type { Contributor } from './ContributorsList';
+import { getRelativeTime } from '@/lib/utils/date-helpers';
 
 export interface ContributorNote {
   id: string;
@@ -40,25 +41,6 @@ export interface ContributorNotesDialogProps {
   onAddNote: (contributorId: string, note: string) => Promise<void>;
   onUpdateNote: (noteId: string, note: string) => Promise<void>;
   onDeleteNote: (noteId: string) => Promise<void>;
-}
-
-function getRelativeTime(date: string) {
-  const now = new Date();
-  const past = new Date(date);
-  const diffInMs = now.getTime() - past.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInMinutes < 1) return 'just now';
-  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
-  if (diffInDays < 7) return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
-  if (diffInDays < 30)
-    return `${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) === 1 ? '' : 's'} ago`;
-  if (diffInDays < 365)
-    return `${Math.floor(diffInDays / 30)} month${Math.floor(diffInDays / 30) === 1 ? '' : 's'} ago`;
-  return `${Math.floor(diffInDays / 365)} year${Math.floor(diffInDays / 365) === 1 ? '' : 's'} ago`;
 }
 
 export function ContributorNotesDialog({

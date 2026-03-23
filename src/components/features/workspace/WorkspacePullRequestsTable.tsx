@@ -36,6 +36,7 @@ import { isBot, hasBotAuthors } from '@/lib/utils/bot-detection';
 import { ContributorHoverCard } from '@/components/features/contributor/contributor-hover-card';
 import type { ContributorStats } from '@/lib/types';
 import { getRecentPRsForContributor } from '@/lib/workspace-hover-card-utils';
+import { getRelativeTime } from '@/lib/utils/date-helpers';
 
 function getAriaSortValue(
   sortDirection: false | 'asc' | 'desc'
@@ -97,20 +98,6 @@ export interface WorkspacePullRequestsTableProps {
 }
 
 const columnHelper = createColumnHelper<PullRequest>();
-
-function getRelativeTime(date: string) {
-  const now = new Date();
-  const past = new Date(date);
-  const diffInMs = now.getTime() - past.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) return 'today';
-  if (diffInDays === 1) return 'yesterday';
-  if (diffInDays < 7) return `${diffInDays} days ago`;
-  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-  if (diffInDays < 365) return `${Math.floor(diffInDays / 30)} months ago`;
-  return `${Math.floor(diffInDays / 365)} years ago`;
-}
 
 function getPRIcon(state: PullRequest['state']) {
   switch (state) {
