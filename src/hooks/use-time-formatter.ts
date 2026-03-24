@@ -8,10 +8,14 @@ export function useTimeFormatter() {
    * @returns Formatted relative time string
    */
   const formatRelativeTime = (date: string | Date): string => {
-    const now = new Date();
-    const timestamp = typeof date === 'string' ? new Date(date) : date;
-    if (Number.isNaN(timestamp.getTime())) return 'Unknown';
-    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
+    // ⚡ Bolt: Use numeric timestamps instead of instantiating new Date objects
+    // This reduces garbage collection overhead during large list renders
+    const nowTime = Date.now();
+    const targetTime = typeof date === 'string' ? Date.parse(date) : date.getTime();
+
+    if (Number.isNaN(targetTime)) return 'Unknown';
+
+    const diffInSeconds = Math.floor((nowTime - targetTime) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
@@ -87,14 +91,21 @@ export function useTimeFormatter() {
    * @param endDate - End date string or Date object
    * @returns Human-readable time difference
    */
-  const getTimeDifference = (
-    startDate: string | Date,
-    endDate: string | Date = new Date()
-  ): string => {
-    const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Unknown';
-    const diffInSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+  const getTimeDifference = (startDate: string | Date, endDate?: string | Date): string => {
+    // ⚡ Bolt: Use numeric timestamps instead of instantiating new Date objects
+    // This reduces garbage collection overhead during large list renders
+    const startTime = typeof startDate === 'string' ? Date.parse(startDate) : startDate.getTime();
+
+    let endTime: number;
+    if (endDate === undefined) {
+      endTime = Date.now();
+    } else {
+      endTime = typeof endDate === 'string' ? Date.parse(endDate) : endDate.getTime();
+    }
+
+    if (Number.isNaN(startTime) || Number.isNaN(endTime)) return 'Unknown';
+
+    const diffInSeconds = Math.floor((endTime - startTime) / 1000);
 
     if (diffInSeconds < 60) return `${diffInSeconds} seconds`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes`;
