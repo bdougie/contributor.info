@@ -30,6 +30,28 @@ interface LastUpdatedProps {
   includeStructuredData?: boolean;
 }
 
+// Pre-calculate boundary timestamps to avoid creating new Date objects on every validation check.
+// This optimizes performance by preventing repeated allocation and compilation overhead in loops.
+const CURRENT_YEAR = new Date().getFullYear();
+const HUNDRED_YEARS_AGO_TIME = new Date(CURRENT_YEAR - 100, 0, 1).getTime();
+const TEN_YEARS_FROM_NOW_TIME = new Date(CURRENT_YEAR + 10, 11, 31).getTime();
+
+// Pre-compiled regex pattern for suspicious input detection
+const SUSPICIOUS_PATTERN = new RegExp(
+  '<script|javascript:|on\\w+\\s*=|\\<\\w+|' +
+    '[' +
+    String.fromCharCode(0) +
+    '-' +
+    String.fromCharCode(8) +
+    String.fromCharCode(11) +
+    String.fromCharCode(12) +
+    String.fromCharCode(14) +
+    '-' +
+    String.fromCharCode(31) +
+    ']',
+  'i'
+);
+
 /**
  * Validates and sanitizes timestamp input to prevent security issues
  */
@@ -52,26 +74,7 @@ function validateTimestamp(timestamp: string | Date): Date | null {
     }
 
     // Additional validation for suspicious patterns that could indicate XSS attempts
-    const suspiciousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /<\w+/,
-      new RegExp(
-        '[' +
-          String.fromCharCode(0) +
-          '-' +
-          String.fromCharCode(8) +
-          String.fromCharCode(11) +
-          String.fromCharCode(12) +
-          String.fromCharCode(14) +
-          '-' +
-          String.fromCharCode(31) +
-          ']'
-      ), // Control characters
-    ];
-
-    if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+    if (SUSPICIOUS_PATTERN.test(sanitized)) {
       console.warn('LastUpdated: Potentially malicious input detected:', sanitized);
       return null;
     }
@@ -86,13 +89,10 @@ function validateTimestamp(timestamp: string | Date): Date | null {
     return null;
   }
 
-  // Use timestamp comparison to avoid creating new Date objects
+  // Use pre-calculated timestamp comparison to avoid creating new Date objects
   const dateTime = date.getTime();
-  const currentYear = new Date().getFullYear();
-  const hundredYearsAgoTime = new Date(currentYear - 100, 0, 1).getTime();
-  const tenYearsFromNowTime = new Date(currentYear + 10, 11, 31).getTime();
 
-  if (dateTime < hundredYearsAgoTime || dateTime > tenYearsFromNowTime) {
+  if (dateTime < HUNDRED_YEARS_AGO_TIME || dateTime > TEN_YEARS_FROM_NOW_TIME) {
     return null;
   }
 
@@ -152,37 +152,15 @@ export function LastUpdated({
       const sanitized = sanitizeString(timestamp);
       if (sanitized) {
         // Check for malicious patterns
-        const suspiciousPatterns = [
-          /<script/i,
-          /javascript:/i,
-          /on\w+\s*=/i,
-          /<\w+/,
-          new RegExp(
-            '[' +
-              String.fromCharCode(0) +
-              '-' +
-              String.fromCharCode(8) +
-              String.fromCharCode(11) +
-              String.fromCharCode(12) +
-              String.fromCharCode(14) +
-              '-' +
-              String.fromCharCode(31) +
-              ']'
-          ),
-        ];
-
-        if (suspiciousPatterns.some((pattern) => pattern.test(sanitized))) {
+        if (SUSPICIOUS_PATTERN.test(sanitized)) {
           console.warn('LastUpdated: Potentially malicious input detected:', sanitized);
         } else {
           // Check if it's a date range issue
           const testDate = new Date(sanitized);
           if (!isNaN(testDate.getTime())) {
-            const currentYear = new Date().getFullYear();
             const testTime = testDate.getTime();
-            const hundredYearsAgoTime = new Date(currentYear - 100, 0, 1).getTime();
-            const tenYearsFromNowTime = new Date(currentYear + 10, 11, 31).getTime();
 
-            if (testTime < hundredYearsAgoTime || testTime > tenYearsFromNowTime) {
+            if (testTime < HUNDRED_YEARS_AGO_TIME || testTime > TEN_YEARS_FROM_NOW_TIME) {
               console.warn('LastUpdated: Timestamp outside reasonable range:', timestamp);
             } else {
               console.warn('LastUpdated: Invalid or unsafe timestamp provided:', timestamp);
