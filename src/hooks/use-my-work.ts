@@ -596,10 +596,9 @@ export function useMyWork(
           })) || [];
 
         // Filter follow-up issues where updated_at > responded_at (new activity after response)
+        // ⚡ Bolt: Use native string comparison for ISO 8601 strings to avoid slow Date object allocation
         const activeFollowUpIssues = followUpIssues?.filter((issue) => {
-          const updatedDate = new Date(issue.updated_at).getTime();
-          const respondedDate = new Date(issue.responded_at).getTime();
-          return updatedDate > respondedDate;
+          return issue.updated_at > issue.responded_at;
         });
 
         // Map follow-up issues to MyWorkItem
@@ -623,10 +622,9 @@ export function useMyWork(
           })) || [];
 
         // Filter follow-up PRs where updated_at > responded_at
+        // ⚡ Bolt: Use native string comparison for ISO 8601 strings to avoid slow Date object allocation
         const activeFollowUpPRs = followUpPRs?.filter((pr) => {
-          const updatedDate = new Date(pr.updated_at).getTime();
-          const respondedDate = new Date(pr.responded_at).getTime();
-          return updatedDate > respondedDate;
+          return pr.updated_at > pr.responded_at;
         });
 
         // Map follow-up PRs to MyWorkItem
@@ -651,10 +649,9 @@ export function useMyWork(
           })) || [];
 
         // Filter follow-up discussions where updated_at > responded_at
+        // ⚡ Bolt: Use native string comparison for ISO 8601 strings to avoid slow Date object allocation
         const activeFollowUpDiscussions = followUpDiscussions?.filter((discussion) => {
-          const updatedDate = new Date(discussion.updated_at).getTime();
-          const respondedDate = new Date(discussion.responded_at).getTime();
-          return updatedDate > respondedDate;
+          return discussion.updated_at > discussion.responded_at;
         });
 
         // Map follow-up discussions to MyWorkItem
@@ -762,7 +759,12 @@ export function useMyWork(
           ...followUpDiscussionItems,
           ...userCommentItems,
           ...userDiscussionCommentItems,
-        ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        ].sort((a, b) => {
+          // ⚡ Bolt: Use native string comparison for ISO 8601 strings to avoid slow Date object allocation in tight loops
+          if (b.updated_at < a.updated_at) return -1;
+          if (b.updated_at > a.updated_at) return 1;
+          return 0;
+        });
 
         // Processed items needing attention
 
