@@ -762,7 +762,14 @@ export function useMyWork(
           ...followUpDiscussionItems,
           ...userCommentItems,
           ...userDiscussionCommentItems,
-        ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+        ]
+          // Performance optimization: Using native string comparisons (<, >) for ISO 8601 dates
+          // instead of allocating Date objects or using localeCompare inside a tight loop
+          .sort((a, b) => {
+            if (b.updated_at < a.updated_at) return -1;
+            if (b.updated_at > a.updated_at) return 1;
+            return 0;
+          });
 
         // Processed items needing attention
 
