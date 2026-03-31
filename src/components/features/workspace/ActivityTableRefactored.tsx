@@ -51,7 +51,9 @@ const ActivityTableContent = memo(
           case 'author':
             return item.author.username;
           case 'created_at':
-            return new Date(item.created_at).getTime();
+            // ⚡ Bolt: Use Date.parse() instead of new Date().getTime() to prevent
+            // object allocation overhead inside the sorting loop, improving performance.
+            return Date.parse(item.created_at);
           default:
             return (item as unknown as Record<string, unknown>)[key];
         }
