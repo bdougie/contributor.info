@@ -1694,9 +1694,12 @@ function WorkspacePage() {
     const trends: TrendDataset[] = [];
 
     return {
-      activities: activities.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ),
+      // Performance: Use native string comparison for ISO 8601 dates to avoid Date object allocation overhead
+      activities: activities.sort((a, b) => {
+        if (b.created_at < a.created_at) return -1;
+        if (b.created_at > a.created_at) return 1;
+        return 0;
+      }),
       contributors: Array.from(contributorMap.values()).sort(
         (a, b) => b.contributions - a.contributions
       ),
