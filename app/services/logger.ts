@@ -39,9 +39,9 @@ export class Logger {
 
     // Use parameterized console.log to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.log(`[${this.context}] ${message}`, ...args);
+      console.log('[%s] %s', this.context, message, ...args);
     } else {
-      console.log('[%s] ${message}', this.context);
+      console.log('[%s] %s', this.context, message);
     }
   }
 
@@ -52,9 +52,9 @@ export class Logger {
     const formatted = this.formatMessage('WARN', message, ...args);
 
     if (args.length > 0) {
-      console.warn(`[${this.context}] ${message}`, ...args);
+      console.warn('[%s] %s', this.context, message, ...args);
     } else {
-      console.warn(`[${this.context}] ${message}`);
+      console.warn('[%s] %s', this.context, message);
     }
   }
 
@@ -66,9 +66,9 @@ export class Logger {
 
     // Use parameterized console.error to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.error(`[${this.context}] ERROR: ${message}`, ...args);
+      console.error('[%s] ERROR: %s', this.context, message, ...args);
     } else {
-      console.error(`[${this.context}] ERROR: ${message}`);
+      console.error('[%s] ERROR: %s', this.context, message);
     }
   }
 
@@ -80,9 +80,9 @@ export class Logger {
       const formatted = this.formatMessage('DEBUG', message, ...args);
 
       if (args.length > 0) {
-        console.log(`[${this.context}] DEBUG: ${message}`, ...args);
+        console.log('[%s] DEBUG: %s', this.context, message, ...args);
       } else {
-        console.log('[%s] DEBUG: ${message}', this.context);
+        console.log('[%s] DEBUG: %s', this.context, message);
       }
     }
   }
