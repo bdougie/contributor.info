@@ -266,15 +266,6 @@ export class EventRouter {
   }
 
   /**
-   * Map event priority to embedding priority
-   */
-  private mapToEmbeddingPriority(
-    eventPriority: EventPriority
-  ): 'critical' | 'high' | 'medium' | 'low' {
-    return eventPriority; // Direct mapping for now
-  }
-
-  /**
    * Track event in recent events with memory bounds
    */
   private trackEvent(metadata: EventMetadata): void {
