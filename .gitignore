@@ -25,8 +25,7 @@ dist-ssr
 *.sln
 *.sw?
 
-tsconfig.app.tsbuildinfo
-tsconfig.node.tsbuildinfo
+*.tsbuildinfo
 
 .vscode/mcp.json
 
@@ -52,6 +51,9 @@ eval-outputs/
 
 # Lighthouse reports
 lighthouse-reports/
+lighthouse-report.json
+lighthouse-current.json
+lighthouse-local.json
 analyze-lighthouse.cjs
 
 # IndexNow verification file (contains API key)
@@ -94,3 +96,7 @@ supabase/functions/deno.lock
 scan-results.md
 jcard.toml
 .worktrees/
+
+# Session/output artifacts
+output.txt
+error-summary.json
