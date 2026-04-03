@@ -3,7 +3,7 @@
  */
 
 import { ContributorActivity, ContributorApiResponse, RepositoryFilter } from './types';
-import { getMonthDateRange } from '../utils/date-helpers';
+import { getMonthDateRange } from '../utils/date-formatting';
 
 /**
  * Base configuration for GitHub API calls

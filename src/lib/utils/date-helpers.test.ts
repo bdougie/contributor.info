@@ -18,7 +18,7 @@ import {
   getTimeUntilNextPhase,
   isSameMonth,
   getCurrentWeekDateRange,
-} from './date-helpers';
+} from './date-formatting';
 import { CyclePhase } from '../contributors/types';
 
 describe('Date Helpers', () => {
