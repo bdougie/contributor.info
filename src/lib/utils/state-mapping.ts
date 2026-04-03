@@ -5,12 +5,18 @@
 export type PRState = 'open' | 'merged' | 'closed';
 
 /**
+ * Input type for getPRState - accepts either a state string or an object with state and merged flag
+ */
+export type PRStateInput = string | { state: string; merged?: boolean };
+
+/**
  * Map PR state and merged status to standardized state
- * Handles various input formats and normalizes them to a consistent state
+ * Handles various input formats and normalizes them to a consistent state.
  *
- * @param pr - Pull request object with state and optional merged flag
- * @param pr.state - Current state of the PR (case-insensitive)
- * @param pr.merged - Optional boolean indicating if PR was merged
+ * Accepts either a plain state string (e.g. from GitHub API) or an object
+ * with a state and optional merged flag for full merged-state detection.
+ *
+ * @param input - A state string or pull request object with state and optional merged flag
  * @returns Normalized PR state: 'open', 'merged', or 'closed'
  *
  * @example
@@ -18,10 +24,16 @@ export type PRState = 'open' | 'merged' | 'closed';
  * getPRState({ state: 'OPEN' }) // returns 'open' (case-insensitive)
  * getPRState({ state: 'closed', merged: true }) // returns 'merged'
  * getPRState({ state: 'closed', merged: false }) // returns 'closed'
+ * getPRState('open') // returns 'open'
+ * getPRState('OPEN') // returns 'open' (case-insensitive)
  */
-export const getPRState = (pr: { state: string; merged?: boolean }): PRState => {
-  if (pr.state === 'open' || pr.state?.toLowerCase() === 'open') return 'open';
-  if (pr.merged) return 'merged';
+export const getPRState = (input: PRStateInput): PRState => {
+  const state = typeof input === 'string' ? input : input.state;
+  const merged = typeof input === 'string' ? false : Boolean(input.merged);
+
+  if (!state) return 'closed';
+  if (state.toLowerCase() === 'open') return 'open';
+  if (merged) return 'merged';
   return 'closed';
 };
 

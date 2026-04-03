@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   getUserType,
-  getPRState,
   getUserRole,
   getLastSyncDate,
   formatDateRange,
   getDubKeyStatus,
   findContributorInQuadrant,
   USER_TYPE_MAP,
-  PR_STATE_MAP,
   ROLE_MAPPING,
   DATE_MAPPING,
   VALIDATION_MAP,
@@ -54,30 +52,6 @@ describe('data-type-mapping utilities', () => {
 
     it('returns "User" when is_bot is undefined', () => {
       expect(getUserType({})).toBe('User');
-    });
-  });
-
-  describe('getPRState', () => {
-    it('returns "open" for "open" state', () => {
-      expect(getPRState('open')).toBe('open');
-    });
-
-    it('returns "open" for "OPEN" state (case insensitive)', () => {
-      expect(getPRState('OPEN')).toBe('open');
-    });
-
-    it('returns "closed" for "closed" state', () => {
-      expect(getPRState('closed')).toBe('closed');
-    });
-
-    it('returns "closed" for any non-open state', () => {
-      expect(getPRState('merged')).toBe('closed');
-      expect(getPRState('draft')).toBe('closed');
-    });
-
-    it('returns "closed" for undefined/empty state', () => {
-      expect(getPRState(undefined)).toBe('closed');
-      expect(getPRState('')).toBe('closed');
     });
   });
 
@@ -282,11 +256,6 @@ describe('data-type-mapping utilities', () => {
   });
 
   describe('constants', () => {
-    it('has correct PR_STATE_MAP values', () => {
-      expect(PR_STATE_MAP.open).toBe('open');
-      expect(PR_STATE_MAP.closed).toBe('closed');
-    });
-
     it('has correct ROLE_MAPPING values', () => {
       expect(ROLE_MAPPING.bot).toBe('Bot');
       expect(ROLE_MAPPING.contributor).toBe('Contributor');
