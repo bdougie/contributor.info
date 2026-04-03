@@ -3,6 +3,9 @@ import { eventPriorityService, EventPriority } from '../services/event-priority'
 import { embeddingQueueService } from '../services/webhook/embedding-queue';
 import { supabase } from '../../src/lib/supabase';
 import { webhookMetricsService } from '../services/webhook-metrics';
+import { createLogger } from '../services/logger';
+
+const logger = createLogger('event-router');
 
 export type WebhookEvent = IssuesEvent | PullRequestEvent;
 
@@ -74,7 +77,7 @@ export class EventRouter {
   private startMemoryTracking(): void {
     this.memoryTrackingTimer = setInterval(() => {
       this.trackMemoryMetrics().catch((error) => {
-        console.error('Error tracking memory metrics:', error);
+        logger.error('Error tracking memory metrics:', error);
       });
     }, this.MEMORY_TRACKING_INTERVAL);
   }
@@ -123,8 +126,8 @@ export class EventRouter {
         return;
       }
 
-      console.log(
-        '📨 Routing event: %s %s (priority: %s, score: %d)',
+      logger.info(
+        'Routing event: %s %s (priority: %s, score: %d)',
         metadata.eventType,
         metadata.action,
         priority.priority,
@@ -137,7 +140,7 @@ export class EventRouter {
       // Route based on priority
       await this.processEvent(event, metadata);
     } catch (error) {
-      console.error('Error routing event:', error);
+      logger.error('Error routing event:', error);
       // Queue for retry if it's a rate limit error
       if (this.isRateLimitError(error)) {
         await this.handleRateLimitError(event, error);
@@ -200,7 +203,7 @@ export class EventRouter {
     if (recentEvent) {
       const timeSinceLastEvent = Date.now() - recentEvent.timestamp;
       if (timeSinceLastEvent < this.DEBOUNCE_WINDOW) {
-        console.log('⏱️  Debouncing rapid event: %s', metadata.eventId);
+        logger.info('Debouncing rapid event: %s', metadata.eventId);
         return true;
       }
     }
@@ -227,7 +230,7 @@ export class EventRouter {
           clearTimeout(oldEvent.timer);
         }
         this.debouncedEvents.delete(firstKey);
-        console.warn('⚠️  Debounced events limit reached, evicting oldest entry');
+        logger.warn('Debounced events limit reached, evicting oldest entry');
       }
     }
 
@@ -235,10 +238,10 @@ export class EventRouter {
     const timer = setTimeout(async () => {
       const eventId = metadata.eventId;
       try {
-        console.log('⏰ Processing debounced event: %s', eventId);
+        logger.info('Processing debounced event: %s', eventId);
         await this.processEvent(event, metadata);
       } catch (error) {
-        console.error('Error processing debounced event %s:', error, eventId);
+        logger.error('Error processing debounced event %s:', eventId, error);
         // Timer will still be cleaned up in finally block
       } finally {
         // Always cleanup timer reference to prevent memory leak
@@ -274,7 +277,7 @@ export class EventRouter {
       const firstKey = this.recentEvents.keys().next().value;
       if (firstKey) {
         this.recentEvents.delete(firstKey);
-        console.warn('⚠️  Recent events limit reached, evicting oldest entry');
+        logger.warn('Recent events limit reached, evicting oldest entry');
       }
     }
     this.recentEvents.set(metadata.eventId, metadata);
@@ -299,7 +302,7 @@ export class EventRouter {
    * Handle rate limit error with exponential backoff
    */
   private async handleRateLimitError(event: WebhookEvent, error: unknown): Promise<void> {
-    console.warn('⚠️  Rate limit encountered, queueing for retry');
+    logger.warn('Rate limit encountered, queueing for retry');
 
     // Mark as rate limited
     this.rateLimitStatus.isLimited = true;
@@ -321,14 +324,14 @@ export class EventRouter {
     if (existingRetry) {
       existingRetry.retryCount++;
       if (existingRetry.retryCount >= this.MAX_RETRIES) {
-        console.error('❌ Max retries reached for event, dropping');
+        logger.error('Max retries reached for event, dropping');
         this.retryQueue = this.retryQueue.filter((r) => r !== existingRetry);
         return;
       }
     } else {
       // Enforce memory bounds for retry queue
       if (this.retryQueue.length >= this.MAX_RETRY_QUEUE) {
-        console.warn('⚠️  Retry queue limit reached, dropping oldest retry');
+        logger.warn('Retry queue limit reached, dropping oldest retry');
         this.retryQueue.shift();
       }
       this.retryQueue.push({ event, retryCount: 0 });
@@ -339,8 +342,8 @@ export class EventRouter {
     const baseDelay = this.INITIAL_BACKOFF * Math.pow(2, existingRetry?.retryCount || 0);
     const jitter = Math.random() * 1000; // 0-1000ms random jitter
     const retryDelay = baseDelay + jitter;
-    console.log(
-      '⏳ Scheduling retry in %dms (base: %dms + jitter: %dms)',
+    logger.info(
+      'Scheduling retry in %dms (base: %dms + jitter: %dms)',
       retryDelay,
       baseDelay,
       jitter
@@ -350,7 +353,7 @@ export class EventRouter {
       try {
         await this.processRetryQueue();
       } catch (error) {
-        console.error('Error processing retry queue:', error);
+        logger.error('Error processing retry queue:', error);
       }
     }, retryDelay);
   }
@@ -364,7 +367,7 @@ export class EventRouter {
       return;
     }
 
-    console.log('🔄 Processing %d queued events', this.retryQueue.length);
+    logger.info('Processing %d queued events', this.retryQueue.length);
 
     // Process one event at a time to avoid hitting rate limits again
     const retryItem = this.retryQueue.shift()!;
@@ -378,17 +381,17 @@ export class EventRouter {
         // Still rate limited, put back in queue with incremented retry count
         retryItem.retryCount++;
         if (retryItem.retryCount >= this.MAX_RETRIES) {
-          console.error('❌ Max retries reached for event, dropping');
+          logger.error('Max retries reached for event, dropping');
           return;
         }
         this.retryQueue.unshift(retryItem);
-        console.warn(
-          '⚠️  Still rate limited, will retry later (attempt %d/%d)',
+        logger.warn(
+          'Still rate limited, will retry later (attempt %d/%d)',
           retryItem.retryCount,
           this.MAX_RETRIES
         );
       } else {
-        console.error('❌ Error processing retry:', error);
+        logger.error('Error processing retry:', error);
       }
     }
   }
@@ -409,7 +412,7 @@ export class EventRouter {
     toDelete.forEach((eventId) => this.recentEvents.delete(eventId));
 
     if (toDelete.length > 0) {
-      console.log('🧹 Cleaned up %d old events', toDelete.length);
+      logger.info('Cleaned up %d old events', toDelete.length);
     }
   }
 

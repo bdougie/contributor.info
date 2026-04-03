@@ -1,5 +1,8 @@
 import { supabase } from '../../src/lib/supabase';
 import type { GitHubAppAuth } from '../lib/auth';
+import { createLogger } from '../services/logger';
+
+const logger = createLogger('labeled');
 
 // Lazy load auth to avoid initialization errors
 let githubAppAuth: GitHubAppAuth | null = null;
@@ -9,9 +12,9 @@ async function getAuth() {
     try {
       const { githubAppAuth: auth } = await import('../lib/auth');
       githubAppAuth = auth;
-      console.log('✅ GitHub App auth loaded for labeled handler');
+      logger.info('GitHub App auth loaded for labeled handler');
     } catch (error) {
-      console.error('❌ Failed to load GitHub App auth:', error);
+      logger.error('Failed to load GitHub App auth:', error);
       throw error;
     }
   }
@@ -77,20 +80,20 @@ interface LabeledEvent {
  * Only responds to 'labeled' action, not 'unlabeled'
  */
 export async function handleLabeledEvent(event: LabeledEvent) {
-  console.log('🏷️ handleLabeledEvent called');
+  logger.info('handleLabeledEvent called');
 
   try {
     // Only process 'labeled' action (not 'unlabeled')
     if (event.action !== 'labeled') {
-      console.log(`Skipping ${event.action} event - only responding to 'labeled' actions`);
+      logger.info('Skipping %s event - only responding to labeled actions', event.action);
       return;
     }
 
-    console.log(`Label event: ${event.label.name}`);
+    logger.info('Label event: %s', event.label.name);
 
     // Check if the label is 'contributor.info'
     if (event.label.name !== 'contributor.info') {
-      console.log(`Label '${event.label.name}' is not 'contributor.info', skipping`);
+      logger.info('Label %s is not contributor.info, skipping', event.label.name);
       return;
     }
 
@@ -98,27 +101,30 @@ export async function handleLabeledEvent(event: LabeledEvent) {
     const itemType = event.issue ? 'issue' : 'pull_request';
 
     if (!item) {
-      console.error('❌ No issue or pull_request in labeled event');
+      logger.error('No issue or pull_request in labeled event');
       return;
     }
 
-    console.log(
-      `✅ 'contributor.info' label added to ${itemType} #${item.number} in ${event.repository.full_name}`
+    logger.info(
+      'contributor.info label added to %s #%d in %s',
+      itemType,
+      item.number,
+      event.repository.full_name
     );
 
     // Get installation token if available
     const installationId = event.installation?.id;
     if (!installationId) {
-      console.log('❌ No installation ID, cannot post comment');
+      logger.error('No installation ID, cannot post comment');
       return;
     }
 
-    console.log('📝 Getting auth module...');
+    logger.info('Getting auth module...');
     const auth = await getAuth();
 
-    console.log('📝 Getting installation Octokit...');
+    logger.info('Getting installation Octokit...');
     const octokit = await auth.getInstallationOctokit(installationId);
-    console.log('✅ Got installation Octokit');
+    logger.info('Got installation Octokit');
 
     // Track the repository in our database
     await ensureRepositoryTracked(event.repository);
@@ -133,14 +139,17 @@ export async function handleLabeledEvent(event: LabeledEvent) {
       body: comment,
     });
 
-    console.log(
-      `✅ Posted label acknowledgment comment ${postedComment.id} on ${itemType} #${item.number}`
+    logger.info(
+      'Posted label acknowledgment comment %d on %s #%d',
+      postedComment.id,
+      itemType,
+      item.number
     );
 
     // Queue for data processing
     await queueForProcessing(itemType, item, event.repository);
   } catch (error) {
-    console.error('Error handling labeled event:', error);
+    logger.error('Error handling labeled event:', error);
   }
 }
 
@@ -184,12 +193,12 @@ async function ensureRepositoryTracked(repo: LabeledEvent['repository']): Promis
       .maybeSingle();
 
     if (existing) {
-      console.log(`Repository ${repo.full_name} already tracked`);
+      logger.info('Repository %s already tracked', repo.full_name);
       return existing.id;
     }
 
     // Create new repository entry
-    console.log(`Adding repository ${repo.full_name} to tracking`);
+    logger.info('Adding repository %s to tracking', repo.full_name);
 
     const { data: newRepo, error } = await supabase
       .from('repositories')
@@ -205,14 +214,14 @@ async function ensureRepositoryTracked(repo: LabeledEvent['repository']): Promis
       .maybeSingle();
 
     if (error) {
-      console.error(`Failed to create repository: ${error.message}`);
+      logger.error('Failed to create repository: %s', error.message);
       return null;
     }
 
-    console.log(`✅ Repository ${repo.full_name} added to tracking`);
+    logger.info('Repository %s added to tracking', repo.full_name);
     return newRepo.id;
   } catch (error) {
-    console.error('Error ensuring repository tracked:', error);
+    logger.error('Error ensuring repository tracked:', error);
     return null;
   }
 }
@@ -236,11 +245,11 @@ async function queueForProcessing(
       labeled_at: new Date().toISOString(),
     };
 
-    console.log(`Queued ${itemType} #${item.number} for processing:`, metadata);
+    logger.info('Queued %s #%d for processing:', itemType, item.number, metadata);
 
     // Could trigger an Inngest job or other background processing here
     // For now, just log the action
   } catch (error) {
-    console.error('Error queuing for processing:', error);
+    logger.error('Error queuing for processing:', error);
   }
 }

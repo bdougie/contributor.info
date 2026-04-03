@@ -2,6 +2,9 @@ import { App } from '@octokit/app';
 import { Octokit } from '@octokit/rest';
 import jwt from 'jsonwebtoken';
 import { ENV_CONFIG } from '../config/app';
+import { createLogger } from '../services/logger';
+
+const logger = createLogger('auth');
 
 /**
  * GitHub App authentication manager
@@ -15,7 +18,7 @@ export class GitHubAppAuth {
   constructor() {
     // Check if we have the required configuration
     if (!ENV_CONFIG.app_id || !ENV_CONFIG.private_key) {
-      console.error('GitHub App configuration missing:', {
+      logger.error('GitHub App configuration missing:', {
         hasAppId: !!ENV_CONFIG.app_id,
         hasPrivateKey: !!ENV_CONFIG.private_key,
         privateKeyLength: ENV_CONFIG.private_key?.length || 0,
@@ -33,9 +36,9 @@ export class GitHubAppAuth {
         },
       });
       this.isConfigured = true;
-      console.log('GitHub App auth configured successfully');
+      logger.info('GitHub App auth configured successfully');
     } catch (error) {
-      console.error('Failed to initialize GitHub App:', error);
+      logger.error('Failed to initialize GitHub App:', error);
       this.isConfigured = false;
     }
   }

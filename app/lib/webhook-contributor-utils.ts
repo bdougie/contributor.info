@@ -2,6 +2,9 @@
 // After Phase 2, webhook handlers should import from here instead of inline helpers.
 
 import { createSupabaseAdmin } from '../../netlify/functions/src/lib/supabase-admin';
+import { createLogger } from '../services/logger';
+
+const logger = createLogger('webhook-contributor-utils');
 
 interface GithubUserLike {
   id: number;
@@ -29,7 +32,6 @@ export async function ensureContributorForWebhook(
   try {
     const supabaseAdmin = createSupabaseAdmin();
     const now = new Date().toISOString();
-    
 
     // Check if contributor already exists to preserve first_seen_at
     const { data: existing, error: selectError } = await supabaseAdmin
@@ -38,7 +40,7 @@ export async function ensureContributorForWebhook(
       .eq('github_id', githubUser.id)
       .maybeSingle();
     if (selectError) {
-      console.error('ensureContributorForWebhook pre-select error:', selectError.message);
+      logger.error('ensureContributorForWebhook pre-select error: %s', selectError.message);
       return null;
     }
 
@@ -71,13 +73,13 @@ export async function ensureContributorForWebhook(
       .maybeSingle();
 
     if (error) {
-      console.error('ensureContributorForWebhook error:', error.message);
+      logger.error('ensureContributorForWebhook error: %s', error.message);
       return null;
     }
     return data?.id || null;
   } catch (e) {
     const error = e as Error;
-    console.error('ensureContributorForWebhook unexpected error:', error?.message || error);
+    logger.error('ensureContributorForWebhook unexpected error: %s', error?.message || error);
     return null;
   }
 }
