@@ -1694,9 +1694,11 @@ function WorkspacePage() {
     const trends: TrendDataset[] = [];
 
     return {
-      activities: activities.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      ),
+      activities: activities.sort((a, b) => {
+        if (b.created_at < a.created_at) return -1;
+        if (b.created_at > a.created_at) return 1;
+        return 0;
+      }),
       contributors: Array.from(contributorMap.values()).sort(
         (a, b) => b.contributions - a.contributions
       ),

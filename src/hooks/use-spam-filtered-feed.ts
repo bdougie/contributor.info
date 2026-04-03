@@ -130,7 +130,9 @@ export function useSpamFilteredFeed(
       }
 
       // If spam scores are equal (or both unanalyzed), sort by date descending (newest first)
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (b.created_at < a.created_at) return -1;
+      if (b.created_at > a.created_at) return 1;
+      return 0;
     });
 
     return filtered.slice(0, limit);

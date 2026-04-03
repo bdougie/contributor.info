@@ -592,9 +592,11 @@ export function useContributorActivity({
         }
 
         // Sort all activities by date
-        allActivities.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
+        allActivities.sort((a, b) => {
+          if (b.created_at < a.created_at) return -1;
+          if (b.created_at > a.created_at) return 1;
+          return 0;
+        });
 
         // Properly paginate the combined results
         const startIndex = currentPage * pageSize;

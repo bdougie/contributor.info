@@ -75,9 +75,12 @@ export function RepoStatsSummary({ owner, repo }: RepoStatsSummaryProps) {
 
   // Get the most recent PR - memoized for performance
   const mostRecentPR = useMemo(() => {
-    return [...filteredPRs].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
+    return [...filteredPRs].sort((a, b) => {
+      // Performance optimization: Avoid Date instantiation in sort loop
+      if (b.created_at < a.created_at) return -1;
+      if (b.created_at > a.created_at) return 1;
+      return 0;
+    })[0];
   }, [filteredPRs]);
 
   if (stats.loading) {

@@ -226,7 +226,12 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (statusFilter === 'merged') return pr.merged_at !== null;
           return true;
         })
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        .sort((a, b) => {
+          // Performance optimization: Avoid Date instantiation in sort loop
+          if (b.created_at < a.created_at) return -1;
+          if (b.created_at > a.created_at) return 1;
+          return 0;
+        });
 
       // Group PRs by day to implement quarter-based staggering
       const prsByDay = new Map<number, PullRequest[]>();
