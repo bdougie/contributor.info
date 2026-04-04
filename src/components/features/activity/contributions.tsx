@@ -226,7 +226,14 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (statusFilter === 'merged') return pr.merged_at !== null;
           return true;
         })
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // ⚡ Bolt Performance Optimization:
+        // Replaced `new Date().getTime()` with native string comparison (`<`, `>`)
+        // to avoid allocating thousands of Date objects during array sorting
+        .sort((a, b) => {
+          if (b.created_at > a.created_at) return 1;
+          if (b.created_at < a.created_at) return -1;
+          return 0;
+        });
 
       // Group PRs by day to implement quarter-based staggering
       const prsByDay = new Map<number, PullRequest[]>();
