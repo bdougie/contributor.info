@@ -15,6 +15,9 @@ import {
 } from '../services/contributor-config';
 import { supabase } from '../../src/lib/supabase';
 import type { GitHubAppAuth } from '../lib/auth';
+import { createLogger } from '../services/logger';
+
+const logger = createLogger('pull-request-direct');
 
 // Lazy load auth to avoid initialization errors
 let githubAppAuth: GitHubAppAuth | null = null;
@@ -24,9 +27,9 @@ async function getAuth() {
     try {
       const { githubAppAuth: auth } = await import('../lib/auth');
       githubAppAuth = auth;
-      console.log('✅ GitHub App auth loaded');
+      logger.info('GitHub App auth loaded');
     } catch (error) {
-      console.error('❌ Failed to load GitHub App auth:', error);
+      logger.error('Failed to load GitHub App auth:', error);
       throw error;
     }
   }
@@ -39,42 +42,42 @@ async function getAuth() {
  * if the repository isn't tracked in our database yet.
  */
 export async function handlePROpenedDirect(event: PullRequestEvent) {
-  console.log('🚀 handlePROpenedDirect called');
+  logger.info('handlePROpenedDirect called');
 
   try {
     const { pull_request: pr, repository: repo, installation } = event;
 
-    console.log(`Processing opened PR #${pr.number} in ${repo.full_name}`);
-    console.log(`  Repository GitHub ID from webhook: ${repo.id}`);
-    console.log(`  Installation ID: ${installation?.id}`);
-    console.log(`  PR author: ${pr.user.login}`);
+    logger.info('Processing opened PR #%d in %s', pr.number, repo.full_name);
+    logger.info('  Repository GitHub ID from webhook: %s', repo.id);
+    logger.info('  Installation ID: %s', installation?.id);
+    logger.info('  PR author: %s', pr.user.login);
 
     // Get installation token
     const installationId = installation?.id;
     if (!installationId) {
-      console.error('❌ No installation ID found in webhook payload');
+      logger.error('No installation ID found in webhook payload');
       return;
     }
 
-    console.log('📝 Getting auth module...');
+    logger.info('Getting auth module...');
     const auth = await getAuth();
 
-    console.log('📝 Getting installation Octokit...');
+    logger.info('Getting installation Octokit...');
     const octokit = await auth.getInstallationOctokit(installationId);
-    console.log('✅ Got installation Octokit');
+    logger.info('Got installation Octokit');
 
     // Fetch configuration from the repository
     const config = await fetchContributorConfig(octokit, repo.owner.login, repo.name);
 
     // Check if PR author is excluded
     if (isUserExcluded(config, pr.user.login, 'author')) {
-      console.log(`PR author ${pr.user.login} is excluded from comments`);
+      logger.info('PR author %s is excluded from comments', pr.user.login);
       return;
     }
 
     // Check if auto-comment is enabled
     if (!isFeatureEnabled(config, 'auto_comment')) {
-      console.log('Auto-comment is disabled in .contributor config');
+      logger.info('Auto-comment is disabled in .contributor config');
       return;
     }
 
@@ -105,7 +108,7 @@ export async function handlePROpenedDirect(event: PullRequestEvent) {
 
     // Only post if we have something to share
     if (similarIssues.length === 0 && reviewerSuggestions.length === 0) {
-      console.log('No similar issues or reviewer suggestions found');
+      logger.info('No similar issues or reviewer suggestions found');
 
       // Optionally store the repository info for future use
       await ensureRepositoryTracked(repo);
@@ -189,9 +192,9 @@ export async function handlePROpenedDirect(event: PullRequestEvent) {
       body: comment,
     });
 
-    console.log(`✅ Posted comment ${postedComment.id} on PR #${pr.number}`);
-    console.log(`  - Similar issues: ${similarIssues.length}`);
-    console.log(`  - Reviewer suggestions: ${reviewerSuggestions.length}`);
+    logger.info('Posted comment %d on PR #%d', postedComment.id, pr.number);
+    logger.info('  - Similar issues: %d', similarIssues.length);
+    logger.info('  - Reviewer suggestions: %d', reviewerSuggestions.length);
 
     // Store the repository for future use if not already tracked
     await ensureRepositoryTracked(repo);
@@ -205,7 +208,7 @@ export async function handlePROpenedDirect(event: PullRequestEvent) {
       commentId: postedComment.id,
     });
   } catch (error) {
-    console.error('Error handling PR opened event:', error);
+    logger.error('Error handling PR opened event:', error);
     // Don't throw - we don't want GitHub to retry
   }
 }
@@ -226,7 +229,7 @@ async function findSimilarIssuesDirect(
       .maybeSingle();
 
     if (!dbRepo) {
-      console.log('Repository not in database, no similar issues available');
+      logger.info('Repository not in database, no similar issues available');
       return [];
     }
 
@@ -238,7 +241,7 @@ async function findSimilarIssuesDirect(
       .limit(100);
 
     if (!issues || issues.length === 0) {
-      console.log('No issues found in database for similarity matching');
+      logger.info('No issues found in database for similarity matching');
       return [];
     }
 
@@ -293,7 +296,7 @@ async function findSimilarIssuesDirect(
     // Sort by similarity score and return top 5
     return similar.sort((a, b) => b.similarityScore - a.similarityScore).slice(0, 5);
   } catch (error) {
-    console.error('Error finding similar issues:', error);
+    logger.error('Error finding similar issues:', error);
     return [];
   }
 }
@@ -311,7 +314,7 @@ async function ensureRepositoryTracked(repo: Repository): Promise<string | null>
       .maybeSingle();
 
     if (existing) {
-      console.log(`Repository ${repo.full_name} already tracked with correct GitHub ID`);
+      logger.info('Repository %s already tracked with correct GitHub ID', repo.full_name);
       return existing.id;
     }
 
@@ -324,8 +327,11 @@ async function ensureRepositoryTracked(repo: Repository): Promise<string | null>
       .maybeSingle();
 
     if (wrongId) {
-      console.log(
-        `⚠️ Repository ${repo.full_name} has wrong GitHub ID: ${wrongId.github_id} vs ${repo.id}`
+      logger.warn(
+        'Repository %s has wrong GitHub ID: %s vs %s',
+        repo.full_name,
+        wrongId.github_id,
+        repo.id
       );
 
       // Update with correct GitHub ID
@@ -338,13 +344,13 @@ async function ensureRepositoryTracked(repo: Repository): Promise<string | null>
         .eq('id', wrongId.id);
 
       if (!updateError) {
-        console.log(`✅ Fixed GitHub ID for ${repo.full_name}`);
+        logger.info('Fixed GitHub ID for %s', repo.full_name);
       }
       return wrongId.id;
     }
 
     // Repository doesn't exist, create it
-    console.log(`Adding new repository ${repo.full_name} to database`);
+    logger.info('Adding new repository %s to database', repo.full_name);
 
     const { data: newRepo, error } = await supabase
       .from('repositories')
@@ -367,14 +373,14 @@ async function ensureRepositoryTracked(repo: Repository): Promise<string | null>
       .maybeSingle();
 
     if (error) {
-      console.error(`Failed to create repository: ${error.message}`);
+      logger.error('Failed to create repository: %s', error.message);
       return null;
     }
 
-    console.log(`✅ Created repository ${repo.full_name} with GitHub ID ${repo.id}`);
+    logger.info('Created repository %s with GitHub ID %s', repo.full_name, repo.id);
     return newRepo.id;
   } catch (error) {
-    console.error('Error ensuring repository tracked:', error);
+    logger.error('Error ensuring repository tracked:', error);
     return null;
   }
 }
@@ -398,6 +404,7 @@ async function trackWebhookComment(data: WebhookCommentData & { commentId: numbe
     });
   } catch (error) {
     // Non-critical, just log
-    console.log('Could not track webhook activity:', error.message);
+    const err = error as Error;
+    logger.warn('Could not track webhook activity: %s', err.message);
   }
 }

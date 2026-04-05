@@ -1,6 +1,9 @@
 import { getIssue } from './github-api';
 import { extractLinkedItems } from './link-parser';
 import { getSupabase } from '../../src/lib/supabase-lazy';
+import { createLogger } from './logger';
+
+const logger = createLogger('linked-issues');
 
 export interface LinkedItemDetails {
   number: number;
@@ -75,7 +78,7 @@ export async function fetchLinkedItems(
         html_url: issue.html_url,
       });
     } catch (error) {
-      console.warn('Failed to fetch linked item %s:', key, error);
+      logger.warn('Failed to fetch linked item %s:', key, error);
       // Continue to next link even if one fails
     }
   }

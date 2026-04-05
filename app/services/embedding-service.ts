@@ -27,7 +27,7 @@ export class EmbeddingService {
     initialDelay: 1000,
     maxDelay: 10000,
     backoffMultiplier: 2,
-    retryableErrors: new Set(['429', '500', '502', '503', '504', 'NetworkError', 'TimeoutError'])
+    retryableErrors: new Set(['429', '500', '502', '503', '504', 'NetworkError', 'TimeoutError']),
   };
 
   constructor() {
@@ -56,12 +56,7 @@ export class EmbeddingService {
     const contentHash = await similarityCache.generateContentHash(item.title, item.body || '');
 
     // Check cache first
-    const cached = await similarityCache.get(
-      item.repositoryId,
-      item.type,
-      item.id,
-      contentHash
-    );
+    const cached = await similarityCache.get(item.repositoryId, item.type, item.id, contentHash);
 
     if (cached) {
       return cached;
@@ -74,13 +69,7 @@ export class EmbeddingService {
 
       if (embedding && embedding[0]) {
         // Store in cache
-        await similarityCache.set(
-          item.repositoryId,
-          item.type,
-          item.id,
-          contentHash,
-          embedding[0]
-        );
+        await similarityCache.set(item.repositoryId, item.type, item.id, contentHash, embedding[0]);
         return embedding[0];
       }
     } catch (error) {
@@ -196,14 +185,11 @@ export class EmbeddingService {
 
         if (embedding) {
           // Store in cache
-          const contentHash = await similarityCache.generateContentHash(item.title, item.body || '');
-          await similarityCache.set(
-            item.repositoryId,
-            item.type,
-            item.id,
-            contentHash,
-            embedding
+          const contentHash = await similarityCache.generateContentHash(
+            item.title,
+            item.body || ''
           );
+          await similarityCache.set(item.repositoryId, item.type, item.id, contentHash, embedding);
 
           results.push({ itemId: item.id, embedding });
         } else {
@@ -256,19 +242,12 @@ export class EmbeddingService {
 
     if (item.body) {
       // Truncate body to reasonable length (first 1000 chars)
-      const truncatedBody = item.body.length > 1000 ? item.body.substring(0, 1000) + '...' : item.body;
+      const truncatedBody =
+        item.body.length > 1000 ? item.body.substring(0, 1000) + '...' : item.body;
       parts.push(truncatedBody);
     }
 
-    // Note: We can't easily fetch linked items here synchronously.
-    // For batch processing, we might be skipping linked items for now unless we refactor to make prepareText async
-    // or fetch data beforehand.
-    // Given the constraints and the fact that `processNewIssue` is the main entry point for responding,
-    // we might leave this as is for now, but mark it as a TODO or try to handle it if we can.
-
-    // However, if we want to be consistent, we should try to fetch linked items.
-    // But prepareText is called inside map() in processBatch which is async, but prepareText itself is sync.
-    // If we want to support it, we need to change prepareText to async and update callers.
+    // TODO: make prepareText async and fetch linked items for batch processing
 
     return parts.join(' ');
   }
@@ -278,7 +257,9 @@ export class EmbeddingService {
    */
   private async callEmbeddingAPI(texts: string[]): Promise<(number[] | null)[]> {
     if (!this.apiKey) {
-      throw new Error('OpenAI API key not configured - this service should only be called server-side');
+      throw new Error(
+        'OpenAI API key not configured - this service should only be called server-side'
+      );
     }
 
     return withRetry(
@@ -296,19 +277,21 @@ export class EmbeddingService {
         });
 
         if (!response.ok) {
-          const error = new Error(`OpenAI API error: ${response.status}`) as Error & { status?: number };
+          const error = new Error(`OpenAI API error: ${response.status}`) as Error & {
+            status?: number;
+          };
           error.status = response.status;
           throw error;
         }
 
-        const data = await response.json() as { data: Array<{ embedding: number[] | null }> };
+        const data = (await response.json()) as { data: Array<{ embedding: number[] | null }> };
         return data.data.map((item) => item.embedding || null);
       },
       {
         ...this.retryConfig,
         onRetry: (error, attempt) => {
           console.warn(`OpenAI API retry attempt ${attempt}:`, error.message);
-        }
+        },
       },
       'openai-embeddings' // Circuit breaker key
     );

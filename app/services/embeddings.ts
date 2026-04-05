@@ -1,6 +1,9 @@
 import { supabase } from '../../src/lib/supabase';
 import { pipeline, env } from '@xenova/transformers';
 import crypto from 'crypto';
+import { createLogger } from './logger';
+
+const logger = createLogger('embeddings');
 
 // Configure Transformers.js
 env.allowLocalModels = false;
@@ -30,9 +33,9 @@ interface EmbeddingTensor {
  */
 async function getEmbeddingPipeline() {
   if (!embeddingPipeline) {
-    console.log('Loading MiniLM embedding model...');
+    logger.info('Loading MiniLM embedding model...');
     embeddingPipeline = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    console.log('MiniLM model loaded successfully');
+    logger.info('MiniLM model loaded successfully');
   }
   return embeddingPipeline;
 }
@@ -59,7 +62,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
     throw new Error('Unexpected embedding output format');
   } catch (error) {
-    console.error('Error generating embedding: %s', error);
+    logger.error('Error generating embedding: %s', error);
     throw error;
   }
 }
@@ -116,7 +119,7 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             .eq('id', item.id);
 
           if (updateError) {
-            console.error(
+            logger.error(
               'Failed to store embedding for %s %s: %s',
               item.type,
               item.id,
@@ -125,9 +128,9 @@ export async function generateAndStoreEmbeddings(items: EmbeddingItem[]): Promis
             throw new Error(`Failed to store embedding: ${updateError.message}`);
           }
 
-          console.log('Generated embedding for %s ${item.id}', item.type);
+          logger.info('Generated embedding for %s %s', item.type, item.id);
         } catch (error) {
-          console.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
+          logger.error('Failed to generate embedding for %s %s: %s', item.type, item.id, error);
         }
       })
     );

@@ -38,31 +38,6 @@ export const getUserType = (contributor?: { is_bot?: boolean }): 'Bot' | 'User' 
 };
 
 /**
- * Configuration for PR/issue state mapping
- */
-export const PR_STATE_MAP = {
-  open: 'open',
-  closed: 'closed',
-} as const;
-
-/**
- * Gets the appropriate PR state based on GitHub API data
- *
- * @param state - The state from GitHub API (may be 'OPEN', 'open', etc.)
- * @returns The normalized state value
- *
- * @example
- * ```tsx
- * state: getPRState(pullRequest.state)
- * // Instead of: state: pullRequest.state?.toLowerCase() === 'open' ? 'open' : 'closed'
- * ```
- */
-export const getPRState = (state?: string): 'open' | 'closed' => {
-  if (!state) return 'closed';
-  return state.toLowerCase() === 'open' ? PR_STATE_MAP.open : PR_STATE_MAP.closed;
-};
-
-/**
  * Configuration for role mapping based on user properties
  */
 export const ROLE_MAPPING = {

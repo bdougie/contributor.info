@@ -12,7 +12,7 @@ import {
   CyclePhase,
   ContributorCalculationConfig,
 } from './types';
-import { getCurrentMonthlyCycleState, getMonthDateRange } from '../utils/date-helpers';
+import { getCurrentMonthlyCycleState, getMonthDateRange } from '../utils/date-formatting';
 
 /**
  * Fast hash function for cache keys - avoids expensive JSON.stringify

@@ -32,6 +32,21 @@ describe('state-mapping utilities', () => {
       // This handles cases where state might be inconsistent
       expect(getPRState({ state: 'any_state', merged: true })).toBe('merged');
     });
+
+    it('accepts a plain string input', () => {
+      expect(getPRState('open')).toBe('open');
+      expect(getPRState('OPEN')).toBe('open');
+      expect(getPRState('closed')).toBe('closed');
+    });
+
+    it('returns "closed" for non-open string states (no merged detection without flag)', () => {
+      expect(getPRState('merged')).toBe('closed');
+      expect(getPRState('draft')).toBe('closed');
+    });
+
+    it('returns "closed" for empty or missing string input', () => {
+      expect(getPRState('')).toBe('closed');
+    });
   });
 
   describe('getMonitoringEmoji', () => {

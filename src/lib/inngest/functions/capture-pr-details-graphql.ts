@@ -3,7 +3,7 @@ import { supabase } from '../supabase-server';
 import { GraphQLClient } from '../graphql-client';
 import type { NonRetriableError } from 'inngest';
 import { getMergeableStatus } from '../../utils/performance-helpers';
-import { getPRState } from '../../utils/data-type-mapping';
+import { getPRState } from '../../utils/state-mapping';
 
 /**
  * Normalizes GitHub review state to database format
@@ -289,7 +289,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
             number: pullRequest.number,
             title: pullRequest.title,
             body: pullRequest.body,
-            state: getPRState(pullRequest.state),
+            state: getPRState({ state: pullRequest.state, merged: pullRequest.merged }),
             draft: pullRequest.isDraft || false,
             additions: pullRequest.additions || 0,
             deletions: pullRequest.deletions || 0,

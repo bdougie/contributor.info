@@ -3,6 +3,9 @@ import { supabase } from '../../src/lib/supabase';
 import { githubAppAuth } from '../lib/auth';
 import { embeddingService } from './embedding-service';
 import { similarityCache } from './similarity-cache';
+import { createLogger } from './logger';
+
+const logger = createLogger('similarity');
 
 export interface SimilarIssue {
   issue: Issue;
@@ -69,7 +72,7 @@ export async function findSimilarIssues(
 
         githubIssues = data.filter((issue) => !issue.pull_request);
       } catch (error) {
-        console.error('Could not fetch issues from GitHub:', error);
+        logger.error('Could not fetch issues from GitHub:', error);
       }
     }
 
@@ -78,12 +81,10 @@ export async function findSimilarIssues(
 
     // 4. Use semantic similarity if enabled and available
     if (useSemantic && embeddingService.isAvailable() && batchProcess) {
-      const batchResults = await processBatchSimilarity(
-        pullRequest,
-        allIssues,
-        repository.id,
-        { onProgress, minScore }
-      );
+      const batchResults = await processBatchSimilarity(pullRequest, allIssues, repository.id, {
+        onProgress,
+        minScore,
+      });
 
       for (const result of batchResults) {
         if (result.score >= minScore) {
@@ -119,7 +120,7 @@ export async function findSimilarIssues(
 
     // Log performance metrics
     const processingTime = Date.now() - startTime;
-    console.log(`Similarity search completed in ${processingTime}ms`, {
+    logger.info('Similarity search completed in %dms', processingTime, {
       totalIssues,
       semanticSearch: useSemantic && embeddingService.isAvailable(),
       cacheStats: similarityCache.getStats(),
@@ -127,7 +128,7 @@ export async function findSimilarIssues(
 
     return results;
   } catch (error) {
-    console.error('Error finding similar issues:', error);
+    logger.error('Error finding similar issues:', error);
     return [];
   }
 }
@@ -153,7 +154,7 @@ async function processBatchSimilarity(
   });
 
   if (!prEmbedding) {
-    console.warn('Could not generate PR embedding, falling back to text similarity');
+    logger.warn('Could not generate PR embedding, falling back to text similarity');
     return [];
   }
 

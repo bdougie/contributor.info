@@ -1,6 +1,11 @@
 /**
  * Structured logger utility for services
  * Provides consistent logging format with context prefixes
+ *
+ * All logging uses printf-style %s placeholders (never template literals)
+ * to prevent format string injection vulnerabilities.
+ *
+ * @see https://contributor.info/docs
  */
 
 export class Logger {
@@ -18,30 +23,13 @@ export class Logger {
   }
 
   /**
-   * Format log message with context prefix and metadata
-   */
-  private formatMessage(level: string, message: string, ...args: unknown[]) {
-    const timestamp = new Date().toISOString();
-
-    // Handle parameterized logging to prevent format string vulnerabilities
-    if (args.length > 0) {
-      return { timestamp, level, context: this.context, message, params: args };
-    }
-
-    return { timestamp, level, context: this.context, message };
-  }
-
-  /**
    * Log info message
    */
   info(message: string, ...args: unknown[]): void {
-    const formatted = this.formatMessage('INFO', message, ...args);
-
-    // Use parameterized console.log to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.log(`[${this.context}] ${message}`, ...args);
+      console.log('[%s] %s', this.context, message, ...args);
     } else {
-      console.log('[%s] ${message}', this.context);
+      console.log('[%s] %s', this.context, message);
     }
   }
 
@@ -49,12 +37,10 @@ export class Logger {
    * Log warning message
    */
   warn(message: string, ...args: unknown[]): void {
-    const formatted = this.formatMessage('WARN', message, ...args);
-
     if (args.length > 0) {
-      console.warn(`[${this.context}] ${message}`, ...args);
+      console.warn('[%s] %s', this.context, message, ...args);
     } else {
-      console.warn(`[${this.context}] ${message}`);
+      console.warn('[%s] %s', this.context, message);
     }
   }
 
@@ -62,13 +48,10 @@ export class Logger {
    * Log error message
    */
   error(message: string, ...args: unknown[]): void {
-    const formatted = this.formatMessage('ERROR', message, ...args);
-
-    // Use parameterized console.error to prevent format string vulnerabilities
     if (args.length > 0) {
-      console.error(`[${this.context}] ERROR: ${message}`, ...args);
+      console.error('[%s] ERROR: %s', this.context, message, ...args);
     } else {
-      console.error(`[${this.context}] ERROR: ${message}`);
+      console.error('[%s] ERROR: %s', this.context, message);
     }
   }
 
@@ -77,15 +60,27 @@ export class Logger {
    */
   debug(message: string, ...args: unknown[]): void {
     if (process.env.NODE_ENV === 'development') {
-      const formatted = this.formatMessage('DEBUG', message, ...args);
-
       if (args.length > 0) {
-        console.log(`[${this.context}] DEBUG: ${message}`, ...args);
+        console.log('[%s] DEBUG: %s', this.context, message, ...args);
       } else {
-        console.log('[%s] DEBUG: ${message}', this.context);
+        console.log('[%s] DEBUG: %s', this.context, message);
       }
     }
   }
+}
+
+/**
+ * Create a new Logger instance with the given context name.
+ *
+ * Usage:
+ * ```ts
+ * const logger = createLogger('my-module');
+ * logger.info('something happened');
+ * logger.error('failed to process', error);
+ * ```
+ */
+export function createLogger(context: string): Logger {
+  return new Logger(context);
 }
 
 // Default logger instance
