@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - VirtualizedGrid and Closure Re-renders
+**Learning:** Using inline closures for callback props (e.g. `onClick={() => onTrack(id)}`) on virtualized grid items defeats component memoization, leading to unnecessary re-renders of items as they scroll into view.
+**Action:** Always pass stable callback references and identifiers as props directly to child items in virtualized lists, allowing the child components to invoke the callbacks correctly without causing re-renders due to referential inequality of the closures.
