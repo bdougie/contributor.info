@@ -75,7 +75,13 @@ export function LLMCitationDashboard() {
   const getDailyTrendData = () => {
     if (!metrics?.dailyTrend) return [];
     return Object.entries(metrics.dailyTrend)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => {
+        // Optimization: Replace localeCompare with native string comparison operators (<, >)
+        // ISO 8601 strings sort correctly with these operators, and it avoids the overhead of locale rules.
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+      })
       .slice(-14); // Last 14 days
   };
 
