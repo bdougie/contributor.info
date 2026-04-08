@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,17 +172,15 @@ const ActivityRow = memo(function ActivityRow({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={
-                      activity.author.avatar_url ||
-                      `https://github.com/${activity.author.username}.png`
-                    }
-                  />
-                  <AvatarFallback>
-                    {activity.author.username.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                {/* ⚡ Bolt: Replaced native Avatar with OptimizedAvatar to automatically resize GitHub avatars via query parameters, preventing the browser from downloading unoptimized large image assets and reducing memory footprint in long virtualized lists. Expected impact: reduced network bandwidth and faster initial paint for list items. */}
+                <OptimizedAvatar
+                  src={
+                    activity.author.avatar_url ||
+                    `https://github.com/${activity.author.username}.png`
+                  }
+                  alt={activity.author.username}
+                  size={24}
+                />
                 <span className="text-sm truncate hover:text-primary transition-colors">
                   {activity.author.username}
                 </span>
