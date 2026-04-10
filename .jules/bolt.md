@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2024-04-10 - ISO 8601 Date Sorting Optimization in Tight Loops
+**Learning:** Instantiating `new Date(string).getTime()` or using `Date.parse()` inside array `.sort()` or `.filter()` loops introduces massive garbage collection and processing overhead. Strict ISO 8601 string dates (like those returned from GitHub's API) maintain chronological order when sorted lexicographically using native string comparison operators (`<` and `>`).
+**Action:** When sorting arrays of data objects by ISO 8601 date strings, replace `new Date().getTime()` with native string comparison (`<` and `>`) to prevent memory allocation bottlenecks. Return -1, 1, or 0 instead of using nested ternary operators to pass ESLint rules.
