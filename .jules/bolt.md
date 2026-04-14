@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - OptimizedAvatar in ActivityTable
+**Learning:** `AvatarImage` fetches unoptimized full-size images from GitHub by default, which can cause significant bandwidth bloat when rendering many user avatars in list contexts like `ActivityTable`. Replacing it with `OptimizedAvatar` automatically injects `?s={size}` query parameters and handles native lazy-loading, vastly improving network performance.
+**Action:** Always prefer `OptimizedAvatar` over standard `AvatarImage` when rendering GitHub avatars in frequently mounted list components.

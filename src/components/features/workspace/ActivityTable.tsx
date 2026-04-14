@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, memo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { OptimizedAvatar } from '@/components/ui/optimized-avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,17 +172,16 @@ const ActivityRow = memo(function ActivityRow({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
               >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={
-                      activity.author.avatar_url ||
-                      `https://github.com/${activity.author.username}.png`
-                    }
-                  />
-                  <AvatarFallback>
-                    {activity.author.username.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                {/* Optimized: use OptimizedAvatar to ensure GitHub avatars are requested with ?s=size query parameters to save bandwidth */}
+                <OptimizedAvatar
+                  src={
+                    activity.author.avatar_url ||
+                    `https://github.com/${activity.author.username}.png`
+                  }
+                  alt={`${activity.author.username}'s avatar`}
+                  size={24}
+                  className="h-6 w-6"
+                />
                 <span className="text-sm truncate hover:text-primary transition-colors">
                   {activity.author.username}
                 </span>
