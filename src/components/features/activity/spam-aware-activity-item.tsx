@@ -5,7 +5,7 @@ import { ContributorHoverCard } from '../contributor';
 import { useContext, useMemo } from 'react';
 import { BotIcon } from '@/components/ui/icon';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
-import { createContributorStats } from '@/lib/contributor-utils';
+import { createContributorStats, getContributorActivityCounts } from '@/lib/contributor-utils';
 import { useContributorRole } from '@/hooks/useContributorRoles';
 import { SpamProbabilityBadge } from '@/components/features/spam/spam-indicator';
 
@@ -27,19 +27,9 @@ export function SpamAwareActivityItem({ activity }: SpamAwareActivityItemProps) 
 
   // Calculate reviews and comments count for this user
   const activityCounts = useMemo(() => {
-    let reviews = 0;
-    let comments = 0;
-
-    stats.pullRequests.forEach((pr) => {
-      if (pr.reviews) {
-        reviews += pr.reviews.filter((review) => review.user.login === user.name).length;
-      }
-      if (pr.comments) {
-        comments += pr.comments.filter((comment) => comment.user.login === user.name).length;
-      }
-    });
-
-    return { reviews, comments };
+    // Optimized: Use shared cache instead of O(N*M) loop
+    const allCounts = getContributorActivityCounts(stats.pullRequests);
+    return allCounts[user.name] || { reviews: 0, comments: 0 };
   }, [stats.pullRequests, user.name]);
 
   const getActivityColor = () => {

@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - Shared Cache for Activity Counts
+**Learning:** Performing `O(N*M)` calculations (iterating over all PRs and all their reviews/comments) inside individual list items (like `SpamAwareActivityItem`) causes severe performance bottlenecks when rendered multiple times.
+**Action:** Use the shared `getContributorActivityCounts` utility from `@/lib/contributor-utils`, which uses a `WeakMap` cache to reduce the complexity to `O(PRs)` amortized. Always check if a shared cache exists before performing aggregations on parent context data within list items.
