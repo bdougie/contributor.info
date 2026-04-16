@@ -8,10 +8,11 @@ export function useTimeFormatter() {
    * @returns Formatted relative time string
    */
   const formatRelativeTime = (date: string | Date): string => {
-    const now = new Date();
-    const timestamp = typeof date === 'string' ? new Date(date) : date;
-    if (Number.isNaN(timestamp.getTime())) return 'Unknown';
-    const diffInSeconds = Math.floor((now.getTime() - timestamp.getTime()) / 1000);
+    // Optimization: Use Date.now() and Date.parse() to avoid allocating Date objects
+    const now = Date.now();
+    const timestamp = typeof date === 'string' ? Date.parse(date) : date.getTime();
+    if (Number.isNaN(timestamp)) return 'Unknown';
+    const diffInSeconds = Math.floor((now - timestamp) / 1000);
 
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
@@ -87,14 +88,21 @@ export function useTimeFormatter() {
    * @param endDate - End date string or Date object
    * @returns Human-readable time difference
    */
-  const getTimeDifference = (
-    startDate: string | Date,
-    endDate: string | Date = new Date()
-  ): string => {
-    const start = typeof startDate === 'string' ? new Date(startDate) : startDate;
-    const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 'Unknown';
-    const diffInSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+  const getTimeDifference = (startDate: string | Date, endDate?: string | Date): string => {
+    // Optimization: Use Date.now() and Date.parse() to avoid allocating Date objects
+    const start = typeof startDate === 'string' ? Date.parse(startDate) : startDate.getTime();
+
+    let end;
+    if (endDate === undefined) {
+      end = Date.now();
+    } else if (typeof endDate === 'string') {
+      end = Date.parse(endDate);
+    } else {
+      end = endDate.getTime();
+    }
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return 'Unknown';
+    const diffInSeconds = Math.floor((end - start) / 1000);
 
     if (diffInSeconds < 60) return `${diffInSeconds} seconds`;
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes`;
