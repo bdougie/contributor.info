@@ -6,6 +6,7 @@ import { createLogger } from './logger';
 const logger = createLogger('embeddings');
 
 // Configure Transformers.js
+// @ts-expect-error - Some env properties are read-only in newer versions
 env.allowLocalModels = false;
 env.useBrowserCache = false;
 
@@ -49,7 +50,6 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 
     // Generate embeddings - transformers.js requires 2 parameters minimum
     // We pass undefined for options to use defaults, and cast to our tensor interface
-    // @ts-expect-error - transformers.js has complex union types that are hard to satisfy
     const output = (await embedder(text, undefined)) as EmbeddingTensor;
 
     // Extract data from the tensor with proper type checking
