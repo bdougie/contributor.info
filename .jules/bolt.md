@@ -25,3 +25,7 @@
 ## 2026-01-14 - Date Comparison Performance
 **Learning:** `String.prototype.localeCompare` and `Date.parse()` are slow compared to native string comparison operators (`<`, `>`). Since ISO 8601 strings sort correctly with these operators, using them instead of creating `Date` objects or using `localeCompare` is much faster.
 **Action:** When comparing dates in tight loops, use native string comparison operators (`<`, `>`) instead of `new Date().getTime()`, `Date.parse()`, or `localeCompare()`.
+
+## 2026-01-14 - Date Parsing in Map Loops
+**Learning:** Instantiating `new Date(dateString)` repeatedly inside a `.map()` or `.forEach()` loop to calculate age (e.g., against `Date.now()`) causes high object allocation overhead for large datasets. Calculating `Date.now()` outside the loop and using `Date.parse(dateString)` inside the loop is a significant micro-optimization that reduces memory pressure and garbage collection.
+**Action:** When iterating over arrays to calculate time differences, calculate `Date.now()` once before the loop and use `Date.parse()` inside the loop instead of creating new `Date` objects.

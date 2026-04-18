@@ -226,17 +226,20 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           if (statusFilter === 'merged') return pr.merged_at !== null;
           return true;
         })
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        .sort((a, b) => {
+          if (b.created_at < a.created_at) return -1;
+          if (b.created_at > a.created_at) return 1;
+          return 0;
+        });
 
       // Group PRs by day to implement quarter-based staggering
       const prsByDay = new Map<number, PullRequest[]>();
 
+      const nowTime = Date.now();
       // First pass: create base contribution data
       const baseContributions: ContributionDataPoint[] = filteredPRs
         .map((pr) => {
-          const daysAgo = Math.floor(
-            (new Date().getTime() - new Date(pr.created_at).getTime()) / (1000 * 60 * 60 * 24)
-          );
+          const daysAgo = Math.floor((nowTime - Date.parse(pr.created_at)) / (1000 * 60 * 60 * 24));
 
           // Skip PRs older than our limit
           if (
