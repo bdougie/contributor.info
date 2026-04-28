@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.1';
 import { corsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -186,6 +187,9 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  const auth = await authenticateRequest(req);
+  if (auth instanceof Response) return auth;
+
   try {
     console.log('Repository summary function started');
 
@@ -228,8 +232,9 @@ serve(async (req) => {
       summary = await generateAISummary(repository, pullRequests || []);
       console.log('AI summary generated successfully');
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       console.error('Failed to generate AI summary:', error);
-      throw new Error(`AI summary generation failed: ${error.message}`);
+      throw new Error(`AI summary generation failed: ${message}`);
     }
 
     try {
@@ -286,11 +291,13 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Repository summary error:', error);
-    console.error('Error stack:', error.stack);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
 
     // Provide more detailed error information
     const errorDetails = {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       details: 'Failed to generate repository summary',
       timestamp: new Date().toISOString(),
       environment: {
