@@ -131,7 +131,7 @@ async function fetchUserWorkspaces(
 
   // 1. Fetch workspace stats from materialized view (replaces 2N queries)
   const { data: workspaceStats } = await supabase
-    .from('workspace_preview_stats')
+    .from('workspace_preview_stats_secure')
     .select('workspace_id, repository_count, member_count')
     .in('workspace_id', workspaceIdsArray)
     .returns<WorkspacePreviewStats[]>();
