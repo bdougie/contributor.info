@@ -41,6 +41,7 @@ When asked to "review a PR", read the PR description, comments, and diff first. 
 - RLS allows public read access — first search works without login
 - MCP server configured in `.mcp.json` for direct database access
 - Use Supabase Dashboard SQL Editor when Docker isn't running
+- `supabase db push` is the canonical migration path; fall back to MCP `apply_migration` only if the CLI can't connect. After applying via MCP, rename the local migration file to match the recorded `version_name` so the local history stays aligned.
 
 ## Repository Tracking
 
@@ -79,9 +80,43 @@ This project follows an **invisible, Netflix-like user experience**:
 
 ### Data & Security
 
-- Never write env variables inline into scripts
-- Use the Supabase MCP server for migrations
-- RLS policies are critical — public read access, authenticated write
+#### Secrets
+
+- Never inline env variables into scripts. Especially never inline `SUPABASE_*` keys or URLs.
+- `VITE_*` is browser-public; everything else is server-only. Service-role keys live exclusively in Netlify functions, Inngest, and edge functions.
+- Logging: use `console.log('%s', value)`, never template literals — string interpolation of unsanitized values is a log-injection / format-string vulnerability.
+
+#### RLS mental model
+
+Postgres `OR`s permissive policies. One `USING (true)` clause overrides every stricter policy beside it. Treat any of these as a publicly exploitable bypass when granted to `anon` or `authenticated`:
+
+- `USING (true)` on SELECT / UPDATE / DELETE
+- `WITH CHECK (true)` on INSERT / UPDATE
+- `qual = 'true'` rows in `pg_policies`
+
+`service_role` has `BYPASSRLS = true` (verified in `pg_roles`). That means:
+
+- Service-role-only policies with `USING (true)` are redundant — drop them, the role still works.
+- Any backend that writes via `SUPABASE_SERVICE_ROLE_KEY` is unaffected by tightening or dropping permissive policies. Most `gh-datapipe`, Inngest, and edge-function paths fall here.
+- Frontend writes that previously relied on a permissive policy must move through a Netlify function that holds the service-role key (see `netlify/functions/api-track-repository.mts` for the pattern).
+
+#### `public` is the API surface
+
+PostgREST automatically exposes everything in `public` to anyone holding the publishable key. Before adding to `public`, ask whether anon should be able to call/read it.
+
+- **Tables** — must have RLS enabled and a policy that isn't `USING (true)`. New partitions of an RLS'd table must enable RLS themselves and recreate policies; `ENABLE RLS` does not propagate from the parent.
+- **Views** — default to SECURITY DEFINER and bypass RLS on underlying tables. Always create with `WITH (security_invoker = true)` so the view respects the caller's context.
+- **Materialized views** — can't carry RLS. Either revoke from `anon`/`authenticated` entirely (use service_role for refresh) or wrap in a `security_invoker = true` view that joins to an RLS'd table for filtering. See `workspace_preview_stats_secure` for the wrapper pattern.
+- **SECURITY DEFINER functions** — must `SET search_path = public, pg_catalog, pg_temp` (or `''` with fully-qualified bodies) to block search_path shadowing. Validate the caller in the body (`auth.uid() = p_user_id`). REVOKE EXECUTE from `anon`/`authenticated` for anything admin-only, cron-only, or trigger-only.
+- **Extensions** — install into `extensions`, not `public`. The `extensions` schema is granted USAGE to all four roles; types and functions resolve normally if you reference them as `extensions.foo`.
+- **Storage buckets** — public buckets serve via direct URL and do not need a SELECT policy on `storage.objects`. A broad SELECT policy lets any client `.list()` and enumerate every file. Move admin diagnostic listings server-side.
+
+#### Workflow
+
+- Run `mcp__supabase__get_advisors` with `type: 'security'` after any DDL change. The advisor catalogues `rls_disabled_in_public`, `rls_policy_always_true`, `security_definer_view`, `materialized_view_in_api`, `*_security_definer_function_executable`, `extension_in_public`, `public_bucket_allows_listing`, etc.
+- One advisor category per PR keeps blast radius small and rollback simple. Recent precedent: #1788–#1798 each closed a single category.
+- Every security PR's test plan re-runs the advisor and confirms the count for that category drops. Include the before/after numbers in the PR body.
+- Triage docs for multi-PR efforts live in `docs/security/` (see `security-definer-audit.md` for the rollout pattern).
 
 ### Public Docs Site
 
