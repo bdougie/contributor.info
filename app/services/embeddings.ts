@@ -1,5 +1,5 @@
 import { supabase } from '../../src/lib/supabase';
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 import crypto from 'crypto';
 import { createLogger } from './logger';
 
@@ -21,7 +21,7 @@ export interface EmbeddingItem {
 
 /**
  * Type for the embedding pipeline output tensor
- * @xenova/transformers returns a tensor-like object with data or tolist() method
+ * transformers.js returns a tensor-like object with data or tolist() method
  */
 interface EmbeddingTensor {
   data?: number[] | Float32Array;

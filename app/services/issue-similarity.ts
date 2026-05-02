@@ -1,5 +1,5 @@
 import { supabase } from '../../src/lib/supabase';
-import { pipeline, env } from '@xenova/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 import crypto from 'crypto';
 import { fetchLinkedItems, formatLinkedItemsForEmbedding } from './linked-issues';
 
@@ -159,7 +159,11 @@ export async function processNewIssue(issue: {
     }
 
     // Generate embedding with linked content
-    const fullBody = issue.body ? (linkedContent ? `${issue.body}\n\n${linkedContent}` : issue.body) : linkedContent;
+    const fullBody = issue.body
+      ? linkedContent
+        ? `${issue.body}\n\n${linkedContent}`
+        : issue.body
+      : linkedContent;
     const embedding = await generateIssueEmbedding(issue.title, fullBody);
     const contentHash = calculateContentHash(issue.title, fullBody); // Update hash to include linked content
 
