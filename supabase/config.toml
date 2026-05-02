@@ -90,3 +90,33 @@ verify_jwt = false
 # We handle auth manually in the function code
 [functions.slack-list-channels]
 verify_jwt = false
+
+# Health checks are public status endpoints; no auth required.
+[functions.health]
+verify_jwt = false
+
+[functions.health-database]
+verify_jwt = false
+
+[functions.health-github]
+verify_jwt = false
+
+# Frontend-callable functions migrating off legacy anon-key validation.
+# Each verifies the user JWT manually via _shared/auth.ts so the publishable
+# key (which is not JWT-shaped) can be used as the apikey from the browser.
+[functions.repository-summary]
+verify_jwt = false
+
+[functions.insights]
+verify_jwt = false
+
+[functions.github-sync]
+verify_jwt = false
+
+[functions.slack-test-integration]
+verify_jwt = false
+
+# calculate-monthly-rankings also accepts the service-role key for the
+# Inngest cron caller; see _shared/auth.ts allowServiceRole option.
+[functions.calculate-monthly-rankings]
+verify_jwt = false

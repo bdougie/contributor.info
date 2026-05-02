@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.39.1';
 import { corsHeaders } from '../_shared/cors.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 
 // Environment variables
 const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -44,6 +45,9 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  const auth = await authenticateRequest(req);
+  if (auth instanceof Response) return auth;
 
   try {
     console.log('Function started - Processing request');
