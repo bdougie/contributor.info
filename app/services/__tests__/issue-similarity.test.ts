@@ -20,7 +20,7 @@ vi.mock('../../../lib/supabase', () => ({
   },
 }));
 
-vi.mock('@xenova/transformers', () => ({
+vi.mock('@huggingface/transformers', () => ({
   pipeline: vi.fn(() =>
     Promise.resolve((_text: string, _options: any) => ({
       data: new Float32Array(384).fill(0.1), // Mock 384-dimensional embedding
