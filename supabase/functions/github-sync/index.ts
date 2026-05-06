@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createSupabaseClient } from '../_shared/database.ts';
+import { authenticateRequest } from '../_shared/auth.ts';
 import {
   detectMaintainerPatterns,
   detectPrivilegedEvent,
@@ -162,7 +163,9 @@ async function fetchAndProcessPullRequests(
       }
 
       // Filter to recent PRs
-      const recentPRs = prs.filter((pr) => new Date(pr.updated_at) >= thirtyDaysAgo);
+      const recentPRs = prs.filter(
+        (pr: { updated_at: string }) => new Date(pr.updated_at) >= thirtyDaysAgo,
+      );
 
       console.log(`[GitHub Sync] Processing ${recentPRs.length} recent PRs from page ${page}`);
 
@@ -408,6 +411,9 @@ serve(async (req) => {
 
   console.log('[GitHub Sync] Received sync request');
 
+  const auth = await authenticateRequest(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const supabase = createSupabaseClient();
 
@@ -502,7 +508,8 @@ serve(async (req) => {
               );
             }
           } catch (error) {
-            console.error(`[GitHub Sync] Error fetching repository details: ${error.message}`);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`[GitHub Sync] Error fetching repository details: ${message}`);
           }
         }
 
@@ -589,6 +596,7 @@ serve(async (req) => {
           status: 'success',
         });
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         console.error(`Error syncing ${repo.owner}/${repo.name}:`, error);
 
         // Update sync status with error
@@ -597,7 +605,7 @@ serve(async (req) => {
             repository_owner: repo.owner,
             repository_name: repo.name,
             sync_status: 'failed',
-            error_message: error.message,
+            error_message: message,
           },
           {
             onConflict: 'repository_owner,repository_name',
@@ -607,7 +615,7 @@ serve(async (req) => {
         results.push({
           repository: `${repo.owner}/${repo.name}`,
           status: 'error',
-          error: error.message,
+          error: message,
         });
       }
     }

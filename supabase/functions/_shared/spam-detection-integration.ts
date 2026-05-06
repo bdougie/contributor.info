@@ -1,5 +1,8 @@
-import { SpamDetectionService } from '../../../src/lib/spam/SpamDetectionService.ts';
-import { PullRequestData, SpamDetectionResult } from '../../../src/lib/spam/types.ts';
+import {
+  PullRequestData,
+  SpamDetectionResult,
+  SpamDetectionService,
+} from './spam-detection-service.ts';
 
 // Singleton instance for performance
 let spamServiceInstance: SpamDetectionService | null = null;
