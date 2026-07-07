@@ -6,7 +6,6 @@ This folder contains documentation for database schema, queries, performance opt
 
 ### RLS Performance and Optimization
 
-- **[rls-monitoring-guide.md](./rls-monitoring-guide.md)** - Comprehensive guide to RLS performance monitoring system including GitHub Actions workflows, SQL views, and policy templates
 - **[rls-optimization-summary.md](./rls-optimization-summary.md)** - Summary of RLS policy optimization efforts and results
 - **[rls-performance-optimization.md](./rls-performance-optimization.md)** - Detailed RLS performance optimization techniques and implementations
 - **[rls-policy-consolidation-lessons.md](./rls-policy-consolidation-lessons.md)** - Lessons learned from consolidating RLS policies
@@ -29,11 +28,9 @@ RLS policies control data access at the database row level, ensuring users only 
 
 ### Monitoring and Alerts
 
-The `monitoring` schema provides:
-- `rls_policy_summary` - Policy counts and optimization status per table
-- `rls_performance_metrics` - Risk assessment based on row counts and policy complexity
-- `check_unoptimized_policies()` - Detects unoptimized auth function usage
-- `generate_rls_report()` - Health summary reports
+RLS health is monitored by:
+- The Supabase advisors (Dashboard → Advisors, or `GET /v1/projects/{ref}/advisors/performance`) - reports `auth_rls_initplan` and `multiple_permissive_policies` lints
+- `.github/workflows/rls-monitor.yml` - checks new migrations for unoptimized auth patterns on PRs and runs the Supabase linter weekly
 
 ## Best Practices
 

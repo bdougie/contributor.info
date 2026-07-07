@@ -213,11 +213,10 @@ export const sendUserSlackMonthlyLeaderboardCron = inngest.createFunction(
             // Fetch monthly rankings for the repository
             // Call the calculate-monthly-rankings edge function
             const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-            const supabaseAnonKey =
-              process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+            const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-            if (!supabaseUrl || !supabaseAnonKey) {
-              throw new Error('Supabase URL or Anon Key not configured');
+            if (!supabaseUrl || !supabaseServiceKey) {
+              throw new Error('Supabase URL or Service Role Key not configured');
             }
 
             const rankingsResponse = await fetch(
@@ -226,7 +225,7 @@ export const sendUserSlackMonthlyLeaderboardCron = inngest.createFunction(
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  Authorization: `Bearer ${supabaseAnonKey}`,
+                  Authorization: `Bearer ${supabaseServiceKey}`,
                 },
                 body: JSON.stringify({
                   owner,
