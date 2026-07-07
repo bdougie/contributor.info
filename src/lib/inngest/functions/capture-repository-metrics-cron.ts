@@ -40,6 +40,9 @@ interface GitHubRepoResponse {
 // Use Record instead of Map for JSON serialization through Inngest steps
 type CountsRecord = Record<string, number>;
 
+// Refreshed metadata keyed by repo ID, serialized through Inngest steps
+type RefreshedMetadataRecord = Record<string, GitHubRepoResponse>;
+
 const BATCH_SIZE = 50;
 
 export const captureRepositoryMetricsCron = inngest.createFunction(
@@ -86,65 +89,69 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
 
     // Step 2: Refresh repository metadata from GitHub API before capturing metrics
     // This ensures stargazers_count, forks_count, etc. are current — not stale from discovery time
+    // Return refreshed data through Inngest step return values (not in-memory mutation) so it
+    // survives step replay/retry — see CountsRecord pattern above.
     const refreshBatches = Math.ceil(repositories.length / BATCH_SIZE);
     let totalRefreshed = 0;
+    const refreshedMetadata: RefreshedMetadataRecord = {};
 
     for (let i = 0; i < refreshBatches; i++) {
       const batchStart = i * BATCH_SIZE;
       const batchEnd = Math.min((i + 1) * BATCH_SIZE, repositories.length);
       const batch = repositories.slice(batchStart, batchEnd);
 
-      const refreshed = await step.run(`refresh-metadata-batch-${i}`, async () => {
-        let updated = 0;
+      const batchRefreshed = await step.run(
+        `refresh-metadata-batch-${i}`,
+        async (): Promise<{ updated: number; metadata: RefreshedMetadataRecord }> => {
+          let updated = 0;
+          const metadata: RefreshedMetadataRecord = {};
 
-        for (const repo of batch) {
-          try {
-            const ghData = await makeGitHubRequest<GitHubRepoResponse>(
-              `/repos/${repo.owner}/${repo.name}`
-            );
+          for (const repo of batch) {
+            try {
+              const ghData = await makeGitHubRequest<GitHubRepoResponse>(
+                `/repos/${repo.owner}/${repo.name}`
+              );
 
-            // Update the repositories table with fresh counts
-            const { error } = await supabase
-              .from('repositories')
-              .update({
-                stargazers_count: ghData.stargazers_count,
-                forks_count: ghData.forks_count,
-                open_issues_count: ghData.open_issues_count,
-                watchers_count: ghData.watchers_count,
-                last_updated_at: new Date().toISOString(),
-              })
-              .eq('id', repo.id);
+              // Update the repositories table with fresh counts
+              const { error } = await supabase
+                .from('repositories')
+                .update({
+                  stargazers_count: ghData.stargazers_count,
+                  forks_count: ghData.forks_count,
+                  open_issues_count: ghData.open_issues_count,
+                  watchers_count: ghData.watchers_count,
+                  last_updated_at: new Date().toISOString(),
+                })
+                .eq('id', repo.id);
 
-            if (error) {
+              if (error) {
+                console.warn(
+                  '[Metrics Cron] Failed to update metadata for %s/%s: %s',
+                  repo.owner,
+                  repo.name,
+                  error.message
+                );
+              } else {
+                metadata[repo.id] = ghData;
+                updated++;
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err);
               console.warn(
-                '[Metrics Cron] Failed to update metadata for %s/%s: %s',
+                '[Metrics Cron] GitHub API error for %s/%s: %s',
                 repo.owner,
                 repo.name,
-                error.message
+                message
               );
-            } else {
-              // Update the in-memory repo object so metrics capture uses fresh values
-              repo.stargazers_count = ghData.stargazers_count;
-              repo.forks_count = ghData.forks_count;
-              repo.open_issues_count = ghData.open_issues_count;
-              repo.watchers_count = ghData.watchers_count;
-              updated++;
             }
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            console.warn(
-              '[Metrics Cron] GitHub API error for %s/%s: %s',
-              repo.owner,
-              repo.name,
-              message
-            );
           }
+
+          return { updated, metadata };
         }
+      );
 
-        return updated;
-      });
-
-      totalRefreshed += refreshed;
+      totalRefreshed += batchRefreshed.updated;
+      Object.assign(refreshedMetadata, batchRefreshed.metadata);
     }
 
     console.log(
@@ -205,27 +212,33 @@ export const captureRepositoryMetricsCron = inngest.createFunction(
           const metricsToCapture: MetricCapture[] = [];
 
           for (const repo of batch) {
-            // Add base metrics from repository table
+            // Prefer refreshed metadata (survives Inngest replay), fall back to fetch-repositories values
+            const fresh = refreshedMetadata[repo.id];
+            const stars = fresh?.stargazers_count ?? repo.stargazers_count ?? 0;
+            const forks = fresh?.forks_count ?? repo.forks_count ?? 0;
+            const issues = fresh?.open_issues_count ?? repo.open_issues_count ?? 0;
+            const watchers = fresh?.watchers_count ?? repo.watchers_count ?? 0;
+
             metricsToCapture.push(
               {
                 repository_id: repo.id,
                 metric_type: 'stars',
-                current_value: repo.stargazers_count || 0,
+                current_value: stars,
               },
               {
                 repository_id: repo.id,
                 metric_type: 'forks',
-                current_value: repo.forks_count || 0,
+                current_value: forks,
               },
               {
                 repository_id: repo.id,
                 metric_type: 'issues',
-                current_value: repo.open_issues_count || 0,
+                current_value: issues,
               },
               {
                 repository_id: repo.id,
                 metric_type: 'watchers',
-                current_value: repo.watchers_count || 0,
+                current_value: watchers,
               }
             );
 

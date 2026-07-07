@@ -101,7 +101,7 @@ export default defineConfig(() => ({
       'vitest',
       '@testing-library/react',
       '@testing-library/jest-dom',
-      '@xenova/transformers', // Exclude embeddings library
+      '@huggingface/transformers', // Exclude embeddings library
       'onnxruntime-web', // Exclude ONNX runtime
     ],
     // Remove force: true to avoid aggressive re-optimization
@@ -221,7 +221,7 @@ export default defineConfig(() => ({
               return 'vendor-vitals';
             }
             // Exclude heavy ML libraries
-            if (id.includes('@xenova/transformers') || id.includes('onnxruntime')) {
+            if (id.includes('@huggingface/transformers') || id.includes('onnxruntime')) {
               return 'embeddings-excluded';
             }
           }

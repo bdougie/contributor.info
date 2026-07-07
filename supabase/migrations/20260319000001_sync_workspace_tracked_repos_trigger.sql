@@ -72,17 +72,10 @@ BEGIN
       RETURN OLD;
     END IF;
 
-    -- Only delete if the repo isn't referenced by any other workspace
-    IF NOT EXISTS (
-      SELECT 1
-      FROM workspace_repositories
-      WHERE repository_id = OLD.repository_id
-        AND workspace_id != OLD.workspace_id
-    ) THEN
-      DELETE FROM workspace_tracked_repositories
-      WHERE workspace_id = OLD.workspace_id
-        AND tracked_repository_id = v_tracked_repo_id;
-    END IF;
+    -- Delete this workspace's tracking entry (scoped to workspace_id, safe for shared repos)
+    DELETE FROM workspace_tracked_repositories
+    WHERE workspace_id = OLD.workspace_id
+      AND tracked_repository_id = v_tracked_repo_id;
 
     RETURN OLD;
   END IF;

@@ -2,7 +2,7 @@ import { serve } from 'inngest/lambda';
 import type { Context } from '@netlify/functions';
 import { inngest } from '../../src/lib/inngest/client';
 // Note: ALL embeddings functions moved to Supabase edge function (inngest-prod)
-// to avoid 42MB @xenova/transformers bundle that causes cold start timeouts
+// to avoid 42MB @huggingface/transformers bundle that causes cold start timeouts
 // import { generateEmbeddings, batchGenerateEmbeddings } from '../../src/lib/inngest/functions/generate-embeddings';
 // import { computeEmbeddings } from '../../src/lib/inngest/functions/compute-embeddings';
 import {
@@ -23,7 +23,7 @@ const inngestHandler = serve({
   client: inngest,
   functions: [
     // Note: All embeddings generation moved to Supabase edge function (inngest-prod)
-    // to avoid 42MB @xenova/transformers bundle causing 502 cold start timeouts
+    // to avoid 42MB @huggingface/transformers bundle causing 502 cold start timeouts
 
     // Webhook bridge functions (lightweight, no heavy dependencies)
     handleIssueEmbeddingWebhook,

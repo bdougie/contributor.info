@@ -14,6 +14,8 @@ When working with git, always create a feature branch before committing. Never p
 
 This machine uses fnm (not nvm or nix) for Node.js version management. Run `eval "$(fnm env)"` before any npm/node commands. Go projects may need GOEXPERIMENT flag for tests.
 
+**Package manager: npm.** This repo uses `package-lock.json` (and `bun.lock` for Bun-based scripts) — there is no `pnpm-lock.yaml` or `yarn.lock`. Always use `npm install` to update dependencies; CI runs `npm ci` and will fail if `package.json` and `package-lock.json` are out of sync. When a Snyk or Dependabot PR ships a `package.json` bump without the matching lockfile update, regenerate the lockfile with `npm install` and commit it. If the bump pulls in new transitive deps, also run `bun install` to refresh `bun.lock`.
+
 For first-time local development setup, run `npm run setup`. This handles prerequisites, environment files, Supabase, and migrations in one command. Use `npm run setup:verify` to check health and `npm run setup:reset` to start fresh.
 
 ## Code Review
