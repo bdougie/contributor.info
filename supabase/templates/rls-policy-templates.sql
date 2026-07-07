@@ -233,16 +233,22 @@ RESET ROLE;
 -- PERFORMANCE MONITORING QUERIES
 -- ============================================================================
 
--- Check for unoptimized policies
-SELECT * FROM monitoring.check_unoptimized_policies();
+-- Check for unoptimized auth function calls in policies
+SELECT tablename, policyname, qual
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND (
+    (qual LIKE '%auth.uid()%' AND qual NOT LIKE '%(SELECT auth.uid())%')
+    OR (qual LIKE '%auth.role()%' AND qual NOT LIKE '%(SELECT auth.role())%')
+    OR (qual LIKE '%auth.jwt()%' AND qual NOT LIKE '%(SELECT auth.jwt())%')
+  );
 
--- View policy summary
-SELECT * FROM monitoring.rls_policy_summary
-WHERE optimization_status != 'OK';
+-- View tables with multiple permissive policies for the same action
+SELECT schemaname, tablename, cmd, COUNT(*) AS policy_count
+FROM pg_policies
+WHERE schemaname = 'public' AND permissive = 'PERMISSIVE'
+GROUP BY schemaname, tablename, cmd
+HAVING COUNT(*) > 1;
 
--- Check performance metrics
-SELECT * FROM monitoring.rls_performance_metrics
-WHERE performance_risk IN ('High', 'Critical');
-
--- Generate health report
-SELECT * FROM monitoring.generate_rls_report();
+-- For full health reports use the Supabase advisors:
+-- Dashboard -> Advisors, or GET /v1/projects/{ref}/advisors/performance
