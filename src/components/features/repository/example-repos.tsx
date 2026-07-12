@@ -8,7 +8,7 @@ export function ExampleRepos({ onSelect }: ExampleReposProps) {
   // Prioritized list showcasing size diversity - ordered by demonstration value
   const examples = [
     // Medium repositories - ideal for demos
-    'continuedev/continue', // Medium: AI code assistant (TypeScript) - primary demo
+    'anomalyco/opencode', // Medium: AI code assistant (TypeScript) - primary demo
     'papercomputeco/tapes', // Medium: tape computing (Rust) - shows hardware usage
     // Large repositories - performance examples
     'vitejs/vite', // Large: Frontend tooling (TypeScript) - very popular
