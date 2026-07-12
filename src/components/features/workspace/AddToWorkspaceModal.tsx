@@ -21,6 +21,7 @@ import { Crown, LogIn, Plus, Loader2, AlertCircle } from '@/components/ui/icon';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { getAppUserId } from '@/lib/auth-helpers';
 import { WorkspaceService } from '@/services/workspace.service';
 import { useUserWorkspaces } from '@/hooks/use-user-workspaces';
 import { useSubscriptionLimits } from '@/hooks/use-subscription-limits';
@@ -146,10 +147,21 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
 
     setIsSubmitting(true);
     try {
-      const result = await WorkspaceService.addRepositoryToWorkspace(selectedWorkspaceId, user.id, {
-        repository_id: repoId,
-        is_pinned: false,
-      });
+      // Workspace tables reference app_users.id, not auth.users.id
+      const appUserId = await getAppUserId();
+      if (!appUserId) {
+        toast.error('Could not resolve your account. Please log in again.');
+        return;
+      }
+
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        selectedWorkspaceId,
+        appUserId,
+        {
+          repository_id: repoId,
+          is_pinned: false,
+        }
+      );
 
       if (result.success) {
         toast.success(`Added ${owner}/${repo} to workspace successfully!`);

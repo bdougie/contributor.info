@@ -202,12 +202,18 @@ export function WorkspaceSettings({
     setIsLoading(true);
     try {
       const supabase = await getSupabase();
-      const { error } = await supabase
+      const { data: deleted, error } = await supabase
         .from('workspaces')
         .update({ is_active: false })
-        .eq('id', workspace.id);
+        .eq('id', workspace.id)
+        .select('id');
 
       if (error) throw error;
+
+      // RLS blocks manifest as 0 affected rows with no error — don't report success
+      if (!deleted || deleted.length === 0) {
+        throw new Error('No workspace was deleted — you may not have permission');
+      }
 
       toast({
         title: 'Workspace Deleted',
