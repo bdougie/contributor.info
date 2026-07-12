@@ -658,6 +658,20 @@ describe('WorkspaceService', () => {
     });
 
     it('should reject update without proper permissions', async () => {
+      // Mock owner check - user does not own the workspace
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as MockSupabaseResponse);
+
       // Mock permission check - viewer role
       vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
@@ -987,19 +1001,49 @@ describe('WorkspaceService', () => {
       expect(result.role).toBe('owner');
     });
 
-    it('should return hasPermission: true when user has admin role', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { role: 'admin' },
-                error: null,
+    it('should grant owner permission via workspaces.owner_id when no member row exists', async () => {
+      vi.mocked(supabase.from).mockImplementation(
+        (table: string) =>
+          ({
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: table === 'workspaces' ? { owner_id: mockUserId } : null,
+                    error: null,
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
-      } as unknown as MockQueryBuilder);
+          }) as unknown as MockQueryBuilder
+      );
+
+      const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
+        'owner',
+        'maintainer',
+      ]);
+
+      expect(result.hasPermission).toBe(true);
+      expect(result.role).toBe('owner');
+    });
+
+    it('should return hasPermission: true when user has admin role', async () => {
+      // Table-aware: owner check finds nothing, member row has admin role
+      vi.mocked(supabase.from).mockImplementation(
+        (table: string) =>
+          ({
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: table === 'workspaces' ? null : { role: 'admin' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }) as unknown as MockQueryBuilder
+      );
 
       const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
         'owner',
@@ -1012,18 +1056,22 @@ describe('WorkspaceService', () => {
     });
 
     it('should return hasPermission: true when user has maintainer role', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { role: 'maintainer' },
-                error: null,
+      // Table-aware: owner check finds nothing, member row has maintainer role
+      vi.mocked(supabase.from).mockImplementation(
+        (table: string) =>
+          ({
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: table === 'workspaces' ? null : { role: 'maintainer' },
+                    error: null,
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
-      } as unknown as MockQueryBuilder);
+          }) as unknown as MockQueryBuilder
+      );
 
       const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
         'owner',
@@ -1036,18 +1084,22 @@ describe('WorkspaceService', () => {
     });
 
     it('should return hasPermission: false when user has contributor role but needs admin', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              maybeSingle: vi.fn().mockResolvedValue({
-                data: { role: 'contributor' },
-                error: null,
+      // Table-aware: owner check finds nothing, member row has contributor role
+      vi.mocked(supabase.from).mockImplementation(
+        (table: string) =>
+          ({
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: table === 'workspaces' ? null : { role: 'contributor' },
+                    error: null,
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
-      } as unknown as MockQueryBuilder);
+          }) as unknown as MockQueryBuilder
+      );
 
       const result = await WorkspaceService.checkPermission(mockWorkspaceId, mockUserId, [
         'owner',
@@ -1122,6 +1174,20 @@ describe('WorkspaceService', () => {
     };
 
     it('should fail with 403 when user has contributor role', async () => {
+      // Mock owner check - user does not own the workspace
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: null,
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      } as unknown as MockQueryBuilder);
+
       // Mock permission check - user is contributor (insufficient permissions)
       vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnValue({

@@ -250,15 +250,9 @@ export class WorkspaceService {
         };
       }
 
-      // Check permissions
-      const { data: member } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (!member || !['owner', 'maintainer'].includes(member.role)) {
+      // Check permissions (owner via workspaces.owner_id, or owner/maintainer member row)
+      const permission = await this.checkPermission(workspaceId, userId, ['owner', 'maintainer']);
+      if (!permission.hasPermission) {
         return {
           success: false,
           error: 'Insufficient permissions to update workspace',
@@ -580,6 +574,22 @@ export class WorkspaceService {
         userId,
         requiredRoles,
       });
+
+      // The workspace owner may not have a workspace_members row (legacy data,
+      // or the owner-member trigger failed silently) — check owner_id first.
+      const { data: ownedWorkspace } = await supabase
+        .from('workspaces')
+        .select('owner_id')
+        .eq('id', workspaceId)
+        .eq('owner_id', userId)
+        .maybeSingle();
+
+      if (ownedWorkspace) {
+        return {
+          hasPermission: requiredRoles.includes('owner'),
+          role: 'owner',
+        };
+      }
 
       const { data: member, error: queryError } = await supabase
         .from('workspace_members')
