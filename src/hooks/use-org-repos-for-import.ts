@@ -60,6 +60,7 @@ export function useOrgReposForImport(org: string | null): UseOrgReposForImportSt
 
         const rawRepos: OctokitOrgRepo[] = [];
         for (let page = 1; rawRepos.length < MAX_ORG_REPOS; page++) {
+          if (cancelled) return;
           const { data } = await octokit.rest.repos.listForOrg({
             org,
             type: 'all',
@@ -93,13 +94,14 @@ export function useOrgReposForImport(org: string | null): UseOrgReposForImportSt
         if (cancelled) return;
 
         let message = 'Failed to fetch organization repositories';
-        if (err && typeof err === 'object' && 'status' in err) {
-          const status = (err as { status: number }).status;
-          if (status === 404) {
-            message = `Organization "${org}" not found`;
-          } else if (status === 403) {
-            message = 'GitHub rate limit exceeded. Please try again later.';
-          }
+        const status =
+          err && typeof err === 'object' && 'status' in err
+            ? (err as { status: number }).status
+            : null;
+        if (status === 404) {
+          message = `Organization "${org}" not found`;
+        } else if (status === 403) {
+          message = 'GitHub rate limit exceeded. Please try again later.';
         } else if (err instanceof Error && err.message) {
           message = err.message;
         }
