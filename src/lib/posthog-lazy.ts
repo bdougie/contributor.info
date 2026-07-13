@@ -4,6 +4,7 @@
  */
 
 import { env } from './env';
+import { getRoutePattern } from './route-pattern';
 import type { CaptureResult } from 'posthog-js';
 
 // Constants for localStorage keys
@@ -337,6 +338,8 @@ export async function trackWebVitals(metrics: {
       navigation_type: metrics.navigationType,
       page_url: window.location.href,
       page_path: window.location.pathname,
+      // Route pattern (e.g. /:owner/:repo) for per-route aggregation dashboards
+      route_pattern: getRoutePattern(window.location.pathname),
       // Performance context
       connection_type: (navigator as unknown as { connection?: { effectiveType?: string } })
         .connection?.effectiveType,
@@ -403,6 +406,12 @@ export async function batchTrackWebVitals(
     value: number;
     rating: 'good' | 'needs-improvement' | 'poor';
     delta?: number;
+    /**
+     * Pathname where the metric was recorded. Metrics are buffered before
+     * flushing, so this can differ from window.location at capture time
+     * (e.g. after an SPA navigation).
+     */
+    pagePath?: string;
   }>
 ): Promise<void> {
   if (!shouldEnablePostHog()) {
@@ -418,11 +427,18 @@ export async function batchTrackWebVitals(
     const posthog = await loadPostHog();
     if (!posthog) return;
 
+    // Prefer the pathname captured when the metric was recorded over the
+    // current location - the buffer can flush after an SPA navigation.
+    const pagePath =
+      metrics.find((metric) => metric.pagePath)?.pagePath ?? window.location.pathname;
+
     // Create a summary object for all metrics
     const summary: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       page_url: window.location.href,
-      page_path: window.location.pathname,
+      page_path: pagePath,
+      // Route pattern (e.g. /:owner/:repo) for per-route aggregation dashboards
+      route_pattern: getRoutePattern(pagePath),
     };
 
     // Add each metric to the summary

@@ -232,6 +232,7 @@ class WebVitalsAnalytics {
         value: event.metric_value,
         rating: event.metric_rating,
         delta: event.metric_delta,
+        pagePath: event.page_path,
       }));
 
       // Send all metrics in a single batch call
