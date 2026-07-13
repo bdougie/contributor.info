@@ -3,19 +3,43 @@
  *
  * The shared GITHUB_TOKEN PAT can only see public repositories. Private repos
  * are opted in by installing the contributor.info GitHub App, and sync must
- * authenticate with that installation's token instead. This module is
- * server-only (Inngest/Netlify functions) — it uses node:crypto to sign the
- * app JWT so it adds no dependencies.
+ * authenticate with that installation's token instead.
+ *
+ * Uses Web Crypto (crypto.subtle) rather than node:crypto so this module is
+ * safe in every bundle we produce (Vite client build, Netlify functions,
+ * Deno edge functions) — in the browser the token paths are never executed
+ * because supabase-admin resolves to null there.
  */
-import { createSign } from 'node:crypto';
 import { supabaseAdmin } from '../supabase-admin';
 
-function base64url(input: Buffer | string): string {
-  return (typeof input === 'string' ? Buffer.from(input) : input)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64.replace(/\s/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function bytesToBase64url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function stringToBase64url(input: string): string {
+  return bytesToBase64url(new TextEncoder().encode(input));
+}
+
+function decodeBase64Env(value: string): string {
+  try {
+    return atob(value.replace(/\s/g, ''));
+  } catch {
+    // Value wasn't base64 — assume it's the raw PEM
+    return value;
+  }
 }
 
 function getAppCredentials(): { appId: string; privateKey: string } | null {
@@ -23,10 +47,10 @@ function getAppCredentials(): { appId: string; privateKey: string } | null {
 
   let privateKey = process.env.CONTRIBUTOR_APP_KEY || '';
   if (!privateKey && process.env.GITHUB_APP_PRIVATE_KEY_ENCODED) {
-    privateKey = Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_ENCODED, 'base64').toString();
+    privateKey = decodeBase64Env(process.env.GITHUB_APP_PRIVATE_KEY_ENCODED);
   }
   if (!privateKey && process.env.GITHUB_APP_PRIVATE_KEY) {
-    privateKey = Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, 'base64').toString();
+    privateKey = decodeBase64Env(process.env.GITHUB_APP_PRIVATE_KEY);
   }
 
   if (!appId || !privateKey) {
@@ -35,15 +59,73 @@ function getAppCredentials(): { appId: string; privateKey: string } | null {
   return { appId, privateKey };
 }
 
-function generateAppJWT(appId: string, privateKey: string): string {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  // iat backdated 60s to allow for clock drift, 10 minute expiry (GitHub max)
-  const payload = base64url(JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId }));
-  const signature = base64url(
-    createSign('RSA-SHA256').update(`${header}.${payload}`).sign(privateKey)
+/** Minimal DER length encoding for the PKCS#8 wrapper below */
+function derLength(length: number): number[] {
+  if (length < 0x80) {
+    return [length];
+  }
+  const bytes: number[] = [];
+  let n = length;
+  while (n > 0) {
+    bytes.unshift(n & 0xff);
+    n >>= 8;
+  }
+  return [0x80 | bytes.length, ...bytes];
+}
+
+/**
+ * Wrap a PKCS#1 RSA private key (GitHub's PEM format, "BEGIN RSA PRIVATE
+ * KEY") in a PKCS#8 envelope, which is the only format crypto.subtle can
+ * import: SEQUENCE { INTEGER 0, SEQUENCE { rsaEncryption OID, NULL },
+ * OCTET STRING { pkcs1 } }
+ */
+function pkcs1ToPkcs8(pkcs1: Uint8Array): Uint8Array {
+  const version = [0x02, 0x01, 0x00];
+  const rsaAlgorithmId = [
+    0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00,
+  ];
+  const octetStringHeader = [0x04, ...derLength(pkcs1.length)];
+  const contentLength =
+    version.length + rsaAlgorithmId.length + octetStringHeader.length + pkcs1.length;
+
+  return new Uint8Array([
+    0x30,
+    ...derLength(contentLength),
+    ...version,
+    ...rsaAlgorithmId,
+    ...octetStringHeader,
+    ...pkcs1,
+  ]);
+}
+
+async function importPrivateKey(pem: string): Promise<CryptoKey> {
+  const isPkcs1 = pem.includes('BEGIN RSA PRIVATE KEY');
+  const der = base64ToBytes(pem.replace(/-----[^-]+-----/g, ''));
+  const pkcs8 = isPkcs1 ? pkcs1ToPkcs8(der) : der;
+
+  return crypto.subtle.importKey(
+    'pkcs8',
+    pkcs8.buffer as ArrayBuffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign']
   );
-  return `${header}.${payload}.${signature}`;
+}
+
+async function generateAppJWT(appId: string, privateKeyPem: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = stringToBase64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  // iat backdated 60s to allow for clock drift, 10 minute expiry (GitHub max)
+  const payload = stringToBase64url(JSON.stringify({ iat: now - 60, exp: now + 600, iss: appId }));
+
+  const key = await importPrivateKey(privateKeyPem);
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    new TextEncoder().encode(`${header}.${payload}`)
+  );
+
+  return `${header}.${payload}.${bytesToBase64url(new Uint8Array(signature))}`;
 }
 
 // Installation tokens are valid for 1 hour; cache with a safety margin
@@ -62,7 +144,7 @@ export async function getInstallationToken(installationId: number): Promise<stri
     );
   }
 
-  const jwt = generateAppJWT(credentials.appId, credentials.privateKey);
+  const jwt = await generateAppJWT(credentials.appId, credentials.privateKey);
   const response = await fetch(
     `https://api.github.com/app/installations/${installationId}/access_tokens`,
     {
