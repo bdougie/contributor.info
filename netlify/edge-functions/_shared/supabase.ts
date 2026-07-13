@@ -56,15 +56,6 @@ export interface RepoData {
 }
 
 /**
- * Trending repository with score
- */
-export interface TrendingRepo extends RepoData {
-  score: number;
-  recent_prs: number;
-  recent_contributors: number;
-}
-
-/**
  * Fetch a single repository by owner/name
  */
 export async function fetchRepository(owner: string, repo: string): Promise<RepoData | null> {
@@ -131,46 +122,6 @@ export async function fetchRepositoriesByOwner(owner: string, limit = 25): Promi
   }
 
   return (data || []) as RepoData[];
-}
-
-/**
- * Fetch trending repositories
- */
-export async function fetchTrendingRepos(limit = 20): Promise<TrendingRepo[]> {
-  const supabase = getSupabaseClient();
-
-  // Get repos with recent activity, ordered by a combination of stars and recent PRs
-  const { data, error } = await supabase
-    .from('repositories')
-    .select(
-      `
-      id,
-      owner,
-      name,
-      full_name,
-      description,
-      stargazers_count,
-      forks_count,
-      language,
-      topics,
-      updated_at
-    `
-    )
-    .order('stargazers_count', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('[ssr] Failed to fetch trending repos:', error);
-    return [];
-  }
-
-  // Add score calculation (simplified for edge function performance)
-  return (data || []).map((repo) => ({
-    ...repo,
-    score: repo.stargazers_count + repo.forks_count * 2,
-    recent_prs: 0, // Would need additional query
-    recent_contributors: 0, // Would need additional query
-  })) as TrendingRepo[];
 }
 
 /**

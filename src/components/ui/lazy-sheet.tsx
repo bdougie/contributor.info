@@ -111,7 +111,6 @@ export const SheetSkeleton = ({
           </p>
           <nav className="flex flex-col space-y-4 mt-6" aria-label="Mobile menu">
             <span className="text-lg font-semibold text-muted-foreground">Home</span>
-            <span className="text-base text-muted-foreground">🔥 Trending</span>
             <span className="text-base text-muted-foreground">✨ View Demo</span>
             <span className="text-base text-muted-foreground">Changelog</span>
             <span className="text-base text-muted-foreground">Pricing</span>

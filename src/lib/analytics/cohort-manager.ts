@@ -149,25 +149,6 @@ export const COHORT_DEFINITIONS: CohortDefinition[] = [
     },
   },
   {
-    id: 'trending_users',
-    name: 'Trending Discovery Users',
-    description: 'Users who discover repositories through trending',
-    priority: 4,
-    conditions: {
-      events: [
-        {
-          eventName: 'trending_page_interaction',
-          operator: 'gte',
-          value: 2,
-          timeWindow: '7d',
-          properties: {
-            action: 'repository_clicked',
-          },
-        },
-      ],
-    },
-  },
-  {
     id: 'high_intent_no_workspace',
     name: 'High Intent Users',
     description: "Engaged users who haven't created workspaces yet",

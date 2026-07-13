@@ -4575,53 +4575,6 @@ export type Database = {
           },
         ];
       };
-      repository_metrics_history: {
-        Row: {
-          captured_at: string | null;
-          change_amount: number | null;
-          change_percentage: number | null;
-          created_at: string | null;
-          current_value: number;
-          id: string;
-          is_significant: boolean | null;
-          metric_type: string;
-          previous_value: number | null;
-          repository_id: string;
-        };
-        Insert: {
-          captured_at?: string | null;
-          change_amount?: number | null;
-          change_percentage?: number | null;
-          created_at?: string | null;
-          current_value: number;
-          id?: string;
-          is_significant?: boolean | null;
-          metric_type: string;
-          previous_value?: number | null;
-          repository_id: string;
-        };
-        Update: {
-          captured_at?: string | null;
-          change_amount?: number | null;
-          change_percentage?: number | null;
-          created_at?: string | null;
-          current_value?: number;
-          id?: string;
-          is_significant?: boolean | null;
-          metric_type?: string;
-          previous_value?: number | null;
-          repository_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'repository_metrics_history_repository_id_fkey';
-            columns: ['repository_id'];
-            isOneToOne: false;
-            referencedRelation: 'repositories';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       requested_reviewers: {
         Row: {
           avatar_url: string | null;
@@ -6919,10 +6872,6 @@ export type Database = {
       };
     };
     Functions: {
-      batch_capture_metrics: {
-        Args: { metrics_data: Json };
-        Returns: number;
-      };
       binary_quantize: {
         Args: { '': string } | { '': unknown };
         Returns: unknown;
@@ -6994,14 +6943,6 @@ export type Database = {
       };
       can_create_workspace: {
         Args: { user_uuid: string };
-        Returns: boolean;
-      };
-      capture_repository_metrics: {
-        Args: {
-          p_current_value: number;
-          p_metric_type: string;
-          p_repository_id: string;
-        };
         Returns: boolean;
       };
       categorize_repository: {
@@ -7419,15 +7360,6 @@ export type Database = {
           self_selection_rate: number;
         }[];
       };
-      get_repository_freshness: {
-        Args: { p_repository_id: string };
-        Returns: {
-          freshness_status: string;
-          has_recent_activity: boolean;
-          hours_since_update: number;
-          last_data_update: string;
-        }[];
-      };
       get_stuck_job_summary: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -7459,62 +7391,6 @@ export type Database = {
           supabase_usage: number;
           timeouts: number;
           total_syncs: number;
-        }[];
-      };
-      get_trending_repositories: {
-        Args: {
-          p_language?: string;
-          p_limit?: number;
-          p_min_stars?: number;
-          p_time_period?: unknown;
-        };
-        Returns: {
-          avatar_url: string;
-          contributor_change: number;
-          description: string;
-          html_url: string;
-          language: string;
-          last_activity: string;
-          name: string;
-          owner: string;
-          pr_change: number;
-          repository_id: string;
-          star_change: number;
-          stars: number;
-          trending_score: number;
-        }[];
-      };
-      get_trending_repositories_with_fallback: {
-        Args: {
-          p_language?: string;
-          p_limit?: number;
-          p_min_stars?: number;
-          p_time_period?: unknown;
-        };
-        Returns: {
-          avatar_url: string;
-          contributor_change: number;
-          description: string;
-          html_url: string;
-          language: string;
-          last_activity: string;
-          name: string;
-          owner: string;
-          pr_change: number;
-          repository_id: string;
-          star_change: number;
-          stars: number;
-          trending_score: number;
-        }[];
-      };
-      get_trending_statistics: {
-        Args: { p_time_period?: unknown };
-        Returns: {
-          avg_trending_score: number;
-          top_language: string;
-          total_new_contributors: number;
-          total_star_growth: number;
-          total_trending_repos: number;
         }[];
       };
       get_user_by_github_id: {

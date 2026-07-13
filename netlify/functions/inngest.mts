@@ -14,8 +14,7 @@ import {
   syncDiscussionsCron,
   sendSlackAssigneeReportCron,
   sendUserSlackMonthlyLeaderboardCron,
-  captureRepositoryMetricsCron,
-  captureRepositoryMetricsManual,
+  refreshRepositoryMetadataCron,
   distillSessionKnowledge,
 } from '../../src/lib/inngest/functions/index-without-embeddings';
 
@@ -41,9 +40,8 @@ const inngestHandler = serve({
     sendSlackAssigneeReportCron,
     // User Slack monthly leaderboard cron
     sendUserSlackMonthlyLeaderboardCron,
-    // Repository metrics capture for trending
-    captureRepositoryMetricsCron,
-    captureRepositoryMetricsManual,
+    // Daily repository metadata refresh
+    refreshRepositoryMetadataCron,
     // StarSearch session knowledge distillation
     distillSessionKnowledge,
   ],
@@ -71,8 +69,7 @@ export default async (req: Request, context: Context) => {
           'sync-discussions-cron',
           'send-slack-assignee-report-cron',
           'send-user-slack-monthly-leaderboard-cron',
-          'capture-repository-metrics-cron',
-          'capture-repository-metrics-manual',
+          'refresh-repository-metadata-cron',
           'distill-session-knowledge',
         ],
         environment: {

@@ -14,7 +14,6 @@ import {
   GitBranch,
   Plus,
   Settings,
-  TrendingUp,
   Clock,
   Star,
   Code,
@@ -171,17 +170,6 @@ export function CommandPalette({
         action: () => {
           navigate('/');
           // TODO: Open create workspace modal
-          onOpenChange(false);
-        },
-        category: 'action',
-      },
-      {
-        id: 'action-trending',
-        name: 'View Trending Repositories',
-        description: 'Discover popular repositories',
-        icon: <TrendingUp className="h-4 w-4" />,
-        action: () => {
-          navigate('/trending');
           onOpenChange(false);
         },
         category: 'action',

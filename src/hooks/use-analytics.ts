@@ -40,7 +40,7 @@ export function useAnalytics() {
 
   // Search & Discovery Events
   const trackRepositorySearchInitiated = useCallback(
-    (searchLocation: 'header' | 'homepage' | 'trending', termLength?: number) => {
+    (searchLocation: 'header' | 'homepage', termLength?: number) => {
       track('repository_searched', {
         search_term_length: termLength,
         search_location: searchLocation,
@@ -50,7 +50,7 @@ export function useAnalytics() {
   );
 
   const trackSearchResultsViewed = useCallback(
-    (resultsCount: number, searchLocation: 'header' | 'homepage' | 'trending') => {
+    (resultsCount: number, searchLocation: 'header' | 'homepage') => {
       track('search_results_viewed', {
         results_count: resultsCount,
         search_location: searchLocation,
@@ -60,7 +60,7 @@ export function useAnalytics() {
   );
 
   const trackRepositorySelectedFromSearch = useCallback(
-    (searchLocation: 'header' | 'homepage' | 'trending', resultIndex?: number) => {
+    (searchLocation: 'header' | 'homepage', resultIndex?: number) => {
       const properties: Record<string, string | number | boolean> = {
         search_location: searchLocation,
       };
@@ -71,15 +71,6 @@ export function useAnalytics() {
       }
 
       track('repository_selected_from_search', properties);
-    },
-    [track]
-  );
-
-  const trackTrendingPageInteraction = useCallback(
-    (action: 'viewed' | 'repository_clicked') => {
-      track('trending_page_interaction', {
-        action,
-      });
     },
     [track]
   );
@@ -283,7 +274,7 @@ export function useAnalytics() {
     (
       owner: string,
       repo: string,
-      previewSource: 'search_result' | 'example_repo' | 'direct_navigation' | 'trending'
+      previewSource: 'search_result' | 'example_repo' | 'direct_navigation'
     ) => {
       track('repository_preview_viewed', {
         repository: `${owner}/${repo}`,
@@ -397,7 +388,7 @@ export function useAnalytics() {
    * Track when user focuses/initiates search input
    */
   const trackRepoSearchInitiated = useCallback(
-    (searchLocation: 'header' | 'homepage' | 'trending' | 'workspace') => {
+    (searchLocation: 'header' | 'homepage' | 'workspace') => {
       track('repo_search_initiated', {
         search_location: searchLocation,
         is_first_search: getRepoNavigationCount() === 0,
@@ -410,11 +401,7 @@ export function useAnalytics() {
    * Track search query entered (call with debounce ~500ms)
    */
   const trackRepoSearchQueryEntered = useCallback(
-    (
-      searchLocation: 'header' | 'homepage' | 'trending',
-      queryLength: number,
-      hasResults: boolean
-    ) => {
+    (searchLocation: 'header' | 'homepage', queryLength: number, hasResults: boolean) => {
       track('repo_search_query_entered', {
         search_location: searchLocation,
         query_length: queryLength,
@@ -429,7 +416,7 @@ export function useAnalytics() {
    */
   const trackRepoSearchResultClicked = useCallback(
     (
-      searchLocation: 'header' | 'homepage' | 'trending',
+      searchLocation: 'header' | 'homepage',
       resultIndex: number,
       resultType: 'api_result' | 'suggestion' | 'recent' | 'example'
     ) => {
@@ -447,10 +434,7 @@ export function useAnalytics() {
    * Also handles activation milestone (2nd repo = activated)
    */
   const trackRepoSearchCompleted = useCallback(
-    (
-      searchLocation: 'header' | 'homepage' | 'trending' | 'example' | 'direct',
-      repository: string
-    ) => {
+    (searchLocation: 'header' | 'homepage' | 'example' | 'direct', repository: string) => {
       const navigationCount = incrementRepoNavigationCount();
 
       track('repo_search_completed', {
@@ -475,7 +459,7 @@ export function useAnalytics() {
    * Track when search suggestions are displayed
    */
   const trackSearchSuggestionViewed = useCallback(
-    (suggestionType: 'trending' | 'recent' | 'popular' | 'example', suggestionCount: number) => {
+    (suggestionType: 'recent' | 'popular' | 'example', suggestionCount: number) => {
       track('search_suggestion_viewed', {
         suggestion_type: suggestionType,
         suggestion_count: suggestionCount,
@@ -488,7 +472,7 @@ export function useAnalytics() {
    * Track when user clicks a search suggestion
    */
   const trackSearchSuggestionClicked = useCallback(
-    (suggestionType: 'trending' | 'recent' | 'popular' | 'example', suggestionIndex: number) => {
+    (suggestionType: 'recent' | 'popular' | 'example', suggestionIndex: number) => {
       track('search_suggestion_clicked', {
         suggestion_type: suggestionType,
         suggestion_index: suggestionIndex,
@@ -522,7 +506,6 @@ export function useAnalytics() {
     trackRepositorySearchInitiated,
     trackSearchResultsViewed,
     trackRepositorySelectedFromSearch,
-    trackTrendingPageInteraction,
 
     // Repository Interactions
     trackRepositoryPageViewed,

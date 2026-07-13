@@ -4,14 +4,13 @@ import { getRoutePattern } from '../route-pattern';
 describe('getRoutePattern', () => {
   it('returns static routes as-is', () => {
     expect(getRoutePattern('/')).toBe('/');
-    expect(getRoutePattern('/trending')).toBe('/trending');
     expect(getRoutePattern('/workspaces')).toBe('/workspaces');
     expect(getRoutePattern('/login')).toBe('/login');
     expect(getRoutePattern('/privacy/data-request')).toBe('/privacy/data-request');
   });
 
   it('normalizes trailing slashes', () => {
-    expect(getRoutePattern('/trending/')).toBe('/trending');
+    expect(getRoutePattern('/workspaces/')).toBe('/workspaces');
     expect(getRoutePattern('/continuedev/continue/')).toBe('/:owner/:repo');
   });
 

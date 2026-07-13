@@ -13,7 +13,6 @@
 const STATIC_ROUTES = new Set<string>([
   '/',
   '/login',
-  '/trending',
   '/workspaces',
   '/workspaces/new',
   '/workspace/new',

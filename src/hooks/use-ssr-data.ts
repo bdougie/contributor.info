@@ -44,21 +44,6 @@ export interface RepoSSRData {
 }
 
 /**
- * Trending SSR data structure
- */
-export interface TrendingSSRData {
-  repositories: Array<{
-    id: number;
-    owner: string;
-    name: string;
-    description: string | null;
-    language: string | null;
-    stargazer_count: number;
-    fork_count: number;
-  }>;
-}
-
-/**
  * Home SSR data structure
  */
 export interface HomeSSRData {
@@ -113,13 +98,6 @@ export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
  */
 export function useRepoSSRData(): RepoSSRData | null {
   return useSSRData<RepoSSRData>();
-}
-
-/**
- * Hook for trending page SSR data
- */
-export function useTrendingSSRData(): TrendingSSRData | null {
-  return useSSRData<TrendingSSRData>();
 }
 
 /**
