@@ -26,16 +26,44 @@ export interface VisualizationOptions {
 /**
  * Process contributions to determine which should show as avatars vs gray squares
  * This is a pure function that can be used anywhere (not just in React components)
+ *
+ * Each contributor gets exactly one avatar, placed on their LARGEST PR in the
+ * window (ties broken by recency); their other PRs render as gray squares.
+ * Anchoring identity to the largest contribution disperses avatars across the
+ * plot — the input is sorted newest-first, so keying off the first occurrence
+ * piled every avatar onto the most recent few days — and it labels the points
+ * that visually dominate the chart. When contributors outnumber avatar slots,
+ * the ones with the biggest PRs are identified and the rest stay gray.
  */
 export function processContributionVisualization(
   contributions: ContributionDataPoint[],
   options: VisualizationOptions
 ) {
   const { maxUniqueAvatars } = options;
-  const uniqueContributors = new Set<string>();
-  let uniqueAvatarCount = 0;
 
-  // Process contributions to determine which should show as avatars
+  // Pick each contributor's representative point: largest y, then most recent
+  // (smaller x = fewer days ago)
+  const representativeByAuthor = new Map<string, ContributionDataPoint>();
+  for (const contribution of contributions) {
+    const current = representativeByAuthor.get(contribution.author);
+    if (
+      !current ||
+      contribution.y > current.y ||
+      (contribution.y === current.y && contribution.x < current.x)
+    ) {
+      representativeByAuthor.set(contribution.author, contribution);
+    }
+  }
+
+  const avatarPointIds = new Set(
+    [...representativeByAuthor.values()]
+      .sort((a, b) => b.y - a.y || a.x - b.x)
+      .slice(0, Math.max(0, maxUniqueAvatars))
+      .map((point) => point.id)
+  );
+
+  const uniqueContributors = new Set<string>();
+
   const processedContributions = contributions.map((contribution) => {
     const isFirstOccurrence = !uniqueContributors.has(contribution.author);
 
@@ -43,12 +71,7 @@ export function processContributionVisualization(
       uniqueContributors.add(contribution.author);
     }
 
-    // Determine if this should show as an avatar
-    const shouldShowAsAvatar = isFirstOccurrence && uniqueAvatarCount < maxUniqueAvatars;
-
-    if (shouldShowAsAvatar) {
-      uniqueAvatarCount++;
-    }
+    const shouldShowAsAvatar = avatarPointIds.has(contribution.id);
 
     return {
       ...contribution,

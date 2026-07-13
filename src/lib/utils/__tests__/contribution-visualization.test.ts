@@ -199,24 +199,39 @@ describe('processContributionVisualization', () => {
     });
   });
 
-  it('should correctly order avatars and gray squares', () => {
+  it('gives avatar slots to the contributors with the largest PRs', () => {
     const result = processContributionVisualization(mockContributions, {
       ...defaultOptions,
       maxUniqueAvatars: 3,
     });
 
-    // First 3 unique contributors should be avatars
-    const firstThreeUnique = ['user1', 'user2', 'user3'];
+    // Largest PR per contributor: user4=30 (pr-5), user3=25 (pr-4),
+    // user2=20 (pr-2), user1=15 (pr-3). Top 3 by size get the avatars.
+    const avatarIds = result.processedData.filter((c) => c.showAsAvatar).map((c) => c.id);
+    expect(avatarIds.sort()).toEqual(['pr-2', 'pr-4', 'pr-5']);
+  });
 
-    result.processedData.forEach((item) => {
-      const isFirstThreeUnique = firstThreeUnique.includes(item.author) && item.isFirstOccurrence;
-
-      if (isFirstThreeUnique) {
-        expect(item.showAsAvatar).toBe(true);
-      } else {
-        expect(item.showAsAvatar).toBe(false);
-      }
+  it('places the avatar on the contributor largest PR, not their first/latest', () => {
+    const result = processContributionVisualization(mockContributions, {
+      ...defaultOptions,
+      maxUniqueAvatars: 4,
     });
+
+    // user1 has pr-1 (y=10) and pr-3 (y=15): the avatar goes on pr-3
+    expect(result.processedData.find((c) => c.id === 'pr-3')?.showAsAvatar).toBe(true);
+    expect(result.processedData.find((c) => c.id === 'pr-1')?.showAsAvatar).toBe(false);
+  });
+
+  it('breaks ties on PR size by recency (smaller x wins)', () => {
+    const tied: ContributionDataPoint[] = [
+      { ...mockContributions[0], id: 'pr-old', author: 'tied-user', x: 10, y: 50 },
+      { ...mockContributions[0], id: 'pr-recent', author: 'tied-user', x: 2, y: 50 },
+    ];
+
+    const result = processContributionVisualization(tied, defaultOptions);
+
+    expect(result.processedData.find((c) => c.id === 'pr-recent')?.showAsAvatar).toBe(true);
+    expect(result.processedData.find((c) => c.id === 'pr-old')?.showAsAvatar).toBe(false);
   });
 
   it('should track total contributions correctly', () => {
