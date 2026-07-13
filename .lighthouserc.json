@@ -4,34 +4,66 @@
       "startServerCommand": "NO_COLOR=1 npx vite preview --outDir .lighthouse-build",
       "startServerReadyPattern": "Local",
       "startServerReadyTimeout": 30000,
-      "url": ["http://localhost:4173"],
+      "url": [
+        "http://localhost:4173/",
+        "http://localhost:4173/trending",
+        "http://localhost:4173/workspaces",
+        "http://localhost:4173/continuedev/continue"
+      ],
       "numberOfRuns": 3,
       "settings": {
-        "preset": "desktop",
+        "formFactor": "mobile",
+        "screenEmulation": {
+          "mobile": true,
+          "width": 412,
+          "height": 823,
+          "deviceScaleFactor": 1.75,
+          "disabled": false
+        },
+        "throttlingMethod": "simulate",
         "throttling": {
-          "rttMs": 40,
-          "throughputKbps": 10240,
-          "cpuSlowdownMultiplier": 1
+          "rttMs": 150,
+          "throughputKbps": 1638.4,
+          "requestLatencyMs": 562.5,
+          "downloadThroughputKbps": 1474.56,
+          "uploadThroughputKbps": 675,
+          "cpuSlowdownMultiplier": 4
         }
       }
     },
     "assert": {
-      "assertions": {
-        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
-        "first-contentful-paint": ["error", { "maxNumericValue": 1800 }],
-        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
-        "total-blocking-time": ["warn", { "maxNumericValue": 350 }],
-        "interactive": ["warn", { "maxNumericValue": 3800 }],
-        "speed-index": ["warn", { "maxNumericValue": 3400 }],
-        "resource-summary:script:size": ["error", { "maxNumericValue": 600000 }],
-        "resource-summary:stylesheet:size": ["error", { "maxNumericValue": 100000 }],
-        "resource-summary:image:size": ["warn", { "maxNumericValue": 500000 }],
-        "resource-summary:total:size": ["error", { "maxNumericValue": 2000000 }],
-        "categories:performance": ["error", { "minScore": 0.8 }],
-        "categories:accessibility": ["warn", { "minScore": 0.9 }],
-        "categories:best-practices": ["warn", { "minScore": 0.9 }],
-        "categories:seo": ["warn", { "minScore": 0.9 }]
-      }
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": "^http://localhost:4173/?$",
+          "assertions": {
+            "largest-contentful-paint": ["error", { "maxNumericValue": 4000 }],
+            "first-contentful-paint": ["error", { "maxNumericValue": 4000 }],
+            "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+            "total-blocking-time": ["warn", { "maxNumericValue": 600 }],
+            "interactive": ["warn", { "maxNumericValue": 7500 }],
+            "speed-index": ["warn", { "maxNumericValue": 5800 }],
+            "resource-summary:script:size": ["error", { "maxNumericValue": 600000 }],
+            "resource-summary:stylesheet:size": ["error", { "maxNumericValue": 100000 }],
+            "resource-summary:image:size": ["warn", { "maxNumericValue": 500000 }],
+            "resource-summary:total:size": ["error", { "maxNumericValue": 2000000 }],
+            "categories:performance": ["error", { "minScore": 0.8 }],
+            "categories:accessibility": ["warn", { "minScore": 0.9 }],
+            "categories:best-practices": ["warn", { "minScore": 0.9 }],
+            "categories:seo": ["warn", { "minScore": 0.9 }]
+          }
+        },
+        {
+          "matchingUrlPattern": "^http://localhost:4173/(trending|workspaces|continuedev/continue)$",
+          "assertions": {
+            "categories:performance": ["warn", { "minScore": 0.75 }],
+            "largest-contentful-paint": ["warn", { "maxNumericValue": 4000 }],
+            "first-contentful-paint": ["warn", { "maxNumericValue": 3000 }],
+            "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+            "total-blocking-time": ["warn", { "maxNumericValue": 600 }],
+            "categories:accessibility": ["warn", { "minScore": 0.9 }]
+          }
+        }
+      ]
     },
     "upload": {
       "target": "temporary-public-storage"

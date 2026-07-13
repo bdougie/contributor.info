@@ -1,14 +1,29 @@
 import path from 'path';
 import react from '@vitejs/plugin-react-swc';
-import { defineConfig } from 'vite';
+import { defineConfig, type PluginOption } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
-// Note: rollup-plugin-visualizer is not imported here to avoid build failures
-// when dev dependencies are pruned in production (e.g., Netlify builds).
-// If you need bundle analysis, temporarily uncomment the import and usage below,
-// or use an alternative tool like vite-bundle-visualizer.
-// import { visualizer } from 'rollup-plugin-visualizer';
-// const isAnalyze = process.env.ANALYZE === 'true';
+/**
+ * Bundle analyzer, opt-in via `ANALYZE=true npm run build`.
+ * Dynamically imported so production builds (e.g. Netlify with pruned
+ * devDependencies) never require rollup-plugin-visualizer to be installed.
+ * Emits an interactive treemap to dist/stats.html with gzip/brotli sizes.
+ * Vite accepts Promise-valued entries in the plugins array.
+ */
+function analyzerPlugin(): PluginOption {
+  if (process.env.ANALYZE !== 'true') {
+    return null;
+  }
+  return import('rollup-plugin-visualizer').then(
+    ({ visualizer }) =>
+      visualizer({
+        filename: 'dist/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }) as PluginOption
+  );
+}
 
 export default defineConfig(() => ({
   base: '/',
@@ -43,6 +58,7 @@ export default defineConfig(() => ({
         }),
     // Note: Netlify automatically provides Brotli and Gzip compression at the edge,
     // so we don't need vite-plugin-compression for production deployments
+    analyzerPlugin(),
   ],
   resolve: {
     alias: {
@@ -117,18 +133,6 @@ export default defineConfig(() => ({
       strictRequires: 'auto',
     },
     rollupOptions: {
-      // Bundle analyzer plugin - temporarily disabled to fix production builds
-      // Uncomment when visualizer import is restored above
-      // plugins: isAnalyze
-      //   ? [
-      //       visualizer({
-      //         filename: 'dist/stats.html',
-      //         open: true,
-      //         gzipSize: true,
-      //         brotliSize: true,
-      //       }),
-      //     ]
-      //   : [],
       // Conservative tree shaking optimization for better bundle size
       treeshake: {
         moduleSideEffects: false, // Safe optimization for better bundle size

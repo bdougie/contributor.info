@@ -12,7 +12,8 @@ on:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # 4 URLs x 3 runs with simulated mobile throttling needs more headroom than the old single-URL audit
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
