@@ -1,4 +1,4 @@
-import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { fetchPRDataSmart } from '../supabase-pr-data-smart-deduped';
 
 export interface PRAnalysisResult {
   totalPRs: number;
@@ -18,7 +18,7 @@ export async function analyzePullRequests(
   timeRange: string = '90' // Default to 90 days of data
 ): Promise<PRAnalysisResult> {
   // Fetch pull requests using the existing github.ts functionality
-  const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+  const prDataResult = await fetchPRDataSmart(owner, repo, { timeRange });
   const pullRequests = prDataResult.data;
 
   // Filter PRs by date range if provided

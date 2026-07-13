@@ -22,9 +22,12 @@ interface FetchOptions {
 }
 
 /**
- * Smart database-first PR data fetcher
+ * Smart database-first PR data fetcher — the single canonical PR-data path.
  *
- * This replaces the problematic fetchPRDataWithFallback by:
+ * Consumers should import the deduplicated wrapper from
+ * './supabase-pr-data-smart-deduped' so concurrent callers share one request.
+ *
+ * Strategy:
  * 1. Always returning available data immediately (even if stale)
  * 2. Never attempting risky GitHub API calls for large repos
  * 3. Triggering background sync when data is missing/stale

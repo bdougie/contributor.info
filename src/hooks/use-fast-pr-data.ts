@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import type { PullRequest, TimeRange } from '@/lib/types';
 
 // Fast cache for PR data only (separate from full repo cache)
@@ -61,7 +61,10 @@ export function useFastPRData(
       try {
         fetchingRef.current = true;
 
-        const dataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+        const dataResult = await fetchPRDataSmart(owner, repo, {
+          timeRange,
+          showNotifications: false,
+        });
         const prs = dataResult.data;
 
         // Cache the results

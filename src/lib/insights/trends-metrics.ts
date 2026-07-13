@@ -9,7 +9,7 @@
  * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
  * @module
  */
-import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { fetchPRDataSmart } from '../supabase-pr-data-smart-deduped';
 import type { PullRequest } from '../types';
 import { getTrendDirection, getTrendDirectionReverse } from '@/lib/utils/performance-helpers';
 import { analyzeTrends } from '@/services/trend-analysis';
@@ -80,7 +80,7 @@ export async function calculateTrendMetrics(
     );
 
     // Fetch data (try database first, fallback to GitHub API)
-    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataSmart(owner, repo, { timeRange });
     const allPRs = prDataResult.data;
 
     // Handle case where no data is available or special status

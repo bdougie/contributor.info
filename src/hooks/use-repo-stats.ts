@@ -2,7 +2,7 @@ import { useContext, useCallback } from 'react';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import type { PullRequest, TimeRange } from '@/lib/types';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
-import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 
 /**
@@ -89,7 +89,7 @@ export function useRepoStats() {
     includeBots: boolean = false
   ) => {
     const [prDataResult, directCommits] = await Promise.all([
-      fetchPRDataWithFallback(owner, repo, timeRange),
+      fetchPRDataSmart(owner, repo, { timeRange, showNotifications: false }),
       fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
     ]);
 

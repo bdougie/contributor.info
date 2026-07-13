@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
-import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 import { setApplicationContext, startSpan } from '@/lib/simple-logging';
