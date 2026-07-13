@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -7,9 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 
-# Copy webhooks-server
+# Copy webhooks-server (package files, tsconfig, and its own source)
 COPY webhooks-server/package*.json ./webhooks-server/
 COPY webhooks-server/tsconfig.json ./webhooks-server/
+COPY webhooks-server/src/ ./webhooks-server/src/
 
 # Copy app/ directory (contains our consolidated webhook handlers)
 COPY app/ ./app/
@@ -25,7 +26,7 @@ RUN npm ci --production=false
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -46,4 +47,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
 
 # Start server
+# esbuild bundles the whole graph into a single dist/server.js
 CMD ["node", "dist/server.js"]
