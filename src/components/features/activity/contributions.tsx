@@ -1,8 +1,8 @@
-import { useState, useContext, useEffect, useRef, lazy, Suspense, useMemo } from 'react';
+import { useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { animated } from '@react-spring/web';
+import { ContributionsScatterChart } from './contributions-scatter-chart';
 import { supabaseAvatarCache } from '@/lib/supabase-avatar-cache';
 import { ProgressiveChart } from '@/components/ui/charts/ProgressiveChart';
 import { SkeletonChart } from '@/components/skeletons/base/skeleton-chart';
@@ -18,26 +18,26 @@ import { YoloIcon } from '@/components/icons/YoloIcon';
 import { ArrowRight } from '@/components/ui/icon';
 import { LearnMoreLink } from '@/components/ui/learn-more-link';
 
-// Lazy load the ScatterPlot component to reduce initial bundle size
-const ResponsiveScatterPlot = lazy(() =>
-  import('@nivo/scatterplot').then((module) => ({
-    default: module.ResponsiveScatterPlot,
-  }))
-);
-
-// Type definition for CustomNode data
-interface CustomNodeData {
+// A single plotted PR point (recharts passes this back as the shape/tooltip payload)
+interface ScatterPointDatum {
+  x: number;
+  y: number;
+  id: string;
   contributor: string;
   image: string;
   showAvatar?: boolean;
+  zIndex?: number;
   _pr: PullRequest;
-  x: number;
-  y: number;
-  [key: string]: unknown; // Allow additional properties from ScatterPlot
 }
 
-// Import types separately since they don't affect bundle size
-// import type { ScatterPlotNodeProps } from "@nivo/scatterplot";
+// Props recharts provides to a custom Scatter `shape` component
+interface ScatterNodeProps {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: ScatterPointDatum;
+}
+
 import { humanizeNumber } from '@/lib/utils';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { useTimeRange } from '@/lib/time-range-store';
@@ -350,77 +350,31 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   const isSafari =
     typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-  // Custom Node for scatter plot points
-  // Using 'any' for props type due to Nivo's complex internal types
-  // The data structure is validated at runtime with defensive checks
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const CustomNode = (props: any) => {
+  // Custom node for scatter plot points (recharts Scatter `shape` component)
+  const CustomNode = (props: ScatterNodeProps) => {
     // Defensive check for required props
-    if (!props || !props.node || !props.node.data) {
-      console.warn('CustomNode: Missing required props', props);
+    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !props.payload) {
       return null;
     }
 
+    const point = props.payload;
+    const nodeIndex = props.index ?? 0;
+
     // Get maintainer status from cache (fast lookup)
     const isMaintainer =
-      owner && repo && props.node.data.contributor
-        ? maintainerRolesCache.isMaintainer(owner, repo, props.node.data.contributor)
+      owner && repo && point.contributor
+        ? maintainerRolesCache.isMaintainer(owner, repo, point.contributor)
         : false;
 
     const size = isMobile ? 28 : 35;
 
-    // Handle different animation prop formats from Nivo
-    // Check if we have animated values or static values
-    const hasAnimatedStyle = props.style && typeof props.style === 'object';
-    const isSpringValue = (val: unknown): val is { to: (fn: (v: number) => number) => number } =>
-      val !== null &&
-      typeof val === 'object' &&
-      'to' in val &&
-      typeof (val as { to?: unknown }).to === 'function';
-
-    // Calculate x and y positions
-    let xPos = 0;
-    let yPos = 0;
-
-    if (hasAnimatedStyle && props.style) {
-      // Handle Spring animated values
-      const styleX = (props.style as Record<string, unknown>).x;
-      const styleY = (props.style as Record<string, unknown>).y;
-
-      if (isSpringValue(styleX)) {
-        xPos = styleX.to((xVal: number) => Math.max(size / 2, xVal - size / 2));
-      } else if (typeof styleX === 'number') {
-        xPos = Math.max(size / 2, styleX - size / 2);
-      }
-
-      if (isSpringValue(styleY)) {
-        yPos = styleY.to((yVal: number) => Math.max(0, yVal - size / 2));
-      } else if (typeof styleY === 'number') {
-        yPos = Math.max(0, styleY - size / 2);
-      }
-    }
-
-    // Build the style object based on what we have
-    // Using Record type for animated styles that may have Spring values
-    const nodeStyle: Record<string, unknown> = hasAnimatedStyle
-      ? {
-          ...props.style,
-          x: xPos,
-          y: yPos,
-          pointerEvents: 'auto',
-          overflow: 'visible',
-          isolation: 'isolate',
-        }
-      : {
-          x: xPos,
-          y: yPos,
-          pointerEvents: 'auto',
-          overflow: 'visible',
-          isolation: 'isolate',
-        };
+    // Center the node on the data point, clamped to the plot like the
+    // previous implementation
+    const xPos = Math.max(size / 2, props.cx - size / 2);
+    const yPos = Math.max(0, props.cy - size / 2);
 
     // Check if we should show avatar or gray square (mobile optimization)
-    const shouldShowAvatar = props.node.data.showAvatar !== false;
+    const shouldShowAvatar = point.showAvatar !== false;
 
     // Safari has issues with foreignObject, so use a simpler approach
     if (isSafari) {
@@ -431,7 +385,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
       if (!shouldShowAvatar) {
         const squareSize = size * 0.6; // Smaller square to be less prominent
         return (
-          <animated.g style={nodeStyle}>
+          <g transform={`translate(${xPos}, ${yPos})`} style={{ isolation: 'isolate' }}>
             <rect
               className="contribution-square"
               x={(size - squareSize) / 2}
@@ -444,24 +398,24 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               rx="2"
               role="button"
               tabIndex={0}
-              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+              aria-label={`Additional pull request #${point._pr.number} by ${point.contributor}`}
               style={{ cursor: 'pointer', opacity: 0.6 }}
               onClick={() => {
                 const prUrl =
-                  props.node.data._pr.html_url ||
-                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  point._pr.html_url ||
+                  `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
                 window.open(prUrl, '_blank', 'noopener,noreferrer');
               }}
             />
             <title>
-              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+              {point.contributor} - PR #{point._pr.number}
             </title>
-          </animated.g>
+          </g>
         );
       }
 
       return (
-        <animated.g style={nodeStyle}>
+        <g transform={`translate(${xPos}, ${yPos})`} style={{ isolation: 'isolate' }}>
           {/* Background circle */}
           <circle
             cx={radius}
@@ -475,19 +429,19 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
 
           {/* Clipping path for circular image */}
           <defs>
-            <clipPath id={`avatar-clip-${props.node.data.contributor}-${props.node.index}`}>
+            <clipPath id={`avatar-clip-${point.contributor}-${nodeIndex}`}>
               <circle cx={radius} cy={radius} r={radius - 2} />
             </clipPath>
           </defs>
 
           {/* Avatar image */}
           <image
-            href={props.node.data.image}
+            href={point.image}
             x="2"
             y="2"
             width={size - 4}
             height={size - 4}
-            clipPath={`url(#avatar-clip-${props.node.data.contributor}-${props.node.index})`}
+            clipPath={`url(#avatar-clip-${point.contributor}-${nodeIndex})`}
             preserveAspectRatio="xMidYMid slice"
             style={{ pointerEvents: 'none' }}
           />
@@ -502,7 +456,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             fontSize={isMobile ? 10 : 12}
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
-            {props.node.data.contributor ? props.node.data.contributor[0].toUpperCase() : '?'}
+            {point.contributor ? point.contributor[0].toUpperCase() : '?'}
           </text>
 
           {/* Invisible overlay for hover interactions */}
@@ -515,16 +469,16 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             onClick={() => {
               // Open PR in new tab on click for Safari
               const prUrl =
-                props.node.data._pr.html_url ||
-                `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                point._pr.html_url ||
+                `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
               window.open(prUrl, '_blank', 'noopener,noreferrer');
             }}
           >
             <title>
-              {props.node.data.contributor} - PR #{props.node.data._pr.number}
+              {point.contributor} - PR #{point._pr.number}
             </title>
           </circle>
-        </animated.g>
+        </g>
       );
     }
 
@@ -534,7 +488,13 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
     if (!shouldShowAvatar) {
       const squareSize = size * 0.6; // Smaller square to be less prominent
       return (
-        <animated.foreignObject width={size} height={size} style={nodeStyle}>
+        <foreignObject
+          x={xPos}
+          y={yPos}
+          width={size}
+          height={size}
+          style={{ overflow: 'visible', pointerEvents: 'auto' }}
+        >
           <div
             style={{
               width: '100%',
@@ -548,7 +508,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               className="contribution-square"
               role="button"
               tabIndex={0}
-              aria-label={`Additional pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
+              aria-label={`Additional pull request #${point._pr.number} by ${point.contributor}`}
               style={{
                 width: squareSize,
                 height: squareSize,
@@ -560,28 +520,34 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
               }}
               onClick={() => {
                 const prUrl =
-                  props.node.data._pr.html_url ||
-                  `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                  point._pr.html_url ||
+                  `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
                 window.open(prUrl, '_blank', 'noopener,noreferrer');
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   const prUrl =
-                    props.node.data._pr.html_url ||
-                    `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                    point._pr.html_url ||
+                    `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
                   window.open(prUrl, '_blank', 'noopener,noreferrer');
                 }
               }}
-              title={`${props.node.data.contributor} - PR #${props.node.data._pr.number}`}
+              title={`${point.contributor} - PR #${point._pr.number}`}
             />
           </div>
-        </animated.foreignObject>
+        </foreignObject>
       );
     }
 
     return (
-      <animated.foreignObject width={size} height={size} style={nodeStyle}>
+      <foreignObject
+        x={xPos}
+        y={yPos}
+        width={size}
+        height={size}
+        style={{ overflow: 'visible', pointerEvents: 'auto' }}
+      >
         <div
           style={{
             width: '100%',
@@ -593,15 +559,15 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           {(() => {
             // Get role from cache for display (fallback to user type if not cached)
             const cachedRole =
-              owner && repo && props.node.data.contributor
-                ? maintainerRolesCache.getContributorRole(owner, repo, props.node.data.contributor)
+              owner && repo && point.contributor
+                ? maintainerRolesCache.getContributorRole(owner, repo, point.contributor)
                 : null;
             const displayRole = cachedRole
-              ? getUserRole({ role: cachedRole.role }, { type: props.node.data._pr.user.type })
-              : getUserRole(undefined, { type: props.node.data._pr.user.type });
+              ? getUserRole({ role: cachedRole.role }, { type: point._pr.user.type })
+              : getUserRole(undefined, { type: point._pr.user.type });
 
             return (
-              <PrHoverCard pullRequest={props.node.data._pr} role={displayRole}>
+              <PrHoverCard pullRequest={point._pr} role={displayRole}>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   <Avatar
                     className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 cursor-pointer`}
@@ -612,30 +578,28 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                     }}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Pull request #${props.node.data._pr.number} by ${props.node.data.contributor}`}
-                    aria-describedby={
-                      isMaintainer ? `maintainer-badge-${props.node.data._pr.id}` : undefined
-                    }
+                    aria-label={`Pull request #${point._pr.number} by ${point.contributor}`}
+                    aria-describedby={isMaintainer ? `maintainer-badge-${point._pr.id}` : undefined}
                     onClick={() => {
                       // Open PR in new tab on click
                       const prUrl =
-                        props.node.data._pr.html_url ||
-                        `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                        point._pr.html_url ||
+                        `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
                       window.open(prUrl, '_blank', 'noopener,noreferrer');
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         const prUrl =
-                          props.node.data._pr.html_url ||
-                          `https://github.com/${props.node.data._pr.repository_owner}/${props.node.data._pr.repository_name}/pull/${props.node.data._pr.number}`;
+                          point._pr.html_url ||
+                          `https://github.com/${point._pr.repository_owner}/${point._pr.repository_name}/pull/${point._pr.number}`;
                         window.open(prUrl, '_blank', 'noopener,noreferrer');
                       }
                     }}
                   >
                     <AvatarImage
-                      src={props.node.data.image}
-                      alt={`${props.node.data.contributor}'s avatar`}
+                      src={point.image}
+                      alt={`${point.contributor}'s avatar`}
                       loading="lazy"
                       style={{
                         // Ensure images load properly in SVG context
@@ -657,16 +621,14 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                         fontSize: isMobile ? '10px' : '12px',
                       }}
                     >
-                      {props.node.data.contributor
-                        ? props.node.data.contributor[0].toUpperCase()
-                        : '?'}
+                      {point.contributor ? point.contributor[0].toUpperCase() : '?'}
                     </AvatarFallback>
                   </Avatar>
                   {isMaintainer && (
                     <span
-                      id={`maintainer-badge-${props.node.data._pr.id}`}
+                      id={`maintainer-badge-${point._pr.id}`}
                       title="Maintainer"
-                      aria-label={`${props.node.data.contributor} is a maintainer`}
+                      aria-label={`${point.contributor} is a maintainer`}
                       role="img"
                       className="bg-green-500"
                       style={{
@@ -686,7 +648,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
             );
           })()}
         </div>
-      </animated.foreignObject>
+      </foreignObject>
     );
   };
 
@@ -711,6 +673,8 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
   };
 
   const data = getScatterData();
+  // Flat point list for the recharts Scatter series (single series: pull requests)
+  const scatterPoints: ScatterPointDatum[] = data[0]?.data ?? [];
   const botCount = safeStats.pullRequests.filter(
     (pr) => detectBot({ githubUser: pr.user }).isBot
   ).length;
@@ -860,190 +824,62 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
           }
           highFidelity={
             data.length > 0 ? (
-              <Suspense
-                fallback={
-                  <SkeletonChart
-                    variant="scatter"
-                    height={isMobile ? 'sm' : 'lg'}
-                    showAxes={true}
-                  />
+              <ContributionsScatterChart
+                points={scatterPoints}
+                pointKey={(point) => point.id}
+                xMax={Math.max(isMobile ? mobileMaxDays : effectiveTimeRangeNumber, 1)}
+                yMax={Math.max(Math.round(maxFilesModified * 1.5), 10)}
+                logScale={isLogarithmic}
+                nodeSize={isMobile ? 28 : 35}
+                margin={{
+                  top: 20,
+                  right: isMobile ? 30 : 60,
+                  bottom: isMobile ? 45 : 70,
+                  left: isMobile ? 35 : 90,
+                }}
+                showXAxis={effectiveTimeRangeNumber > 0}
+                showYAxis={maxFilesModified > 0}
+                xTickCount={isMobile ? 3 : 7}
+                yTickCount={isMobile ? 3 : 5}
+                xTickFormatter={(value) => {
+                  if (value === 0) return 'Today';
+                  if (value > effectiveTimeRangeNumber) return `${effectiveTimeRangeNumber}+`;
+                  return `${value}`;
+                }}
+                yTickFormatter={(value) =>
+                  value >= 1000 ? humanizeNumber(value) : `${Math.round(value)}`
                 }
-              >
-                <ResponsiveScatterPlot
-                  nodeSize={isMobile ? 20 : 35}
-                  data={data || []}
-                  margin={{
-                    top: 20,
-                    right: isMobile ? 30 : 60,
-                    bottom: isMobile ? 45 : 70,
-                    left: isMobile ? 35 : 90,
-                  }}
-                  xScale={{
-                    type: 'linear',
-                    min: 0,
-                    max: Math.max(isMobile ? mobileMaxDays : effectiveTimeRangeNumber, 1),
-                    reverse: true,
-                  }}
-                  yScale={{
-                    type: isLogarithmic ? 'symlog' : 'linear',
-                    min: 1,
-                    max: Math.max(Math.round(maxFilesModified * 1.5), 10),
-                  }}
-                  blendMode="normal"
-                  annotations={[]}
-                  nodeComponent={CustomNode}
-                  animate={true}
-                  motionConfig="gentle"
-                  enableGridX={true}
-                  enableGridY={true}
-                  useMesh={!isMobile}
-                  axisTop={null}
-                  axisRight={null}
-                  axisBottom={
-                    effectiveTimeRangeNumber > 0
-                      ? {
-                          tickSize: 6,
-                          tickPadding: 4,
-                          tickRotation: 0,
-                          tickValues: isMobile ? 3 : 7,
-                          legend: 'Days Ago',
-                          legendPosition: 'middle',
-                          legendOffset: isMobile ? 35 : 50,
-                          format: (value) => {
-                            if (value === 0) return 'Today';
-                            if (value > effectiveTimeRangeNumber)
-                              return `${effectiveTimeRangeNumber}+`;
-                            return `${value}`;
-                          },
-                        }
-                      : null
-                  }
-                  isInteractive={true}
-                  axisLeft={
-                    maxFilesModified > 0
-                      ? {
-                          tickSize: 2,
-                          tickPadding: 3,
-                          tickRotation: 0,
-                          tickValues: isMobile ? 3 : 5,
-                          legend: 'Lines Touched',
-                          legendPosition: 'middle',
-                          legendOffset: isMobile ? -20 : -60,
-                          format: (value: number) => {
-                            return parseInt(`${value}`) >= 1000
-                              ? humanizeNumber(value)
-                              : `${value}`;
-                          },
-                        }
-                      : null
-                  }
-                  tooltip={({ node }) => {
-                    const nodeData = node.data as CustomNodeData;
-                    return (
-                      <div className="bg-background border rounded p-2 shadow-lg">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: node.color }}
-                          />
-                          <span className="font-medium">{nodeData.contributor}</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {nodeData.x === 0 ? 'Today' : `${nodeData.x} days ago`} • {nodeData.y}{' '}
-                          lines touched
-                        </div>
-                      </div>
-                    );
-                  }}
-                  colors={{ scheme: 'category10' }}
-                  layers={['grid', 'axes', 'nodes', 'legends']}
-                  theme={{
-                    background: 'transparent',
-                    axis: {
-                      domain: {
-                        line: {
-                          stroke: 'hsl(var(--border))',
-                          strokeWidth: 1,
-                        },
-                      },
-                      ticks: {
-                        line: {
-                          stroke: 'hsl(var(--border))',
-                          strokeWidth: 1,
-                        },
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          fontSize: 11,
-                        },
-                      },
-                      legend: {
-                        text: {
-                          fill: 'hsl(var(--foreground))',
-                          fontSize: 12,
-                        },
-                      },
-                    },
-                    grid: {
-                      line: {
-                        stroke: 'hsl(var(--border))',
-                        strokeWidth: 0.5,
-                        strokeOpacity: 0.3,
-                      },
-                    },
-                    legends: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
-                      },
-                    },
-                    labels: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
-                      },
-                    },
-                    markers: {
-                      lineColor: 'hsl(var(--foreground))',
-                      lineStrokeWidth: 2,
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      } as any,
-                    },
-                    dots: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        fontSize: 11,
-                      },
-                    },
-                    annotations: {
-                      text: {
-                        fill: 'hsl(var(--foreground))',
-                        outlineWidth: 2,
-                        outlineColor: 'hsl(var(--background))',
-                      },
-                      link: {
-                        stroke: 'hsl(var(--foreground))',
-                        strokeWidth: 1,
-                        outlineWidth: 2,
-                        outlineColor: 'hsl(var(--background))',
-                      },
-                      outline: {
-                        stroke: 'hsl(var(--foreground))',
-                        strokeWidth: 2,
-                        outlineWidth: 2,
-                        outlineColor: 'hsl(var(--background))',
-                      },
-                      symbol: {
-                        fill: 'hsl(var(--foreground))',
-                        outlineWidth: 2,
-                        outlineColor: 'hsl(var(--background))',
-                      },
-                    },
-                  }}
-                />
-              </Suspense>
+                xLabel="Days Ago"
+                yLabel="Lines Touched"
+                xLabelOffset={isMobile ? 35 : 50}
+                yLabelOffset={isMobile ? -20 : -60}
+                renderNode={(point, cx, cy, index) => (
+                  <CustomNode cx={cx} cy={cy} payload={point} index={index} />
+                )}
+                renderTooltip={
+                  isMobile
+                    ? undefined
+                    : (point) => {
+                        const daysAgo = Math.floor(point.x);
+                        return (
+                          <div className="bg-background border rounded p-2 shadow-lg">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                // Same blue the previous nivo series color (category10) used
+                                style={{ backgroundColor: '#1f77b4' }}
+                              />
+                              <span className="font-medium">{point.contributor}</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {daysAgo === 0 ? 'Today' : `${daysAgo} days ago`} •{' '}
+                              {Math.round(point.y)} lines touched
+                            </div>
+                          </div>
+                        );
+                      }
+                }
+              />
             ) : (
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 No data to display

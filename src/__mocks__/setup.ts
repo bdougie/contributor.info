@@ -48,8 +48,6 @@ vi.mock('@/lib/supabase', () => ({
 }));
 
 // Mock problematic dependencies with empty implementations
-vi.mock('@nivo/scatterplot', () => ({ default: vi.fn() }));
-vi.mock('@nivo/core', () => ({ default: vi.fn() }));
 vi.mock('d3-interpolate', () => ({ default: vi.fn() }));
 
 // Clear all mocks after each test
