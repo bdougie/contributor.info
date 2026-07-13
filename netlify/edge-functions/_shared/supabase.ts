@@ -51,6 +51,8 @@ export interface RepoData {
   contributor_count?: number;
   pr_count?: number;
   updated_at: string;
+  /** Data freshness timestamp, used by the client to skip its own repo lookup */
+  last_updated_at?: string | null;
 }
 
 /**
@@ -81,7 +83,8 @@ export async function fetchRepository(owner: string, repo: string): Promise<Repo
       forks_count,
       language,
       topics,
-      updated_at
+      updated_at,
+      last_updated_at
     `
     )
     .eq('owner', owner)

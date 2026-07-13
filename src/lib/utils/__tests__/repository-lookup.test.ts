@@ -1,28 +1,33 @@
 /* eslint-disable no-restricted-syntax */
 // Async tests required: the dedup contract is about concurrent promise sharing.
 // All mocks resolve immediately — no real timers, no hangs.
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { mockMaybeSingle } = vi.hoisted(() => {
+const { mockMaybeSingle, mockFrom } = vi.hoisted(() => {
   const mockMaybeSingle = vi.fn();
-  return { mockMaybeSingle };
+  const mockFrom = vi.fn(() => ({
+    select: () => ({
+      eq: () => ({
+        eq: () => ({
+          maybeSingle: mockMaybeSingle,
+        }),
+      }),
+    }),
+  }));
+  return { mockMaybeSingle, mockFrom };
 });
 
 vi.mock('@/lib/supabase-lazy', () => ({
   getSupabase: vi.fn().mockResolvedValue({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          eq: () => ({
-            maybeSingle: mockMaybeSingle,
-          }),
-        }),
-      }),
-    }),
+    from: mockFrom,
   }),
 }));
 
-import { getRepositoryByOwnerName, clearRepositoryLookupCache } from '../repository-helpers';
+import {
+  getRepositoryByOwnerName,
+  clearRepositoryLookupCache,
+  type RepositoryIdentity,
+} from '../repository-helpers';
 
 const repoRow = {
   id: 'repo-uuid-1',
@@ -31,10 +36,21 @@ const repoRow = {
   last_updated_at: '2026-07-13T00:00:00Z',
 };
 
+const ssrRow: RepositoryIdentity = {
+  id: 'ssr-uuid-1',
+  owner: 'continuedev',
+  name: 'continue',
+  last_updated_at: '2026-07-12T00:00:00Z',
+};
+
 describe('getRepositoryByOwnerName', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearRepositoryLookupCache();
+  });
+
+  afterEach(() => {
+    delete window.__REPO_SSR__;
   });
 
   it('dedupes concurrent lookups for the same owner/name into one query', async () => {
@@ -92,5 +108,62 @@ describe('getRepositoryByOwnerName', () => {
     await getRepositoryByOwnerName('owner-b', 'repo');
 
     expect(mockMaybeSingle).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a matching SSR payload without querying supabase', async () => {
+    window.__REPO_SSR__ = ssrRow;
+
+    const result = await getRepositoryByOwnerName('continuedev', 'continue');
+
+    expect(result).toEqual(ssrRow);
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('matches the SSR payload case-insensitively', async () => {
+    window.__REPO_SSR__ = { ...ssrRow, owner: 'ContinueDev', name: 'Continue' };
+
+    const result = await getRepositoryByOwnerName('continuedev', 'continue');
+
+    expect(result?.id).toBe('ssr-uuid-1');
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it('ignores a mismatched SSR payload and queries normally', async () => {
+    window.__REPO_SSR__ = { ...ssrRow, owner: 'someone-else', name: 'other-repo' };
+    mockMaybeSingle.mockResolvedValue({ data: repoRow, error: null });
+
+    const result = await getRepositoryByOwnerName('continuedev', 'continue');
+
+    expect(result).toEqual(repoRow);
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+    // Mismatched payload is left in place for the repository it belongs to
+    expect(window.__REPO_SSR__).toBeDefined();
+  });
+
+  it('ignores a malformed SSR payload and queries normally', async () => {
+    window.__REPO_SSR__ = { id: 123, owner: 'continuedev' } as unknown as RepositoryIdentity;
+    mockMaybeSingle.mockResolvedValue({ data: repoRow, error: null });
+
+    const result = await getRepositoryByOwnerName('continuedev', 'continue');
+
+    expect(result).toEqual(repoRow);
+    expect(mockFrom).toHaveBeenCalledTimes(1);
+  });
+
+  it('consumes the SSR payload one-shot', async () => {
+    window.__REPO_SSR__ = ssrRow;
+
+    const first = await getRepositoryByOwnerName('continuedev', 'continue');
+    expect(first).toEqual(ssrRow);
+    expect(window.__REPO_SSR__).toBeUndefined();
+
+    // A fresh lookup after the cache is cleared (e.g. TTL expiry) must hit the
+    // network, not stale SSR data
+    clearRepositoryLookupCache();
+    mockMaybeSingle.mockResolvedValue({ data: repoRow, error: null });
+
+    const second = await getRepositoryByOwnerName('continuedev', 'continue');
+    expect(second).toEqual(repoRow);
+    expect(mockFrom).toHaveBeenCalledTimes(1);
   });
 });

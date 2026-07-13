@@ -14,6 +14,7 @@ import {
   renderHeader,
   renderFooter,
   html,
+  unsafe,
   type SafeHTML,
   type MetaTags,
   type RepoPageData,
@@ -43,6 +44,44 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Dart: '#00B4AB',
   Shell: '#89e051',
 };
+
+/**
+ * Build the `window.__REPO_SSR__` prefetch script.
+ *
+ * Inlines the minimal repository row so client hooks can resolve owner/name -> id
+ * without waiting for the SPA to boot and issue its own Supabase query.
+ *
+ * Serialization safety: the payload is JSON.stringified, `<` is escaped to the
+ * unicode escape sequence backslash-u003c (preventing `</script>` breakout from
+ * repo-controlled strings), and the result is
+ * stringified again so it is emitted as a JS string literal passed to JSON.parse.
+ * This mirrors the hardened `__SSR_DATA__` serialization in html-template.ts.
+ *
+ * Never throws: returns undefined on any failure so the page render is unaffected.
+ */
+function buildRepoPrefetchScript(repoData: RepoData): SafeHTML | undefined {
+  try {
+    const payload = {
+      id: String(repoData.id),
+      owner: repoData.owner,
+      name: repoData.name,
+      last_updated_at: repoData.last_updated_at ?? null,
+    };
+
+    // 1. Stringify the payload
+    // 2. Escape < to the backslash-u003c escape sequence to prevent </script> injection
+    // 3. Double-stringify to emit a JS string literal for JSON.parse("...")
+    const safeJson = JSON.stringify(payload).replace(/</g, '\\u003c');
+    const quotedSafeJson = JSON.stringify(safeJson);
+
+    return html`<script>
+      window.__REPO_SSR__ = JSON.parse(${unsafe(quotedSafeJson)});
+    </script>`;
+  } catch (error) {
+    console.warn('[ssr-repo] Failed to build repo prefetch script: %o', error);
+    return undefined;
+  }
+}
 
 /**
  * Render contributor avatars
@@ -500,7 +539,11 @@ async function handler(request: Request, context: Context) {
       timestamp: Date.now(),
     };
 
-    const html = renderHTML(content, meta, ssrData, request.url, assets);
+    // Prefetch: inline the repository row so client hooks skip the owner/name -> id
+    // round trip. Optional — never blocks or fails the page render.
+    const repoPrefetchScript = buildRepoPrefetchScript(repoData);
+
+    const html = renderHTML(content, meta, ssrData, request.url, assets, repoPrefetchScript);
     const headers = getSSRHeaders(300, 3600); // 5 min cache, 1 hour stale-while-revalidate
 
     return new Response(html, { headers });

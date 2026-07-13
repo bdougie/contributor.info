@@ -10,6 +10,55 @@ export interface RepositoryIdentity {
   last_updated_at: string | null;
 }
 
+declare global {
+  interface Window {
+    /**
+     * Repository row prefetched by the ssr-repo edge function and inlined into
+     * the HTML shell. Consumed one-shot by getRepositoryByOwnerName() so client
+     * hooks skip the owner/name → id round trip on first load (#1815).
+     */
+    __REPO_SSR__?: RepositoryIdentity;
+  }
+}
+
+/** Runtime validation for the SSR-injected payload (it crosses an HTML boundary). */
+function isRepositoryIdentity(value: unknown): value is RepositoryIdentity {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.id === 'string' &&
+    typeof row.name === 'string' &&
+    typeof row.owner === 'string' &&
+    (row.last_updated_at === null || typeof row.last_updated_at === 'string')
+  );
+}
+
+/**
+ * Consume the SSR-prefetched repository row if it matches the requested
+ * owner/name. GitHub names are case-insensitive, so the comparison is too.
+ * One-shot: the global is deleted on first use so client-side navigation to
+ * other repositories never reuses stale data.
+ */
+function consumeSSRRepository(owner: string, name: string): RepositoryIdentity | null {
+  if (typeof window === 'undefined') return null;
+
+  const payload = window.__REPO_SSR__;
+  if (!isRepositoryIdentity(payload)) return null;
+
+  const matches =
+    payload.owner.toLowerCase() === owner.toLowerCase() &&
+    payload.name.toLowerCase() === name.toLowerCase();
+  if (!matches) return null;
+
+  delete window.__REPO_SSR__;
+  return {
+    id: payload.id,
+    owner: payload.owner,
+    name: payload.name,
+    last_updated_at: payload.last_updated_at,
+  };
+}
+
 // Promise-level dedup + short TTL cache for the owner/name → repository row
 // lookup. Before this, every repo-view hook resolved the id independently,
 // firing 4-6 identical queries per page view (#1815).
@@ -42,6 +91,13 @@ export function getRepositoryByOwnerName(
   const cached = repositoryLookupCache.get(key);
   if (cached && Date.now() - cached.timestamp < REPOSITORY_LOOKUP_TTL_MS) {
     return cached.promise;
+  }
+
+  const ssrRow = consumeSSRRepository(owner, name);
+  if (ssrRow) {
+    const seeded = Promise.resolve(ssrRow);
+    repositoryLookupCache.set(key, { promise: seeded, timestamp: Date.now() });
+    return seeded;
   }
 
   const promise = (async (): Promise<RepositoryIdentity | null> => {
