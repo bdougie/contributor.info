@@ -30,6 +30,10 @@ vi.mock('@/lib/inngest/client', () => ({
   },
 }));
 
+vi.mock('@/lib/error-logging', () => ({
+  logError: vi.fn(),
+}));
+
 const WORKSPACE_ID = 'workspace-1';
 const USER_ID = 'user-1';
 const REPO_A = '11111111-1111-4111-8111-111111111111';
@@ -51,7 +55,13 @@ function setupFromMock(opts: {
   maxRepositories: number;
   currentCount: number;
   insertError?: { message: string } | null;
+  /** Row returned by workspaces.maybeSingle(); pass null to simulate a missing workspace. */
+  workspaceRow?: { max_repositories: number } | null;
 }) {
+  const workspaceRow =
+    opts.workspaceRow === undefined
+      ? { max_repositories: opts.maxRepositories }
+      : opts.workspaceRow;
   const insertMock = vi.fn().mockResolvedValue({ error: opts.insertError ?? null });
   let workspaceRepoSelectCalls = 0;
 
@@ -87,7 +97,7 @@ function setupFromMock(opts: {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
-              data: { max_repositories: opts.maxRepositories },
+              data: workspaceRow,
               error: null,
             }),
           }),
@@ -168,6 +178,38 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
     expect(result.success).toBe(false);
     expect(result.statusCode).toBe(403);
     expect(result.error).toContain('limit');
+  });
+
+  it('rejects with 404 when the workspace is not found', async () => {
+    const { insertMock } = setupFromMock({
+      existingRepoIds: [],
+      maxRepositories: 10,
+      currentCount: 0,
+      workspaceRow: null,
+    });
+    const result = await WorkspaceService.addRepositoriesToWorkspace(WORKSPACE_ID, USER_ID, [
+      REPO_A,
+    ]);
+    expect(result.success).toBe(false);
+    expect(result.statusCode).toBe(404);
+    expect(result.error).toBe('Workspace not found');
+    expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 and sends no events when the insert fails', async () => {
+    const { insertMock } = setupFromMock({
+      existingRepoIds: [],
+      maxRepositories: 10,
+      currentCount: 0,
+      insertError: { message: 'insert failed' },
+    });
+    const result = await WorkspaceService.addRepositoriesToWorkspace(WORKSPACE_ID, USER_ID, [
+      REPO_A,
+    ]);
+    expect(result.success).toBe(false);
+    expect(result.statusCode).toBe(500);
+    expect(insertMock).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(inngest.send)).not.toHaveBeenCalled();
   });
 
   it('inserts new repositories in one batch and fires one event of each type', async () => {
