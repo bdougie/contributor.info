@@ -62,7 +62,7 @@ function Tile(props: { label: string; value: string; trend?: number | null }) {
 
 const STATE_HINT: Record<string, string> = {
   not_found: 'not found — sign in if this is a private workspace',
-  no_metrics: 'metrics not aggregated yet',
+  no_metrics: 'workspace metrics coming soon',
   unconfigured: 'Supabase anon key missing — see desktop/README.md',
   unreachable: 'offline',
 };
@@ -108,7 +108,11 @@ export default function App() {
   };
 
   const addWorkspace = async () => {
-    const slug = draft.trim().replace(/^.*\/i\//, '').replace(/\/+$/, '');
+    // Accept a bare slug, a `/i/{slug}` URL/path, or a value with stray
+    // leading/trailing slashes, and reduce it to the bare slug the API and
+    // `/i/{slug}` links expect. A leading slash here previously slipped through
+    // and produced `/i//{slug}` links plus failed lookups.
+    const slug = draft.trim().replace(/^.*\/i\//, '').replace(/^\/+|\/+$/g, '');
     if (!slug || slugs.includes(slug)) return;
     setDraft('');
     await save([...slugs, slug]);

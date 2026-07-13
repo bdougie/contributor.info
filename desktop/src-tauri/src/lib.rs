@@ -1,12 +1,13 @@
 //! contributor.info in the system tray, workspaces-first: each configured
-//! workspace surfaces its aggregated metrics (open/merged PRs, velocity,
-//! contributors, stars + trends) straight from `workspace_metrics_cache`.
+//! workspace resolves to its public identity, and renders aggregated metrics
+//! (open/merged PRs, velocity, contributors, stars + trends) as soon as a
+//! metrics source is wired up — see README "Next steps".
 //!
-//! Data flow: a 60s poll loop reads Supabase REST (anon key, RLS-scoped to
-//! public workspaces), stores a `Snapshot` in managed state, rebuilds the
-//! tray menu from it, and emits a `snapshot` event the dashboard webview
-//! listens for. Every fetch failure degrades to a status string — the tray
-//! never errors out.
+//! Data flow: a 60s poll loop reads Supabase REST (the anon key for public
+//! workspaces, or the user JWT once signed in) for workspace identity, stores
+//! a `Snapshot` in managed state, rebuilds the tray menu from it, and emits a
+//! `snapshot` event the dashboard webview listens for. Every fetch failure
+//! degrades to a status string — the tray never errors out.
 
 mod auth;
 mod settings;
@@ -64,7 +65,7 @@ fn workspace_title(ws: &WorkspaceStatus) -> String {
     match (&ws.metrics, ws.state.as_str()) {
         (Some(m), _) => format!("\u{1F331} {}  ·  {} open PRs", ws.name, m.open_prs),
         (None, "not_found") => format!("\u{26A0}\u{FE0F} {}  ·  not found (private?)", ws.slug),
-        (None, "no_metrics") => format!("\u{23F3} {}  ·  metrics pending", ws.name),
+        (None, "no_metrics") => format!("\u{23F3} {}  ·  metrics coming soon", ws.name),
         (None, "unreachable") => format!("\u{26A0}\u{FE0F} {}  ·  offline", ws.slug),
         (None, _) => format!("\u{26A0}\u{FE0F} {}  ·  {}", ws.slug, ws.state),
     }
@@ -299,7 +300,7 @@ fn get_workspaces(state: tauri::State<'_, AppState>) -> Vec<String> {
 fn set_workspaces(app: AppHandle, state: tauri::State<'_, AppState>, workspaces: Vec<String>) {
     {
         let mut cfg = state.settings.lock().unwrap();
-        cfg.workspaces = workspaces;
+        cfg.workspaces = settings::normalize_slugs(&workspaces);
         settings::save(&app, &cfg);
     }
     tauri::async_runtime::spawn(refresh(app.clone()));

@@ -117,6 +117,14 @@ impl Supabase {
         Some(rows.into_iter().next())
     }
 
+    /// Aggregated workspace metrics.
+    ///
+    /// NOTE: `workspace_metrics_cache` was dropped from the database (migration
+    /// `20260428000007_drop_dead_tables`) and never held data, so this currently
+    /// resolves to `None` and workspaces render in the `no_metrics` state. This
+    /// is the seam for the forthcoming metrics endpoint: swap this REST call for
+    /// a request to a public `api-workspace-metrics` function that aggregates
+    /// server-side (see README "Next steps").
     pub async fn metrics(&self, workspace_id: &str, time_range: &str) -> Option<WorkspaceMetrics> {
         let rows: Vec<WorkspaceMetrics> = self
             .rest(&format!(
