@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { captureException } from '@/lib/sentry-lazy';
 import { trackEvent } from '@/lib/posthog-lazy';
+import { runWhenIdle } from '@/lib/utils/idle-callback';
 
 export interface MonthlyContributorRanking {
   id: string;
@@ -305,9 +306,17 @@ export function useMonthlyContributorRankings(owner: string, repo: string): Mont
       }
     }
 
-    if (owner && repo) {
-      fetchRankings();
+    if (!owner || !repo) {
+      return;
     }
+
+    // Defer the edge-function invoke: the rankings card is below the fold, so
+    // this call shouldn't compete with LCP-critical fetches on mount (#1815).
+    // The skeleton state (loading=true) already covers the idle delay.
+    const cancel = runWhenIdle(() => {
+      fetchRankings();
+    });
+    return cancel;
   }, [owner, repo]);
 
   return { rankings, loading, error, isUsingFallback, displayMonth, displayYear, isCalculating };

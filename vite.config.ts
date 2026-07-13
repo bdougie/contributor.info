@@ -197,10 +197,6 @@ export default defineConfig(() => ({
             if (id.includes('uplot')) {
               return 'vendor-uplot';
             }
-            // AI SDK - lazy loaded via chat panel
-            if (id.includes('@ai-sdk') || id.includes('/node_modules/ai/')) {
-              return 'vendor-ai-sdk';
-            }
             // Supabase SDK
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
@@ -266,13 +262,17 @@ export default defineConfig(() => ({
           if (b.includes('vendor-utils')) return 1;
           return 0;
         });
-        // CRITICAL: Only preload chunks needed for initial H1 render (LCP element)
-        // UI components (Radix), charts, markdown, and analytics load on-demand
-        // This reduces initial preload from ~10 chunks to 3, improving LCP by 200-300ms
+        // Preload the chunks the entry statically imports anyway. vendor-supabase and
+        // vendor-ui are on every route's critical path; without a preload hint the
+        // browser only discovers them after parsing the entry chunk, costing a
+        // round-trip before first data fetch / render (#1815). Charts, markdown, and
+        // analytics stay on-demand.
         return sorted.filter(
           (dep) =>
             dep.includes('vendor-react-core') ||
             dep.includes('vendor-utils') ||
+            dep.includes('vendor-supabase') ||
+            dep.includes('vendor-ui') ||
             // Match index- followed by hash, but exclude other prefixed chunks
             (dep.includes('index-') && !dep.includes('nivo-') && !dep.includes('charts-'))
         );

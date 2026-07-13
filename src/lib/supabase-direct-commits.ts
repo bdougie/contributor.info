@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
 import { smartCommitAnalyzer } from './progressive-capture/smart-commit-analyzer';
+import { getRepositoryByOwnerName } from './utils/repository-helpers';
 import { trackDatabaseOperation } from './simple-logging';
 // Removed Sentry import - using simple logging instead
 
@@ -34,13 +34,14 @@ export async function fetchDirectCommitsWithDatabaseFallback(
     'fetchDirectCommitsWithDatabaseFallback',
     async () => {
       try {
-        // First, get the repository ID
-        const { data: repoData, error: repoError } = await supabase
-          .from('repositories')
-          .select('id')
-          .eq('owner', owner)
-          .eq('name', repo)
-          .maybeSingle();
+        // First, get the repository ID (shared deduped lookup, see #1815)
+        let repoData: Awaited<ReturnType<typeof getRepositoryByOwnerName>> = null;
+        let repoError: Error | null = null;
+        try {
+          repoData = await getRepositoryByOwnerName(owner, repo);
+        } catch (err) {
+          repoError = err instanceof Error ? err : new Error(String(err));
+        }
 
         if (repoError || !repoData) {
           // Simple breadcrumb logging without analytics
