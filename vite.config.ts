@@ -171,6 +171,12 @@ export default defineConfig(() => ({
             if (id.includes('@sentry')) {
               return; // Return undefined to let Vite handle chunking naturally
             }
+            // AI SDK must also be checked BEFORE react: @ai-sdk/react contains 'react/'
+            // and would otherwise land in vendor-react-core, statically dragging the
+            // whole vendor-ai-sdk chunk into the initial page load.
+            if (id.includes('@ai-sdk') || id.includes('/node_modules/ai/')) {
+              return 'vendor-ai-sdk';
+            }
             // Core React libraries - loaded immediately
             if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-router')) {
               return 'vendor-react-core';
