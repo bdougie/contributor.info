@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
-import { getOctokit } from '../github-client';
+import { getOctokitForRepo } from '../github-client';
 import type { DatabaseReview } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
@@ -95,7 +95,7 @@ export const capturePrReviews = inngest.createFunction(
 
     // Step 2: Fetch reviews from GitHub
     const reviews = await step.run('fetch-reviews', async () => {
-      const octokit = getOctokit();
+      const octokit = await getOctokitForRepo(repositoryId);
 
       try {
         console.log(

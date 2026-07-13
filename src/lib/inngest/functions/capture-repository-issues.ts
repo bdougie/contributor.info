@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
-import { getOctokit } from '../github-client';
+import { getOctokitForRepo } from '../github-client';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
 import { detectBot } from '../../utils/bot-detection';
@@ -76,7 +76,7 @@ export const captureRepositoryIssues = inngest.createFunction(
 
     // Step 2: Fetch issues with comments
     const issuesData = await step.run('fetch-issues', async () => {
-      const octokit = getOctokit();
+      const octokit = await getOctokitForRepo(repositoryId);
       const issues: GitHubIssue[] = [];
       let page = 1;
       let hasMore = true;

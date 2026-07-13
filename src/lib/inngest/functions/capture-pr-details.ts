@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
-import { makeGitHubRequest } from '../github-client';
+import { makeGitHubRequest, getTokenForRepoId } from '../github-client';
 import type { GitHubPullRequest } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
@@ -64,8 +64,11 @@ export const capturePrDetails = inngest.createFunction(
         });
 
         apiCallsUsed++;
-        const apiPromise = makeGitHubRequest(
-          `/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`
+        const apiPromise = getTokenForRepoId(repositoryId).then((token) =>
+          makeGitHubRequest(
+            `/repos/${repository.owner}/${repository.name}/pulls/${prNumber}`,
+            token
+          )
         );
 
         const pr = await Promise.race([apiPromise, timeoutPromise]);

@@ -113,8 +113,19 @@ export default async (req: Request, _context: Context) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Look up the repository with an RLS-scoped client so private repos are
+    // only visible to callers whose JWT grants workspace access — the
+    // service-role client would leak private repo existence and sync status
+    const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const rlsClient = anonKey
+      ? createClient(supabaseUrl, anonKey, {
+          global: authHeader ? { headers: { Authorization: authHeader } } : undefined,
+        })
+      : supabase;
+
     // Step 1: Check if repository exists
-    const { data: repoData, error: repoError } = await supabase
+    const { data: repoData, error: repoError } = await rlsClient
       .from('repositories')
       .select('id, owner, name, first_tracked_at, last_updated_at, is_active')
       .eq('owner', owner)

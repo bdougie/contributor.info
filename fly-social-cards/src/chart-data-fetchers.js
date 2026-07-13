@@ -70,6 +70,7 @@ export async function fetchLotteryFactorData(supabase, owner, repo, timeRange = 
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
+      .eq('is_private', false)
       .single();
 
     if (repoError || !repoData) {
@@ -195,6 +196,7 @@ export async function fetchHealthFactorsData(supabase, owner, repo, timeRange = 
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
+      .eq('is_private', false)
       .single();
 
     if (repoError || !repoData) {
@@ -323,6 +325,7 @@ export async function fetchDistributionData(
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
+      .eq('is_private', false)
       .single();
 
     if (repoError || !repoData) {

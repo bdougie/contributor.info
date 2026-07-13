@@ -7,6 +7,72 @@ import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-
  * Blocked owner names that are app routes, not GitHub organizations
  * These should never be treated as repository identifiers
  */
+const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/contributor-info/installations/new';
+
+/**
+ * Check whether the contributor.info GitHub App covers a repository.
+ * Private repositories can only be tracked through an app installation:
+ * the installation webhook creates the repositories row and the
+ * app_enabled_repositories link, and sync uses the installation token.
+ */
+async function checkAppInstallation(
+  supabaseUrl: string | undefined,
+  supabaseKey: string | undefined,
+  owner: string,
+  repo: string
+): Promise<{ installed: boolean; installationId?: number }> {
+  if (!supabaseUrl || !supabaseKey) {
+    return { installed: false };
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const { data: repoData } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('owner', owner)
+      .eq('name', repo)
+      .maybeSingle();
+
+    if (repoData) {
+      const { data: enabledRepo } = await supabase
+        .from('app_enabled_repositories')
+        .select('github_app_installations!inner(installation_id, deleted_at, suspended_at)')
+        .eq('repository_id', repoData.id)
+        .is('github_app_installations.deleted_at', null)
+        .is('github_app_installations.suspended_at', null)
+        .maybeSingle();
+
+      const installation = Array.isArray(enabledRepo?.github_app_installations)
+        ? enabledRepo?.github_app_installations[0]
+        : enabledRepo?.github_app_installations;
+
+      if (installation) {
+        return { installed: true, installationId: installation.installation_id };
+      }
+    }
+
+    // Owner-wide installation covering all repositories
+    const { data: ownerInstall } = await supabase
+      .from('github_app_installations')
+      .select('installation_id')
+      .eq('account_name', owner)
+      .eq('repository_selection', 'all')
+      .is('deleted_at', null)
+      .is('suspended_at', null)
+      .maybeSingle();
+
+    if (ownerInstall) {
+      return { installed: true, installationId: ownerInstall.installation_id };
+    }
+  } catch (error) {
+    console.error('Failed to check app installation:', error);
+  }
+
+  return { installed: false };
+}
+
 const BLOCKED_OWNERS = new Set([
   'social-cards',
   'api',
@@ -268,6 +334,8 @@ export default async (req: Request, context: Context) => {
 
     // First, verify the repository exists on GitHub
     let githubData: GitHubRepository | null = null;
+    // Set when a private repository is covered by a GitHub App installation
+    let viaAppInstallation = false;
     try {
       // In production, we need a GitHub token to avoid rate limits
       const githubToken = process.env.GITHUB_TOKEN;
@@ -310,50 +378,71 @@ export default async (req: Request, context: Context) => {
       });
 
       if (githubResponse.status === 404) {
-        return withHeaders(
-          new Response(
-            JSON.stringify({
-              success: false,
-              error: 'Repository not found',
-              message: `Repository ${owner}/${repo} not found on GitHub`,
-            }),
-            {
-              status: 404,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          ),
-          rateLimitResult
-        );
-      }
+        // A 404 also happens for private repos our shared token can't see.
+        // If the GitHub App is installed on the repo, the installation webhook
+        // has already registered it — allow tracking to proceed from our DB.
+        const installation = await checkAppInstallation(supabaseUrl, supabaseKey, owner, repo);
 
-      if (!githubResponse.ok) {
-        throw new Error(`GitHub API error: ${githubResponse.status}`);
-      }
+        if (installation.installed) {
+          viaAppInstallation = true;
+        } else {
+          return withHeaders(
+            new Response(
+              JSON.stringify({
+                success: false,
+                error: 'Repository not found',
+                message: `Repository ${owner}/${repo} not found on GitHub. If this is a private repository, install the contributor.info GitHub App to track it.`,
+                code: 'repository_not_found',
+                installUrl: GITHUB_APP_INSTALL_URL,
+              }),
+              {
+                status: 404,
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': 'application/json',
+                },
+              }
+            ),
+            rateLimitResult
+          );
+        }
+      } else {
+        if (!githubResponse.ok) {
+          throw new Error(`GitHub API error: ${githubResponse.status}`);
+        }
 
-      githubData = await githubResponse.json();
+        githubData = await githubResponse.json();
 
-      // Check if it's a private repository
-      if (githubData.private) {
-        return withHeaders(
-          new Response(
-            JSON.stringify({
-              success: false,
-              error: 'Private repository',
-              message: 'Cannot track private repositories',
-            }),
-            {
-              status: 403,
-              headers: {
-                ...corsHeaders,
-                'Content-Type': 'application/json',
-              },
-            }
-          ),
-          rateLimitResult
-        );
+        // Private repositories require the GitHub App installation —
+        // that is the opt-in and what gives sync a token that can read them
+        if (githubData?.private) {
+          const installation = await checkAppInstallation(supabaseUrl, supabaseKey, owner, repo);
+
+          if (installation.installed) {
+            viaAppInstallation = true;
+          } else {
+            return withHeaders(
+              new Response(
+                JSON.stringify({
+                  success: false,
+                  error: 'Private repository',
+                  message:
+                    'Private repositories require the contributor.info GitHub App. Install it on this repository to opt in.',
+                  code: 'app_installation_required',
+                  installUrl: GITHUB_APP_INSTALL_URL,
+                }),
+                {
+                  status: 403,
+                  headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              ),
+              rateLimitResult
+            );
+          }
+        }
       }
     } catch (githubError) {
       // Log the actual error for debugging
@@ -458,7 +547,7 @@ export default async (req: Request, context: Context) => {
       // Step 1: Check if repository already exists in database
       const { data: existingRepos, error: checkError } = await supabase
         .from('repositories')
-        .select('id, owner, name, github_id')
+        .select('id, owner, name, github_id, is_private')
         .eq('owner', owner)
         .eq('name', repo);
 
@@ -470,6 +559,33 @@ export default async (req: Request, context: Context) => {
       if (existingRepos && existingRepos.length > 0) {
         // Repository already exists
         const existingRepo = existingRepos[0];
+
+        // Private repositories stay opted-in only while the app is installed
+        if (existingRepo.is_private && !viaAppInstallation) {
+          const installation = await checkAppInstallation(supabaseUrl, supabaseKey, owner, repo);
+          if (!installation.installed) {
+            return withHeaders(
+              new Response(
+                JSON.stringify({
+                  success: false,
+                  error: 'Private repository',
+                  message:
+                    'Private repositories require the contributor.info GitHub App. Install it on this repository to opt in.',
+                  code: 'app_installation_required',
+                  installUrl: GITHUB_APP_INSTALL_URL,
+                }),
+                {
+                  status: 403,
+                  headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              ),
+              rateLimitResult
+            );
+          }
+        }
 
         // Update repository with latest GitHub data
         interface RepositoryUpdateData {
@@ -545,6 +661,24 @@ export default async (req: Request, context: Context) => {
 
         if (updateError) {
           console.error('Failed to update repository with GitHub data:', updateError);
+        }
+
+        // Ensure the repository is in tracked_repositories — rows created by the
+        // GitHub App installation webhook (e.g. private repos) exist in
+        // repositories without ever having been tracked
+        const { error: existingTrackError } = await supabase.from('tracked_repositories').insert({
+          repository_id: existingRepo.id,
+          organization_name: owner,
+          repository_name: repo,
+          tracking_enabled: true,
+          priority: 'high',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (existingTrackError && existingTrackError.code !== '23505') {
+          // Ignore duplicate key errors
+          console.error('Failed to track existing repository:', existingTrackError);
         }
 
         // Send sync event for existing repository
@@ -658,6 +792,30 @@ export default async (req: Request, context: Context) => {
       // Step 2: Create repository record directly
       // At this point we MUST have githubData since we return early on GitHub API failures
       if (!githubData) {
+        if (viaAppInstallation) {
+          // Private repo covered by an app installation, but the installation
+          // webhook hasn't registered the repository row yet — ask for a retry
+          return withHeaders(
+            new Response(
+              JSON.stringify({
+                success: false,
+                error: 'Installation pending',
+                message:
+                  'The GitHub App is installed, but repository data has not arrived yet. Please try again in a moment.',
+                code: 'installation_pending',
+              }),
+              {
+                status: 202,
+                headers: {
+                  ...corsHeaders,
+                  'Content-Type': 'application/json',
+                },
+              }
+            ),
+            rateLimitResult
+          );
+        }
+
         console.error('Critical error: githubData is null but we should have returned earlier');
         return withHeaders(
           new Response(

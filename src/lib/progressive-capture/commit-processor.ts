@@ -33,7 +33,7 @@ export class CommitProcessor {
       // Get repository info
       const { data: repo, error: repoError } = await supabase
         .from('repositories')
-        .select('owner, name, last_commit_capture_at')
+        .select('owner, name, last_commit_capture_at, is_private')
         .eq('id', repositoryId)
         .maybeSingle();
 
@@ -62,10 +62,19 @@ export class CommitProcessor {
         daysToCapture
       );
 
+      // Private repos need their GitHub App installation token — the
+      // default token chain can only see public repositories
+      let installationToken: string | undefined;
+      if (repo.is_private) {
+        const { getTokenForRepoId } = await import('../inngest/github-client');
+        installationToken = await getTokenForRepoId(repositoryId);
+      }
+
       // Use the existing captureCommits function
       const result = await captureCommits(repo.owner, repo.name, since, {
         batchSize: config.batchSize,
         maxPages: Math.min(config.maxPages, Math.ceil(config.maxPerRun / config.batchSize)),
+        githubToken: installationToken,
       });
 
       if (!result.success) {

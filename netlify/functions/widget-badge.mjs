@@ -142,11 +142,13 @@ async function fetchRepoStats(owner, repo) {
 
   try {
     // Get repository ID
+    // Widgets are public embeds — never serve private repository data
     const { data: repoData, error: repoError } = await supabase
       .from('repositories')
       .select('id')
       .eq('owner', owner)
       .eq('name', repo)
+      .eq('is_private', false)
       .single();
 
     if (repoError || !repoData) {

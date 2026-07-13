@@ -5,6 +5,7 @@ import type { NonRetriableError } from 'inngest';
 import { getThrottleHours, QUEUE_CONFIG } from '../../progressive-capture/throttle-config';
 import { getPRState } from '../../utils/state-mapping';
 import { updateJobStatus } from '../helpers/job-status-updater';
+import { getTokenForRepo } from '../../github-app/installation-token';
 
 // Rate limiting constants for GraphQL (more generous)
 const MAX_PRS_PER_SYNC = QUEUE_CONFIG.maxPrsPerSync || 150; // Higher than REST due to efficiency
@@ -14,7 +15,12 @@ const DEFAULT_DAYS_LIMIT = 30;
 // GraphQL client instance - lazy initialization to avoid module load failures
 let graphqlClient: GraphQLClient | null = null;
 
-function getGraphQLClient(): GraphQLClient {
+function getGraphQLClient(token?: string): GraphQLClient {
+  if (token) {
+    // Private repos authenticate with a short-lived installation token —
+    // don't reuse the shared-PAT singleton for them
+    return new GraphQLClient(token);
+  }
   if (!graphqlClient) {
     graphqlClient = new GraphQLClient();
   }
@@ -136,7 +142,7 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
       const repository = await step.run('get-repository', async () => {
         const { data, error } = await supabase
           .from('repositories')
-          .select('owner, name, last_updated_at')
+          .select('id, owner, name, last_updated_at, is_private')
           .eq('id', repositoryId)
           .maybeSingle();
 
@@ -240,7 +246,11 @@ export const captureRepositorySyncGraphQL = inngest.createFunction(
         const since = new Date(Date.now() - effectiveDays * 24 * 60 * 60 * 1000).toISOString();
 
         try {
-          const client = getGraphQLClient();
+          // Private repos need the GitHub App installation token — the
+          // shared PAT cannot see them. Resolved inside the step so the
+          // token never lands in Inngest step state.
+          const installationToken = await getTokenForRepo(repository);
+          const client = getGraphQLClient(installationToken);
           const prs = await client.getRecentPRs(
             repository.owner,
             repository.name,
