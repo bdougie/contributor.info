@@ -26,7 +26,13 @@ use auth::Session;
 use settings::Settings;
 use supabase::{Supabase, WorkspaceMetrics};
 
-pub const SITE: &str = "https://contributor.info";
+/// Site base for `/i/{slug}` links and the `api-workspace-metrics` endpoint.
+/// Overridable at build time to aim the app at a local `netlify dev`, a deploy
+/// preview, or staging — set `VITE_CONTRIBUTOR_SITE` when building.
+pub const SITE: &str = match option_env!("VITE_CONTRIBUTOR_SITE") {
+    Some(s) => s,
+    None => "https://contributor.info",
+};
 
 const TRAY_ID: &str = "ci-tray";
 const POLL_INTERVAL: Duration = Duration::from_secs(60);
