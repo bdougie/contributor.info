@@ -4,32 +4,28 @@ contributor.info in your system tray / menu bar — a [RepoBar](https://repobar.
 glanceable companion, built with Tauri v2. **Workspaces-first**: the tray is
 organized around your workspaces (teams of repos), not individual repos.
 
-The tray icon is the pixel plant 🌱. Each configured workspace gets a submenu.
-A dashboard window manages workspaces and renders the same numbers as metric
-tiles.
-
-**Status:** workspace identity (name + `contributor.info/i/{slug}` link) is
-live, and signing in unlocks private workspaces. The per-workspace metric tiles
-(open/merged PRs + trend, PR velocity and merge time, active/new contributors,
-open issues, stars) are built but not yet populated — the metrics data source
-needs wiring up (see [Next steps](#next-steps)). Until then, resolved
-workspaces render in a `metrics coming soon` state.
+The tray icon is the pixel plant 🌱. Each configured workspace gets a submenu
+with its headline metrics (open/merged PRs, PR velocity and merge time,
+active/new contributors, open issues, stars). A dashboard window manages
+workspaces and renders the same numbers as metric tiles.
 
 ## Where the data comes from
 
 | Data | Source | Status |
 | --- | --- | --- |
 | Workspace lookup | Supabase REST `workspaces?slug=eq.{slug}` (anon key, or user JWT when signed in) | live |
-| Workspace metrics | none yet — see [Next steps](#next-steps) | pending |
+| Workspace metrics | `GET https://contributor.info/.netlify/functions/api-workspace-metrics?workspace_id={id}&time_range={range}` | live |
 
 RLS lets anonymous clients read **public** workspaces, so workspace identity
 resolves with just the anon key. Signing in widens RLS to the workspaces you
 own or belong to, including private ones.
 
-Workspace metrics have **no live source**: the old `workspace_metrics_cache`
-table was dropped (migration `20260428000007_drop_dead_tables`) and never held
-data. The metric-rendering code is in place and reads through
-`Supabase::metrics` — wiring that to a real endpoint is the top next step.
+Workspace metrics come from the site's public `api-workspace-metrics` endpoint,
+which aggregates them on demand from the source tables (PRs, issues,
+contributors, stars) — the old `workspace_metrics_cache` table was dropped
+(migration `20260428000007_drop_dead_tables`) and never held data. The endpoint
+serves **public** workspaces only; private-workspace metrics (passing the user
+JWT) and period-over-period trends are follow-ups (see [Next steps](#next-steps)).
 
 ## Sign in (private workspaces)
 
@@ -79,13 +75,13 @@ npx tauri icon ../public/plant_pixel_coarse.svg
 
 ## Next steps
 
-- **Workspace metrics endpoint** (unblocks the metric tiles): add a public
-  `api-workspace-metrics` Netlify function on contributor.info that aggregates
-  a workspace's repos server-side (reusing `workspace-aggregation.service.ts`)
-  and returns JSON — mirroring the trending function, so no secret ships in the
-  client. Then repoint `Supabase::metrics` (the seam in `supabase.rs`) at it.
-  The old `workspace_metrics_cache` table is gone, so REST-against-Supabase is
-  a dead end for a client with only the anon key.
+- **Metric trends**: the `api-workspace-metrics` endpoint returns null trend
+  fields (`stars_trend`, `prs_trend`, `contributors_trend`) — the history table
+  they were derived from was dropped. Recompute period-over-period deltas in the
+  endpoint (compare against the previous window) to restore the ▲/▼ arrows.
+- **Private-workspace metrics**: the endpoint serves public workspaces only.
+  Accept the user JWT and verify workspace membership so signed-in users see
+  metrics for their private workspaces.
 - **Notifications**: tauri-plugin-notification on metric transitions (open
   PRs jump, contributors trend down, metrics went stale).
 - **Repo drill-down**: per-workspace repo list with the site's stat-card SVG
