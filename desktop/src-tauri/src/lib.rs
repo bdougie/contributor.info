@@ -1,11 +1,11 @@
 //! contributor.info in the system tray, workspaces-first: each configured
-//! workspace resolves to its public identity, and renders aggregated metrics
-//! (open/merged PRs, velocity, contributors, stars + trends) as soon as a
-//! metrics source is wired up — see README "Next steps".
+//! workspace resolves to its public identity and its aggregated metrics
+//! (open/merged PRs, velocity, contributors, stars).
 //!
 //! Data flow: a 60s poll loop reads Supabase REST (the anon key for public
-//! workspaces, or the user JWT once signed in) for workspace identity, stores
-//! a `Snapshot` in managed state, rebuilds the tray menu from it, and emits a
+//! workspaces, or the user JWT once signed in) for workspace identity and the
+//! site's public `api-workspace-metrics` endpoint for the numbers, stores a
+//! `Snapshot` in managed state, rebuilds the tray menu from it, and emits a
 //! `snapshot` event the dashboard webview listens for. Every fetch failure
 //! degrades to a status string — the tray never errors out.
 
@@ -26,7 +26,13 @@ use auth::Session;
 use settings::Settings;
 use supabase::{Supabase, WorkspaceMetrics};
 
-pub const SITE: &str = "https://contributor.info";
+/// Site base for `/i/{slug}` links and the `api-workspace-metrics` endpoint.
+/// Overridable at build time to aim the app at a local `netlify dev`, a deploy
+/// preview, or staging — set `VITE_CONTRIBUTOR_SITE` when building.
+pub const SITE: &str = match option_env!("VITE_CONTRIBUTOR_SITE") {
+    Some(s) => s,
+    None => "https://contributor.info",
+};
 
 const TRAY_ID: &str = "ci-tray";
 const POLL_INTERVAL: Duration = Duration::from_secs(60);
@@ -65,7 +71,7 @@ fn workspace_title(ws: &WorkspaceStatus) -> String {
     match (&ws.metrics, ws.state.as_str()) {
         (Some(m), _) => format!("\u{1F331} {}  ·  {} open PRs", ws.name, m.open_prs),
         (None, "not_found") => format!("\u{26A0}\u{FE0F} {}  ·  not found (private?)", ws.slug),
-        (None, "no_metrics") => format!("\u{23F3} {}  ·  metrics coming soon", ws.name),
+        (None, "no_metrics") => format!("\u{23F3} {}  ·  metrics unavailable", ws.name),
         (None, "unreachable") => format!("\u{26A0}\u{FE0F} {}  ·  offline", ws.slug),
         (None, _) => format!("\u{26A0}\u{FE0F} {}  ·  {}", ws.slug, ws.state),
     }

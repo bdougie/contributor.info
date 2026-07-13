@@ -1,11 +1,10 @@
-//! Minimal Supabase REST reads for workspaces.
+//! Minimal reads for workspaces: identity from Supabase REST, aggregated
+//! metrics from the site's public `api-workspace-metrics` endpoint.
 //!
 //! Anonymous requests use the public anon key — RLS lets them read `public`
-//! workspaces and their `workspace_metrics_cache` rows (one row per
-//! workspace + time_range, refreshed by the site's aggregation cron).
-//! When a user session exists, the user JWT rides in the Authorization
-//! header instead and RLS widens to the workspaces they own or belong to,
-//! including private ones.
+//! workspaces. When a user session exists, the user JWT rides in the
+//! Authorization header instead and RLS widens to the workspaces they own or
+//! belong to, including private ones.
 
 use serde::{Deserialize, Serialize};
 
@@ -35,7 +34,9 @@ pub struct Workspace {
     pub slug: String,
 }
 
-/// The glanceable subset of `workspace_metrics_cache`.
+/// The glanceable subset returned by the `api-workspace-metrics` endpoint.
+/// Every field is `#[serde(default)]` so the endpoint can add fields without
+/// breaking older clients.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceMetrics {
     #[serde(default)]
@@ -117,20 +118,53 @@ impl Supabase {
         Some(rows.into_iter().next())
     }
 
-    /// Aggregated workspace metrics.
+    /// Aggregated workspace metrics from the site's public
+    /// `api-workspace-metrics` endpoint, which computes them on demand from the
+    /// source tables (the old `workspace_metrics_cache` table was dropped).
     ///
-    /// NOTE: `workspace_metrics_cache` was dropped from the database (migration
-    /// `20260428000007_drop_dead_tables`) and never held data, so this currently
-    /// resolves to `None` and workspaces render in the `no_metrics` state. This
-    /// is the seam for the forthcoming metrics endpoint: swap this REST call for
-    /// a request to a public `api-workspace-metrics` function that aggregates
-    /// server-side (see README "Next steps").
+    /// Returns `None` on any non-success response — including the `403` the
+    /// endpoint returns for private workspaces — so the caller falls back to the
+    /// `no_metrics` state. Passing the user JWT for private workspaces is a
+    /// follow-up.
     pub async fn metrics(&self, workspace_id: &str, time_range: &str) -> Option<WorkspaceMetrics> {
-        let rows: Vec<WorkspaceMetrics> = self
-            .rest(&format!(
-                "workspace_metrics_cache?workspace_id=eq.{workspace_id}&time_range=eq.{time_range}&limit=1"
-            ))
-            .await?;
-        rows.into_iter().next()
+        let url = format!(
+            "{}/.netlify/functions/api-workspace-metrics?workspace_id={workspace_id}&time_range={time_range}",
+            crate::SITE
+        );
+        let resp = self.client.get(&url).send().await.ok()?;
+        if !resp.status().is_success() {
+            return None;
+        }
+        resp.json::<WorkspaceMetrics>().await.ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::WorkspaceMetrics;
+
+    /// Contract check against a real `api-workspace-metrics` response: the tray
+    /// struct must tolerate fields it doesn't model (`total_issues`,
+    /// `closed_issues`) and `null` trend values, and read the flat shape.
+    #[test]
+    fn deserializes_endpoint_response() {
+        let body = r#"{
+            "time_range":"90d","total_prs":91,"merged_prs":72,"open_prs":5,
+            "draft_prs":0,"avg_pr_merge_time_hours":39.78,"pr_velocity":0.8,
+            "total_issues":3,"closed_issues":2,"open_issues":1,
+            "issue_closure_rate":66.67,"total_contributors":7,
+            "active_contributors":7,"new_contributors":3,"total_stars":581,
+            "stars_trend":null,"prs_trend":null,"contributors_trend":null,
+            "calculated_at":"2026-07-13T03:01:50.264Z","is_stale":false
+        }"#;
+        let m: WorkspaceMetrics = serde_json::from_str(body).expect("valid metrics JSON");
+        assert_eq!(m.time_range, "90d");
+        assert_eq!(m.open_prs, 5);
+        assert_eq!(m.merged_prs, 72);
+        assert_eq!(m.total_stars, 581);
+        assert_eq!(m.new_contributors, 3);
+        assert_eq!(m.pr_velocity, Some(0.8));
+        assert_eq!(m.stars_trend, None);
+        assert!(!m.is_stale);
     }
 }

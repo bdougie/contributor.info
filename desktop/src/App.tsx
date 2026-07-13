@@ -62,7 +62,7 @@ function Tile(props: { label: string; value: string; trend?: number | null }) {
 
 const STATE_HINT: Record<string, string> = {
   not_found: 'not found — sign in if this is a private workspace',
-  no_metrics: 'workspace metrics coming soon',
+  no_metrics: "couldn't load metrics",
   unconfigured: 'Supabase anon key missing — see desktop/README.md',
   unreachable: 'offline',
 };
