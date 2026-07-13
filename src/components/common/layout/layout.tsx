@@ -193,14 +193,6 @@ export default function Layout() {
                   </NavLink>
                   <NavLink
                     onClick={() => {
-                      navigate('/trending');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Trending
-                  </NavLink>
-                  <NavLink
-                    onClick={() => {
                       navigate('/i/demo');
                       setIsMenuOpen(false);
                     }}

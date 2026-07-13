@@ -33,21 +33,6 @@ export interface HomePageData {
   totalPRs: number;
 }
 
-export interface TrendingPageData {
-  repos: Array<{
-    id: number;
-    owner: string;
-    name: string;
-    full_name: string;
-    description: string | null;
-    stargazers_count: number;
-    forks_count: number;
-    language: string | null;
-    topics: string[] | null;
-    score: number;
-  }>;
-}
-
 export interface RepoPageData {
   owner: string;
   repo: string;
@@ -140,7 +125,6 @@ export interface WorkspaceNewPageData {
  */
 export type SSRData =
   | { route: 'home'; data: HomePageData; timestamp: number }
-  | { route: 'trending'; data: TrendingPageData; timestamp: number }
   | { route: 'workspaces'; data: WorkspacesPageData; timestamp: number }
   | { route: 'workspace-detail'; data: WorkspaceDetailPageData; timestamp: number }
   | { route: 'workspaces/new'; data: WorkspaceNewPageData; timestamp: number }

@@ -140,11 +140,6 @@ const WorkspaceRoutesWrapper = lazy(() =>
   }))
 );
 
-// Trending components
-const TrendingPageRoute = lazy(() =>
-  import('@/pages/trending').then((m) => ({ default: m.TrendingPageRoute }))
-);
-
 // Admin components
 const AdminMenu = lazy(() =>
   import('@/components/features/admin').then((m) => ({ default: m.AdminMenu }))
@@ -474,7 +469,6 @@ function App() {
 
                       <Route path="/" element={<Layout />}>
                         <Route index element={<Home />} />
-                        <Route path="/trending" element={<TrendingPageRoute />} />
                         {/* Invitation acceptance route - must come before workspace routes to avoid conflicts */}
                         <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
                         {/* Workspace routes - protected by feature flag */}

@@ -45,7 +45,7 @@ interface GitHubSearchInputProps {
   className?: string;
   showButton?: boolean;
   buttonText?: string;
-  searchLocation?: 'header' | 'homepage' | 'trending';
+  searchLocation?: 'header' | 'homepage';
   globalShortcut?: Omit<ShortcutHandler, 'handler'>;
 }
 

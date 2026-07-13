@@ -6,7 +6,6 @@
       "startServerReadyTimeout": 30000,
       "url": [
         "http://localhost:4173/",
-        "http://localhost:4173/trending",
         "http://localhost:4173/workspaces",
         "http://localhost:4173/continuedev/continue"
       ],

@@ -75,11 +75,6 @@
   function = "ssr-home"
   path = "/"
 
-# SSR for trending page - pre-rendered trending repos list
-[[edge_functions]]
-  function = "ssr-trending"
-  path = "/trending"
-
 # SSR for workspaces page - pre-rendered workspaces list (auth-aware)
 [[edge_functions]]
   function = "ssr-workspaces"

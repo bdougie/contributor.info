@@ -48,11 +48,8 @@ export { sendSlackAssigneeReportCron } from './send-slack-assignee-report-cron';
 // User Slack integration for monthly leaderboards
 export { sendUserSlackMonthlyLeaderboardCron } from './send-user-slack-monthly-leaderboard-cron';
 
-// Repository metrics capture for trending detection
-export {
-  captureRepositoryMetricsCron,
-  captureRepositoryMetricsManual,
-} from './capture-repository-metrics-cron';
+// Daily repository metadata refresh (stars, forks, issues, watchers)
+export { refreshRepositoryMetadataCron } from './refresh-repository-metadata-cron';
 
 // StarSearch session knowledge distillation
 export { distillSessionKnowledge } from './distill-session-knowledge';
