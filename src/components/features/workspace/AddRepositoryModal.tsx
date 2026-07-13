@@ -358,24 +358,24 @@ export function AddRepositoryModal({
   }, [orgInput]);
 
   // Pre-select the org's eligible repos (most recently pushed first) up to
-  // the remaining workspace slots, once per loaded org
+  // the remaining workspace slots, once per loaded org. The modal's
+  // TIER_LIMITS cap is intentionally ≤ the DB max_repositories for every
+  // tier, so auto-staging can never exceed what the service accepts.
   useEffect(() => {
     if (!orgQuery || orgLoading || orgRepos.length === 0) return;
     if (autoStagedOrgRef.current === orgQuery) return;
     autoStagedOrgRef.current = orgQuery;
 
-    setStagedRepos((prev) => {
-      const stagedNames = new Set(prev.map((r) => r.full_name));
-      const eligible = filterEligible(orgRepos, false).filter(
-        (repo) => isOrgRepoSelectable(repo) && !stagedNames.has(repo.fullName)
-      );
-      const slotsLeft = remainingSlots - prev.length;
-      const toStage = capSelection(eligible, slotsLeft);
-      if (toStage.length === 0) return prev;
-      toast.success(`Selected ${toStage.length} repositories from ${orgQuery}`);
-      return [...prev, ...toStage.map(toStagedRepository)];
-    });
-  }, [orgQuery, orgLoading, orgRepos, isOrgRepoSelectable, remainingSlots]);
+    const stagedNames = new Set(stagedRepos.map((r) => r.full_name));
+    const eligible = filterEligible(orgRepos, false).filter(
+      (repo) => isOrgRepoSelectable(repo) && !stagedNames.has(repo.fullName)
+    );
+    const toStage = capSelection(eligible, remainingSlots - stagedRepos.length);
+    if (toStage.length === 0) return;
+
+    setStagedRepos((prev) => [...prev, ...toStage.map(toStagedRepository)]);
+    toast.success(`Selected ${toStage.length} repositories from ${orgQuery}`);
+  }, [orgQuery, orgLoading, orgRepos, isOrgRepoSelectable, remainingSlots, stagedRepos]);
 
   const handleRemoveFromStaging = useCallback(
     (fullName: string) => {
