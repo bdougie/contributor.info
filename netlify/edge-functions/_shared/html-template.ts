@@ -313,13 +313,16 @@ const THEME_SCRIPT = `
  * @param ssrData - Data to be hydrated on the client
  * @param url - Current page URL
  * @param assets - Asset references from the built index.html
+ * @param extraHeadScript - Optional pre-serialized script tag injected before the first
+ *   script/preload in <head> (e.g. route-specific prefetch data). Must already be safe HTML.
  */
 export function renderHTML(
   content: string | SafeHTML,
   meta: MetaTags,
   ssrData: SSRData,
   url: string,
-  assets: AssetReferences
+  assets: AssetReferences,
+  extraHeadScript?: SafeHTML
 ): string {
   // Generate modulepreload links
   const modulePreloads = assets.modulePreloads.map(
@@ -378,6 +381,9 @@ export function renderHTML(
         <!-- Performance -->
         <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
         <link rel="dns-prefetch" href="https://egcxzonpmmcirmgqdrla.supabase.co" />
+
+        <!-- Route-specific prefetch data (injected before any other script/preload) -->
+        ${extraHeadScript ?? ''}
 
         <!-- Theme detection - prevent FOUC -->
         <script>
