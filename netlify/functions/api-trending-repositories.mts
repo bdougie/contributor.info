@@ -18,15 +18,74 @@ function getSupabase(): SupabaseClient {
   return supabase;
 }
 
+const VALID_PERIODS = ['24h', '7d', '30d'] as const;
+type Period = (typeof VALID_PERIODS)[number];
+
+const VALID_SORTS = ['trending_score', 'star_change', 'pr_change', 'contributor_change'] as const;
+type SortField = (typeof VALID_SORTS)[number];
+
 interface TrendingQuery {
-  period?: '24h' | '7d' | '30d';
-  limit?: number;
+  period: Period;
+  limit: number;
   language?: string;
-  minStars?: number;
-  sort?: 'trending_score' | 'star_change' | 'pr_change' | 'contributor_change';
+  minStars: number;
+  sort: SortField;
 }
 
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+interface TrendingRepoRow {
+  repository_id: string;
+  owner: string;
+  name: string;
+  description: string | null;
+  language: string | null;
+  stars: number | null;
+  trending_score: number | string | null;
+  star_change: number | string | null;
+  pr_change: number | string | null;
+  contributor_change: number | string | null;
+  last_activity: string | null;
+  avatar_url: string | null;
+  html_url: string | null;
+}
+
+function toNumber(value: number | string | null): number {
+  const parsed = typeof value === 'number' ? value : Number.parseFloat(value ?? '0');
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parsePeriod(value: string | null): Period {
+  return (VALID_PERIODS as readonly string[]).includes(value ?? '') ? (value as Period) : '7d';
+}
+
+function parseSort(value: string | null): SortField {
+  return (VALID_SORTS as readonly string[]).includes(value ?? '')
+    ? (value as SortField)
+    : 'trending_score';
+}
+
+function parseBoundedInt(value: string | null, fallback: number, min: number, max: number): number {
+  const parsed = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(Math.max(parsed, min), max);
+}
+
+// Response is identical for all visitors (public data, anon Supabase key, no
+// auth/cookies), so let Netlify's CDN cache it. Browser cache is kept short so
+// clients pick up fresh data quickly; the CDN serves warm hits for 5 minutes
+// and stale-while-revalidate for up to an hour.
+const CACHE_HEADERS = {
+  'Cache-Control': 'public, max-age=60',
+  'Netlify-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+};
+
+// Errors must never be cached by the CDN or the browser.
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store',
+};
+
+export const handler: Handler = async (event: HandlerEvent, _context: HandlerContext) => {
   try {
     // Set CORS headers
     const headers = {
@@ -49,24 +108,20 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     if (event.httpMethod !== 'GET') {
       return {
         statusCode: 405,
-        headers,
+        headers: { ...headers, ...NO_STORE_HEADERS },
         body: JSON.stringify({ error: 'Method not allowed' }),
       };
     }
 
-    // Parse query parameters
-    const params = new URLSearchParams(event.queryStringParameters || {});
+    // Parse query parameters, coercing everything to bounded/known values so
+    // junk params can't fragment the CDN cache or reach the database.
+    const params = new URLSearchParams(event.rawQuery || '');
     const query: TrendingQuery = {
-      period: (params.get('period') as '24h' | '7d' | '30d') || '7d',
-      limit: Math.min(parseInt(params.get('limit') || '50'), 100), // Cap at 100
+      period: parsePeriod(params.get('period')),
+      limit: parseBoundedInt(params.get('limit'), 50, 1, 100),
       language: params.get('language') || undefined,
-      minStars: parseInt(params.get('minStars') || '0'),
-      sort:
-        (params.get('sort') as
-          | 'trending_score'
-          | 'star_change'
-          | 'pr_change'
-          | 'contributor_change') || 'trending_score',
+      minStars: parseBoundedInt(params.get('minStars'), 0, 0, 1_000_000),
+      sort: parseSort(params.get('sort')),
     };
 
     // Convert period to interval
@@ -101,7 +156,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
       return {
         statusCode: 500,
-        headers,
+        headers: { ...headers, ...NO_STORE_HEADERS },
         body: JSON.stringify({
           error: 'Failed to fetch trending repositories',
           details: error.message,
@@ -110,14 +165,12 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     }
 
     // Sort results if requested (the SQL function returns by trending_score by default)
-    let sortedRepos = trendingRepos || [];
+    let sortedRepos: TrendingRepoRow[] = trendingRepos || [];
 
     if (query.sort !== 'trending_score' && sortedRepos.length > 0) {
-      sortedRepos = [...sortedRepos].sort((a, b) => {
-        const aValue = a[query.sort!] || 0;
-        const bValue = b[query.sort!] || 0;
-        return bValue - aValue;
-      });
+      sortedRepos = [...sortedRepos].sort(
+        (a, b) => toNumber(b[query.sort]) - toNumber(a[query.sort])
+      );
     }
 
     // Get trending statistics for metadata
@@ -133,10 +186,10 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
         description: repo.description,
         language: repo.language,
         stars: repo.stars,
-        trending_score: parseFloat(repo.trending_score || '0'),
-        star_change: parseFloat(repo.star_change || '0'),
-        pr_change: parseFloat(repo.pr_change || '0'),
-        contributor_change: parseFloat(repo.contributor_change || '0'),
+        trending_score: toNumber(repo.trending_score),
+        star_change: toNumber(repo.star_change),
+        pr_change: toNumber(repo.pr_change),
+        contributor_change: toNumber(repo.contributor_change),
         last_activity: repo.last_activity,
         avatar_url: repo.avatar_url,
         html_url: repo.html_url,
@@ -157,7 +210,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
 
     return {
       statusCode: 200,
-      headers,
+      headers: { ...headers, ...CACHE_HEADERS },
       body: JSON.stringify(response),
     };
   } catch (error) {
@@ -171,6 +224,7 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json',
+        ...NO_STORE_HEADERS,
       },
       body: JSON.stringify({
         error: 'Internal server error',
