@@ -130,6 +130,35 @@ async function handleInstallationDeleted(event: InstallationEvent) {
       })
       .eq('installation_id', event.installation.id);
 
+    // Private repos covered by this installation lose their only sync
+    // token — stop tracking them
+    const { data: installationRecord } = await supabase
+      .from('github_app_installations')
+      .select('id')
+      .eq('installation_id', event.installation.id)
+      .maybeSingle();
+
+    if (installationRecord) {
+      const { data: enabledRepos } = await supabase
+        .from('app_enabled_repositories')
+        .select('repository_id, repositories!inner(id, is_private)')
+        .eq('installation_id', installationRecord.id);
+
+      const privateRepoIds = (enabledRepos || [])
+        .filter((row) => {
+          const repo = Array.isArray(row.repositories) ? row.repositories[0] : row.repositories;
+          return repo?.is_private;
+        })
+        .map((row) => row.repository_id);
+
+      if (privateRepoIds.length > 0) {
+        await supabase
+          .from('tracked_repositories')
+          .update({ tracking_enabled: false, updated_at: new Date().toISOString() })
+          .in('repository_id', privateRepoIds);
+      }
+    }
+
     // Track uninstall metrics
     await trackInstallationMetrics('installation_deleted', {
       account_type: event.installation.account.type,
@@ -218,17 +247,22 @@ async function handleRepositoriesAdded(
 
       if (!existingRepo) {
         // Create the repository if it doesn't exist
-        const { data: newRepo } = await supabase
+        const { data: newRepo, error: repoInsertError } = await supabase
           .from('repositories')
           .insert({
             github_id: repo.id,
             name: repo.name,
             full_name: repo.full_name,
-            private: repo.private,
+            owner: repo.owner?.login || repo.full_name.split('/')[0],
+            is_private: repo.private,
             // We'll need to fetch more details later
           })
           .select('id')
           .maybeSingle();
+
+        if (repoInsertError) {
+          console.error(`Failed to insert repository ${repo.full_name}:`, repoInsertError);
+        }
 
         repoId = newRepo?.id;
       }
@@ -346,7 +380,7 @@ async function handleRepositoriesRemoved(
     for (const repo of repositories) {
       const { data: repoRecord } = await supabase
         .from('repositories')
-        .select('id')
+        .select('id, is_private')
         .eq('github_id', repo.id)
         .maybeSingle();
 
@@ -366,6 +400,15 @@ async function handleRepositoriesRemoved(
             last_webhook_event_at: null,
           })
           .eq('id', repoRecord.id);
+
+        // Private repos are only accessible through the installation —
+        // once it's gone, sync has no token, so stop tracking them
+        if (repoRecord.is_private || repo.private) {
+          await supabase
+            .from('tracked_repositories')
+            .update({ tracking_enabled: false, updated_at: new Date().toISOString() })
+            .eq('repository_id', repoRecord.id);
+        }
       }
     }
   } catch (error) {

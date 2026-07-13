@@ -3,7 +3,82 @@ import { createClient } from '@supabase/supabase-js';
 
 // Use SUPABASE_URL (server-side) first, fall back to VITE_ prefix for local dev
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+// Installation tables are RLS-restricted to authenticated users, so this
+// server-side check needs the service role key (anon fallback for local dev)
+const supabaseKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  '';
+
+interface InstallationStatus {
+  installed: boolean;
+  installationId?: number;
+  installedAt?: string;
+}
+
+/**
+ * Check whether the contributor.info GitHub App is installed on a repository.
+ *
+ * A repo is considered covered when either:
+ * 1. It is linked in app_enabled_repositories to a live installation, or
+ * 2. Its owner has a live installation with repository_selection = 'all'
+ *    (repos created after install never fire installation_repositories events)
+ */
+async function getInstallationStatus(owner: string, repo: string): Promise<InstallationStatus> {
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const { data: repoData } = await supabase
+    .from('repositories')
+    .select('id')
+    .eq('owner', owner)
+    .eq('name', repo)
+    .maybeSingle();
+
+  if (repoData) {
+    const { data: enabledRepo } = await supabase
+      .from('app_enabled_repositories')
+      .select(
+        'enabled_at, github_app_installations!inner(installation_id, deleted_at, suspended_at)'
+      )
+      .eq('repository_id', repoData.id)
+      .is('github_app_installations.deleted_at', null)
+      .is('github_app_installations.suspended_at', null)
+      .maybeSingle();
+
+    const installation = Array.isArray(enabledRepo?.github_app_installations)
+      ? enabledRepo?.github_app_installations[0]
+      : enabledRepo?.github_app_installations;
+
+    if (installation) {
+      return {
+        installed: true,
+        installationId: installation.installation_id,
+        installedAt: enabledRepo?.enabled_at ?? undefined,
+      };
+    }
+  }
+
+  // Owner-wide installation covering all repositories
+  const { data: ownerInstall } = await supabase
+    .from('github_app_installations')
+    .select('installation_id, installed_at')
+    .eq('account_name', owner)
+    .eq('repository_selection', 'all')
+    .is('deleted_at', null)
+    .is('suspended_at', null)
+    .maybeSingle();
+
+  if (ownerInstall) {
+    return {
+      installed: true,
+      installationId: ownerInstall.installation_id,
+      installedAt: ownerInstall.installed_at ?? undefined,
+    };
+  }
+
+  return { installed: false };
+}
 
 export default async (req: Request, _context: Context) => {
   // CORS headers
@@ -48,39 +123,22 @@ export default async (req: Request, _context: Context) => {
   }
 
   try {
-    // For now, hard-code that the app is installed on bdougie/contributor.info
-    // In production, this would check the actual GitHub App installations in the database
-    const isInstalled = owner === 'bdougie' && repo === 'contributor.info';
-
-    if (isInstalled) {
-      return new Response(
-        JSON.stringify({
-          installed: true,
-          installationId: 123456789, // Placeholder
-          installedAt: '2024-01-01T00:00:00Z',
-        }),
-        {
-          status: 200,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'max-age=60', // Cache for 1 minute
-          },
-        }
-      );
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
     }
 
-    // Return not installed for other repositories
-    return new Response(JSON.stringify({ installed: false }), {
+    const status = await getInstallationStatus(owner, repo);
+
+    return new Response(JSON.stringify(status), {
       status: 200,
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
-        'Cache-Control': 'max-age=60',
+        'Cache-Control': 'max-age=60', // Cache for 1 minute
       },
     });
   } catch (error) {
-    // Return error response without logging
+    console.error('Failed to check installation status:', error);
     return new Response(
       JSON.stringify({
         error: 'Internal server error',

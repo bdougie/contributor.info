@@ -18,10 +18,16 @@ const SERVER_GITHUB_TOKEN = (() => {
   return process.env.GITHUB_TOKEN || '';
 })();
 
-export async function getGitHubHeaders(): Promise<Record<string, string>> {
+export async function getGitHubHeaders(tokenOverride?: string): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
   };
+
+  // Explicit token (e.g. GitHub App installation token for private repos)
+  if (tokenOverride) {
+    headers['Authorization'] = `token ${tokenOverride}`;
+    return headers;
+  }
 
   // For server-side operations (like Inngest), use the server token
   if (SERVER_GITHUB_TOKEN) {
@@ -53,8 +59,11 @@ export async function getGitHubHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
-export async function makeGitHubRequest<T = unknown>(endpoint: string): Promise<T> {
-  const headers = await getGitHubHeaders();
+export async function makeGitHubRequest<T = unknown>(
+  endpoint: string,
+  tokenOverride?: string
+): Promise<T> {
+  const headers = await getGitHubHeaders(tokenOverride);
 
   // Add delay to prevent rate limiting (respectful API usage)
   await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay between requests
@@ -83,25 +92,28 @@ export async function makeGitHubRequest<T = unknown>(endpoint: string): Promise<
 }
 
 // Export a compatibility function for getOctokit
-export function getOctokit() {
+export function getOctokit(tokenOverride?: string) {
   return {
     rest: {
       pulls: {
         get: async (params: { owner: string; repo: string; pull_number: number }) => {
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}`
+            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}`,
+            tokenOverride
           );
           return { data };
         },
         listReviews: async (params: { owner: string; repo: string; pull_number: number }) => {
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/reviews`
+            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/reviews`,
+            tokenOverride
           );
           return { data };
         },
         listComments: async (params: { owner: string; repo: string; pull_number: number }) => {
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/comments`
+            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/comments`,
+            tokenOverride
           );
           return { data };
         },
@@ -109,7 +121,8 @@ export function getOctokit() {
       issues: {
         listComments: async (params: { owner: string; repo: string; issue_number: number }) => {
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/issues/${params.issue_number}/comments`
+            `/repos/${params.owner}/${params.repo}/issues/${params.issue_number}/comments`,
+            tokenOverride
           );
           return { data };
         },
@@ -133,11 +146,45 @@ export function getOctokit() {
 
           const query = queryParams.toString();
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/issues${query ? `?${query}` : ''}`
+            `/repos/${params.owner}/${params.repo}/issues${query ? `?${query}` : ''}`,
+            tokenOverride
           );
           return { data };
         },
       },
     },
   };
+}
+
+/**
+ * Resolve the token override for a repository by database id.
+ * Private repositories require their GitHub App installation token (the
+ * shared server PAT cannot see them); public repositories return undefined
+ * so callers keep using the default token chain.
+ */
+export async function getTokenForRepoId(repositoryId: string): Promise<string | undefined> {
+  const { supabaseAdmin } = await import('../supabase-admin');
+  if (!supabaseAdmin) {
+    return undefined;
+  }
+
+  const { data: repo } = await supabaseAdmin
+    .from('repositories')
+    .select('id, is_private')
+    .eq('id', repositoryId)
+    .maybeSingle();
+
+  if (!repo?.is_private) {
+    return undefined;
+  }
+
+  const { getTokenForRepo } = await import('../github-app/installation-token');
+  return getTokenForRepo(repo);
+}
+
+/**
+ * Get an octokit-compatible client authenticated for a specific repository.
+ */
+export async function getOctokitForRepo(repositoryId: string) {
+  return getOctokit(await getTokenForRepoId(repositoryId));
 }

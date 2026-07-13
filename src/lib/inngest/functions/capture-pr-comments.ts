@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import { supabase } from '../supabase-server';
-import { getOctokit } from '../github-client';
+import { getOctokitForRepo } from '../github-client';
 import type { DatabaseComment } from '../types';
 import { SyncLogger } from '../sync-logger';
 import { NonRetriableError } from 'inngest';
@@ -99,7 +99,7 @@ export const capturePrComments = inngest.createFunction(
 
       // Step 2: Fetch both PR comments and issue comments
       const commentsData = await step.run('fetch-comments', async () => {
-        const octokit = getOctokit();
+        const octokit = await getOctokitForRepo(repositoryId);
 
         try {
           console.log(

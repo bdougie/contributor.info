@@ -115,6 +115,7 @@ async function fetchRepositories() {
         last_updated_at
       `
       )
+      .eq('is_private', false)
       .order('stargazers_count', { ascending: false });
 
     if (error) {

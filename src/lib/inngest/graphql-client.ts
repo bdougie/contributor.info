@@ -370,8 +370,9 @@ export class GraphQLClient {
     timestamp: number;
   }>;
 
-  constructor() {
-    if (!GITHUB_TOKEN) {
+  constructor(token?: string) {
+    const authToken = token || GITHUB_TOKEN;
+    if (!authToken) {
       const env = process.env.NODE_ENV || 'unknown';
       const hasGithubToken = !!process.env.GITHUB_TOKEN;
       const hasViteGithubToken = !!process.env.VITE_GITHUB_TOKEN;
@@ -382,7 +383,7 @@ export class GraphQLClient {
 
     this.client = graphql.defaults({
       headers: {
-        authorization: `token ${GITHUB_TOKEN}`,
+        authorization: `token ${authToken}`,
       },
     });
 

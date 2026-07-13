@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,7 +17,15 @@ import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import { WorkspaceService as DefaultWorkspaceService } from '@/services/workspace.service';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { toast } from 'sonner';
-import { Package, X, AlertCircle, CheckCircle2, Loader2, Star } from '@/components/ui/icon';
+import {
+  Package,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  Star,
+} from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
 import type { GitHubRepository } from '@/lib/github';
 import { z } from 'zod';
@@ -50,6 +59,24 @@ const TIER_LIMITS = {
   pro: 10,
   enterprise: 100,
 } as const;
+
+const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/contributor-info/installations/new';
+
+/**
+ * Tracking failure that carries the structured error code from the
+ * track-repository API (e.g. app_installation_required for private repos)
+ */
+class TrackingError extends Error {
+  code?: string;
+  installUrl?: string;
+
+  constructor(message: string, code?: string, installUrl?: string) {
+    super(message);
+    this.name = 'TrackingError';
+    this.code = code;
+    this.installUrl = installUrl;
+  }
+}
 
 interface StagedRepository extends GitHubRepository {
   notes?: string;
@@ -93,6 +120,9 @@ export function AddRepositoryModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingRepoId, setRemovingRepoId] = useState<string | null>(null);
+  // Private repos that need the GitHub App installed before they can be added
+  const [installNeeded, setInstallNeeded] = useState<{ repos: string[]; url: string } | null>(null);
+  const [privateRepoInput, setPrivateRepoInput] = useState('');
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
@@ -249,6 +279,31 @@ export function AddRepositoryModal({
     [stagedRepos, existingRepoIds, canAddMore, maxRepos, workspace?.tier]
   );
 
+  const handleAddPrivateRepo = useCallback(() => {
+    const match = privateRepoInput.trim().match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+    if (!match) {
+      setError('Enter the repository as owner/name, e.g. acme/internal-tools');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    const [, owner, name] = match;
+
+    // Private repos can't be found via GitHub search with our public-only
+    // OAuth scope, so stage them from the typed owner/name — the tracking
+    // API verifies access via the GitHub App installation
+    handleSelectRepository({
+      id: 0,
+      name,
+      full_name: `${owner}/${name}`,
+      owner: { login: owner, avatar_url: `https://github.com/${owner}.png` },
+      description: null,
+      stargazers_count: 0,
+      forks_count: 0,
+      private: true,
+    });
+    setPrivateRepoInput('');
+  }, [privateRepoInput, handleSelectRepository]);
+
   const handleRemoveFromStaging = useCallback(
     (fullName: string) => {
       setStagedRepos(stagedRepos.filter((r) => r.full_name !== fullName));
@@ -336,7 +391,19 @@ export function AddRepositoryModal({
         .maybeSingle();
 
       if (existingRepo) {
-        return existingRepo.id;
+        // Repos registered by the GitHub App installation webhook (e.g. private
+        // repos) exist here without being tracked — only short-circuit when
+        // tracking is actually set up, otherwise go through the track API
+        const { data: trackedRepo } = await supabase
+          .from('tracked_repositories')
+          .select('id')
+          .eq('repository_id', existingRepo.id)
+          .eq('tracking_enabled', true)
+          .maybeSingle();
+
+        if (trackedRepo) {
+          return existingRepo.id;
+        }
       }
 
       // Repository not tracked yet — start tracking via API
@@ -361,15 +428,22 @@ export function AddRepositoryModal({
 
       // Handle API-level errors with user-friendly messages
       if (!trackResponse.ok) {
+        if (trackResult.code === 'app_installation_required') {
+          throw new TrackingError(
+            `${repo.full_name} is private. Install the contributor.info GitHub App on it to opt in.`,
+            trackResult.code,
+            trackResult.installUrl || GITHUB_APP_INSTALL_URL
+          );
+        }
         if (trackResponse.status === 404) {
-          throw new Error(`${repo.full_name} was not found on GitHub.`);
+          throw new TrackingError(
+            `${repo.full_name} was not found on GitHub. If it's a private repository, install the contributor.info GitHub App on it first.`,
+            trackResult.code,
+            trackResult.installUrl || GITHUB_APP_INSTALL_URL
+          );
         }
         if (trackResponse.status === 403) {
-          throw new Error(
-            trackResult.error === 'Private repository'
-              ? `${repo.full_name} is private and cannot be tracked.`
-              : `You don't have permission to track ${repo.full_name}.`
-          );
+          throw new Error(`You don't have permission to track ${repo.full_name}.`);
         }
         if (trackResponse.status === 429) {
           throw new Error('Rate limit reached. Please wait a moment and try again.');
@@ -378,6 +452,12 @@ export function AddRepositoryModal({
           throw new Error('The tracking service is temporarily unavailable. Please try again.');
         }
         throw new Error(trackResult.message || `Unable to track ${repo.full_name}.`);
+      }
+
+      if (trackResult.code === 'installation_pending') {
+        // App installed but the webhook hasn't registered the repo yet —
+        // wait for the repository row to appear
+        return await waitForRepository(owner, name);
       }
 
       if (trackResult.success && trackResult.repositoryId) {
@@ -408,6 +488,7 @@ export function AddRepositoryModal({
 
     setSubmitting(true);
     setError(null);
+    setInstallNeeded(null);
 
     try {
       const supabase = await getSupabaseClient();
@@ -417,7 +498,12 @@ export function AddRepositoryModal({
         stagedRepos.map(
           async (
             repo
-          ): Promise<{ id: string | null; error: string | null; repo: StagedRepository }> => {
+          ): Promise<{
+            id: string | null;
+            error: string | null;
+            trackingError?: unknown;
+            repo: StagedRepository;
+          }> => {
             try {
               const id = await trackAndResolveRepository(supabase, repo);
               return { id, error: null, repo };
@@ -425,7 +511,7 @@ export function AddRepositoryModal({
               const message =
                 err instanceof Error ? err.message : `Failed to set up ${repo.full_name}`;
               console.error('Error tracking repository %s:', repo.full_name, err);
-              return { id: null, error: message, repo };
+              return { id: null, error: message, trackingError: err, repo };
             }
           }
         )
@@ -436,9 +522,25 @@ export function AddRepositoryModal({
       );
       const failed = repoResults.filter((r) => r.id === null);
 
+      // Surface private repos that need the GitHub App with a dedicated
+      // install prompt instead of a plain error message
+      const installFailures = failed.filter(
+        (r) => r.trackingError instanceof TrackingError && r.trackingError.installUrl
+      );
+      if (installFailures.length > 0) {
+        setInstallNeeded({
+          repos: installFailures.map((r) => r.repo.full_name),
+          url:
+            (installFailures[0].trackingError as TrackingError).installUrl ||
+            GITHUB_APP_INSTALL_URL,
+        });
+      }
+
       // Add resolved repositories to the workspace
       let successCount = 0;
-      const errors: string[] = failed.map((r) => r.error!);
+      const errors: string[] = failed
+        .filter((r) => !installFailures.includes(r))
+        .map((r) => r.error!);
 
       for (const { id: repoId, repo: stagedRepo } of resolved) {
         const response = await WorkspaceService.addRepositoryToWorkspace(workspaceId, appUserId, {
@@ -488,6 +590,7 @@ export function AddRepositoryModal({
   const handleCancel = useCallback(() => {
     if (!submitting) {
       setError(null);
+      setInstallNeeded(null);
       setStagedRepos([]);
       onOpenChange(false);
     }
@@ -539,6 +642,32 @@ export function AddRepositoryModal({
             onSelect={handleSelectRepository}
             showButton={false}
           />
+          <div className="flex gap-2">
+            <Input
+              value={privateRepoInput}
+              onChange={(e) => setPrivateRepoInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddPrivateRepo();
+                }
+              }}
+              placeholder="owner/repo"
+              aria-label="Add a private repository by owner/name"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddPrivateRepo}
+              disabled={!privateRepoInput.trim()}
+            >
+              Add private repo
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Private repositories don't appear in search. Enter owner/name directly — tracking them
+            requires installing the contributor.info GitHub App.
+          </p>
         </div>
 
         {/* Existing Repositories Section */}
@@ -676,6 +805,34 @@ export function AddRepositoryModal({
             </ScrollArea>
           )}
         </div>
+
+        {/* GitHub App install prompt for private repositories */}
+        {installNeeded && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex flex-col gap-2">
+              <span>
+                {installNeeded.repos.join(', ')}{' '}
+                {installNeeded.repos.length === 1
+                  ? 'is a private repository'
+                  : 'are private repositories'}
+                . Install the contributor.info GitHub App on{' '}
+                {installNeeded.repos.length === 1 ? 'it' : 'them'} to opt in, then add{' '}
+                {installNeeded.repos.length === 1 ? 'it' : 'them'} again.
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-fit gap-1"
+                onClick={() => window.open(installNeeded.url, '_blank', 'noopener,noreferrer')}
+              >
+                Install GitHub App
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Error Alert */}
         {error && (

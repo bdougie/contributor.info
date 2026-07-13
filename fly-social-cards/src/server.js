@@ -273,6 +273,7 @@ app.get('/social-cards/:type?', rateLimit, async (req, res) => {
             )
             .eq('owner', owner)
             .eq('name', repo)
+            .eq('is_private', false)
             .single();
 
           if (!error && repoData) {
