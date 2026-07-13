@@ -5,28 +5,39 @@
   "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "esbuild ./src/server.ts --bundle --platform=node --format=esm --outfile=dist/server.js --packages=external",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@octokit/app": "^15.1.0",
+    "@octokit/auth-app": "^8.2.0",
+    "@octokit/rest": "^22.0.1",
     "@supabase/supabase-js": "^2.46.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.22.0",
     "express-rate-limit": "^8.0.1",
-    "helmet": "^8.0.0"
+    "helmet": "^8.0.0",
+    "inngest": "^3.54.2",
+    "js-yaml": "^4.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "minimatch": "^10.2.5"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.17.10",
+    "esbuild": "^0.28.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.7"
   }
 }

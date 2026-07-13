@@ -11,6 +11,10 @@ import { dirname, join } from 'path';
 // Import consolidated webhook handlers from app/webhooks
 import { handleIssuesEvent } from '../../app/webhooks/issues.js';
 import { handlePullRequestEvent } from '../../app/webhooks/pull-request.js';
+import {
+  handleInstallationEvent,
+  handleInstallationRepositoriesEvent,
+} from '../../app/webhooks/installation.js';
 
 // Load environment variables
 dotenv.config();
@@ -117,6 +121,14 @@ app.post(
 
         case 'issues':
           result = await handleIssuesEvent(event);
+          break;
+
+        case 'installation':
+          result = await handleInstallationEvent(event);
+          break;
+
+        case 'installation_repositories':
+          result = await handleInstallationRepositoriesEvent(event);
           break;
 
         default:
