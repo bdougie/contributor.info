@@ -1,6 +1,6 @@
 import { useParams } from 'react-router';
 import { useState, useEffect } from 'react';
-import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import RepoSocialCard from './repo-card';
 import type { PullRequest, TimeRange } from '@/lib/types';
 import { detectBot } from '@/lib/utils/bot-detection';

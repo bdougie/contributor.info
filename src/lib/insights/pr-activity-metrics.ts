@@ -1,4 +1,4 @@
-import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { fetchPRDataSmart } from '../supabase-pr-data-smart-deduped';
 
 export interface ActivityMetrics {
   totalPRs: number;
@@ -42,7 +42,7 @@ export async function calculatePrActivityMetrics(
 ): Promise<ActivityMetrics> {
   try {
     // Fetch PRs for the current time period
-    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataSmart(owner, repo, { timeRange });
     const allPRs = prDataResult.data;
 
     // Get current date and calculate time boundaries

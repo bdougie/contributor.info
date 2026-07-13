@@ -1,4 +1,4 @@
-import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { fetchPRDataSmart } from '../supabase-pr-data-smart-deduped';
 import { supabase } from '../supabase';
 
 export interface PrAlert {
@@ -115,7 +115,7 @@ export async function detectPrAttention(
   try {
     // Fetch open PRs and maintainers in parallel
     const [prDataResult, maintainers] = await Promise.all([
-      fetchPRDataWithFallback(owner, repo, timeRange),
+      fetchPRDataSmart(owner, repo, { timeRange }),
       fetchMaintainers(owner, repo),
     ]);
 

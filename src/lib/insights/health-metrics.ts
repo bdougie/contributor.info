@@ -10,7 +10,7 @@
  * @see /docs/data-fetching/smart-data-fetching.md - Data fetching strategy (internal docs)
  * @module
  */
-import { fetchPRDataWithFallback } from '../supabase-pr-data';
+import { fetchPRDataSmart } from '../supabase-pr-data-smart-deduped';
 import { toUTCTimestamp } from '../utils/date-formatting';
 import type { PullRequest } from '../types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -93,7 +93,7 @@ export async function calculateHealthMetrics(
   try {
     const now = new Date();
     // Fetch data
-    const prDataResult = await fetchPRDataWithFallback(owner, repo, timeRange);
+    const prDataResult = await fetchPRDataSmart(owner, repo, { timeRange });
     const pullRequests = prDataResult.data;
 
     // Calculate various health factors

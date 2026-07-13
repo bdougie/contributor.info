@@ -239,7 +239,7 @@ describe('Supabase Query Patterns - 406 Error Prevention', () => {
 
       vi.mocked(supabase.from).mockReturnValue(mockQuery as never);
 
-      // Pattern from supabase-pr-data.ts
+      // Pattern from supabase-pr-data-smart.ts
       const { data: existingRepo } = supabase
         .from('repositories')
         .select('id, owner, name')

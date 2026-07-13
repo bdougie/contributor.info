@@ -12,8 +12,7 @@
  */
 import { useState, useEffect, useRef } from 'react';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
-import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
-import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { RepoStats, LotteryFactor, DirectCommitsData, TimeRange } from '@/lib/types';
 import { trackCacheOperation, setApplicationContext, startSpan } from '@/lib/simple-logging';
@@ -199,36 +198,20 @@ export function useCachedRepoData(
               dataSource: 'database',
             });
 
-            // Use smart fetch for better UX - avoids problematic API fallback
-            const useSmartFetch = true; // Feature flag for gradual rollout
+            // Smart fetch is the single canonical PR-data path: database-first,
+            // deduplicated across concurrent callers, with background sync.
+            const [prDataResult, directCommits] = await Promise.all([
+              fetchPRDataSmart(owner, repo, { timeRange, showNotifications: false }),
+              fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
+            ]);
 
-            if (useSmartFetch) {
-              const [prDataResult, directCommits] = await Promise.all([
-                fetchPRDataSmart(owner, repo, { timeRange, showNotifications: false }),
-                fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
-              ]);
-
-              return {
-                prs: prDataResult.data,
-                directCommits,
-                status: prDataResult.status,
-                message: prDataResult.message,
-                metadata: prDataResult.metadata,
-              };
-            } else {
-              // Legacy fallback path
-              const [prDataResult, directCommits] = await Promise.all([
-                fetchPRDataWithFallback(owner, repo, timeRange),
-                fetchDirectCommitsWithDatabaseFallback(owner, repo, timeRange),
-              ]);
-
-              return {
-                prs: prDataResult.data,
-                directCommits,
-                status: prDataResult.status,
-                message: prDataResult.message,
-              };
-            }
+            return {
+              prs: prDataResult.data,
+              directCommits,
+              status: prDataResult.status,
+              message: prDataResult.message,
+              metadata: prDataResult.metadata,
+            };
           }
         );
 

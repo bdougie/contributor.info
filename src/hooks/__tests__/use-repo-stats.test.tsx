@@ -3,14 +3,14 @@ import { renderHook, cleanup } from '@testing-library/react';
 import { useRepoStats } from '../use-repo-stats';
 import { RepoStatsContext } from '@/lib/repo-stats-context';
 import { fetchDirectCommitsWithDatabaseFallback } from '@/lib/supabase-direct-commits';
-import { fetchPRDataWithFallback } from '@/lib/supabase-pr-data';
+import { fetchPRDataSmart } from '@/lib/supabase-pr-data-smart-deduped';
 import { calculateLotteryFactor } from '@/lib/utils';
 import type { PullRequest } from '@/lib/types';
 import React from 'react';
 
 // Mock dependencies
-vi.mock('@/lib/supabase-pr-data', () => ({
-  fetchPRDataWithFallback: vi.fn(),
+vi.mock('@/lib/supabase-pr-data-smart-deduped', () => ({
+  fetchPRDataSmart: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase-direct-commits', () => ({
@@ -136,7 +136,7 @@ describe('useRepoStats', () => {
     vi.clearAllMocks();
 
     // Setup mock return values
-    vi.mocked(fetchPRDataWithFallback).mockResolvedValue({
+    vi.mocked(fetchPRDataSmart).mockResolvedValue({
       data: mockPullRequests,
       status: 'success',
     });
@@ -270,7 +270,10 @@ describe('useRepoStats', () => {
 
     return result.current.fetchRepoData('testorg', 'testrepo', timeRange, true).then((data) => {
       // Verify API calls
-      expect(fetchPRDataWithFallback).toHaveBeenCalledWith('testorg', 'testrepo', timeRange);
+      expect(fetchPRDataSmart).toHaveBeenCalledWith('testorg', 'testrepo', {
+        timeRange,
+        showNotifications: false,
+      });
       expect(fetchDirectCommitsWithDatabaseFallback).toHaveBeenCalledWith(
         'testorg',
         'testrepo',
