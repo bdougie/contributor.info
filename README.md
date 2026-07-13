@@ -63,6 +63,14 @@ Display repository statistics directly in your README with our embeddable widget
 
 Visit [contributor.info/widgets](https://contributor.info/widgets) to generate custom widgets for your repository!
 
+## 🖥️ Desktop App
+
+A menu bar / system tray companion (built with Tauri v2) keeps your workspaces glanceable — headline PR, contributor, and issue metrics without opening a browser.
+
+- **Install & use:** [User guide](./docs/user-guide/desktop-app.md)
+- **Download:** [Releases](https://github.com/bdougie/contributor.info/releases?q=desktop-v) (macOS Apple Silicon, Linux)
+- **Develop:** [`desktop/README.md`](./desktop/README.md)
+
 ## 🛠️ For Contributors
 
 Want to contribute to the project? We'd love your help!

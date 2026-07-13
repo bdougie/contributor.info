@@ -1,0 +1,58 @@
+---
+title: Desktop App
+description: Keep your workspaces in your macOS menu bar or Linux system tray. Glanceable PR, contributor, and issue metrics without opening a browser.
+---
+
+The contributor.info desktop app lives in your macOS menu bar or Linux system tray and surfaces each workspace's headline metrics at a glance — open and merged PRs, PR velocity and merge time, active and new contributors, open issues, and stars. It's **workspaces-first**: add the workspaces you care about and each gets its own tray submenu, plus a small dashboard window to manage them.
+
+## Download
+
+Grab the latest build from the [Releases page](https://github.com/bdougie/contributor.info/releases?q=desktop-v) (filter for `desktop-v*`) and pick the file for your platform.
+
+| Platform | File | Notes |
+|---|---|---|
+| macOS (Apple Silicon, M1 and newer) | `.dmg` | Unsigned — see first-run step below |
+| Linux (x86_64) | `.deb` or `.AppImage` | `.deb` for Debian/Ubuntu; `.AppImage` runs anywhere |
+
+<Note>
+The builds are currently **unsigned**, so your operating system warns you the first time you open the app. That's expected — the steps below get you through it.
+</Note>
+
+## Install and first run
+
+<Tabs>
+  <Tab title="macOS">
+    1. Open the `.dmg` and drag **contributor.info** to Applications.
+    2. On first launch, macOS blocks unsigned apps. **Right-click** (or Control-click) the app in Applications and choose **Open**, then confirm. You only do this once.
+    3. The pixel-plant icon appears in your menu bar. Click it to open the menu.
+  </Tab>
+  <Tab title="Linux">
+    - **`.deb`:** `sudo dpkg -i contributor.info_*.deb`. Install `libayatana-appindicator3-1` if the tray icon doesn't appear.
+    - **`.AppImage`:** `chmod +x contributor.info_*.AppImage && ./contributor.info_*.AppImage`.
+
+    The tray icon appears in your system tray; click it for the menu.
+  </Tab>
+</Tabs>
+
+## Add a workspace
+
+1. Click the tray icon, then **Dashboard…**.
+2. Paste a workspace slug or its `/i/…` URL (for example `my-team` or `https://contributor.info/i/my-team`) and click **Add**.
+3. Its metrics show up as tiles in the dashboard and as a submenu in the tray.
+
+The app refreshes every 60 seconds; use **Refresh now** to update immediately.
+
+## Sign in for private workspaces
+
+Public workspaces work without an account. To see your private workspaces, click **Sign in with GitHub** in the tray menu or dashboard header, authorize in your browser, and return to the app. Your session is saved securely and refreshes automatically. See [Authentication](/features/authentication) for the scopes requested.
+
+## Troubleshooting
+
+| What you see | What it means | What to do |
+|---|---|---|
+| **unconfigured** | Built without its access key | Download an official release from the Releases page |
+| **not found (private?)** | The slug didn't resolve | Check the slug; sign in if it's private |
+| **metrics unavailable** | Metrics aren't computed yet | Try again shortly, or open the workspace on the site |
+| **offline** | Couldn't reach contributor.info | Check your internet connection |
+| macOS won't open the app | It's unsigned | Right-click the app → **Open** |
+| No tray icon on Linux | Missing tray support | Install `libayatana-appindicator3-1` and relaunch |
