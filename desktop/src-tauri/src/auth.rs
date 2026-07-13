@@ -12,7 +12,7 @@
 
 use std::fs;
 use std::io::{Read, Write as IoWrite};
-use std::net::TcpListener;
+use std::net::{SocketAddr, TcpListener};
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -20,6 +20,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use socket2::{Domain, Protocol, Socket, Type};
 use tauri::Manager;
 
 pub const CALLBACK_PORT: u16 = 1421;
@@ -84,6 +85,76 @@ fn session_from_response(resp: TokenResponse, fallback_name: Option<String>) -> 
     }
 }
 
+/// Bind the loopback callback listener with `SO_REUSEADDR` so a socket left in
+/// TIME_WAIT by a previous sign-in attempt (the served `/callback` connection
+/// closes server-side) doesn't block a retry with a spurious "address in use".
+fn bind_callback_listener() -> Result<TcpListener, String> {
+    let addr: SocketAddr = ([127, 0, 0, 1], CALLBACK_PORT).into();
+    let socket = Socket::new(Domain::IPV4, Type::STREAM, Some(Protocol::TCP))
+        .map_err(|e| format!("callback socket setup failed: {e}"))?;
+    socket
+        .set_reuse_address(true)
+        .map_err(|e| format!("callback socket setup failed: {e}"))?;
+    socket
+        .bind(&addr.into())
+        .map_err(|_| format!("port {CALLBACK_PORT} is busy — is a sign-in already running?"))?;
+    socket
+        .listen(1)
+        .map_err(|e| format!("callback listener failed: {e}"))?;
+    Ok(socket.into())
+}
+
+/// Branded browser page shown after the OAuth redirect. Placeholders (`%…%`)
+/// are filled per outcome by `callback_html`; served as UTF-8 so the emoji and
+/// typographic punctuation render.
+const CALLBACK_TEMPLATE: &str = r#"<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>contributor.info</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1a1a1a;--muted:#6b7280;--border:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#111113;--fg:#ededed;--muted:#9ca3af;--border:#27272a}}
+*{box-sizing:border-box;margin:0}html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{max-width:420px;width:100%;text-align:center;border:1px solid var(--border);border-radius:16px;padding:40px 32px}
+.mark{width:64px;height:64px;margin:0 auto 20px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:30px;background:rgba(%ACCENT%,0.14);border:1px solid rgba(%ACCENT%,0.4)}
+h1{font-size:20px;font-weight:640;margin-bottom:8px;letter-spacing:-0.01em}
+p{font-size:14px;color:var(--muted);line-height:1.5}
+.brand{margin-top:26px;font-size:12px;color:var(--muted)}
+.brand b{color:var(--fg);font-weight:600}
+</style></head>
+<body><main class="card">
+<div class="mark">%EMOJI%</div>
+<h1>%HEADING%</h1>
+<p>%SUB%</p>
+<div class="brand">🌱 <b>contributor.info</b></div>
+</main></body></html>"#;
+
+/// Render the callback page for a success or failure outcome, matching the
+/// app's palette (accent `#10b981`, seedling motif).
+fn callback_html(signed_in: bool) -> String {
+    let (accent, emoji, heading, sub) = if signed_in {
+        (
+            "16,185,129",
+            "\u{1F331}",
+            "You\u{2019}re signed in",
+            "Head back to the contributor.info app \u{2014} you can close this tab.",
+        )
+    } else {
+        (
+            "239,68,68",
+            "\u{26A0}\u{FE0F}",
+            "Sign-in didn\u{2019}t complete",
+            "No authorization code came back. Close this tab and try again from the app.",
+        )
+    };
+    CALLBACK_TEMPLATE
+        .replace("%ACCENT%", accent)
+        .replace("%EMOJI%", emoji)
+        .replace("%HEADING%", heading)
+        .replace("%SUB%", sub)
+}
+
 /// Wait for the OAuth redirect on the loopback listener and pull `code` out
 /// of the request line. Serves a tiny "return to the app" page in response.
 fn wait_for_code(listener: TcpListener) -> Result<String, String> {
@@ -120,20 +191,12 @@ fn wait_for_code(listener: TcpListener) -> Result<String, String> {
                     });
 
                 let (status, body) = match &code {
-                    Some(_) => (
-                        "200 OK",
-                        "<html><body style=\"font-family:sans-serif;text-align:center;padding-top:20vh\">\
-                         <h2>\u{1F331} Signed in</h2><p>You can close this tab and return to the app.</p></body></html>",
-                    ),
-                    None => (
-                        "400 Bad Request",
-                        "<html><body style=\"font-family:sans-serif;text-align:center;padding-top:20vh\">\
-                         <h2>Sign-in failed</h2><p>No authorization code was returned. Close this tab and try again.</p></body></html>",
-                    ),
+                    Some(_) => ("200 OK", callback_html(true)),
+                    None => ("400 Bad Request", callback_html(false)),
                 };
                 let _ = stream.write_all(
                     format!(
-                        "HTTP/1.1 {status}\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                        "HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                         body.len()
                     )
                     .as_bytes(),
@@ -165,8 +228,7 @@ pub async fn login(
 ) -> Result<Session, String> {
     // One listener per login; a failed bind means another login is pending
     // (or another app owns the port).
-    let listener = TcpListener::bind(("127.0.0.1", CALLBACK_PORT))
-        .map_err(|_| format!("port {CALLBACK_PORT} is busy — is a sign-in already running?"))?;
+    let listener = bind_callback_listener()?;
 
     let mut verifier_bytes = [0u8; 32];
     getrandom::getrandom(&mut verifier_bytes).map_err(|e| format!("rng failure: {e}"))?;
