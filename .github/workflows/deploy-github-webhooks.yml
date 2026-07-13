@@ -41,7 +41,8 @@ jobs:
             --config webhooks-server/fly.toml \
             --dockerfile webhooks-server/Dockerfile
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          # Webhooks-scoped token; the shared FLY_API_TOKEN only covers social-cards
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_WEBHOOKS }}
 
       - name: Check deployment health
         run: |
