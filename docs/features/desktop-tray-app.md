@@ -17,6 +17,8 @@ generated from `public/plant_pixel_coarse.svg`.
   (deep-links to `/i/{slug}`) and read-only metric lines — open/merged PRs
   with trend vs the previous period, PR velocity (PRs/day) and average hours
   to merge, active/new contributors with trend, open issues, and stars.
+- An account section: **Sign in with GitHub…** when anonymous, or
+  "Signed in as {user}" plus **Sign out** when authenticated.
 - Dashboard…, Refresh now, and Quit actions. The tooltip summarizes
   workspaces and total open PRs.
 
@@ -25,6 +27,31 @@ generated from `public/plant_pixel_coarse.svg`.
 A small always-available webview (React + Vite, hidden on close rather than
 quit) for managing which workspaces appear in the tray — add by slug or
 `/i/…` URL — and for viewing the same metrics as tiles with trend arrows.
+The header carries the same sign-in/sign-out control as the tray menu and
+surfaces sign-in errors inline.
+
+### Login (private workspaces)
+
+Supabase GitHub OAuth using the **PKCE flow with a loopback listener**
+(`desktop/src-tauri/src/auth.rs`):
+
+1. The app binds a one-shot HTTP listener on `127.0.0.1:1421` and opens the
+   browser at GoTrue's `/authorize` with a SHA-256 code challenge.
+2. After GitHub, Supabase redirects to `http://localhost:1421/callback?code=…`;
+   the listener replies with a small "return to the app" page.
+3. The app exchanges code + verifier at `/auth/v1/token?grant_type=pkce`.
+
+The resulting user JWT replaces the anon key in the `Authorization` header on
+REST reads, so RLS widens from public workspaces to everything the user owns
+or is a member of — including private workspaces. Sessions persist to
+`session.json` (mode 0600) in the app config dir; the poll loop refreshes the
+access token when it is within 5 minutes of expiry (GoTrue rotates refresh
+tokens on every use), and a rejected refresh drops cleanly back to anonymous.
+
+**One-time project setup**: `http://localhost:1421/callback` must be added to
+Authentication → URL Configuration → Redirect URLs in the Supabase dashboard;
+otherwise GoTrue redirects the OAuth callback to the site URL instead of the
+loopback listener.
 
 ### Degradation
 
@@ -55,9 +82,10 @@ run), `unconfigured` (no anon key), `unreachable` (offline).
 
 RLS permits anonymous reads of public workspaces and their metrics cache
 (policies in `supabase/migrations/20250827000000_workspace_metrics_cache.sql`),
-so the app works with just the public anon key. Note that
+so the app works without login for public workspaces; signing in extends
+reads to private workspaces via the same queries. Note that
 `workspace_repositories` requires a logged-in user even for public
-workspaces, which is why the tray shows workspace-level metrics only for now.
+workspaces, so per-repo drill-down is only possible once signed in.
 
 ### Keys
 
@@ -80,12 +108,11 @@ VITE_SUPABASE_ANON_KEY=… npm run tauri build   # .app/.dmg on macOS, .deb/.App
 
 ## Future Work
 
-1. **Login for private workspaces** — Supabase GitHub OAuth via deep link
-   (`tauri-plugin-deep-link`); a user JWT makes RLS scope to workspace
-   membership, unlocking private workspaces and per-repo drill-down.
-2. **Notifications** — `tauri-plugin-notification` on metric transitions
+1. **Notifications** — `tauri-plugin-notification` on metric transitions
    (open-PR spikes, contributor trend drops, stale metrics).
-3. **Repo drill-down** — per-workspace repo list rendering the existing
-   stat-card SVG widgets.
+2. **Repo drill-down** — per-workspace repo list rendering the existing
+   stat-card SVG widgets (readable once signed in).
+3. **Keychain storage** — move `session.json` into the OS keychain
+   (`keyring` crate).
 4. **macOS polish** — template (monochrome) tray icon variant and
    launch-at-login via `tauri-plugin-autostart`.

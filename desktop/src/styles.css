@@ -86,6 +86,30 @@ button.ghost {
   border: none;
 }
 
+button.secondary {
+  background: transparent;
+  color: var(--fg);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.auth-error {
+  font-size: 12px;
+  color: #ef4444;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));

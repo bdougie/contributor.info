@@ -8,6 +8,7 @@
 //! listens for. Every fetch failure degrades to a status string — the tray
 //! never errors out.
 
+mod auth;
 mod settings;
 mod supabase;
 
@@ -20,6 +21,7 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
 
+use auth::Session;
 use settings::Settings;
 use supabase::{Supabase, WorkspaceMetrics};
 
@@ -40,6 +42,7 @@ pub struct WorkspaceStatus {
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct Snapshot {
     workspaces: Vec<WorkspaceStatus>,
+    signed_in_as: Option<String>,
     refreshed_at: u64,
 }
 
@@ -47,6 +50,7 @@ pub struct Snapshot {
 struct AppState {
     snapshot: Mutex<Snapshot>,
     settings: Mutex<Settings>,
+    session: Mutex<Option<Session>>,
 }
 
 fn fmt_trend(v: Option<f64>) -> String {
@@ -145,6 +149,29 @@ fn build_menu(app: &AppHandle, snapshot: &Snapshot) -> tauri::Result<Menu<tauri:
     }
 
     menu.append(&PredefinedMenuItem::separator(app)?)?;
+    match &snapshot.signed_in_as {
+        Some(name) => {
+            menu.append(&MenuItem::with_id(
+                app,
+                "account",
+                format!("Signed in as {name}"),
+                false,
+                None::<&str>,
+            )?)?;
+            menu.append(&MenuItem::with_id(app, "logout", "Sign out", true, None::<&str>)?)?;
+        }
+        None => {
+            menu.append(&MenuItem::with_id(
+                app,
+                "login",
+                "Sign in with GitHub\u{2026}",
+                true,
+                None::<&str>,
+            )?)?;
+        }
+    }
+
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "dashboard", "Dashboard\u{2026}", true, None::<&str>)?)?;
     menu.append(&MenuItem::with_id(app, "refresh", "Refresh now", true, None::<&str>)?)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
@@ -187,9 +214,35 @@ async fn fetch_workspace(db: &Supabase, slug: &str, time_range: &str) -> Workspa
     }
 }
 
+/// Return a live user session, transparently refreshing (GoTrue rotates the
+/// refresh token) or dropping to anonymous when the refresh is rejected.
+async fn live_session(app: &AppHandle, cfg: &Settings) -> Option<Session> {
+    let current = app.state::<AppState>().session.lock().unwrap().clone()?;
+    if !current.expires_within(Duration::from_secs(300)) {
+        return Some(current);
+    }
+    match auth::refresh(&cfg.supabase_url, &cfg.anon_key(), &current).await {
+        Some(fresh) => {
+            auth::save(app, &fresh);
+            *app.state::<AppState>().session.lock().unwrap() = Some(fresh.clone());
+            Some(fresh)
+        }
+        None => {
+            auth::clear(app);
+            *app.state::<AppState>().session.lock().unwrap() = None;
+            None
+        }
+    }
+}
+
 async fn refresh(app: AppHandle) {
     let cfg = app.state::<AppState>().settings.lock().unwrap().clone();
-    let db = Supabase::new(cfg.supabase_url.clone(), cfg.anon_key());
+    let session = live_session(&app, &cfg).await;
+    let db = Supabase::new(
+        cfg.supabase_url.clone(),
+        cfg.anon_key(),
+        session.as_ref().map(|s| s.access_token.clone()),
+    );
 
     let mut workspaces = Vec::with_capacity(cfg.workspaces.len());
     for slug in &cfg.workspaces {
@@ -198,6 +251,7 @@ async fn refresh(app: AppHandle) {
 
     let snapshot = Snapshot {
         workspaces,
+        signed_in_as: session.map(|s| s.user_name),
         refreshed_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -256,6 +310,37 @@ fn refresh_now(app: AppHandle) {
     tauri::async_runtime::spawn(refresh(app.clone()));
 }
 
+async fn do_login(app: AppHandle) -> Result<String, String> {
+    let cfg = app.state::<AppState>().settings.lock().unwrap().clone();
+    let anon_key = cfg.anon_key();
+    if anon_key.is_empty() {
+        return Err("Supabase anon key missing — see desktop/README.md".into());
+    }
+    let opener_app = app.clone();
+    let session = auth::login(&cfg.supabase_url, &anon_key, move |url| {
+        let _ = opener_app.opener().open_url(url, None::<&str>);
+    })
+    .await?;
+
+    auth::save(&app, &session);
+    let name = session.user_name.clone();
+    *app.state::<AppState>().session.lock().unwrap() = Some(session);
+    refresh(app).await;
+    Ok(name)
+}
+
+#[tauri::command]
+async fn login(app: AppHandle) -> Result<String, String> {
+    do_login(app).await
+}
+
+#[tauri::command]
+fn logout(app: AppHandle, state: tauri::State<'_, AppState>) {
+    auth::clear(&app);
+    *state.session.lock().unwrap() = None;
+    tauri::async_runtime::spawn(refresh(app.clone()));
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -265,7 +350,9 @@ pub fn run() {
             get_snapshot,
             get_workspaces,
             set_workspaces,
-            refresh_now
+            refresh_now,
+            login,
+            logout
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -273,6 +360,7 @@ pub fn run() {
 
             let handle = app.handle().clone();
             *app.state::<AppState>().settings.lock().unwrap() = settings::load(&handle);
+            *app.state::<AppState>().session.lock().unwrap() = auth::load(&handle);
 
             let menu = build_menu(&handle, &Snapshot::default())?;
             TrayIconBuilder::with_id(TRAY_ID)
@@ -288,6 +376,20 @@ pub fn run() {
                         }
                         "dashboard" => show_dashboard(app),
                         "refresh" => {
+                            tauri::async_runtime::spawn(refresh(app.clone()));
+                        }
+                        "login" => {
+                            let app = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = do_login(app.clone()).await {
+                                    eprintln!("sign-in failed: {e}");
+                                    let _ = app.emit("login-error", e);
+                                }
+                            });
+                        }
+                        "logout" => {
+                            auth::clear(app);
+                            *app.state::<AppState>().session.lock().unwrap() = None;
                             tauri::async_runtime::spawn(refresh(app.clone()));
                         }
                         "quit" => app.exit(0),

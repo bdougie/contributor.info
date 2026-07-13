@@ -35,6 +35,7 @@ interface WorkspaceStatus {
 
 interface Snapshot {
   workspaces: WorkspaceStatus[];
+  signed_in_as: string | null;
   refreshed_at: number;
 }
 
@@ -60,7 +61,7 @@ function Tile(props: { label: string; value: string; trend?: number | null }) {
 }
 
 const STATE_HINT: Record<string, string> = {
-  not_found: 'not found — private workspaces need login (coming soon)',
+  not_found: 'not found — sign in if this is a private workspace',
   no_metrics: 'metrics not aggregated yet',
   unconfigured: 'Supabase anon key missing — see desktop/README.md',
   unreachable: 'offline',
@@ -70,15 +71,36 @@ export default function App() {
   const [slugs, setSlugs] = useState<string[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [draft, setDraft] = useState('');
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     invoke<string[]>('get_workspaces').then(setSlugs);
     invoke<Snapshot>('get_snapshot').then(setSnapshot);
-    const unlisten = listen<Snapshot>('snapshot', (e) => setSnapshot(e.payload));
+    const unlistenSnapshot = listen<Snapshot>('snapshot', (e) => setSnapshot(e.payload));
+    const unlistenLoginError = listen<string>('login-error', (e) => setAuthError(e.payload));
     return () => {
-      unlisten.then((fn) => fn());
+      unlistenSnapshot.then((fn) => fn());
+      unlistenLoginError.then((fn) => fn());
     };
   }, []);
+
+  const signIn = async () => {
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      await invoke<string>('login');
+    } catch (e) {
+      setAuthError(String(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    setAuthError(null);
+    await invoke('logout');
+  };
 
   const save = async (next: string[]) => {
     setSlugs(next);
@@ -110,8 +132,22 @@ export default function App() {
             onKeyDown={(e) => e.key === 'Enter' && addWorkspace()}
           />
           <button onClick={addWorkspace}>Add</button>
+          {snapshot?.signed_in_as ? (
+            <span className="account">
+              {snapshot.signed_in_as}
+              <button className="ghost" onClick={signOut}>
+                Sign out
+              </button>
+            </span>
+          ) : (
+            <button className="secondary" onClick={signIn} disabled={authBusy}>
+              {authBusy ? 'Waiting for browser…' : 'Sign in with GitHub'}
+            </button>
+          )}
         </div>
       </header>
+
+      {authError && <p className="auth-error">Sign-in failed: {authError}</p>}
 
       <section className="cards">
         {slugs.map((slug) => {

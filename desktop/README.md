@@ -18,8 +18,22 @@ manages workspaces and renders the same numbers as metric tiles.
 
 RLS lets anonymous clients read **public** workspaces and their metrics cache
 (one row per workspace + time range, refreshed by the site's aggregation
-cron). Private workspaces resolve to `not found` until login lands — that
-needs Supabase GitHub OAuth + a user JWT, and is the top follow-up.
+cron). Signing in widens RLS to the workspaces you own or belong to,
+including private ones.
+
+## Sign in (private workspaces)
+
+"Sign in with GitHub" (tray menu or dashboard) runs Supabase's OAuth PKCE
+flow with a one-shot loopback listener: the app binds `127.0.0.1:1421`,
+opens the browser at GoTrue's `/authorize`, and exchanges the returned code
+for a session. The user JWT then replaces the anon key on REST reads, and
+sessions persist to `session.json` (0600) in the app config dir with
+automatic refresh-token rotation; failing refresh drops cleanly back to
+anonymous.
+
+**One-time Supabase setup**: add `http://localhost:1421/callback` to
+Authentication → URL Configuration → Redirect URLs in the Supabase
+dashboard, or GoTrue will bounce the callback to the site URL instead.
 
 The Rust core polls every 60s, rebuilds the tray menu from the snapshot, and
 emits a `snapshot` event the dashboard listens to. Fetch failures degrade to
@@ -55,14 +69,11 @@ npx tauri icon ../public/plant_pixel_coarse.svg
 
 ## Next steps
 
-- **Login for private workspaces**: Supabase GitHub OAuth via deep link
-  (`tauri-plugin-deep-link`), store the session, send the user JWT instead of
-  the anon key — RLS then scopes to workspace membership, unlocking private
-  workspaces and repo lists (`workspace_repositories` requires a logged-in
-  user even for public workspaces).
 - **Notifications**: tauri-plugin-notification on metric transitions (open
   PRs jump, contributors trend down, metrics went stale).
 - **Repo drill-down**: per-workspace repo list with the site's stat-card SVG
-  widgets once authed.
+  widgets (`workspace_repositories` is readable once signed in).
+- **Keychain storage**: move `session.json` into the OS keychain
+  (e.g. the `keyring` crate), matching how RepoBar stores tokens.
 - **macOS niceties**: template (monochrome) tray icon variant,
   launch-at-login via tauri-plugin-autostart.

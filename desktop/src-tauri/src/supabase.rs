@@ -1,10 +1,11 @@
 //! Minimal Supabase REST reads for workspaces.
 //!
-//! Uses the public anon key — RLS lets anonymous clients read `public`
+//! Anonymous requests use the public anon key — RLS lets them read `public`
 //! workspaces and their `workspace_metrics_cache` rows (one row per
 //! workspace + time_range, refreshed by the site's aggregation cron).
-//! Private workspaces need a user JWT; until login lands they resolve to
-//! `not_found`.
+//! When a user session exists, the user JWT rides in the Authorization
+//! header instead and RLS widens to the workspaces they own or belong to,
+//! including private ones.
 
 use serde::{Deserialize, Serialize};
 
@@ -22,6 +23,8 @@ pub const BAKED_ANON_KEY: Option<&str> = option_env!("VITE_SUPABASE_ANON_KEY");
 pub struct Supabase {
     pub url: String,
     pub anon_key: String,
+    /// User JWT when signed in; falls back to the anon key otherwise.
+    pub bearer: Option<String>,
     client: reqwest::Client,
 }
 
@@ -74,10 +77,11 @@ pub struct WorkspaceMetrics {
 }
 
 impl Supabase {
-    pub fn new(url: String, anon_key: String) -> Self {
+    pub fn new(url: String, anon_key: String, bearer: Option<String>) -> Self {
         Self {
             url,
             anon_key,
+            bearer,
             client: reqwest::Client::builder()
                 .user_agent("contributor.info-desktop/0.1")
                 .timeout(std::time::Duration::from_secs(15))
@@ -91,10 +95,11 @@ impl Supabase {
     }
 
     async fn rest<T: for<'de> Deserialize<'de>>(&self, path_and_query: &str) -> Option<Vec<T>> {
+        let token = self.bearer.as_deref().unwrap_or(&self.anon_key);
         self.client
             .get(format!("{}/rest/v1/{}", self.url, path_and_query))
             .header("apikey", &self.anon_key)
-            .header("Authorization", format!("Bearer {}", self.anon_key))
+            .header("Authorization", format!("Bearer {token}"))
             .send()
             .await
             .ok()?
