@@ -33,17 +33,8 @@ interface WorkspaceStatus {
   metrics: WorkspaceMetrics | null;
 }
 
-interface TrendingRepo {
-  owner: string;
-  name: string;
-  star_change: number;
-  pr_change: number;
-  contributor_change: number;
-}
-
 interface Snapshot {
   workspaces: WorkspaceStatus[];
-  trending: TrendingRepo[];
   refreshed_at: number;
 }
 
@@ -176,27 +167,6 @@ export default function App() {
           </p>
         )}
       </section>
-
-      {snapshot && snapshot.trending.length > 0 && (
-        <section>
-          <h2>Trending · 24h</h2>
-          <ul className="trending">
-            {snapshot.trending.map((t) => (
-              <li key={`${t.owner}/${t.name}`}>
-                <a onClick={() => openUrl(`${SITE}/${t.owner}/${t.name}`)}>
-                  {t.owner}/{t.name}
-                </a>
-                <span className="deltas">
-                  ⭐ {t.star_change >= 0 ? '+' : ''}
-                  {Math.round(t.star_change)} · PRs {t.pr_change >= 0 ? '+' : ''}
-                  {Math.round(t.pr_change)} · 👥 {t.contributor_change >= 0 ? '+' : ''}
-                  {Math.round(t.contributor_change)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <footer>
         {snapshot?.refreshed_at

@@ -107,16 +107,14 @@ button.ghost {
   gap: 8px;
 }
 
-.card-head a,
-.trending a {
+.card-head a {
   cursor: pointer;
   font-weight: 600;
   color: var(--fg);
   text-decoration: none;
 }
 
-.card-head a:hover,
-.trending a:hover {
+.card-head a:hover {
   color: var(--accent);
 }
 
@@ -179,25 +177,6 @@ button.ghost {
 .stale {
   font-size: 11px;
   color: #d97706;
-}
-
-.trending {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.trending li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-}
-
-.deltas {
-  color: var(--muted);
-  white-space: nowrap;
 }
 
 .empty {

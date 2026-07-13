@@ -6,9 +6,8 @@ surfaces your workspaces' aggregated team metrics, not individual repos.
 
 The tray icon is the pixel plant 🌱. Each configured workspace gets a submenu
 with its headline metrics (open/merged PRs + trend, PR velocity and merge
-time, active/new contributors, open issues, stars), and the menu also carries
-the site's 24h trending movers. A dashboard window manages workspaces and
-renders the same numbers as metric tiles.
+time, active/new contributors, open issues, stars). A dashboard window
+manages workspaces and renders the same numbers as metric tiles.
 
 ## Where the data comes from
 
@@ -16,7 +15,6 @@ renders the same numbers as metric tiles.
 | --- | --- |
 | Workspace lookup | Supabase REST `workspaces?slug=eq.{slug}` (anon key) |
 | Workspace metrics | Supabase REST `workspace_metrics_cache?workspace_id=eq.{id}&time_range=eq.7d` |
-| Trending movers (24h) | `GET https://contributor.info/api/trending-repositories?period=24h&limit=5` |
 
 RLS lets anonymous clients read **public** workspaces and their metrics cache
 (one row per workspace + time range, refreshed by the site's aggregation

@@ -17,8 +17,6 @@ generated from `public/plant_pixel_coarse.svg`.
   (deep-links to `/i/{slug}`) and read-only metric lines — open/merged PRs
   with trend vs the previous period, PR velocity (PRs/day) and average hours
   to merge, active/new contributors with trend, open issues, and stars.
-- A **Trending (24h)** submenu with the site's top movers
-  (star / PR / contributor deltas), deep-linking to each repo page.
 - Dashboard…, Refresh now, and Quit actions. The tooltip summarizes
   workspaces and total open PRs.
 
@@ -43,9 +41,8 @@ run), `unconfigured` (no anon key), `unreachable` (offline).
   `set_workspaces`, `refresh_now`). Each poll stores a `Snapshot` in managed
   state, rebuilds the tray menu, and emits a `snapshot` event that the
   dashboard listens to. `supabase.rs` is a minimal Supabase REST reader;
-  `api.rs` wraps the trending Netlify function; `settings.rs` persists
-  workspace slugs, time range, and Supabase overrides to `settings.json` in
-  the app config dir.
+  `settings.rs` persists workspace slugs, time range, and Supabase overrides
+  to `settings.json` in the app config dir.
 - **Frontend** (`desktop/src/`): one-page React app; talks to the core only
   via Tauri `invoke`/events, so all network access stays in Rust.
 
@@ -55,17 +52,12 @@ run), `unconfigured` (no anon key), `unreachable` (offline).
 | --- | --- |
 | Workspace lookup | Supabase REST `workspaces?slug=eq.{slug}` |
 | Workspace metrics | Supabase REST `workspace_metrics_cache?workspace_id=eq.{id}&time_range=eq.{7d\|30d\|…}` |
-| Trending movers | `/.netlify/functions/api-trending-repositories?period=24h` |
 
 RLS permits anonymous reads of public workspaces and their metrics cache
 (policies in `supabase/migrations/20250827000000_workspace_metrics_cache.sql`),
 so the app works with just the public anon key. Note that
 `workspace_repositories` requires a logged-in user even for public
 workspaces, which is why the tray shows workspace-level metrics only for now.
-
-Routing note: the pretty `/api/trending-repositories` path is not wired in
-`netlify.toml`, so the app calls the function's raw `/.netlify/functions/`
-path.
 
 ### Keys
 

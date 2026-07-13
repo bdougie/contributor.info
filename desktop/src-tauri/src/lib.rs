@@ -1,15 +1,13 @@
 //! contributor.info in the system tray, workspaces-first: each configured
 //! workspace surfaces its aggregated metrics (open/merged PRs, velocity,
-//! contributors, stars + trends) straight from `workspace_metrics_cache`,
-//! plus the site's 24h trending movers.
+//! contributors, stars + trends) straight from `workspace_metrics_cache`.
 //!
 //! Data flow: a 60s poll loop reads Supabase REST (anon key, RLS-scoped to
-//! public workspaces) and the public trending endpoint, stores a `Snapshot`
-//! in managed state, rebuilds the tray menu from it, and emits a `snapshot`
-//! event the dashboard webview listens for. Every fetch failure degrades to
-//! a status string — the tray never errors out.
+//! public workspaces), stores a `Snapshot` in managed state, rebuilds the
+//! tray menu from it, and emits a `snapshot` event the dashboard webview
+//! listens for. Every fetch failure degrades to a status string — the tray
+//! never errors out.
 
-mod api;
 mod settings;
 mod supabase;
 
@@ -22,13 +20,13 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
 
-use api::{TrendingRepo, SITE};
 use settings::Settings;
 use supabase::{Supabase, WorkspaceMetrics};
 
+pub const SITE: &str = "https://contributor.info";
+
 const TRAY_ID: &str = "ci-tray";
 const POLL_INTERVAL: Duration = Duration::from_secs(60);
-const TRENDING_LIMIT: u8 = 5;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkspaceStatus {
@@ -42,7 +40,6 @@ pub struct WorkspaceStatus {
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct Snapshot {
     workspaces: Vec<WorkspaceStatus>,
-    trending: Vec<TrendingRepo>,
     refreshed_at: u64,
 }
 
@@ -147,24 +144,6 @@ fn build_menu(app: &AppHandle, snapshot: &Snapshot) -> tauri::Result<Menu<tauri:
         menu.append(&sub)?;
     }
 
-    if !snapshot.trending.is_empty() {
-        menu.append(&PredefinedMenuItem::separator(app)?)?;
-        let trending = Submenu::with_id(app, "trending", "Trending (24h)", true)?;
-        for t in &snapshot.trending {
-            trending.append(&MenuItem::with_id(
-                app,
-                format!("trend:{}/{}", t.owner, t.name),
-                format!(
-                    "{}/{}  ·  \u{2B50} {:+.0} · PRs {:+.0}",
-                    t.owner, t.name, t.star_change, t.pr_change
-                ),
-                true,
-                None::<&str>,
-            )?)?;
-        }
-        menu.append(&trending)?;
-    }
-
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "dashboard", "Dashboard\u{2026}", true, None::<&str>)?)?;
     menu.append(&MenuItem::with_id(app, "refresh", "Refresh now", true, None::<&str>)?)?;
@@ -217,16 +196,8 @@ async fn refresh(app: AppHandle) {
         workspaces.push(fetch_workspace(&db, slug, &cfg.time_range).await);
     }
 
-    let client = reqwest::Client::builder()
-        .user_agent("contributor.info-desktop/0.1")
-        .timeout(Duration::from_secs(15))
-        .build()
-        .expect("reqwest client");
-    let trending = api::trending(&client, TRENDING_LIMIT).await;
-
     let snapshot = Snapshot {
         workspaces,
-        trending,
         refreshed_at: SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -323,8 +294,6 @@ pub fn run() {
                         other => {
                             if let Some(slug) = other.strip_prefix("ws:") {
                                 let _ = app.opener().open_url(format!("{SITE}/i/{slug}"), None::<&str>);
-                            } else if let Some(slug) = other.strip_prefix("trend:") {
-                                let _ = app.opener().open_url(format!("{SITE}/{slug}"), None::<&str>);
                             }
                         }
                     }
