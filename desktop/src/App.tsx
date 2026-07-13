@@ -75,13 +75,22 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    const syncSnapshot = () => invoke<Snapshot>('get_snapshot').then(setSnapshot);
     invoke<string[]>('get_workspaces').then(setSlugs);
-    invoke<Snapshot>('get_snapshot').then(setSnapshot);
+    syncSnapshot();
     const unlistenSnapshot = listen<Snapshot>('snapshot', (e) => setSnapshot(e.payload));
     const unlistenLoginError = listen<string>('login-error', (e) => setAuthError(e.payload));
+    // A hidden webview can miss or defer the `snapshot` event, which left the
+    // auth state (the sign-in button) stale after signing in from the tray.
+    // Re-pull the authoritative snapshot whenever the window is shown again.
+    const onVisible = () => document.visibilityState === 'visible' && syncSnapshot();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', syncSnapshot);
     return () => {
       unlistenSnapshot.then((fn) => fn());
       unlistenLoginError.then((fn) => fn());
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', syncSnapshot);
     };
   }, []);
 
@@ -90,6 +99,9 @@ export default function App() {
     setAuthError(null);
     try {
       await invoke<string>('login');
+      // `login` resolves only after the backend has refreshed and stored the
+      // new snapshot, so this reflects the signed-in state immediately.
+      setSnapshot(await invoke<Snapshot>('get_snapshot'));
     } catch (e) {
       setAuthError(String(e));
     } finally {
@@ -100,6 +112,9 @@ export default function App() {
   const signOut = async () => {
     setAuthError(null);
     await invoke('logout');
+    // `logout` refreshes in the background; flip the UI now and let the next
+    // `snapshot` event reconcile the rest.
+    setSnapshot((s) => (s ? { ...s, signed_in_as: null } : s));
   };
 
   const save = async (next: string[]) => {
@@ -112,7 +127,10 @@ export default function App() {
     // leading/trailing slashes, and reduce it to the bare slug the API and
     // `/i/{slug}` links expect. A leading slash here previously slipped through
     // and produced `/i//{slug}` links plus failed lookups.
-    const slug = draft.trim().replace(/^.*\/i\//, '').replace(/^\/+|\/+$/g, '');
+    const slug = draft
+      .trim()
+      .replace(/^.*\/i\//, '')
+      .replace(/^\/+|\/+$/g, '');
     if (!slug || slugs.includes(slug)) return;
     setDraft('');
     await save([...slugs, slug]);
@@ -166,7 +184,11 @@ export default function App() {
                 {ws && ws.state !== 'ready' && (
                   <span className="badge warn">{STATE_HINT[ws.state] ?? ws.state}</span>
                 )}
-                <button className="ghost" title="Remove" onClick={() => save(slugs.filter((s) => s !== slug))}>
+                <button
+                  className="ghost"
+                  title="Remove"
+                  onClick={() => save(slugs.filter((s) => s !== slug))}
+                >
                   ✕
                 </button>
               </div>
@@ -174,14 +196,8 @@ export default function App() {
                 <div className="tiles">
                   <Tile label="open PRs" value={String(m.open_prs)} trend={m.prs_trend} />
                   <Tile label="merged" value={String(m.merged_prs)} />
-                  <Tile
-                    label="PRs / day"
-                    value={(m.pr_velocity ?? 0).toFixed(1)}
-                  />
-                  <Tile
-                    label="hrs to merge"
-                    value={(m.avg_pr_merge_time_hours ?? 0).toFixed(0)}
-                  />
+                  <Tile label="PRs / day" value={(m.pr_velocity ?? 0).toFixed(1)} />
+                  <Tile label="hrs to merge" value={(m.avg_pr_merge_time_hours ?? 0).toFixed(0)} />
                   <Tile
                     label="active contribs"
                     value={String(m.active_contributors)}
@@ -202,8 +218,8 @@ export default function App() {
         })}
         {slugs.length === 0 && (
           <p className="empty">
-            Add a workspace above (its slug from contributor.info/i/…) to see its team metrics
-            here and in the tray menu.
+            Add a workspace above (its slug from contributor.info/i/…) to see its team metrics here
+            and in the tray menu.
           </p>
         )}
       </section>

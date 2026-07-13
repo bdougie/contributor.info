@@ -13,6 +13,7 @@ mod auth;
 mod settings;
 mod supabase;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -58,6 +59,22 @@ struct AppState {
     snapshot: Mutex<Snapshot>,
     settings: Mutex<Settings>,
     session: Mutex<Option<Session>>,
+    /// True while an interactive login holds the loopback callback port. Both
+    /// sign-in entry points (tray item and dashboard button) funnel through
+    /// `do_login`, so this keeps them from racing on the same bind.
+    login_in_progress: AtomicBool,
+}
+
+/// Clears `login_in_progress` when a login finishes, whatever the outcome.
+struct LoginGuard(AppHandle);
+
+impl Drop for LoginGuard {
+    fn drop(&mut self) {
+        self.0
+            .state::<AppState>()
+            .login_in_progress
+            .store(false, Ordering::SeqCst);
+    }
 }
 
 fn fmt_trend(v: Option<f64>) -> String {
@@ -107,15 +124,6 @@ fn metric_lines(m: &WorkspaceMetrics) -> Vec<String> {
 
 fn build_menu(app: &AppHandle, snapshot: &Snapshot) -> tauri::Result<Menu<tauri::Wry>> {
     let menu = Menu::new(app)?;
-
-    menu.append(&MenuItem::with_id(
-        app,
-        "open-site",
-        "contributor.info \u{2197}",
-        true,
-        None::<&str>,
-    )?)?;
-    menu.append(&PredefinedMenuItem::separator(app)?)?;
 
     if snapshot.workspaces.is_empty() {
         menu.append(&MenuItem::with_id(
@@ -318,6 +326,18 @@ fn refresh_now(app: AppHandle) {
 }
 
 async fn do_login(app: AppHandle) -> Result<String, String> {
+    // Only one interactive login at a time — a second attempt would collide on
+    // the loopback callback port and surface a confusing "port busy" error.
+    if app
+        .state::<AppState>()
+        .login_in_progress
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        return Err("a sign-in is already in progress — finish it in your browser, or wait a moment".into());
+    }
+    let _guard = LoginGuard(app.clone());
+
     let cfg = app.state::<AppState>().settings.lock().unwrap().clone();
     let anon_key = cfg.anon_key();
     if anon_key.is_empty() {
@@ -378,9 +398,6 @@ pub fn run() {
                 .on_menu_event(|app, event| {
                     let id = event.id().as_ref();
                     match id {
-                        "open-site" => {
-                            let _ = app.opener().open_url(SITE, None::<&str>);
-                        }
                         "dashboard" => show_dashboard(app),
                         "refresh" => {
                             tauri::async_runtime::spawn(refresh(app.clone()));
