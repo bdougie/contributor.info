@@ -30,6 +30,8 @@ interface ContributionsScatterChartProps<T extends { x: number; y: number }> {
   yMax: number;
   /** Enhanced mode: position Y values on a symlog curve */
   logScale: boolean;
+  /** Rendered node diameter (px) — used to keep nodes fully inside the plot */
+  nodeSize: number;
   margin: ScatterChartMargin;
   showXAxis: boolean;
   showYAxis: boolean;
@@ -62,6 +64,7 @@ export function ContributionsScatterChart<T extends { x: number; y: number }>({
   xMax,
   yMax,
   logScale,
+  nodeSize,
   margin,
   showXAxis,
   showYAxis,
@@ -108,6 +111,16 @@ export function ContributionsScatterChart<T extends { x: number; y: number }>({
   const yPx = (value: number) =>
     margin.top + innerHeight - scaleValue(value, 1, yMax, innerHeight, logScale);
 
+  // Clamp node centers so a node (nodeSize square) never leaves the plot area.
+  // Without this, points at the domain edges (y=1 rows, "Today" column) hang
+  // half outside and cover the axis tick labels.
+  const clampCx = (value: number) =>
+    Math.min(Math.max(value, margin.left + nodeSize / 2), margin.left + innerWidth - nodeSize / 2);
+  const clampCy = (value: number) =>
+    Math.min(Math.max(value, margin.top + nodeSize / 2), margin.top + innerHeight - nodeSize / 2);
+  const nodeCx = (point: T) => clampCx(xPx(point.x));
+  const nodeCy = (point: T) => clampCy(yPx(point.y));
+
   // Linear tick values in both modes — d3's symlog scale also produces linear
   // tick values and only positions them on the curve, so this matches nivo.
   const xTicks = niceLinearTicks(0, xMax, xTickCount);
@@ -122,8 +135,8 @@ export function ContributionsScatterChart<T extends { x: number; y: number }>({
     let nearest: T | null = null;
     let nearestDistSq = HOVER_RADIUS_PX * HOVER_RADIUS_PX;
     for (const point of points) {
-      const dx = xPx(point.x) - mx;
-      const dy = yPx(point.y) - my;
+      const dx = nodeCx(point) - mx;
+      const dy = nodeCy(point) - my;
       const distSq = dx * dx + dy * dy;
       if (distSq < nearestDistSq) {
         nearestDistSq = distSq;
@@ -265,7 +278,7 @@ export function ContributionsScatterChart<T extends { x: number; y: number }>({
           {/* Nodes */}
           <g>
             {points.map((point, index) => (
-              <g key={pointKey(point)}>{renderNode(point, xPx(point.x), yPx(point.y), index)}</g>
+              <g key={pointKey(point)}>{renderNode(point, nodeCx(point), nodeCy(point), index)}</g>
             ))}
           </g>
         </svg>

@@ -830,6 +830,7 @@ function ContributionsChart({ isRepositoryTracked = true }: ContributionsChartPr
                 xMax={Math.max(isMobile ? mobileMaxDays : effectiveTimeRangeNumber, 1)}
                 yMax={Math.max(Math.round(maxFilesModified * 1.5), 10)}
                 logScale={isLogarithmic}
+                nodeSize={isMobile ? 28 : 35}
                 margin={{
                   top: 20,
                   right: isMobile ? 30 : 60,
