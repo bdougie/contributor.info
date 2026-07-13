@@ -11,6 +11,8 @@ import {
 import { sendInngestEvent } from './inngest/client-safe';
 import { toast } from 'sonner';
 import { validateAndTransformPRData } from './validation';
+import { getRepositoryByOwnerName, type RepositoryIdentity } from './utils/repository-helpers';
+import { runWhenIdle } from './utils/idle-callback';
 
 interface FetchOptions {
   timeRange?: string;
@@ -50,15 +52,15 @@ export async function fetchPRDataSmart(
       const since = new Date();
       since.setDate(since.getDate() - days);
 
-      // Check if repository exists
-      const { data: repoData, error: repoError } = await supabase
-        .from('repositories')
-        .select('id, owner, name, last_updated_at')
-        .eq('owner', owner)
-        .eq('name', repo)
-        .maybeSingle();
+      // Check if repository exists (shared deduped lookup, see #1815)
+      let repoData: RepositoryIdentity | null = null;
+      try {
+        repoData = await getRepositoryByOwnerName(owner, repo);
+      } catch {
+        // Lookup failure is handled the same as "not found" below
+      }
 
-      if (repoError || !repoData) {
+      if (!repoData) {
         // Repository not in database - it needs to be tracked first
         if (triggerBackgroundSync) {
           // Add to tracking (handled by useRepositoryDiscovery)
@@ -190,28 +192,31 @@ export async function fetchPRDataSmart(
 
       const isStale = isEmpty || isRepositoryStale;
 
-      // Trigger background sync if needed
+      // Trigger background sync if needed. The queue-event call is fire-and-forget
+      // (its result is never consumed), so defer it until the main thread is idle
+      // instead of blocking the pre-LCP fetch waterfall (#1815).
       if (triggerBackgroundSync && (isEmpty || isStale)) {
-        try {
-          await sendInngestEvent({
-            name: 'capture/repository.sync.graphql',
-            data: {
-              repositoryId: repoData.id,
-              repositoryName: `${repoData.owner}/${repoData.name}`,
-              days: 30,
-              priority: isEmpty ? 'high' : 'medium',
-              reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',
-            },
+        const syncEvent = {
+          name: 'capture/repository.sync.graphql',
+          data: {
+            repositoryId: repoData.id,
+            repositoryName: `${repoData.owner}/${repoData.name}`,
+            days: 30,
+            priority: isEmpty ? 'high' : 'medium',
+            reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',
+          },
+        };
+        runWhenIdle(() => {
+          sendInngestEvent(syncEvent).catch((error) => {
+            console.error('Failed to trigger background sync:', error);
           });
+        });
 
-          if (showNotifications && isEmpty) {
-            toast.info(`Getting familiar with ${owner}/${repo}...`, {
-              description: "We're fetching the latest data. Check back in a minute!",
-              duration: 5000,
-            });
-          }
-        } catch (error) {
-          console.error('Failed to trigger background sync:', error);
+        if (showNotifications && isEmpty) {
+          toast.info(`Getting familiar with ${owner}/${repo}...`, {
+            description: "We're fetching the latest data. Check back in a minute!",
+            duration: 5000,
+          });
         }
       }
 
@@ -219,7 +224,7 @@ export async function fetchPRDataSmart(
       if (transformedPRs.length > 0) {
         return createSuccessResult(transformedPRs, {
           isStale,
-          lastUpdate: repoData.last_updated_at,
+          ...(repoData.last_updated_at ? { lastUpdate: repoData.last_updated_at } : {}),
           dataCompleteness: calculateDataCompleteness(transformedPRs),
         });
       }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { getRepositoryByOwnerName } from '@/lib/utils/repository-helpers';
 import { RepositorySize } from '@/lib/validation/database-schemas';
 
 export interface RepositoryMetadata {
@@ -47,22 +48,18 @@ export function useRepositoryMetadata(owner?: string, repo?: string): UseReposit
     setError(null);
 
     try {
-      // First, get the repository ID
-      const supabase = await getSupabase();
-      const { data: repoData, error: repoError } = await supabase
-        .from('repositories')
-        .select('id')
-        .eq('owner', owner)
-        .eq('name', repo)
-        .maybeSingle();
+      // First, get the repository ID (shared deduped lookup, see #1815)
+      const repoData = await getRepositoryByOwnerName(owner, repo).catch(() => null);
 
-      if (repoError || !repoData) {
+      if (!repoData) {
         // Repository not in database yet
         setMetadata({
           dataFreshness: 'old',
         });
         return;
       }
+
+      const supabase = await getSupabase();
 
       // Get tracked repository data with size and metadata
       const { data: trackedData, error: trackedError } = await supabase

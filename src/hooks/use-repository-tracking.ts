@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getSupabase } from '@/lib/supabase-lazy';
 import { useGitHubAuth } from './use-github-auth';
+import { getRepositoryByOwnerName } from '@/lib/utils/repository-helpers';
 import { handleApiResponse } from '@/lib/utils/api-helpers';
 import { NotificationService } from '@/lib/notifications';
 import { trackEvent } from '@/lib/posthog-lazy';
@@ -79,16 +79,11 @@ export function useRepositoryTracking({
         setState((prev) => ({ ...prev, status: 'checking', error: null }));
       }
 
-      // Check if repository exists
-      const supabase = await getSupabase();
-      const { data: repoData, error } = await supabase
-        .from('repositories')
-        .select('id, owner, name')
-        .eq('owner', owner)
-        .eq('name', repo)
-        .maybeSingle();
-
-      if (error) {
+      // Check if repository exists (shared deduped lookup, see #1815)
+      let repoData: Awaited<ReturnType<typeof getRepositoryByOwnerName>> = null;
+      try {
+        repoData = await getRepositoryByOwnerName(owner, repo);
+      } catch (error) {
         console.error('Error checking repository:', error);
         setState({
           status: 'error',
@@ -201,13 +196,12 @@ export function useRepositoryTracking({
         pollCount++;
 
         try {
-          const supabaseClient = await getSupabase();
-          const { data: repoData } = await supabaseClient
-            .from('repositories')
-            .select('id, owner, name')
-            .eq('owner', owner)
-            .eq('name', repo)
-            .maybeSingle();
+          let repoData: Awaited<ReturnType<typeof getRepositoryByOwnerName>> = null;
+          try {
+            repoData = await getRepositoryByOwnerName(owner, repo);
+          } catch {
+            // Treated the same as "not found yet"; the poll will retry
+          }
 
           const hasData = !!repoData;
 

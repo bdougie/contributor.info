@@ -4,6 +4,7 @@ import { Check, ExternalLink } from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
+import { runWhenIdle } from '@/lib/utils/idle-callback';
 
 interface GitHubAppInstallButtonProps {
   owner: string;
@@ -26,10 +27,15 @@ export function GitHubAppInstallButton({
   const { isLoggedIn } = useGitHubAuth();
 
   useEffect(() => {
-    checkInstallationStatus();
-    if (isLoggedIn) {
-      checkUserPermissions();
-    }
+    // Defer these status checks: installation-status takes ~1.8s server-side and
+    // only gates a secondary header button, so keep it off the LCP path (#1815)
+    const cancel = runWhenIdle(() => {
+      checkInstallationStatus();
+      if (isLoggedIn) {
+        checkUserPermissions();
+      }
+    });
+    return cancel;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, isLoggedIn]);
 

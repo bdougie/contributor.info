@@ -1,6 +1,83 @@
 import { getSupabase } from '@/lib/supabase-lazy';
 import type { GitHubRepository } from '@/lib/github';
 
+/** Row returned by {@link getRepositoryByOwnerName} — the superset of columns
+ * every repo-view consumer needs, so one query serves all of them. */
+export interface RepositoryIdentity {
+  id: string;
+  owner: string;
+  name: string;
+  last_updated_at: string | null;
+}
+
+// Promise-level dedup + short TTL cache for the owner/name → repository row
+// lookup. Before this, every repo-view hook resolved the id independently,
+// firing 4-6 identical queries per page view (#1815).
+//
+// Cache semantics matter here:
+// - Concurrent callers share the in-flight promise (dedup).
+// - Found rows are cached for the TTL (matches query-client staleTime).
+// - Misses (null) and errors are NOT cached — tracking flows poll for a repo
+//   to appear right after it's created, and a cached miss would break them.
+const REPOSITORY_LOOKUP_TTL_MS = 5 * 60 * 1000;
+
+interface RepositoryLookupEntry {
+  promise: Promise<RepositoryIdentity | null>;
+  timestamp: number;
+}
+
+const repositoryLookupCache = new Map<string, RepositoryLookupEntry>();
+
+/**
+ * Resolve a repository row by owner/name with request dedup and caching.
+ *
+ * Returns null when the repository isn't in the database; throws on query
+ * errors so callers can distinguish "not tracked" from "lookup failed".
+ */
+export function getRepositoryByOwnerName(
+  owner: string,
+  name: string
+): Promise<RepositoryIdentity | null> {
+  const key = `${owner}/${name}`;
+  const cached = repositoryLookupCache.get(key);
+  if (cached && Date.now() - cached.timestamp < REPOSITORY_LOOKUP_TTL_MS) {
+    return cached.promise;
+  }
+
+  const promise = (async (): Promise<RepositoryIdentity | null> => {
+    const supabase = await getSupabase();
+    const { data, error } = await supabase
+      .from('repositories')
+      .select('id, owner, name, last_updated_at')
+      .eq('owner', owner)
+      .eq('name', name)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+    return (data as RepositoryIdentity | null) ?? null;
+  })();
+
+  repositoryLookupCache.set(key, { promise, timestamp: Date.now() });
+  promise
+    .then((result) => {
+      if (result === null) {
+        repositoryLookupCache.delete(key);
+      }
+    })
+    .catch(() => {
+      repositoryLookupCache.delete(key);
+    });
+
+  return promise;
+}
+
+/** Test-only escape hatch to reset the lookup cache between cases. */
+export function clearRepositoryLookupCache(): void {
+  repositoryLookupCache.clear();
+}
+
 // Extended repository properties that may be available from GitHub API
 export interface ExtendedGitHubRepository extends GitHubRepository {
   watchers_count?: number;
