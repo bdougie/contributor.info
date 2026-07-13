@@ -1,19 +1,44 @@
 /**
  * Lazy-loaded Sentry integration
  * Non-blocking error tracking that won't impact page load performance
+ *
+ * Imports are destructured (never `import * as Sentry`) so Rollup can
+ * tree-shake the SDK: a namespace import of '@sentry/browser' pulls replay,
+ * feedback, and every other integration into the lazy chunk (#1815 Phase 3).
  */
 
 import { env } from './env';
 
+type SentryLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
+
+interface SentryContext {
+  level?: SentryLevel;
+  tags?: Record<string, string>;
+  extra?: Record<string, unknown>;
+}
+
+/** The only SDK surface this app uses — keep this narrow so the chunk stays small. */
+interface SentryApi {
+  captureException: (error: unknown, context?: SentryContext) => void;
+  captureMessage: (message: string, level: SentryLevel) => void;
+  addBreadcrumb: (breadcrumb: {
+    message: string;
+    category: string;
+    level: SentryLevel;
+    timestamp: number;
+    data?: Record<string, unknown>;
+  }) => void;
+}
+
 let sentryLoaded = false;
 let sentryInitialized = false;
-let sentryLoadPromise: Promise<typeof import('@sentry/react')> | null = null;
+let sentryLoadPromise: Promise<SentryApi | null> | null = null;
 
 /**
  * Lazy load and initialize Sentry
  * This runs asynchronously and won't block the main thread
  */
-export async function lazyInitSentry() {
+export async function lazyInitSentry(): Promise<SentryApi | null> {
   // Prevent duplicate initialization (guard against React StrictMode double-mounting)
   if (sentryInitialized) {
     return sentryLoadPromise;
@@ -25,7 +50,7 @@ export async function lazyInitSentry() {
   const isLocal = import.meta.env.PROD && window.location.hostname === 'localhost';
   if (isLocal) {
     console.log('[Sentry] Skipped - local environment detected');
-    return;
+    return null;
   }
 
   // Only load once
@@ -33,56 +58,61 @@ export async function lazyInitSentry() {
     return sentryLoadPromise;
   }
 
-  sentryLoadPromise = import('@sentry/react')
-    .then((Sentry) => {
-      // Use the DSN from environment
-      const sentryDsn = env.SENTRY_DSN || import.meta.env.VITE_SENTRY_DSN;
+  sentryLoadPromise = import('@sentry/browser')
+    .then(
+      ({ init, browserTracingIntegration, captureException, captureMessage, addBreadcrumb }) => {
+        // Use the DSN from environment
+        const sentryDsn = env.SENTRY_DSN || import.meta.env.VITE_SENTRY_DSN;
 
-      if (!sentryDsn) {
-        console.log('[Sentry] Initialization skipped (no DSN)');
-        return Sentry;
+        const api: SentryApi = {
+          captureException: (error, context) => captureException(error, context),
+          captureMessage: (message, level) => captureMessage(message, level),
+          addBreadcrumb: (breadcrumb) => addBreadcrumb(breadcrumb),
+        };
+
+        if (!sentryDsn) {
+          console.log('[Sentry] Initialization skipped (no DSN)');
+          return api;
+        }
+
+        init({
+          dsn: sentryDsn,
+          integrations: [
+            // Minimal integrations for performance
+            browserTracingIntegration(),
+          ],
+          // Lower sample rates for performance
+          tracesSampleRate: 0.1,
+          environment: import.meta.env.PROD ? 'production' : 'development',
+          sendDefaultPii: true,
+          // Filter out noise
+          ignoreErrors: [
+            'ResizeObserver loop',
+            'Non-Error promise rejection',
+            'NetworkError',
+            'Failed to fetch',
+            'AbortError',
+            'chrome-extension://',
+            'moz-extension://',
+          ],
+          // Minimal processing to avoid blocking
+          beforeSend(event) {
+            // Quick filter for extensions
+            if (event.request?.url?.includes('extension://')) {
+              return null;
+            }
+            return event;
+          },
+        });
+
+        sentryLoaded = true;
+        // Log asynchronously to avoid blocking critical path
+        queueMicrotask(() => {
+          console.log('[Sentry] Successfully initialized');
+        });
+        return api;
       }
-
-      Sentry.init({
-        dsn: sentryDsn,
-        integrations: [
-          // Minimal integrations for performance
-          Sentry.browserTracingIntegration(),
-        ],
-        // Lower sample rates for performance
-        tracesSampleRate: 0.1,
-        // No session replay by default (heavy on performance)
-        replaysSessionSampleRate: 0,
-        replaysOnErrorSampleRate: 0, // Can enable later if needed
-        environment: import.meta.env.PROD ? 'production' : 'development',
-        sendDefaultPii: true,
-        // Filter out noise
-        ignoreErrors: [
-          'ResizeObserver loop',
-          'Non-Error promise rejection',
-          'NetworkError',
-          'Failed to fetch',
-          'AbortError',
-          'chrome-extension://',
-          'moz-extension://',
-        ],
-        // Minimal processing to avoid blocking
-        beforeSend(event) {
-          // Quick filter for extensions
-          if (event.request?.url?.includes('extension://')) {
-            return null;
-          }
-          return event;
-        },
-      });
-
-      sentryLoaded = true;
-      // Log asynchronously to avoid blocking critical path
-      queueMicrotask(() => {
-        console.log('[Sentry] Successfully initialized');
-      });
-      return Sentry;
-    })
+    )
     .catch((error) => {
       console.error('Failed to load Sentry:', error);
       sentryInitialized = false; // Reset guard to allow retries
@@ -98,25 +128,14 @@ export async function lazyInitSentry() {
  */
 const errorQueue: Array<{
   error: Error | unknown;
-  context?: {
-    level?: 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
-    tags?: Record<string, string>;
-    extra?: Record<string, unknown>;
-  };
+  context?: SentryContext;
 }> = [];
 
 /**
  * Capture an exception (non-blocking)
  * Queues errors if Sentry isn't loaded yet
  */
-export function captureException(
-  error: Error | unknown,
-  context?: {
-    level?: 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
-    tags?: Record<string, string>;
-    extra?: Record<string, unknown>;
-  }
-) {
+export function captureException(error: Error | unknown, context?: SentryContext) {
   // Don't wait for this - fire and forget
   (async () => {
     try {
@@ -126,12 +145,12 @@ export function captureException(
 
         // Start loading Sentry if not already loading
         if (!sentryLoadPromise) {
-          lazyInitSentry().then((Sentry) => {
+          lazyInitSentry().then((sentry) => {
             // Process queued errors
             while (errorQueue.length > 0) {
               const item = errorQueue.shift();
-              if (item && Sentry) {
-                Sentry.captureException(item.error, item.context);
+              if (item && sentry) {
+                sentry.captureException(item.error, item.context);
               }
             }
           });
@@ -139,10 +158,10 @@ export function captureException(
         return;
       }
 
-      // Sentry is loaded, capture directly
-      const Sentry = await import('@sentry/react');
-      if (Sentry) {
-        Sentry.captureException(error, context);
+      // Sentry is loaded, capture directly via the already-resolved API
+      const sentry = await sentryLoadPromise;
+      if (sentry) {
+        sentry.captureException(error, context);
       }
     } catch {
       // Silently fail - don't let error tracking break the app
@@ -153,16 +172,13 @@ export function captureException(
 /**
  * Capture a message (non-blocking)
  */
-export function captureMessage(
-  message: string,
-  level: 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug' = 'info'
-) {
+export function captureMessage(message: string, level: SentryLevel = 'info') {
   // Fire and forget
   (async () => {
     try {
-      const Sentry = await lazyInitSentry();
-      if (Sentry) {
-        Sentry.captureMessage(message, level);
+      const sentry = await lazyInitSentry();
+      if (sentry) {
+        sentry.captureMessage(message, level);
       }
     } catch {
       // Silently fail
@@ -177,9 +193,9 @@ export function addBreadcrumb(message: string, category: string, data?: Record<s
   // Fire and forget
   (async () => {
     try {
-      const Sentry = await lazyInitSentry();
-      if (Sentry) {
-        Sentry.addBreadcrumb({
+      const sentry = await lazyInitSentry();
+      if (sentry) {
+        sentry.addBreadcrumb({
           message,
           category,
           level: 'info',
