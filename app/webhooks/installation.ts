@@ -4,7 +4,13 @@ import {
   Installation,
   Repository,
 } from '../types/github';
-import { supabase } from '../../src/lib/supabase';
+import { supabaseAdmin } from '../../src/lib/supabase-admin';
+
+// Installation webhooks run server-side only (Fly webhook server), where there
+// is no user session. Writes to github_app_installations / app_enabled_repositories
+// / repositories are blocked by RLS for the anon role, so use the service-role
+// admin client (RLS bypass). supabaseAdmin is always initialized server-side.
+const supabase = supabaseAdmin!;
 import { inngest } from '../../src/lib/inngest/client';
 import { githubAppAuth } from '../lib/auth';
 import { indexGitHistory } from '../services/git-history';
@@ -226,11 +232,42 @@ async function handleRepositoriesAdded(
 ) {
   try {
     // Get the installation record
-    const { data: installationRecord } = await supabase
+    let { data: installationRecord } = await supabase
       .from('github_app_installations')
       .select('id')
       .eq('installation_id', installation.id)
       .maybeSingle();
+
+    // Self-heal: the installation row can be missing if installation.created was
+    // never recorded (e.g. it fired before this webhook handler was deployed).
+    // Recreate it from the installation payload so repository additions aren't
+    // silently dropped for pre-existing installations.
+    if (!installationRecord) {
+      const { data: backfilled, error: backfillError } = await supabase
+        .from('github_app_installations')
+        .upsert({
+          installation_id: installation.id,
+          account_type: installation.account.type.toLowerCase(),
+          account_name: installation.account.login,
+          account_id: installation.account.id,
+          repository_selection: installation.repository_selection,
+          installed_at: new Date().toISOString(),
+          settings: {
+            enabled: true,
+            comment_on_prs: true,
+            include_issue_context: true,
+            comment_style: 'detailed',
+          },
+        })
+        .select('id')
+        .maybeSingle();
+
+      if (backfillError) {
+        console.error('Failed to backfill installation record:', backfillError);
+        return;
+      }
+      installationRecord = backfilled;
+    }
 
     if (!installationRecord) return;
 
