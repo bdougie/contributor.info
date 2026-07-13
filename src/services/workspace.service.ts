@@ -826,6 +826,189 @@ export class WorkspaceService {
   }
 
   /**
+   * Add multiple repositories to a workspace in one operation (org import).
+   * Repositories already in the workspace are skipped, the limit is checked
+   * once for the whole batch, and background sync events fire once per batch
+   * instead of once per repository. The DB trigger on workspace_repositories
+   * remains the final guard against limit races.
+   */
+  static async addRepositoriesToWorkspace(
+    workspaceId: string,
+    userId: string,
+    repositoryIds: string[]
+  ): Promise<ServiceResponse<{ added: string[]; skipped: string[] }>> {
+    try {
+      if (repositoryIds.length === 0) {
+        return {
+          success: false,
+          error: 'No repositories provided',
+          statusCode: 400,
+        };
+      }
+
+      const supabase = await getSupabase();
+
+      const permission = await this.checkPermission(workspaceId, userId, [
+        'owner',
+        'admin',
+        'maintainer',
+      ]);
+      if (!permission.hasPermission) {
+        return {
+          success: false,
+          error:
+            'Insufficient permissions to add repositories. Required: owner, admin, or maintainer.',
+          statusCode: 403,
+        };
+      }
+
+      // Skip repositories already in the workspace
+      const uniqueIds = [...new Set(repositoryIds)];
+      const { data: existingRows } = await supabase
+        .from('workspace_repositories')
+        .select('repository_id')
+        .eq('workspace_id', workspaceId)
+        .in('repository_id', uniqueIds);
+
+      const existingIds = new Set(
+        (existingRows ?? []).map((row: { repository_id: string }) => row.repository_id)
+      );
+      const newIds = uniqueIds.filter((id) => !existingIds.has(id));
+      const skipped = uniqueIds.filter((id) => existingIds.has(id));
+
+      if (newIds.length === 0) {
+        return {
+          success: true,
+          data: { added: [], skipped },
+          statusCode: 200,
+        };
+      }
+
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('max_repositories')
+        .eq('id', workspaceId)
+        .maybeSingle();
+
+      if (!workspace) {
+        return {
+          success: false,
+          error: 'Workspace not found',
+          statusCode: 404,
+        };
+      }
+
+      // Check the batch against the limit using actual row count
+      const { count: currentCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+
+      if ((currentCount ?? 0) + newIds.length > workspace.max_repositories) {
+        const remaining = Math.max(0, workspace.max_repositories - (currentCount ?? 0));
+        return {
+          success: false,
+          error: `Adding ${newIds.length} repositories would exceed the workspace limit of ${workspace.max_repositories}. Only ${remaining} slot${remaining === 1 ? '' : 's'} remaining.`,
+          statusCode: 403,
+        };
+      }
+
+      const { error: insertError } = await supabase.from('workspace_repositories').insert(
+        newIds.map((repositoryId) => ({
+          workspace_id: workspaceId,
+          repository_id: repositoryId,
+          added_by: userId,
+          notes: null,
+          tags: [],
+          is_pinned: false,
+        }))
+      );
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Sync workspace repository count from actual rows
+      const { count: newCount } = await supabase
+        .from('workspace_repositories')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+
+      await supabase
+        .from('workspaces')
+        .update({
+          current_repository_count: newCount ?? (currentCount ?? 0) + newIds.length,
+          last_activity_at: new Date().toISOString(),
+        })
+        .eq('id', workspaceId);
+
+      // Upgrade priorities per repo, but fire only one sync event for the
+      // batch — the handler ignores event data and runs a full sync
+      try {
+        for (const repositoryId of newIds) {
+          await workspacePrioritySync.markAsWorkspaceRepo(repositoryId);
+        }
+        await inngest.send({
+          name: 'workspace/priorities.sync',
+          data: {
+            repositoryId: newIds[0],
+            trigger: 'workspace_add',
+            workspaceId,
+          },
+        });
+      } catch (error) {
+        logError('Failed to update repository priorities', error, {
+          tags: { feature: 'workspace', operation: 'bulk_add_repositories' },
+          extra: { workspaceId, repositoryIds: newIds },
+        });
+      }
+
+      // One metrics event for the batch — the handler debounces per
+      // workspace and uses repositoryId/Name only for logging
+      try {
+        const { data: firstRepo } = await supabase
+          .from('repositories')
+          .select('full_name')
+          .eq('id', newIds[0])
+          .maybeSingle();
+
+        const firstName = firstRepo?.full_name ?? `${newIds.length} repositories`;
+        await inngest.send({
+          name: 'workspace.repository.changed',
+          data: {
+            workspaceId,
+            action: 'added',
+            repositoryId: newIds[0],
+            repositoryName:
+              newIds.length > 1 ? `${firstName} (+${newIds.length - 1} more)` : firstName,
+          },
+        });
+      } catch (error) {
+        logError('Failed to trigger workspace metrics update', error, {
+          tags: { feature: 'workspace', operation: 'bulk_add_repositories' },
+          extra: { workspaceId, repositoryIds: newIds },
+        });
+      }
+
+      return {
+        success: true,
+        data: { added: newIds, skipped },
+        statusCode: 201,
+      };
+    } catch (error) {
+      logError('Bulk add repositories to workspace error', error, {
+        tags: { feature: 'workspace', operation: 'bulk_add_repositories' },
+        extra: { workspaceId, userId, repositoryCount: repositoryIds.length },
+      });
+      return {
+        success: false,
+        error: 'Failed to add repositories to workspace',
+        statusCode: 500,
+      };
+    }
+  }
+
+  /**
    * Remove a repository from a workspace
    */
   static async removeRepositoryFromWorkspace(
