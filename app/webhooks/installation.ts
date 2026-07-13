@@ -4,7 +4,13 @@ import {
   Installation,
   Repository,
 } from '../types/github';
-import { supabase } from '../../src/lib/supabase';
+import { supabaseAdmin } from '../../src/lib/supabase-admin';
+
+// Installation webhooks run server-side only (Fly webhook server), where there
+// is no user session. Writes to github_app_installations / app_enabled_repositories
+// / repositories are blocked by RLS for the anon role, so use the service-role
+// admin client (RLS bypass). supabaseAdmin is always initialized server-side.
+const supabase = supabaseAdmin!;
 import { inngest } from '../../src/lib/inngest/client';
 import { githubAppAuth } from '../lib/auth';
 import { indexGitHistory } from '../services/git-history';
