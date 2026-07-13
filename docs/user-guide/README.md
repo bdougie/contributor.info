@@ -7,6 +7,7 @@ This folder contains end-user documentation for using the contributor.info appli
 ### Getting Started
 
 - **[new-repository-setup.md](./new-repository-setup.md)** - Guide for setting up and tracking new repositories
+- **[desktop-app.md](./desktop-app.md)** - Install and use the menu bar / system tray desktop app
 
 ## Purpose
 

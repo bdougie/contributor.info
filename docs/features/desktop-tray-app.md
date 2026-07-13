@@ -78,14 +78,18 @@ run), `unconfigured` (no anon key), `unreachable` (offline).
 | Data | Source |
 | --- | --- |
 | Workspace lookup | Supabase REST `workspaces?slug=eq.{slug}` |
-| Workspace metrics | Supabase REST `workspace_metrics_cache?workspace_id=eq.{id}&time_range=eq.{7d\|30d\|…}` |
+| Workspace metrics | Site endpoint `GET /.netlify/functions/api-workspace-metrics?workspace_id={id}&time_range={7d\|30d\|…}` |
 
-RLS permits anonymous reads of public workspaces and their metrics cache
-(policies in `supabase/migrations/20250827000000_workspace_metrics_cache.sql`),
-so the app works without login for public workspaces; signing in extends
-reads to private workspaces via the same queries. Note that
-`workspace_repositories` requires a logged-in user even for public
-workspaces, so per-repo drill-down is only possible once signed in.
+RLS permits anonymous reads of public workspaces, so workspace identity resolves
+with just the anon key; signing in extends reads to the private workspaces the
+user owns or belongs to. Metrics no longer come from a cache table — the
+`workspace_metrics_cache` table was dropped (migration
+`20260428000007_drop_dead_tables`) and the `api-workspace-metrics` endpoint now
+aggregates the numbers on demand from the source tables (PRs, issues,
+contributors, stars). The endpoint currently serves **public** workspaces only;
+private-workspace metrics and period-over-period trends are follow-ups. Note that
+`workspace_repositories` requires a logged-in user even for public workspaces, so
+per-repo drill-down is only possible once signed in.
 
 ### Keys
 
@@ -105,6 +109,13 @@ npm install
 VITE_SUPABASE_ANON_KEY=… npm run tauri dev
 VITE_SUPABASE_ANON_KEY=… npm run tauri build   # .app/.dmg on macOS, .deb/.AppImage on Linux
 ```
+
+## Releases
+
+Releases are cut independently of the web app on `desktop-v*` tags. Pushing such
+a tag runs `.github/workflows/desktop-release.yml`, which builds unsigned macOS
+(Apple Silicon) and Linux artifacts and publishes them to a GitHub Release. See
+`desktop/RELEASING.md` for the runbook and `desktop/CHANGELOG.md` for history.
 
 ## Future Work
 

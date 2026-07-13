@@ -9,6 +9,23 @@ with its headline metrics (open/merged PRs, PR velocity and merge time,
 active/new contributors, open issues, stars). A dashboard window manages
 workspaces and renders the same numbers as metric tiles.
 
+## Install
+
+Grab the latest build from the
+[GitHub Releases](https://github.com/bdougie/contributor.info/releases?q=desktop-v)
+page (filter for `desktop-v*`). Builds are **unsigned** for now.
+
+- **macOS (Apple Silicon):** download the `.dmg`, open it, and drag the app to
+  Applications. On first launch, right-click the app and choose **Open** to get
+  past Gatekeeper (only needed once, because the build isn't notarized).
+- **Linux (x86_64):** install the `.deb` (`sudo dpkg -i contributor.info_*.deb`),
+  or `chmod +x` the `.AppImage` and run it.
+
+Once running, click the tray icon → **Dashboard…**, add a workspace by its slug
+or `/i/…` URL, and (for private workspaces) **Sign in with GitHub**. The
+end-user walkthrough lives in
+[docs/user-guide/desktop-app.md](../docs/user-guide/desktop-app.md).
+
 ## Where the data comes from
 
 | Data | Source | Status |
@@ -72,6 +89,15 @@ Icons are generated from `public/plant_pixel_coarse.svg`:
 ```bash
 npx tauri icon ../public/plant_pixel_coarse.svg
 ```
+
+## Releasing
+
+Releases are cut independently of the web app, on `desktop-v*` tags. Pushing a
+`desktop-v<version>` tag runs the
+[Desktop Release workflow](../.github/workflows/desktop-release.yml), which
+builds unsigned macOS + Linux artifacts and publishes them to a GitHub Release.
+See [RELEASING.md](./RELEASING.md) for the full runbook and
+[CHANGELOG.md](./CHANGELOG.md) for the release history.
 
 ## Next steps
 

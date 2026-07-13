@@ -46,7 +46,8 @@
           "features/distribution-charts",
           "features/repository-health",
           "features/repository-search",
-          "features/github-app-setup"
+          "features/github-app-setup",
+          "features/desktop-app"
         ]
       },
       {
