@@ -189,14 +189,8 @@ export default defineConfig(() => ({
             if (id.includes('@radix-ui')) {
               return 'vendor-ui';
             }
-            // NOTE: Nivo is NOT manually chunked - it's lazy-loaded via React.lazy() in
-            // src/components/features/activity/contributions.tsx. Manual chunking would
-            // pull it into the initial bundle. See: https://github.com/bdougie/contributor.info/issues/1400
             if (id.includes('recharts')) {
               return 'vendor-recharts';
-            }
-            if (id.includes('d3-')) {
-              return 'vendor-d3';
             }
             if (id.includes('uplot')) {
               return 'vendor-uplot';
@@ -278,7 +272,7 @@ export default defineConfig(() => ({
             dep.includes('vendor-supabase') ||
             dep.includes('vendor-ui') ||
             // Match index- followed by hash, but exclude other prefixed chunks
-            (dep.includes('index-') && !dep.includes('nivo-') && !dep.includes('charts-'))
+            (dep.includes('index-') && !dep.includes('charts-'))
         );
       },
     },

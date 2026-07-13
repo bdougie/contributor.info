@@ -270,11 +270,6 @@ vi.mock('react-router', async () => {
 });
 
 // Mock problematic dependencies with empty implementations
-vi.mock('@nivo/scatterplot', () => ({ default: () => null }));
-vi.mock('@nivo/core', () => ({
-  default: () => null,
-  ResponsiveWrapper: ({ children }: ComponentProps) => children,
-}));
 vi.mock('d3-interpolate', () => ({
   default: vi.fn(),
   interpolate: vi.fn(),
