@@ -2,32 +2,24 @@
  * Social Card Generation via SnapDOM
  *
  * Captures DOM elements as high-fidelity PNG images for social sharing cards
- * and Open Graph previews. Lazy-loads the SnapDOM and html2canvas libraries
- * on demand (only when the user clicks share/download) to keep the main
- * bundle small. Escapes only the generated fallback initials used in the
- * attribution header; callers must sanitize any untrusted DOM before capture.
+ * and Open Graph previews. Lazy-loads the SnapDOM library on demand (only
+ * when the user clicks share/download) to keep the main bundle small.
+ * Escapes only the generated fallback initials used in the attribution
+ * header; callers must sanitize any untrusted DOM before capture.
  *
  * @module
  */
 import { env } from './env';
 
-// Lazy-loaded capture libraries to avoid bundle bloat
-// These are only loaded when user clicks share/download buttons
+// Lazy-loaded capture library to avoid bundle bloat
+// Only loaded when user clicks share/download buttons
 let snapdomModule: typeof import('@zumer/snapdom') | null = null;
-let html2canvasModule: typeof import('html2canvas') | null = null;
 
 async function getSnapdom() {
   if (!snapdomModule) {
     snapdomModule = await import('@zumer/snapdom');
   }
   return snapdomModule.snapdom;
-}
-
-async function getHtml2Canvas() {
-  if (!html2canvasModule) {
-    html2canvasModule = await import('html2canvas');
-  }
-  return html2canvasModule.default;
 }
 
 function escapeHtml(unsafe: string): string {
@@ -300,8 +292,7 @@ export class SnapDOMCaptureService {
 
         // Validate canvas content before proceeding
         if (this.isCanvasBlank(canvas)) {
-          console.warn('Both SnapDOM methods produced blank canvas - trying html2canvas fallback');
-          throw new Error('SnapDOM capture produced blank content - trying fallback');
+          throw new Error('SnapDOM capture produced blank content');
         }
 
         const snapBlob = await result.toBlob();
@@ -325,18 +316,10 @@ export class SnapDOMCaptureService {
         blob,
       };
     } catch (snapdomError) {
-      console.warn('SnapDOM capture failed entirely, falling back to html2canvas:', snapdomError);
-
-      // Fallback to html2canvas
-      try {
-        const html2canvasResult = await this.captureWithHtml2Canvas(wrapper);
-        return html2canvasResult;
-      } catch (fallbackError) {
-        console.error('Both SnapDOM and html2canvas failed:', fallbackError);
-        throw new Error(
-          `Capture failed: SnapDOM (${snapdomError instanceof Error ? snapdomError.message : String(snapdomError)}) and html2canvas (${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)})`
-        );
-      }
+      console.error('SnapDOM capture failed:', snapdomError);
+      throw new Error(
+        `Capture failed: ${snapdomError instanceof Error ? snapdomError.message : String(snapdomError)}`
+      );
     } finally {
       // Restore the original element to its original position
       try {
@@ -1037,38 +1020,6 @@ export class SnapDOMCaptureService {
       console.error('Failed to copy blob to clipboard:', error);
       throw error;
     }
-  }
-
-  /**
-   * Fallback capture method using html2canvas
-   */
-  private static async captureWithHtml2Canvas(wrapper: HTMLElement): Promise<CaptureResult> {
-    console.log('Starting html2canvas fallback capture...');
-
-    const html2canvas = await getHtml2Canvas();
-    const canvas = await html2canvas(wrapper, {
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-    });
-
-    console.log('html2canvas result:', {
-      canvasSize: `${canvas.width}x${canvas.height}`,
-      isBlank: this.isCanvasBlank(canvas),
-    });
-
-    if (this.isCanvasBlank(canvas)) {
-      throw new Error('html2canvas also produced blank content');
-    }
-
-    const dataUrl = canvas.toDataURL('image/png');
-    const blob = await this.canvasToBlob(canvas);
-
-    return {
-      canvas,
-      dataUrl,
-      blob,
-    };
   }
 
   /**
