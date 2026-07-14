@@ -12,7 +12,6 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copy application code
 COPY src ./src
-COPY templates ./templates
 
 # Create non-root user
 RUN groupadd -g 1001 nodejs && \
