@@ -51,6 +51,11 @@ export interface CardTimings {
 // zeros rendered; 'none' = card type needs no data.
 export type DataSource = 'database' | 'fallback' | 'none';
 
+// Bump to force every cached card to re-render on the next deploy. Cached
+// function responses stay valid across deploys unless the function bundle
+// changes — an unchanged bundle (e.g. an empty commit) invalidates nothing.
+export const CARD_VERSION = '2';
+
 /**
  * Durable CDN caching keyed on the card params: each unique card renders
  * roughly once globally, then serves from Netlify's edge (~25ms) — a crawler
@@ -72,6 +77,7 @@ export function cardHeaders(t: CardTimings, dataSource: DataSource): Record<stri
     'Netlify-Cache-Tag': 'social-cards',
     'Server-Timing': `data;dur=${t.dataMs.toFixed(1)}, resvg;dur=${t.resvgMs.toFixed(1)}`,
     'X-Data-Source': dataSource,
+    'X-Card-Version': CARD_VERSION,
     'Access-Control-Allow-Origin': '*',
   };
 }
