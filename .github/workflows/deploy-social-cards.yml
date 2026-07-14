@@ -42,22 +42,25 @@ jobs:
           curl -f https://contributor-info-social-cards.fly.dev/health || exit 1
           echo "✅ Health check passed"
 
-      - name: Test social card generation
+      - name: Test social card redirects
+        # Card rendering moved to a Netlify Function on contributor.info;
+        # this service keeps 301s so og:image URLs cached by social
+        # platforms from old shares keep resolving.
         run: |
-          # Test home card (PNG is default for social media compatibility)
-          curl -f -o /tmp/home-card.png https://contributor-info-social-cards.fly.dev/social-cards/home
-          file /tmp/home-card.png | grep -q "PNG" || exit 1
-          echo "✅ Home card PNG generation works"
+          location=$(curl -s -o /dev/null -w '%{redirect_url}' "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react")
+          echo "$location" | grep -q '^https://contributor.info/social-cards/repo?owner=facebook&repo=react$' || { echo "unexpected redirect: $location"; exit 1; }
+          echo "✅ Card URLs redirect to contributor.info"
 
-          # Test repo card
-          curl -f -o /tmp/repo-card.png "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react"
+          # Redirect must resolve to a real PNG end-to-end
+          curl -fsL -o /tmp/repo-card.png "https://contributor-info-social-cards.fly.dev/social-cards/repo?owner=facebook&repo=react"
           file /tmp/repo-card.png | grep -q "PNG" || exit 1
-          echo "✅ Repository card PNG generation works"
+          echo "✅ Redirected card resolves to a PNG"
 
-          # Test SVG format option still works
-          curl -f -o /tmp/home-card.svg "https://contributor-info-social-cards.fly.dev/social-cards/home?format=svg"
-          file /tmp/home-card.svg | grep -q "SVG" || exit 1
-          echo "✅ SVG format option works"
+      - name: Test chart rendering
+        run: |
+          curl -f -o /tmp/chart.png "https://contributor-info-social-cards.fly.dev/charts/lottery-factor?owner=continuedev&repo=continue"
+          file /tmp/chart.png | grep -q "PNG" || exit 1
+          echo "✅ Chart rendering works"
 
       - name: Comment on PR (if PR)
         if: github.event_name == 'pull_request'
