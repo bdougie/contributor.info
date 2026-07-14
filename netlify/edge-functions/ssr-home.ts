@@ -210,7 +210,7 @@ async function handler(request: Request, context: Context) {
       title: 'contributor.info - Visualizing Open Source Contributions',
       description:
         'Discover and visualize GitHub contributors and their contributions. Track open source activity, analyze contribution patterns, and celebrate community impact.',
-      image: 'https://contributor.info/social-cards/home',
+      image: `${new URL(request.url).origin}/social-cards/home`,
     };
 
     // Default empty stats for hydration compatibility (since we removed stats fetch)
