@@ -16,7 +16,9 @@ export function sizedAvatarUrl(avatarUrl: string): string | null {
   try {
     const url = new URL(avatarUrl);
     if (url.protocol !== 'https:' || !ALLOWED_HOSTS.has(url.hostname)) return null;
-    url.searchParams.set('s', String(AVATAR_SIZE));
+    // github.com/{username}.png takes `size` and redirects to the CDN,
+    // which takes `s` — it converts the param when redirecting.
+    url.searchParams.set(url.hostname === 'github.com' ? 'size' : 's', String(AVATAR_SIZE));
     return url.toString();
   } catch {
     return null;

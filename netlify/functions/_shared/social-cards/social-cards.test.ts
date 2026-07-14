@@ -117,6 +117,12 @@ describe('sizedAvatarUrl', () => {
     );
   });
 
+  it('uses the size param for github.com username avatars', () => {
+    expect(sizedAvatarUrl('https://github.com/bdougie.png')).toBe(
+      'https://github.com/bdougie.png?size=80'
+    );
+  });
+
   it('rejects non-GitHub or non-https hosts', () => {
     expect(sizedAvatarUrl('https://evil.example.com/a.png')).toBeNull();
     expect(sizedAvatarUrl('http://avatars.githubusercontent.com/u/1')).toBeNull();

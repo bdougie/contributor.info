@@ -57,7 +57,7 @@ export type DataSource = 'database' | 'fallback' | 'none';
 // Bump to force every cached card to re-render on the next deploy. Cached
 // function responses stay valid across deploys unless the function bundle
 // changes — an unchanged bundle (e.g. an empty commit) invalidates nothing.
-export const CARD_VERSION = '3';
+export const CARD_VERSION = '4';
 
 /**
  * Durable CDN caching keyed on the card params: each unique card renders

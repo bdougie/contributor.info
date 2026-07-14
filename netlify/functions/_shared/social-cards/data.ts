@@ -144,7 +144,7 @@ async function fetchAvatarUrls(supabase: SupabaseClient, authorIds: string[]): P
       timer = setTimeout(() => resolve(null), AVATAR_LOOKUP_TIMEOUT_MS);
     });
     const result = await Promise.race([
-      supabase.from('contributors').select('id, avatar_url').in('id', authorIds),
+      supabase.from('contributors').select('id, username, avatar_url').in('id', authorIds),
       timeout,
     ]).finally(() => clearTimeout(timer));
 
@@ -154,8 +154,14 @@ async function fetchAvatarUrls(supabase: SupabaseClient, authorIds: string[]): P
       }
       return [];
     }
+    // avatar_url is not populated for every contributor; GitHub serves any
+    // account's avatar at github.com/{username}.png, so fall back to that.
+    const rows = result.data as { id: string; username: string; avatar_url: string | null }[];
     const byId = new Map(
-      (result.data as { id: string; avatar_url: string | null }[]).map((c) => [c.id, c.avatar_url])
+      rows.map((c) => [
+        c.id,
+        c.avatar_url || `https://github.com/${encodeURIComponent(c.username)}.png`,
+      ])
     );
     return authorIds
       .map((id) => byId.get(id))
