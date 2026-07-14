@@ -21,7 +21,9 @@ import {
 import { fetchWorkspaceBySlug, type WorkspaceDetailData } from './_shared/supabase.ts';
 import { shouldSSR, fallbackToSPA, formatNumber } from './_shared/ssr-utils.ts';
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts).
+const SOCIAL_CARDS_BASE = 'https://contributor.info';
 
 /**
  * Language colors for display

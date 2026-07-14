@@ -21,7 +21,10 @@ export default function SocialCardPreview() {
     }
   };
 
-  const flyServiceUrl = 'https://contributor-info-social-cards.fly.dev';
+  // Cards are served same-origin by the social-cards Netlify Function;
+  // /health is not served locally under vite dev — use a deploy preview.
+  const cardServiceUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
 
   return (
     <div className="container mx-auto py-2 max-w-6xl">
@@ -29,13 +32,13 @@ export default function SocialCardPreview() {
 
       <div className="mb-4 text-sm text-muted-foreground">
         <p>
-          Preview both React components (local) and live cards from our Fly.io service. Click "Open
-          Full Size" to view live cards at actual dimensions (1200x630px).
+          Preview both React components (local) and live cards from the same-origin Netlify
+          Function. Click "Open Full Size" to view live cards at actual dimensions (1200x630px).
         </p>
         <p className="mt-2">
           Service Status:{' '}
           <a
-            href={`${flyServiceUrl}/health`}
+            href={'/api/health'}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500 hover:underline"
@@ -98,7 +101,7 @@ export default function SocialCardPreview() {
               {viewMode === 'live' && (
                 <Button variant="outline" size="sm" asChild>
                   <a
-                    href={`${flyServiceUrl}/social-cards/home`}
+                    href={`${cardServiceUrl}/social-cards/home`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -134,7 +137,7 @@ export default function SocialCardPreview() {
                   </div>
                 )}
                 <img
-                  src={`${flyServiceUrl}/social-cards/home`}
+                  src={`${cardServiceUrl}/social-cards/home`}
                   alt="Home social card preview"
                   onLoad={() => setLoading((prev) => ({ ...prev, home: false }))}
                   style={{
@@ -154,7 +157,7 @@ export default function SocialCardPreview() {
                 </>
               ) : (
                 <>
-                  <p>URL: {flyServiceUrl}/social-cards/home</p>
+                  <p>URL: {cardServiceUrl}/social-cards/home</p>
                   <p>Dimensions: 1200x630px</p>
                   <p>Format: SVG (optimized for fast loading)</p>
                 </>
@@ -172,7 +175,7 @@ export default function SocialCardPreview() {
               {viewMode === 'live' && (
                 <Button variant="outline" size="sm" asChild>
                   <a
-                    href={`${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`}
+                    href={`${cardServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -247,7 +250,7 @@ export default function SocialCardPreview() {
                 )}
                 <img
                   key={`${currentRepo.owner}/${currentRepo.repo}`}
-                  src={`${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`}
+                  src={`${cardServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}`}
                   alt={`${currentRepo.owner}/${currentRepo.repo} social card preview`}
                   onLoad={() => setLoading((prev) => ({ ...prev, repo: false }))}
                   style={{
@@ -269,7 +272,7 @@ export default function SocialCardPreview() {
               ) : (
                 <>
                   <p>
-                    URL: {flyServiceUrl}/social-cards/repo?owner=
+                    URL: {cardServiceUrl}/social-cards/repo?owner=
                     {encodeURIComponent(currentRepo.owner)}
                     &repo={encodeURIComponent(currentRepo.repo)}
                   </p>
@@ -333,12 +336,12 @@ export default function SocialCardPreview() {
           <CardContent>
             <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
               {`<!-- Home page -->
-<meta property="og:image" content="${flyServiceUrl}/social-cards/home" />
-<meta name="twitter:image" content="${flyServiceUrl}/social-cards/home" />
+<meta property="og:image" content="${cardServiceUrl}/social-cards/home" />
+<meta name="twitter:image" content="${cardServiceUrl}/social-cards/home" />
 
 <!-- Repository page -->
-<meta property="og:image" content="${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />
-<meta name="twitter:image" content="${flyServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />`}
+<meta property="og:image" content="${cardServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />
+<meta name="twitter:image" content="${cardServiceUrl}/social-cards/repo?owner=${encodeURIComponent(currentRepo.owner)}&repo=${encodeURIComponent(currentRepo.repo)}" />`}
             </pre>
           </CardContent>
         </Card>

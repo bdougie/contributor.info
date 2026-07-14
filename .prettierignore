@@ -80,3 +80,5 @@ tailwind.config.js
 # Vite config
 vite.config.ts
 vite.config.*.ts
+# Generated font data for social cards
+netlify/functions/_shared/social-cards/font-data.generated.ts

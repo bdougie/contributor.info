@@ -75,7 +75,7 @@ export default function FeedPage() {
         description={feedDescription}
         url={feedUrl}
         type="article"
-        image={`social-cards/repo-${owner}-${repo}.png`}
+        image="social-cards/repo"
       />
 
       {/* Add timestamp indicator for feed freshness */}

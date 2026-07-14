@@ -14,7 +14,9 @@ export { escapeHtml };
 export type { SafeHTML };
 export { html, unsafe };
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts).
+const SOCIAL_CARDS_BASE = 'https://contributor.info';
 
 export interface MetaTags {
   title: string;

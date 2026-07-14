@@ -106,9 +106,17 @@
 
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs
+# /social-cards/* is excluded so card responses are served straight from the
+# CDN cache (an edge function in the chain would bypass durable caching)
 [[edge_functions]]
   function = "social-meta"
   path = "/*"
+  excludedPath = ["/social-cards/*"]
+
+# Social card renderer: native @resvg/resvg-js ships a platform-specific
+# .node binary that esbuild cannot bundle — keep it as a regular module
+[functions.social-cards]
+  external_node_modules = ["@resvg/resvg-js"]
 
 # Inngest functions need longer timeouts for processing
 # Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
