@@ -63,6 +63,9 @@ export function cardHeaders(t: CardTimings): Record<string, string> {
     'Cache-Control': 'public, max-age=3600',
     'Netlify-CDN-Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800, durable',
     'Netlify-Vary': 'query=owner|repo|username',
+    // Tag durable-cached cards so they can be purged by tag (purge API)
+    // without a full-site cache flush.
+    'Netlify-Cache-Tag': 'social-cards',
     'Server-Timing': `data;dur=${t.dataMs.toFixed(1)}, resvg;dur=${t.resvgMs.toFixed(1)}`,
     'Access-Control-Allow-Origin': '*',
   };
