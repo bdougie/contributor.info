@@ -22,7 +22,9 @@ import {
 import { fetchRepository, fetchRepoContributorStats, type RepoData } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA, parseRepoPath } from './_shared/ssr-utils.ts';
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts). URLs
+// derive from the request origin so deploy previews exercise their own function.
 
 /**
  * Language colors for display
@@ -490,7 +492,7 @@ async function handler(request: Request, context: Context) {
       const meta: MetaTags = {
         title: `${owner}/${repo} - contributor.info`,
         description: `Analyze contributors for ${owner}/${repo}`,
-        image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        image: `${new URL(request.url).origin}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
       };
 
       // Pass null data to force client-side fetch
@@ -514,7 +516,7 @@ async function handler(request: Request, context: Context) {
       description:
         repoData.description ||
         `Explore contributors and contribution patterns for ${owner}/${repo} on GitHub.`,
-      image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+      image: `${new URL(request.url).origin}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
     };
 
     const ssrData: { route: string; data: RepoPageData; timestamp: number } = {
@@ -599,6 +601,7 @@ export const config = {
     '/dev/*',
     '/i/*',
     '/workspaces/*',
+    '/social-cards/*',
     '/trending',
     '/widgets',
     '/changelog',

@@ -15,7 +15,10 @@ const CRAWLER_USER_AGENTS = [
   'applebot',
 ];
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Chart screenshots still render on Fly (they need headless Chromium);
+// social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching.
+const CHARTS_BASE = 'https://contributor-info-social-cards.fly.dev';
 
 function isCrawler(userAgent: string | null): boolean {
   if (!userAgent) return false;
@@ -49,7 +52,7 @@ const CHART_TYPE_META: Record<string, { title: string; description: string }> = 
   },
 };
 
-function getMetaTagsForPath(pathname: string): MetaTags {
+function getMetaTagsForPath(pathname: string, origin: string): MetaTags {
   // Remove trailing slash
   const path = pathname.replace(/\/$/, '') || '/';
 
@@ -59,7 +62,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
       title: 'contributor.info - Visualizing Open Source Contributions',
       description:
         'Discover and visualize GitHub contributors. Track open source activity and analyze contribution patterns.',
-      image: `${SOCIAL_CARDS_BASE}/social-cards/home`,
+      image: `${origin}/social-cards/home`,
     };
   }
 
@@ -85,7 +88,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
       title: 'contributor.info - Visualizing Open Source Contributions',
       description:
         'Discover and visualize GitHub contributors. Track open source activity and analyze contribution patterns.',
-      image: `${SOCIAL_CARDS_BASE}/social-cards/home`,
+      image: `${origin}/social-cards/home`,
     };
   }
 
@@ -105,7 +108,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
       return {
         title: `${chartMeta.title} - ${owner}/${repo} - contributor.info`,
         description: `${chartMeta.description} for ${owner}/${repo} on GitHub.`,
-        image: `${SOCIAL_CARDS_BASE}/charts/${apiChartType}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        image: `${CHARTS_BASE}/charts/${apiChartType}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
       };
     }
   }
@@ -119,7 +122,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
       return {
         title: `${owner}/${repo} Contributors - contributor.info`,
         description: `Explore contributors and contribution patterns for ${owner}/${repo} on GitHub.`,
-        image: `${SOCIAL_CARDS_BASE}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        image: `${origin}/social-cards/repo?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
       };
     }
   }
@@ -133,7 +136,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
       return {
         title: `${username} - contributor.info`,
         description: `View ${username}'s open source contributions and activity on GitHub.`,
-        image: `${SOCIAL_CARDS_BASE}/social-cards/user?username=${encodeURIComponent(username)}`,
+        image: `${origin}/social-cards/user?username=${encodeURIComponent(username)}`,
       };
     }
   }
@@ -142,7 +145,7 @@ function getMetaTagsForPath(pathname: string): MetaTags {
   return {
     title: 'contributor.info - Visualizing Open Source Contributions',
     description: 'Discover and visualize GitHub contributors.',
-    image: `${SOCIAL_CARDS_BASE}/social-cards/home`,
+    image: `${origin}/social-cards/home`,
   };
 }
 
@@ -192,7 +195,7 @@ async function handler(request: Request, context: Context) {
 
   // Parse URL
   const url = new URL(request.url);
-  const meta = getMetaTagsForPath(url.pathname);
+  const meta = getMetaTagsForPath(url.pathname, url.origin);
 
   // Track which meta tags are being generated
   addBreadcrumb({
@@ -226,9 +229,9 @@ async function handler(request: Request, context: Context) {
       /<meta property="og:description" content="[^"]*"/,
       `<meta property="og:description" content="${safeDescription}"`
     )
-    // Update og:image (Fly.io URL)
+    // Update og:image (replace only the first tag — the static fallback stays)
     .replace(
-      /<meta property="og:image" content="https:\/\/contributor-info-social-cards\.fly\.dev[^"]*"/,
+      /<meta property="og:image" content="[^"]*"/,
       `<meta property="og:image" content="${safeImage}"`
     )
     // Update og:url
@@ -248,7 +251,7 @@ async function handler(request: Request, context: Context) {
     )
     // Update twitter:image
     .replace(
-      /<meta property="twitter:image" content="https:\/\/contributor-info-social-cards\.fly\.dev[^"]*"/,
+      /<meta property="twitter:image" content="[^"]*"/,
       `<meta property="twitter:image" content="${safeImage}"`
     )
     // Update twitter:url
@@ -286,6 +289,7 @@ export default withSentry('social-meta', handler);
 export const config = {
   path: '/*',
   excludedPath: [
+    '/social-cards/*',
     '/api/*',
     '/_next/*',
     '/assets/*',

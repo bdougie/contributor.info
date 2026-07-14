@@ -1,6 +1,7 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { isSSRPage } from '@/lib/ssr-hydration';
+import { prewarmSocialCard } from '@/lib/social-cards/prewarm';
 
 interface SocialMeta {
   title?: string;
@@ -56,12 +57,6 @@ export function SocialMetaTags({
   twitterCard = 'summary_large_image',
   siteName = 'contributor.info',
 }: SocialMetaTagsProps) {
-  // Skip rendering if SSR has already provided meta tags to avoid duplicates
-  // SSR pages have all necessary meta tags pre-rendered in the HTML head
-  if (isSSRPage()) {
-    return null;
-  }
-
   const currentUrl =
     url || (typeof window !== 'undefined' ? window.location.href : 'https://contributor.info');
 
@@ -69,8 +64,11 @@ export function SocialMetaTags({
   let imageUrl = image;
   let fallbackImageUrl = image;
 
-  // Use Fly.io service URL for all environments
-  const socialCardsBaseUrl = 'https://contributor-info-social-cards.fly.dev';
+  // Cards are served same-origin by the social-cards Netlify Function behind
+  // durable CDN caching; using the current origin keeps deploy previews
+  // exercising their own function.
+  const socialCardsBaseUrl =
+    typeof window !== 'undefined' ? window.location.origin : 'https://contributor.info';
 
   if (!image.startsWith('http')) {
     // Check if it's a social card path - use Fly.io service for generation
@@ -120,6 +118,18 @@ export function SocialMetaTags({
       imageUrl = `https://contributor.info${image}`;
       fallbackImageUrl = `https://contributor.info${image.replace('.webp', '.png')}`;
     }
+  }
+
+  // Pre-warm the durable CDN cache so a crawler's fetch is a cache hit.
+  // Runs for SSR pages too — those are exactly the ones people share.
+  useEffect(() => {
+    prewarmSocialCard(imageUrl);
+  }, [imageUrl]);
+
+  // Skip rendering if SSR has already provided meta tags to avoid duplicates
+  // SSR pages have all necessary meta tags pre-rendered in the HTML head
+  if (isSSRPage()) {
+    return null;
   }
 
   return (

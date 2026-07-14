@@ -21,7 +21,9 @@ import {
 import { fetchWorkspaceBySlug, type WorkspaceDetailData } from './_shared/supabase.ts';
 import { shouldSSR, fallbackToSPA, formatNumber } from './_shared/ssr-utils.ts';
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts). URLs
+// derive from the request origin so deploy previews exercise their own function.
 
 /**
  * Language colors for display
@@ -466,7 +468,7 @@ async function handler(request: Request, context: Context) {
       description:
         workspace.description ||
         `Explore contributors and analytics for the ${workspace.name} workspace.`,
-      image: `${SOCIAL_CARDS_BASE}/social-cards/workspace?name=${encodeURIComponent(workspace.name)}&repos=${workspace.repository_count}&contributors=${workspace.contributor_count}`,
+      image: `${new URL(request.url).origin}/social-cards/workspace?name=${encodeURIComponent(workspace.name)}&repos=${workspace.repository_count}&contributors=${workspace.contributor_count}`,
     };
 
     const ssrData: { route: 'workspace-detail'; data: WorkspaceDetailPageData; timestamp: number } =

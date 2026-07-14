@@ -94,7 +94,7 @@
 [[edge_functions]]
   function = "ssr-repo"
   path = "/:owner/:repo"
-  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/spam/*", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico"]
+  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/social-cards/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/spam/*", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico"]
 
 # SSR for profile pages (user/org)
 # Must come after ssr-repo to avoid intercepting repo routes (though pattern differs)
@@ -102,13 +102,21 @@
 [[edge_functions]]
   function = "ssr-profile"
   path = "/:username"
-  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/signup", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/spam", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico", "/*.txt", "/*.xml"]
+  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/signup", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/social-cards", "/social-cards/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/spam", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico", "/*.txt", "/*.xml"]
 
 # Edge Functions for social media meta tags
 # Detects crawler user-agents and injects dynamic og:image URLs
+# /social-cards/* is excluded so card responses are served straight from the
+# CDN cache (an edge function in the chain would bypass durable caching)
 [[edge_functions]]
   function = "social-meta"
   path = "/*"
+  excludedPath = ["/social-cards/*"]
+
+# Social card renderer: native @resvg/resvg-js ships a platform-specific
+# .node binary that esbuild cannot bundle — keep it as a regular module
+[functions.social-cards]
+  external_node_modules = ["@resvg/resvg-js"]
 
 # Inngest functions need longer timeouts for processing
 # Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)

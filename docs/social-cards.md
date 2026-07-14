@@ -2,218 +2,81 @@
 
 ## Overview
 
-The social cards system for contributor.info generates dynamic Open Graph and Twitter Card images for social media sharing. The system has been migrated from Netlify Edge Functions to a dedicated Fly.io service for improved reliability and performance.
+The social cards system generates dynamic Open Graph and Twitter Card images for social media sharing. Cards render same-origin in a Netlify Function behind durable CDN caching; chart screenshots (which need headless Chromium) still render on the Fly.io service.
 
-## Current Architecture (Fly.io)
+## Architecture (Netlify Function + durable CDN)
 
-### Service Details
-- **URL**: https://contributor-info-social-cards.fly.dev
-- **Technology**: Node.js/Express with optimized SVG generation
-- **Data Source**: Real-time Supabase integration
-- **Response Time**: < 2 seconds (target: < 100ms for generation)
-- **Uptime Target**: 99.9%
+Technique ported from papercomputeco/console.papercompute.com#157. The previous Fly.io card endpoint re-rendered on every request with no CDN in front, so a cold Fly start plus live Supabase queries regularly blew a crawler's timeout budget (Twitter ~2–3s, Facebook ~5s) — cards failed to load constantly.
+
+### How it stays fast
+
+- **Render**: `netlify/functions/social-cards.mts` builds the SVG in-process and rasterizes with native `@resvg/resvg-js` (N-API prebuilt binary — no wasm compile, no Chromium). Inter is vendored as subset font data (`_shared/social-cards/font-data.generated.ts`) because Lambda has no system fonts. Measured render: ~70–165ms.
+- **Cache**: responses set `Netlify-CDN-Cache-Control: public, s-maxage=86400, stale-while-revalidate=604800, durable` and `Netlify-Vary: query=owner|repo|username`. Each unique card renders roughly once globally, then serves from the CDN edge (~25ms); after a day, revalidation happens in the background — never in front of a crawler. Without `Netlify-Vary`, Netlify's CDN cache key ignores the query string and every card URL would serve whichever card rendered first. Error responses are `no-store` so a failure can't poison the durable cache.
+- **Pre-warm**: `src/lib/social-cards/prewarm.ts` fetches the card once per unique URL per page load (production only), so by the time someone shares the link the crawler's fetch is a cache hit.
+- **Degrade, don't hang**: Supabase lookups race a 1.5s timeout and fall back to zero-stat cards. Missing stats render as zeros — never mock figures.
+- **Routing**: `/social-cards/*` is excluded from the `social-meta` edge function so responses are served straight from the CDN cache.
 
 ### Endpoints
 
-#### Health Check
 ```
-GET https://contributor-info-social-cards.fly.dev/health
-```
-
-#### Metrics
-```
-GET https://contributor-info-social-cards.fly.dev/metrics
+GET https://contributor.info/social-cards/home
+GET https://contributor.info/social-cards/repo?owner={owner}&repo={repo}
+GET https://contributor.info/social-cards/user?username={username}
 ```
 
-#### Social Card Generation
+Charts still render on Fly.io (Playwright/Chromium with a Supabase-storage cache):
 
-**Home Page Card**
 ```
-GET https://contributor-info-social-cards.fly.dev/social-cards/home
-```
-
-**Repository Card**
-```
-GET https://contributor-info-social-cards.fly.dev/social-cards/repo?owner={owner}&repo={repo}
+GET https://contributor-info-social-cards.fly.dev/charts/{chartType}?owner={owner}&repo={repo}
 ```
 
-**User Card**
-```
-GET https://contributor-info-social-cards.fly.dev/social-cards/user?username={username}
-```
+### Card types
 
-## Card Types
+| Type | Content | Data |
+|------|---------|------|
+| Home | Site branding, global stats (repos, contributors, PRs) | Supabase, cached daily |
+| Repo | Weekly PR volume, active contributors | Supabase, cached daily |
+| User | Username + branding | None needed |
 
-### 1. Home Card
-- **Purpose**: Main social preview for the homepage
-- **Dimensions**: 1200x630px
-- **Content**: Site branding, global statistics (repositories, contributors, PRs)
-- **Data**: Real-time from Supabase
+All cards are 1200x630 PNG (Twitter `summary_large_image`, Open Graph, LinkedIn, Discord/Slack compatible).
 
-### 2. Repository Card
-- **Purpose**: Dynamic preview for repository pages
-- **Dimensions**: 1200x630px
-- **Content**: Repository stats, weekly PR volume, active contributors
-- **Data**: Real-time repository metrics from Supabase
+## Observability
 
-### 3. User Card
-- **Purpose**: Preview for user profile pages
-- **Dimensions**: 1200x630px
-- **Content**: User stats, contribution metrics
-- **Data**: Real-time user data from Supabase
-
-## Platform Compatibility
-
-All cards are optimized for:
-- **Twitter**: summary_large_image (1200x630px)
-- **Facebook**: Open Graph (1200x630px)
-- **LinkedIn**: 1200x627px minimum
-- **Discord/Slack**: Auto-preview with Open Graph
-
-## Performance
-
-### Current Metrics
-- **Generation Time**: < 100ms
-- **Response Time**: < 2 seconds
-- **Cache Headers**: 1 hour client, 24 hours CDN
-- **File Format**: SVG (lightweight, scalable)
-
-### Caching Strategy
-- **Client Cache**: 1 hour (Cache-Control: public, max-age=3600)
-- **CDN Cache**: 24 hours (s-maxage=86400)
-- **Data Freshness**: Real-time from database
-
-## Implementation
-
-### Meta Tags Integration
-
-The meta tags are automatically generated by the `MetaTagsProvider` component:
-
-```typescript
-// src/components/common/layout/meta-tags-provider.tsx
-const socialCardsBaseUrl = 'https://contributor-info-social-cards.fly.dev';
-
-// For repository pages
-imageUrl = `${socialCardsBaseUrl}/social-cards/repo?owner=${owner}&repo=${repo}`;
-
-// For user pages
-imageUrl = `${socialCardsBaseUrl}/social-cards/user?username=${username}`;
-
-// For home page
-imageUrl = `${socialCardsBaseUrl}/social-cards/home`;
-```
-
-### Testing Social Cards
-
-1. **Twitter Card Validator**
-   - Visit: https://cards-dev.twitter.com/validator
-   - Enter your page URL
-
-2. **Facebook Sharing Debugger**
-   - Visit: https://developers.facebook.com/tools/debug/
-   - Enter your page URL
-
-3. **LinkedIn Post Inspector**
-   - Visit: https://www.linkedin.com/post-inspector/
-   - Enter your page URL
-
-## Deployment
-
-### Fly.io Service
-
-The service is automatically deployed via GitHub Actions on push to main:
-
-```yaml
-# .github/workflows/deploy-social-cards.yml
-- Builds Docker container
-- Deploys to Fly.io
-- Runs health checks
-- Tests card generation
-```
-
-### Manual Deployment
+Card responses carry `Server-Timing: data;dur=…, resvg;dur=…` (Supabase fetch vs rasterize):
 
 ```bash
-cd fly-social-cards
-./deploy.sh
+curl -sI 'https://contributor.info/social-cards/repo?owner=vitejs&repo=vite' | grep -i -E 'server-timing|cache'
 ```
 
-### Environment Variables
+A repeat request served by the CDN shows a cache hit and ~25ms latency.
 
-Required secrets (set in Fly.io):
-- `SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_ANON_KEY`: Supabase anonymous key
+## Where card URLs are set
 
-## Monitoring
+- `index.html` — static default `og:image`/`twitter:image`
+- `netlify/edge-functions/social-meta.ts` — crawler-facing rewrite for all paths
+- `netlify/edge-functions/ssr-{repo,profile,home,workspace-detail}.ts` + `_shared/html-template.ts` — SSR pages
+- `src/components/common/layout/meta-tags-provider.tsx` — client-side Helmet tags + pre-warm
 
-### Health Monitoring
-- Endpoint: `/health`
-- Checks: Service status, database connectivity
-- Frequency: Every 10 seconds
+## Testing
 
-### Metrics
-- Endpoint: `/metrics`
-- Data: Request count, response times, cache statistics
+- Unit tests: `netlify/functions/_shared/social-cards/social-cards.test.ts`
+- Dev preview page: `/dev/social-cards` (use a Netlify deploy preview — the function doesn't run under bare `vite dev`)
+- Platform validators: [Twitter](https://cards-dev.twitter.com/validator), [Facebook](https://developers.facebook.com/tools/debug/), [LinkedIn](https://www.linkedin.com/post-inspector/)
 
-### Logs
-```bash
-fly logs -a contributor-info-social-cards
-```
+## Fonts
 
-## Troubleshooting
+Regenerate the vendored font subsets with `scripts/social-cards/generate-font-data.mjs` — see `scripts/social-cards/README.md`.
 
-### Common Issues
+## Environment
 
-**Cards not loading**
-1. Check service health: https://contributor-info-social-cards.fly.dev/health
-2. Verify Fly.io status: `fly status -a contributor-info-social-cards`
-3. Check logs: `fly logs -a contributor-info-social-cards`
-
-**Data not updating**
-1. Verify Supabase connection
-2. Check database queries in logs
-3. Confirm cache headers are appropriate
-
-**Platform not showing cards**
-1. Use platform validators (Twitter, Facebook, LinkedIn)
-2. Clear platform cache (Facebook Debugger has "Scrape Again" button)
-3. Verify meta tags are present in HTML
+The function uses the shared Supabase client (`netlify/functions/_shared/supabase-client.ts`), which needs `SUPABASE_URL`/`VITE_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the Netlify environment (already set for other functions). Missing configuration degrades to zero-stat cards rather than errors.
 
 ## Migration History
 
-### Previous Implementation (Deprecated)
-- **Platform**: Netlify Edge Functions
-- **Issues**: Timeouts, cold starts, mock data only
-- **Status**: Removed due to unreliability
-
-### Current Implementation
-- **Platform**: Fly.io
-- **Improvements**: Real data, better performance, 99.9% uptime
-- **Migration Date**: January 2025
-
-## Future Enhancements
-
-### Planned
-- [ ] WebP format support for better compression
-- [ ] User avatar integration
-- [ ] Custom themes per repository
-- [ ] Analytics tracking
-
-### Considered
-- [ ] Animated cards for supported platforms
-- [ ] Multi-language support
-- [ ] A/B testing different designs
-- [ ] Real-time preview in admin
+- **Jan 2025**: Netlify Edge Functions → Fly.io Express service (real data, but no CDN, per-request renders, cold starts)
+- **Jul 2026**: Card rendering → same-origin Netlify Function with native resvg, durable CDN caching, and pre-warming. Charts remain on Fly.io. The Fly service's `/social-cards` endpoint is no longer referenced by the app.
 
 ## Related Documentation
 
-- [Fly.io Service README](/fly-social-cards/README.md)
-- [Migration Guide](/docs/migration/social-cards-fly-migration.md)
+- [Fly.io Service README](/fly-social-cards/README.md) (charts)
 - [Meta Tags Provider](/src/components/common/layout/meta-tags-provider.tsx)
-
-## Support
-
-For issues with social cards:
-1. Check service status
-2. Review logs
-3. Open an issue with details

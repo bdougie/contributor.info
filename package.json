@@ -136,6 +136,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@radix-ui/react-toggle": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.2.8",
+    "@resvg/resvg-js": "^2.6.2",
     "@sentry/browser": "^10.65.0",
     "@supabase/supabase-js": "^2.92.0",
     "@tailwindcss/typography": "^0.5.16",

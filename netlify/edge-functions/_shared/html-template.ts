@@ -14,7 +14,9 @@ export { escapeHtml };
 export type { SafeHTML };
 export { html, unsafe };
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts). URLs
+// derive from the request origin so deploy previews exercise their own function.
 
 export interface MetaTags {
   title: string;
@@ -229,7 +231,7 @@ function getSPAFallback(): AssetReferences {
  * Generate meta tags HTML
  */
 function renderMetaTags(meta: MetaTags, url: string): SafeHTML {
-  const image = meta.image || `${SOCIAL_CARDS_BASE}/social-cards/home`;
+  const image = meta.image || `${new URL(url).origin}/social-cards/home`;
   const type = meta.type || 'website';
 
   return html`

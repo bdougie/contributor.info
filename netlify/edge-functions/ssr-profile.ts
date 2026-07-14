@@ -21,7 +21,9 @@ import {
 import { fetchRepositoriesByOwner } from './_shared/supabase.ts';
 import { formatNumber, shouldSSR, fallbackToSPA } from './_shared/ssr-utils.ts';
 
-const SOCIAL_CARDS_BASE = 'https://contributor-info-social-cards.fly.dev';
+// Social cards are served same-origin by the social-cards Netlify Function
+// behind durable CDN caching (see netlify/functions/social-cards.mts). URLs
+// derive from the request origin so deploy previews exercise their own function.
 
 /**
  * Language colors for display (matching client-side)
@@ -393,7 +395,7 @@ async function handler(request: Request, context: Context) {
       const meta: MetaTags = {
         title: `${username} - contributor.info`,
         description: `View ${username}'s contribution history and open source project insights.`,
-        image: `${SOCIAL_CARDS_BASE}/social-cards/user?username=${encodeURIComponent(username)}`,
+        image: `${new URL(request.url).origin}/social-cards/user?username=${encodeURIComponent(username)}`,
       };
 
       // Pass null data to force client-side fetch
@@ -413,7 +415,7 @@ async function handler(request: Request, context: Context) {
     const meta: MetaTags = {
       title: `${username} - Open Source Contributor`,
       description: `View ${username}'s contribution history and open source project insights. Discover their collaborative repositories.`,
-      image: `${SOCIAL_CARDS_BASE}/social-cards/user?username=${encodeURIComponent(username)}`,
+      image: `${new URL(request.url).origin}/social-cards/user?username=${encodeURIComponent(username)}`,
     };
 
     // We can pass the initial data to client if we want, but client fetches from GitHub
