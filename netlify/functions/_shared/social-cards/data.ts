@@ -13,7 +13,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GlobalCardStats, RepoCardStats } from './card-generator.ts';
 
 const DB_TIMEOUT_MS = 2500;
-const AVATAR_LOOKUP_TIMEOUT_MS = 600;
 const TOP_CONTRIBUTOR_COUNT = 5;
 
 // PostgREST caps row responses (~1000); ordering newest-first keeps the
@@ -35,32 +34,28 @@ export interface RepoCardData {
   avatarUrls: string[];
 }
 
+// The contributor embed on pull_requests can come back as an object or a
+// one-element array depending on how PostgREST resolves the relationship.
+interface EmbeddedContributor {
+  username: string;
+  avatar_url: string | null;
+}
+
+function embeddedContributor(
+  value: EmbeddedContributor | EmbeddedContributor[] | null
+): EmbeddedContributor | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
+}
+
 export async function fetchRepoCardData(
   supabase: SupabaseClient,
   owner: string,
   repo: string
 ): Promise<RepoCardData> {
-  const withAuthors = await fetchRepoStatsWithAuthors(supabase, owner, repo);
-  if (!withAuthors) return { stats: null, avatarUrls: [] };
-  const { topAuthorIds, ...stats } = withAuthors;
-  return {
-    stats,
-    avatarUrls: await fetchAvatarUrls(supabase, topAuthorIds),
-  };
-}
-
-interface RepoStatsWithAuthors extends RepoCardStats {
-  topAuthorIds: string[];
-}
-
-async function fetchRepoStatsWithAuthors(
-  supabase: SupabaseClient,
-  owner: string,
-  repo: string
-): Promise<RepoStatsWithAuthors | null> {
   try {
-    return await withTimeout(
-      (async (): Promise<RepoStatsWithAuthors | null> => {
+    const result = await withTimeout(
+      (async (): Promise<RepoCardData | null> => {
         const { data: repoData, error: repoError } = await supabase
           .from('repositories')
           .select('id')
@@ -73,7 +68,7 @@ async function fetchRepoStatsWithAuthors(
           console.error('social-cards repo lookup failed: %s', repoError.message);
           return null;
         }
-        if (!repoData) return null;
+        if (!repoData) return { stats: null, avatarUrls: [] };
 
         const now = new Date();
         const oneWeekAgo = new Date(now);
@@ -91,7 +86,9 @@ async function fetchRepoStatsWithAuthors(
             .gte('created_at', oneWeekAgo.toISOString()),
           supabase
             .from('pull_requests')
-            .select('author_id, created_at')
+            // Same contributor embed the app's repo pages use — resolved in
+            // one query, no separate lookup to fail or time out.
+            .select('author_id, created_at, contributors:author_id(username, avatar_url)')
             .eq('repository_id', repoData.id)
             .gte('created_at', sixMonthsAgo.toISOString())
             .order('created_at', { ascending: false })
@@ -105,69 +102,46 @@ async function fetchRepoStatsWithAuthors(
           console.error('social-cards PR author fetch failed: %s', recent.error.message);
         }
 
-        const rows = (recent.data ?? []) as { author_id: string; created_at: string }[];
+        const rows = (recent.data ?? []) as unknown as {
+          author_id: string;
+          created_at: string;
+          contributors: EmbeddedContributor | EmbeddedContributor[] | null;
+        }[];
         const activeAuthors = new Set<string>();
         const prCounts = new Map<string, number>();
+        const authorContributor = new Map<string, EmbeddedContributor>();
         const activeCutoff = thirtyDaysAgo.toISOString();
         for (const row of rows) {
           prCounts.set(row.author_id, (prCounts.get(row.author_id) ?? 0) + 1);
           if (row.created_at >= activeCutoff) activeAuthors.add(row.author_id);
+          const contributor = embeddedContributor(row.contributors);
+          if (contributor && !authorContributor.has(row.author_id)) {
+            authorContributor.set(row.author_id, contributor);
+          }
         }
 
-        const topAuthorIds = [...prCounts.entries()]
+        // avatar_url is not populated for every contributor; GitHub serves
+        // any account's avatar at github.com/{username}.png as a fallback.
+        const avatarUrls = [...prCounts.entries()]
           .sort((a, b) => b[1] - a[1])
           .slice(0, TOP_CONTRIBUTOR_COUNT)
-          .map(([id]) => id);
+          .map(([id]) => authorContributor.get(id))
+          .filter((c): c is EmbeddedContributor => c !== undefined)
+          .map((c) => c.avatar_url || `https://github.com/${encodeURIComponent(c.username)}.png`);
 
         return {
-          weeklyPRVolume: weekly.count ?? 0,
-          activeContributors: activeAuthors.size,
-          totalContributors: prCounts.size,
-          topAuthorIds,
+          stats: {
+            weeklyPRVolume: weekly.count ?? 0,
+            activeContributors: activeAuthors.size,
+            totalContributors: prCounts.size,
+          },
+          avatarUrls,
         };
       })()
     );
+    return result ?? { stats: null, avatarUrls: [] };
   } catch {
-    return null;
-  }
-}
-
-/**
- * Resolve author ids to avatar URLs, preserving rank order. Separate, short
- * timeout: a slow lookup costs the avatars, never the stats.
- */
-async function fetchAvatarUrls(supabase: SupabaseClient, authorIds: string[]): Promise<string[]> {
-  if (authorIds.length === 0) return [];
-  try {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<null>((resolve) => {
-      timer = setTimeout(() => resolve(null), AVATAR_LOOKUP_TIMEOUT_MS);
-    });
-    const result = await Promise.race([
-      supabase.from('contributors').select('id, username, avatar_url').in('id', authorIds),
-      timeout,
-    ]).finally(() => clearTimeout(timer));
-
-    if (!result || result.error) {
-      if (result?.error) {
-        console.error('social-cards avatar lookup failed: %s', result.error.message);
-      }
-      return [];
-    }
-    // avatar_url is not populated for every contributor; GitHub serves any
-    // account's avatar at github.com/{username}.png, so fall back to that.
-    const rows = result.data as { id: string; username: string; avatar_url: string | null }[];
-    const byId = new Map(
-      rows.map((c) => [
-        c.id,
-        c.avatar_url || `https://github.com/${encodeURIComponent(c.username)}.png`,
-      ])
-    );
-    return authorIds
-      .map((id) => byId.get(id))
-      .filter((url): url is string => typeof url === 'string' && url.length > 0);
-  } catch {
-    return [];
+    return { stats: null, avatarUrls: [] };
   }
 }
 
