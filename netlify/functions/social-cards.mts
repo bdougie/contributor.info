@@ -13,7 +13,8 @@ import type { Config } from '@netlify/functions';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './_shared/supabase-client.ts';
 import { generateSocialCard, type SocialCardData } from './_shared/social-cards/card-generator.ts';
-import { fetchGlobalStats, fetchRepoStats } from './_shared/social-cards/data.ts';
+import { fetchAvatarDataUris } from './_shared/social-cards/avatars.ts';
+import { fetchGlobalStats, fetchRepoCardData } from './_shared/social-cards/data.ts';
 import {
   cardHeaders,
   errorHeaders,
@@ -38,8 +39,11 @@ export default async function handler(req: Request): Promise<Response> {
     let data: SocialCardData;
     let dataSource: DataSource = 'none';
     if (card.type === 'repo' && card.owner && card.repo) {
-      const stats = supabase ? await fetchRepoStats(supabase, card.owner, card.repo) : null;
-      data = { type: 'repo', title: `${card.owner}/${card.repo}`, stats };
+      const { stats, avatarUrls } = supabase
+        ? await fetchRepoCardData(supabase, card.owner, card.repo)
+        : { stats: null, avatarUrls: [] };
+      const avatars = await fetchAvatarDataUris(avatarUrls);
+      data = { type: 'repo', title: `${card.owner}/${card.repo}`, stats, avatars };
       dataSource = stats ? 'database' : 'fallback';
     } else if (card.type === 'user' && card.username) {
       data = { type: 'user', title: `@${card.username}` };

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { sizedAvatarUrl } from './avatars';
 import { formatNumber, generateSocialCard } from './card-generator';
 import { cardHeaders, errorHeaders, parseCardRequest, sanitizeName } from './http';
 
@@ -93,6 +94,20 @@ describe('errorHeaders', () => {
   });
 });
 
+describe('sizedAvatarUrl', () => {
+  it('adds a size param to GitHub avatar URLs', () => {
+    expect(sizedAvatarUrl('https://avatars.githubusercontent.com/u/5713670?v=4')).toBe(
+      'https://avatars.githubusercontent.com/u/5713670?v=4&s=80'
+    );
+  });
+
+  it('rejects non-GitHub or non-https hosts', () => {
+    expect(sizedAvatarUrl('https://evil.example.com/a.png')).toBeNull();
+    expect(sizedAvatarUrl('http://avatars.githubusercontent.com/u/1')).toBeNull();
+    expect(sizedAvatarUrl('not a url')).toBeNull();
+  });
+});
+
 describe('formatNumber', () => {
   it('formats magnitudes', () => {
     expect(formatNumber(0)).toBe('0');
@@ -135,6 +150,25 @@ describe('generateSocialCard', () => {
     expect(svg).toContain('>42</text>');
     expect(svg).toContain('>18</text>');
     expect(svg).toContain('+307');
+  });
+
+  it('embeds avatar images and pads the rest with placeholder circles', () => {
+    const avatar = 'data:image/png;base64,AAAA';
+    const svg = generateSocialCard({
+      type: 'repo',
+      title: 'a/b',
+      stats: { weeklyPRVolume: 1, activeContributors: 2, totalContributors: 30 },
+      avatars: [avatar, avatar],
+    });
+    expect(svg.match(/<image href="data:image\/png;base64,AAAA"/g)).toHaveLength(2);
+    // remaining 3 of the 5 slots stay placeholders
+    expect(svg.match(/opacity="0\.3"/g)).toHaveLength(3);
+  });
+
+  it('renders all placeholder circles when no avatars are available', () => {
+    const svg = generateSocialCard({ type: 'repo', title: 'a/b', stats: null });
+    expect(svg).not.toContain('<image');
+    expect(svg.match(/opacity="0\.3"/g)).toHaveLength(5);
   });
 
   it('produces a 1200x630 SVG for every card type', () => {

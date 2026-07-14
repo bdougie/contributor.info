@@ -14,6 +14,9 @@ export interface RepoCardStats {
   totalContributors: number;
 }
 
+/** Avatar images as data URIs, already fetched — top contributors first. */
+export type CardAvatars = string[];
+
 export interface GlobalCardStats {
   repositories: number;
   contributors: number;
@@ -22,7 +25,7 @@ export interface GlobalCardStats {
 
 export type SocialCardData =
   | { type: 'home'; stats: GlobalCardStats | null }
-  | { type: 'repo'; title: string; stats: RepoCardStats | null }
+  | { type: 'repo'; title: string; stats: RepoCardStats | null; avatars?: CardAvatars }
   | { type: 'user'; title: string }
   | { type: 'error'; title: string; subtitle: string };
 
@@ -125,7 +128,11 @@ const generateHomeCard = (stats: GlobalCardStats | null): string => {
   </svg>`;
 };
 
-const generateRepoCard = (title: string, stats: RepoCardStats | null): string => {
+const generateRepoCard = (
+  title: string,
+  stats: RepoCardStats | null,
+  avatars: CardAvatars
+): string => {
   const safeTitle = escapeHtml(title);
   const weeklyPRNum = formatNumber(stats?.weeklyPRVolume ?? 0);
   const activeContribNum = formatNumber(stats?.activeContributors ?? 0);
@@ -153,10 +160,17 @@ const generateRepoCard = (title: string, stats: RepoCardStats | null): string =>
 
     <g transform="translate(48, 540)">
       ${[0, 1, 2, 3, 4]
-        .map(
-          (i) =>
-            `<circle cx="${i * 40 + 16}" cy="16" r="16" fill="${THEME.textMuted}" opacity="0.3"/>`
-        )
+        .map((i) => {
+          const avatar = avatars[i];
+          if (!avatar) {
+            return `<circle cx="${i * 40 + 16}" cy="16" r="16" fill="${THEME.textMuted}" opacity="0.3"/>`;
+          }
+          return `<g transform="translate(${i * 40}, 0)">
+            <clipPath id="avatar-clip-${i}"><circle cx="16" cy="16" r="16"/></clipPath>
+            <image href="${avatar}" width="32" height="32" clip-path="url(#avatar-clip-${i})"/>
+            <circle cx="16" cy="16" r="15.5" fill="none" stroke="${THEME.text}" stroke-width="1" opacity="0.25"/>
+          </g>`;
+        })
         .join('')}
       <text x="220" y="22" font-size="14" fill="${THEME.text}" font-family="${FONT}">+${formatNumber(remainingContributors)}</text>
     </g>
@@ -187,7 +201,7 @@ const generateErrorCard = (
 export function generateSocialCard(data: SocialCardData): string {
   switch (data.type) {
     case 'repo':
-      return generateRepoCard(data.title, data.stats);
+      return generateRepoCard(data.title, data.stats, data.avatars ?? []);
     case 'user':
       return generateUserCard(data.title);
     case 'error':

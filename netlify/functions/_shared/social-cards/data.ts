@@ -12,7 +12,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { GlobalCardStats, RepoCardStats } from './card-generator.ts';
 
-const DB_TIMEOUT_MS = 1500;
+const DB_TIMEOUT_MS = 2500;
+const AVATAR_LOOKUP_TIMEOUT_MS = 600;
+const TOP_CONTRIBUTOR_COUNT = 5;
 
 // PostgREST caps row responses (~1000); ordering newest-first keeps the
 // recent windows accurate and only undercounts the 6-month contributor
@@ -27,14 +29,38 @@ function withTimeout<T>(promise: Promise<T>): Promise<T | null> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export async function fetchRepoStats(
+export interface RepoCardData {
+  stats: RepoCardStats | null;
+  /** Top contributors' avatar URLs, most PRs (6 months) first. */
+  avatarUrls: string[];
+}
+
+export async function fetchRepoCardData(
   supabase: SupabaseClient,
   owner: string,
   repo: string
-): Promise<RepoCardStats | null> {
+): Promise<RepoCardData> {
+  const withAuthors = await fetchRepoStatsWithAuthors(supabase, owner, repo);
+  if (!withAuthors) return { stats: null, avatarUrls: [] };
+  const { topAuthorIds, ...stats } = withAuthors;
+  return {
+    stats,
+    avatarUrls: await fetchAvatarUrls(supabase, topAuthorIds),
+  };
+}
+
+interface RepoStatsWithAuthors extends RepoCardStats {
+  topAuthorIds: string[];
+}
+
+async function fetchRepoStatsWithAuthors(
+  supabase: SupabaseClient,
+  owner: string,
+  repo: string
+): Promise<RepoStatsWithAuthors | null> {
   try {
     return await withTimeout(
-      (async (): Promise<RepoCardStats | null> => {
+      (async (): Promise<RepoStatsWithAuthors | null> => {
         const { data: repoData, error: repoError } = await supabase
           .from('repositories')
           .select('id')
@@ -81,22 +107,61 @@ export async function fetchRepoStats(
 
         const rows = (recent.data ?? []) as { author_id: string; created_at: string }[];
         const activeAuthors = new Set<string>();
-        const totalAuthors = new Set<string>();
+        const prCounts = new Map<string, number>();
         const activeCutoff = thirtyDaysAgo.toISOString();
         for (const row of rows) {
-          totalAuthors.add(row.author_id);
+          prCounts.set(row.author_id, (prCounts.get(row.author_id) ?? 0) + 1);
           if (row.created_at >= activeCutoff) activeAuthors.add(row.author_id);
         }
+
+        const topAuthorIds = [...prCounts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, TOP_CONTRIBUTOR_COUNT)
+          .map(([id]) => id);
 
         return {
           weeklyPRVolume: weekly.count ?? 0,
           activeContributors: activeAuthors.size,
-          totalContributors: totalAuthors.size,
+          totalContributors: prCounts.size,
+          topAuthorIds,
         };
       })()
     );
   } catch {
     return null;
+  }
+}
+
+/**
+ * Resolve author ids to avatar URLs, preserving rank order. Separate, short
+ * timeout: a slow lookup costs the avatars, never the stats.
+ */
+async function fetchAvatarUrls(supabase: SupabaseClient, authorIds: string[]): Promise<string[]> {
+  if (authorIds.length === 0) return [];
+  try {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), AVATAR_LOOKUP_TIMEOUT_MS);
+    });
+    const result = await Promise.race([
+      supabase.from('contributors').select('id, avatar_url').in('id', authorIds),
+      timeout,
+    ]).finally(() => clearTimeout(timer));
+
+    if (!result || result.error) {
+      if (result?.error) {
+        console.error('social-cards avatar lookup failed: %s', result.error.message);
+      }
+      return [];
+    }
+    const byId = new Map(
+      (result.data as { id: string; avatar_url: string | null }[]).map((c) => [c.id, c.avatar_url])
+    );
+    return authorIds
+      .map((id) => byId.get(id))
+      .filter((url): url is string => typeof url === 'string' && url.length > 0);
+  } catch {
+    return [];
   }
 }
 
