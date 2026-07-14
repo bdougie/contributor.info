@@ -14,7 +14,12 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './_shared/supabase-client.ts';
 import { generateSocialCard, type SocialCardData } from './_shared/social-cards/card-generator.ts';
 import { fetchGlobalStats, fetchRepoStats } from './_shared/social-cards/data.ts';
-import { cardHeaders, errorHeaders, parseCardRequest } from './_shared/social-cards/http.ts';
+import {
+  cardHeaders,
+  errorHeaders,
+  parseCardRequest,
+  type DataSource,
+} from './_shared/social-cards/http.ts';
 import { renderSvgToPng } from './_shared/social-cards/render.ts';
 
 export default async function handler(req: Request): Promise<Response> {
@@ -26,25 +31,29 @@ export default async function handler(req: Request): Promise<Response> {
       supabase = getSupabaseClient();
     } catch {
       // Missing configuration degrades to zero-stat cards rather than a 500.
+      console.error('social-cards: Supabase configuration missing, rendering zero-stat card');
     }
 
     const t0 = performance.now();
     let data: SocialCardData;
+    let dataSource: DataSource = 'none';
     if (card.type === 'repo' && card.owner && card.repo) {
-      data = {
-        type: 'repo',
-        title: `${card.owner}/${card.repo}`,
-        stats: supabase ? await fetchRepoStats(supabase, card.owner, card.repo) : null,
-      };
+      const stats = supabase ? await fetchRepoStats(supabase, card.owner, card.repo) : null;
+      data = { type: 'repo', title: `${card.owner}/${card.repo}`, stats };
+      dataSource = stats ? 'database' : 'fallback';
     } else if (card.type === 'user' && card.username) {
       data = { type: 'user', title: `@${card.username}` };
     } else {
-      data = { type: 'home', stats: supabase ? await fetchGlobalStats(supabase) : null };
+      const stats = supabase ? await fetchGlobalStats(supabase) : null;
+      data = { type: 'home', stats };
+      dataSource = stats ? 'database' : 'fallback';
     }
     const dataMs = performance.now() - t0;
 
     const { png, resvgMs } = renderSvgToPng(generateSocialCard(data));
-    return new Response(new Uint8Array(png), { headers: cardHeaders({ dataMs, resvgMs }) });
+    return new Response(new Uint8Array(png), {
+      headers: cardHeaders({ dataMs, resvgMs }, dataSource),
+    });
   } catch (error) {
     console.error(
       'Social card generation error: %s',

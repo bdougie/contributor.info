@@ -66,7 +66,7 @@ describe('parseCardRequest', () => {
 });
 
 describe('cardHeaders', () => {
-  const headers = cardHeaders({ dataMs: 12.34, resvgMs: 56.78 });
+  const headers = cardHeaders({ dataMs: 12.34, resvgMs: 56.78 }, 'database');
 
   it('caches durably at the CDN with stale-while-revalidate', () => {
     expect(headers['Netlify-CDN-Cache-Control']).toContain('durable');
@@ -80,9 +80,10 @@ describe('cardHeaders', () => {
     expect(headers['Netlify-Vary']).toBe('query=owner|repo|username');
   });
 
-  it('reports render timings and content type', () => {
+  it('reports render timings, data source, and content type', () => {
     expect(headers['Content-Type']).toBe('image/png');
     expect(headers['Server-Timing']).toBe('data;dur=12.3, resvg;dur=56.8');
+    expect(headers['X-Data-Source']).toBe('database');
   });
 });
 

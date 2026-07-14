@@ -47,6 +47,10 @@ export interface CardTimings {
   resvgMs: number;
 }
 
+// 'database' = stats fetched; 'fallback' = query failed or repo unknown,
+// zeros rendered; 'none' = card type needs no data.
+export type DataSource = 'database' | 'fallback' | 'none';
+
 /**
  * Durable CDN caching keyed on the card params: each unique card renders
  * roughly once globally, then serves from Netlify's edge (~25ms) — a crawler
@@ -57,7 +61,7 @@ export interface CardTimings {
  * Netlify-Vary — without it, every card URL would serve whichever card
  * rendered first.
  */
-export function cardHeaders(t: CardTimings): Record<string, string> {
+export function cardHeaders(t: CardTimings, dataSource: DataSource): Record<string, string> {
   return {
     'Content-Type': 'image/png',
     'Cache-Control': 'public, max-age=3600',
@@ -67,6 +71,7 @@ export function cardHeaders(t: CardTimings): Record<string, string> {
     // without a full-site cache flush.
     'Netlify-Cache-Tag': 'social-cards',
     'Server-Timing': `data;dur=${t.dataMs.toFixed(1)}, resvg;dur=${t.resvgMs.toFixed(1)}`,
+    'X-Data-Source': dataSource,
     'Access-Control-Allow-Origin': '*',
   };
 }
