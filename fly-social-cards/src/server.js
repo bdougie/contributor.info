@@ -1,8 +1,6 @@
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { generateSocialCard } from './card-generator.js';
-import { getConverter } from './svg-to-png.js';
 import { renderer } from './playwright-renderer.js';
 import { generateCacheKey, getCachedImage, cacheImage, getCacheStats } from './cache.js';
 import {
@@ -222,260 +220,31 @@ app.get('/charts/:chartType', rateLimit, async (req, res) => {
   }
 });
 
-// Main social card generation endpoint (with rate limiting)
-app.get('/social-cards/:type?', rateLimit, async (req, res) => {
-  const startTime = Date.now();
-  global.requestCount = (global.requestCount || 0) + 1;
+// Card rendering moved to a same-origin Netlify Function (see
+// netlify/functions/social-cards.mts in the main repo, PR #1825). Social
+// platforms cache og:image URLs from old shares, so these permanent
+// redirects keep them resolving; only charts render here now.
+const CARDS_BASE = 'https://contributor.info';
 
-  try {
-    const { type = 'home' } = req.params;
-    const { owner, repo, username, title, subtitle, format = 'png' } = req.query;
+function redirectToCard(req, res, type) {
+  const search = new URLSearchParams(req.query).toString();
+  res.redirect(
+    301,
+    `${CARDS_BASE}/social-cards/${encodeURIComponent(type)}${search ? `?${search}` : ''}`
+  );
+}
 
-    // Validate inputs
-    if (!validateInput(owner) || !validateInput(repo) || !validateInput(username)) {
-      return res.status(400).json({ error: 'Invalid input parameters' });
-    }
-
-    // Validate title and subtitle (allow spaces)
-    if (
-      !validateInput(title, /^[a-zA-Z0-9_.\-\s]+$/) ||
-      !validateInput(subtitle, /^[a-zA-Z0-9_.\-\s]+$/)
-    ) {
-      return res.status(400).json({ error: 'Invalid title or subtitle' });
-    }
-
-    let cardData = {
-      title: title || 'contributor.info',
-      subtitle: subtitle || 'Open Source Contributions',
-      stats: null,
-      type: 'home',
-    };
-
-    // Handle repository cards
-    if (type === 'repo' || (owner && repo)) {
-      cardData.title = `${owner}/${repo}`;
-      cardData.subtitle = 'Past 6 months';
-      cardData.type = 'repo';
-
-      // Try to fetch real data from Supabase if client is available
-      if (supabase) {
-        try {
-          const { data: repoData, error } = await supabase
-            .from('repositories')
-            .select(
-              `
-            id,
-            owner,
-            name,
-            pull_requests(count),
-            contributors(count)
-          `
-            )
-            .eq('owner', owner)
-            .eq('name', repo)
-            .eq('is_private', false)
-            .single();
-
-          if (!error && repoData) {
-            // Get PR count for last week
-            const oneWeekAgo = new Date();
-            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-            const { count: weeklyPRs } = await supabase
-              .from('pull_requests')
-              .select('*', { count: 'exact', head: false })
-              .eq('repository_id', repoData.id)
-              .gte('created_at', oneWeekAgo.toISOString());
-
-            // Get active contributors (last 30 days)
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            const { data: activeContribs } = await supabase
-              .from('pull_requests')
-              .select('author_id')
-              .eq('repository_id', repoData.id)
-              .gte('created_at', thirtyDaysAgo.toISOString());
-
-            const uniqueActiveContributors = new Set(
-              activeContribs?.map((pr) => pr.author_id) || []
-            );
-
-            cardData.stats = {
-              weeklyPRVolume: weeklyPRs || 0,
-              activeContributors: uniqueActiveContributors.size,
-              totalContributors: repoData.contributors?.[0]?.count || 0,
-              totalPRs: repoData.pull_requests?.[0]?.count || 0,
-            };
-          }
-        } catch (dbError) {
-          console.error('Database fetch error: %s', dbError.message);
-          // Use fallback data
-          cardData.stats = {
-            weeklyPRVolume: 10,
-            activeContributors: 25,
-            totalContributors: 50,
-            totalPRs: 200,
-          };
-        }
-      } else {
-        // No database client, use fallback data
-        cardData.stats = {
-          weeklyPRVolume: 10,
-          activeContributors: 25,
-          totalContributors: 50,
-          totalPRs: 200,
-        };
-      }
-    }
-    // Handle user cards
-    else if (type === 'user' || username) {
-      cardData.title = `@${username}`;
-      cardData.subtitle = 'Open Source Contributor';
-      cardData.type = 'user';
-
-      if (supabase) {
-        try {
-          const { data: userData, error } = await supabase
-            .from('contributors')
-            .select(
-              `
-            id,
-            username,
-            pull_requests!author_id(count)
-          `
-            )
-            .eq('username', username)
-            .single();
-
-          if (!error && userData) {
-            cardData.stats = {
-              repositories: 0, // Would need a join to get this
-              contributors: 1,
-              pullRequests: userData.pull_requests?.[0]?.count || 0,
-            };
-          }
-        } catch (dbError) {
-          console.error('User data fetch error: %s', dbError.message);
-          cardData.stats = {
-            repositories: 10,
-            contributors: 1,
-            pullRequests: 100,
-          };
-        }
-      } else {
-        // No database client, use fallback data
-        cardData.stats = {
-          repositories: 10,
-          contributors: 1,
-          pullRequests: 100,
-        };
-      }
-    }
-    // Handle home page
-    else {
-      cardData.title = 'contributor.info';
-      cardData.subtitle = 'Visualizing Open Source Contributions';
-
-      if (supabase) {
-        try {
-          // Get global stats (head: true returns only count, not data)
-          const [repoCount, contribCount, prCount] = await Promise.all([
-            supabase.from('repositories').select('*', { count: 'exact', head: true }),
-            supabase.from('contributors').select('*', { count: 'exact', head: true }),
-            supabase.from('pull_requests').select('*', { count: 'exact', head: true }),
-          ]);
-
-          cardData.stats = {
-            repositories: repoCount.count || 0,
-            contributors: contribCount.count || 0,
-            pullRequests: prCount.count || 0,
-          };
-        } catch (dbError) {
-          console.error('Global stats fetch error: %s', dbError.message);
-          cardData.stats = {
-            repositories: 500,
-            contributors: 10000,
-            pullRequests: 50000,
-          };
-        }
-      } else {
-        // No database client, use fallback data
-        cardData.stats = {
-          repositories: 500,
-          contributors: 10000,
-          pullRequests: 50000,
-        };
-      }
-    }
-
-    // Generate the SVG
-    const svg = generateSocialCard(cardData);
-
-    // Convert to requested format (default: PNG for social media compatibility)
-    const requestedFormat = (format || 'png').toLowerCase();
-    const converter = getConverter(requestedFormat);
-
-    let imageData;
-    let contentType;
-
-    if (converter) {
-      // Convert SVG to PNG or JPEG
-      imageData = await converter(svg, { width: 1200, height: 630 });
-      contentType =
-        requestedFormat === 'jpeg' || requestedFormat === 'jpg' ? 'image/jpeg' : 'image/png';
-    } else {
-      // Return SVG directly
-      imageData = svg;
-      contentType = 'image/svg+xml';
-    }
-
-    // Track performance
-    const responseTime = Date.now() - startTime;
-    global.avgResponseTime = (global.avgResponseTime || 0) * 0.9 + responseTime * 0.1;
-
-    // Send response with appropriate headers
-    res.set({
-      'Content-Type': contentType,
-      'Cache-Control': 'public, max-age=3600, s-maxage=86400', // 1h client, 24h CDN
-      'Access-Control-Allow-Origin': '*',
-      'X-Response-Time': `${responseTime}ms`,
-      'X-Data-Source': cardData.stats ? 'database' : 'fallback',
-      'X-Image-Format': requestedFormat,
-    });
-
-    res.status(200).send(imageData);
-  } catch (error) {
-    console.error('Social card generation error: %s', error.message);
-
-    // Send error card
-    const errorSvg = generateSocialCard({
-      title: 'Error',
-      subtitle: 'Failed to generate card',
-      type: 'error',
-    });
-
-    res.set({
-      'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'no-cache',
-      'Access-Control-Allow-Origin': '*',
-    });
-
-    res.status(500).send(errorSvg);
-  }
+app.get('/social-cards/:type?', (req, res) => {
+  redirectToCard(req, res, req.params.type || 'home');
 });
 
-// Legacy endpoint compatibility (with rate limiting)
-app.get('/api/social-cards', rateLimit, async (req, res) => {
+// Legacy endpoint compatibility
+app.get('/api/social-cards', (req, res) => {
   const { owner, repo, username } = req.query;
-
   let type = 'home';
   if (owner && repo) type = 'repo';
   else if (username) type = 'user';
-
-  // Redirect to new endpoint structure
-  const newUrl = `/social-cards/${type}?${new URLSearchParams(req.query).toString()}`;
-  res.redirect(301, newUrl);
+  redirectToCard(req, res, type);
 });
 
 // Start server (only if not in test mode)
