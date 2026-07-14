@@ -1,23 +1,15 @@
-# Social Cards Service for contributor.info
+# Chart Rendering Service for contributor.info
 
-This is the Fly.io-based social card generation service for contributor.info, replacing the previous Netlify Edge Function implementation to improve reliability and performance.
+Fly.io service that renders analytics chart screenshots (Playwright/Chromium) for social sharing.
 
-## Why Fly.io?
-
-We migrated from Netlify Edge Functions to Fly.io due to:
-- **Better Performance**: Consistent sub-2-second response times
-- **Improved Reliability**: No cold start issues or flakiness
-- **Real Data Integration**: Direct Supabase connection for real-time stats
-- **Better Monitoring**: Enhanced observability and debugging
+Social card rendering (home/repo/user og:images) moved to a same-origin Netlify Function — see `netlify/functions/social-cards.mts` and `docs/social-cards.md` in the main repo. This service keeps permanent redirects for the old card URLs because social platforms cache og:image URLs from past shares.
 
 ## Features
 
-- ✅ Dynamic SVG generation for social media cards
+- ✅ Chart screenshots (lottery-factor, self-selection, health-factors, distribution) via headless Chromium
+- ✅ Two-tier caching: in-memory LRU + Supabase Storage
 - ✅ Real-time data from Supabase database
-- ✅ Sub-100ms generation time (target)
-- ✅ Proper caching headers for CDN optimization
-- ✅ Fallback mechanisms for database failures
-- ✅ Support for home, repository, and user cards
+- ✅ Permanent redirects for legacy `/social-cards/*` URLs
 
 ## Endpoints
 
@@ -31,30 +23,17 @@ GET /health
 GET /metrics
 ```
 
-### Social Cards
+### Charts
+```
+GET /charts/{chartType}?owner={owner}&repo={repo}
+```
+`chartType`: `lottery-factor`, `self-selection`, `health-factors`, `distribution`
 
-#### Home Page Card
+### Legacy Social Card Redirects
 ```
-GET /social-cards/home
+GET /social-cards/{type}?...   -> 301 https://contributor.info/social-cards/{type}?...
+GET /api/social-cards?...      -> 301 https://contributor.info/social-cards/{type}?...
 ```
-
-#### Repository Card
-```
-GET /social-cards/repo?owner={owner}&repo={repo}
-```
-Example: `/social-cards/repo?owner=facebook&repo=react`
-
-#### User Card
-```
-GET /social-cards/user?username={username}
-```
-Example: `/social-cards/user?username=bdougie`
-
-### Legacy Compatibility
-```
-GET /api/social-cards?owner={owner}&repo={repo}
-```
-(Redirects to new endpoint structure)
 
 ## Local Development
 

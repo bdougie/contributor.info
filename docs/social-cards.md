@@ -74,7 +74,7 @@ The function uses the shared Supabase client (`netlify/functions/_shared/supabas
 ## Migration History
 
 - **Jan 2025**: Netlify Edge Functions → Fly.io Express service (real data, but no CDN, per-request renders, cold starts)
-- **Jul 2026**: Card rendering → same-origin Netlify Function with native resvg, durable CDN caching, and pre-warming. Charts remain on Fly.io. The Fly service's `/social-cards` endpoint is no longer referenced by the app.
+- **Jul 2026**: Card rendering → same-origin Netlify Function with native resvg, durable CDN caching, and pre-warming (PR #1825). Charts remain on Fly.io. The Fly service's card-rendering code was removed; its `/social-cards/*` URLs 301-redirect to contributor.info so og:image URLs cached by social platforms from old shares keep resolving.
 
 ## Related Documentation
 
