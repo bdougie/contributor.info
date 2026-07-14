@@ -38,25 +38,35 @@ export default async function handler(req: Request): Promise<Response> {
     const t0 = performance.now();
     let data: SocialCardData;
     let dataSource: DataSource = 'none';
+    let degraded = false;
+    let avatarsMs: number | undefined;
+    let avatarsDesc: string | undefined;
     if (card.type === 'repo' && card.owner && card.repo) {
       const { stats, avatarUrls } = supabase
         ? await fetchRepoCardData(supabase, card.owner, card.repo)
         : { stats: null, avatarUrls: [] };
+      const tAvatars = performance.now();
       const avatars = await fetchAvatarDataUris(avatarUrls);
+      avatarsMs = performance.now() - tAvatars;
+      avatarsDesc = `${avatars.length}/${avatarUrls.length}`;
       data = { type: 'repo', title: `${card.owner}/${card.repo}`, stats, avatars };
       dataSource = stats ? 'database' : 'fallback';
+      // A repo with contributors but no avatars, or no stats at all, may be
+      // a transient failure — don't lock it into the durable cache for a day.
+      degraded = stats === null || ((stats.totalContributors ?? 0) > 0 && avatars.length === 0);
     } else if (card.type === 'user' && card.username) {
       data = { type: 'user', title: `@${card.username}` };
     } else {
       const stats = supabase ? await fetchGlobalStats(supabase) : null;
       data = { type: 'home', stats };
       dataSource = stats ? 'database' : 'fallback';
+      degraded = stats === null;
     }
     const dataMs = performance.now() - t0;
 
     const { png, resvgMs } = renderSvgToPng(generateSocialCard(data));
     return new Response(new Uint8Array(png), {
-      headers: cardHeaders({ dataMs, resvgMs }, dataSource),
+      headers: cardHeaders({ dataMs, resvgMs, avatarsMs, avatarsDesc }, dataSource, { degraded }),
     });
   } catch (error) {
     console.error(

@@ -45,6 +45,9 @@ export function parseCardRequest(url: URL): CardRequest {
 export interface CardTimings {
   dataMs: number;
   resvgMs: number;
+  /** Avatar stage: fetch duration and "fetched/wanted" counts (repo cards). */
+  avatarsMs?: number;
+  avatarsDesc?: string;
 }
 
 // 'database' = stats fetched; 'fallback' = query failed or repo unknown,
@@ -54,7 +57,7 @@ export type DataSource = 'database' | 'fallback' | 'none';
 // Bump to force every cached card to re-render on the next deploy. Cached
 // function responses stay valid across deploys unless the function bundle
 // changes — an unchanged bundle (e.g. an empty commit) invalidates nothing.
-export const CARD_VERSION = '2';
+export const CARD_VERSION = '3';
 
 /**
  * Durable CDN caching keyed on the card params: each unique card renders
@@ -66,16 +69,37 @@ export const CARD_VERSION = '2';
  * Netlify-Vary — without it, every card URL would serve whichever card
  * rendered first.
  */
-export function cardHeaders(t: CardTimings, dataSource: DataSource): Record<string, string> {
+export interface CardHeaderOptions {
+  /**
+   * The render is missing data it should have had (stats fallback on a
+   * transient failure, or contributors without avatars). Cache it briefly
+   * instead of durably so the card heals within the hour — a hiccup must
+   * not get locked into the durable cache for a day.
+   */
+  degraded?: boolean;
+}
+
+export function cardHeaders(
+  t: CardTimings,
+  dataSource: DataSource,
+  opts: CardHeaderOptions = {}
+): Record<string, string> {
+  const cdnCache = opts.degraded
+    ? 'public, s-maxage=3600, stale-while-revalidate=86400, durable'
+    : 'public, s-maxage=86400, stale-while-revalidate=604800, durable';
+  const avatarSegment =
+    t.avatarsMs !== undefined
+      ? `, avatars;dur=${t.avatarsMs.toFixed(1)};desc="${t.avatarsDesc ?? ''}"`
+      : '';
   return {
     'Content-Type': 'image/png',
     'Cache-Control': 'public, max-age=3600',
-    'Netlify-CDN-Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800, durable',
+    'Netlify-CDN-Cache-Control': cdnCache,
     'Netlify-Vary': 'query=owner|repo|username',
     // Tag durable-cached cards so they can be purged by tag (purge API)
     // without a full-site cache flush.
     'Netlify-Cache-Tag': 'social-cards',
-    'Server-Timing': `data;dur=${t.dataMs.toFixed(1)}, resvg;dur=${t.resvgMs.toFixed(1)}`,
+    'Server-Timing': `data;dur=${t.dataMs.toFixed(1)}, resvg;dur=${t.resvgMs.toFixed(1)}${avatarSegment}`,
     'X-Data-Source': dataSource,
     'X-Card-Version': CARD_VERSION,
     'Access-Control-Allow-Origin': '*',

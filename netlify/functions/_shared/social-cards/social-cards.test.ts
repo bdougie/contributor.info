@@ -88,6 +88,22 @@ describe('cardHeaders', () => {
   });
 });
 
+describe('cardHeaders degraded mode', () => {
+  it('caches degraded renders briefly so they self-heal', () => {
+    const headers = cardHeaders({ dataMs: 1, resvgMs: 1 }, 'fallback', { degraded: true });
+    expect(headers['Netlify-CDN-Cache-Control']).toContain('s-maxage=3600');
+    expect(headers['Netlify-CDN-Cache-Control']).not.toContain('s-maxage=86400');
+  });
+
+  it('reports the avatar stage in Server-Timing when measured', () => {
+    const headers = cardHeaders(
+      { dataMs: 1, resvgMs: 1, avatarsMs: 42.19, avatarsDesc: '3/5' },
+      'database'
+    );
+    expect(headers['Server-Timing']).toContain('avatars;dur=42.2;desc="3/5"');
+  });
+});
+
 describe('errorHeaders', () => {
   it('never lets failures land in the durable cache', () => {
     expect(errorHeaders()['Cache-Control']).toBe('no-store');
