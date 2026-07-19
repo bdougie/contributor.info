@@ -193,6 +193,40 @@ function emptyMetrics(range: TimeRange, calculatedAt: string): WorkspaceMetricsF
   };
 }
 
+// Point-in-time counts of everything currently open, matching what GitHub
+// shows and what the Recent PR/issue rows list — deliberately NOT scoped to
+// the metrics window, unlike merged/velocity/closure which describe the
+// period. Errors throw: these are core metrics, not decoration.
+export async function fetchOpenCounts(
+  supabase: SupabaseClient,
+  repoIds: string[]
+): Promise<{ open_prs: number; draft_prs: number; open_issues: number }> {
+  if (repoIds.length === 0) {
+    return { open_prs: 0, draft_prs: 0, open_issues: 0 };
+  }
+  const countOpen = (table: 'pull_requests' | 'issues', draftOnly = false) => {
+    const q = supabase
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .in('repository_id', repoIds)
+      .eq('state', 'open');
+    return draftOnly ? q.eq('draft', true) : q;
+  };
+  const [prs, drafts, issues] = await Promise.all([
+    countOpen('pull_requests'),
+    countOpen('pull_requests', true),
+    countOpen('issues'),
+  ]);
+  for (const r of [prs, drafts, issues]) {
+    if (r.error) throw new Error(r.error.message);
+  }
+  return {
+    open_prs: prs.count ?? 0,
+    draft_prs: drafts.count ?? 0,
+    open_issues: issues.count ?? 0,
+  };
+}
+
 function firstOf<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
 }
@@ -307,8 +341,6 @@ async function aggregate(
   );
 
   let mergedPrs = 0;
-  let openPrs = 0;
-  let draftPrs = 0;
   const mergeTimesHours: number[] = [];
   const activeAuthors = new Set<string>();
   for (const pr of prs) {
@@ -318,20 +350,14 @@ async function aggregate(
       mergeTimesHours.push(
         (new Date(pr.merged_at).getTime() - new Date(pr.created_at).getTime()) / 3_600_000
       );
-    } else if (pr.state === 'open') {
-      openPrs++;
-      if (pr.draft) draftPrs++;
     }
   }
 
   let closedIssues = 0;
-  let openIssues = 0;
   for (const issue of issues) {
     if (issue.author_id) activeAuthors.add(issue.author_id);
     if (issue.state === 'closed' && issue.closed_at) {
       closedIssues++;
-    } else if (issue.state === 'open') {
-      openIssues++;
     }
   }
 
@@ -348,22 +374,25 @@ async function aggregate(
   // New contributors = active authors with no contribution before this period.
   // Bounded to the active author set, and stops early once every active author
   // is known to be returning, so it stays cheap on busy workspaces.
-  const [newContributors, recentItems] = await Promise.all([
+  const [newContributors, recentItems, openCounts] = await Promise.all([
     countNewContributors(supabase, repoIds, activeAuthors, startIso),
     fetchRecentItems(supabase, repoIds),
+    fetchOpenCounts(supabase, repoIds),
   ]);
 
   return {
     time_range: range,
     total_prs: totalPrs,
     merged_prs: mergedPrs,
-    open_prs: openPrs,
-    draft_prs: draftPrs,
+    // Open counts are point-in-time (everything currently open), consistent
+    // with the recent_open_* rows; merged/velocity/closure stay window-scoped.
+    open_prs: openCounts.open_prs,
+    draft_prs: openCounts.draft_prs,
     avg_pr_merge_time_hours: avgMergeHours,
     pr_velocity: prVelocity,
     total_issues: totalIssues,
     closed_issues: closedIssues,
-    open_issues: openIssues,
+    open_issues: openCounts.open_issues,
     issue_closure_rate: issueClosureRate,
     // Period-scoped for v1; workspace-wide all-time totals are a follow-up and
     // aren't shown in the tray tiles.

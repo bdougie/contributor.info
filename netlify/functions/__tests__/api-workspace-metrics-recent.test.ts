@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { fetchRecentItems } from '../api-workspace-metrics';
+import { fetchOpenCounts, fetchRecentItems } from '../api-workspace-metrics';
 
 interface RecentRowStub {
   number: number | null;
@@ -58,6 +58,77 @@ const issueRow: RecentRowStub = {
   contributors: [{ username: 'octocat' }],
   repositories: [{ full_name: 'bdougie/contributor.info' }],
 };
+
+// Stub for head-count queries: resolves each query to a count keyed by table,
+// or `table:draft` when the query also filtered on draft=true.
+function stubCountSupabase(
+  countsByKey: Record<string, number | null | { error: string }>
+): SupabaseClient {
+  return {
+    from(table: string) {
+      const eqArgs: string[] = [];
+      const chain = {
+        select: vi.fn(() => chain),
+        in: vi.fn(() => chain),
+        eq: vi.fn((column: string) => {
+          eqArgs.push(column);
+          return chain;
+        }),
+        then(resolve: (v: { count: number | null; error: { message: string } | null }) => void) {
+          const key = eqArgs.includes('draft') ? `${table}:draft` : table;
+          const result = countsByKey[key] ?? 0;
+          if (typeof result === 'object' && result !== null && 'error' in result) {
+            resolve({ count: null, error: { message: result.error } });
+          } else {
+            resolve({ count: result, error: null });
+          }
+        },
+      };
+      return chain;
+    },
+  } as unknown as SupabaseClient;
+}
+
+describe('fetchOpenCounts', () => {
+  it('counts all currently open items, not just the metrics window', async () => {
+    const supabase = stubCountSupabase({
+      pull_requests: 7,
+      'pull_requests:draft': 2,
+      issues: 4,
+    });
+
+    const counts = await fetchOpenCounts(supabase, ['repo-1']);
+
+    expect(counts).toEqual({ open_prs: 7, draft_prs: 2, open_issues: 4 });
+  });
+
+  it('treats a null count as zero', async () => {
+    const supabase = stubCountSupabase({ pull_requests: null, issues: null });
+
+    const counts = await fetchOpenCounts(supabase, ['repo-1']);
+
+    expect(counts).toEqual({ open_prs: 0, draft_prs: 0, open_issues: 0 });
+  });
+
+  it('returns zeros without querying when there are no repos', async () => {
+    const from = vi.fn();
+    const supabase = { from } as unknown as SupabaseClient;
+
+    const counts = await fetchOpenCounts(supabase, []);
+
+    expect(counts).toEqual({ open_prs: 0, draft_prs: 0, open_issues: 0 });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it('throws on query errors — open counts are core metrics, not decoration', async () => {
+    const supabase = stubCountSupabase({
+      pull_requests: { error: 'permission denied' },
+      issues: 4,
+    });
+
+    await expect(fetchOpenCounts(supabase, ['repo-1'])).rejects.toThrow('permission denied');
+  });
+});
 
 describe('fetchRecentItems', () => {
   it('maps PR and issue rows to recent items', async () => {
