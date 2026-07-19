@@ -17,6 +17,13 @@ generated from `public/plant_pixel_coarse.svg`.
   (deep-links to `/i/{slug}`) and read-only metric lines — open/merged PRs
   with trend vs the previous period, PR velocity (PRs/day) and average hours
   to merge, active/new contributors with trend, open issues, and stars.
+- Below the metric lines: **Recent PRs** and **Recent Issues** sections — up
+  to 5 newest *open* items each across the workspace's repos (by `created_at`,
+  not scoped to the metrics time range), rendered as clickable rows
+  (`#123 Title · author`, titles truncated at ~50 chars) that open the item on
+  GitHub. Empty sections are omitted. Data rides in the same
+  `api-workspace-metrics` response as additive `recent_open_prs` /
+  `recent_open_issues` arrays, so failures degrade to metrics-only.
 - An account section: **Sign in with GitHub…** when anonymous, or
   "Signed in as {user}" plus **Sign out** when authenticated.
 - Dashboard…, Refresh now, and Quit actions. The tooltip summarizes

@@ -6,8 +6,10 @@ organized around your workspaces (teams of repos), not individual repos.
 
 The tray icon is the pixel plant 🌱. Each configured workspace gets a submenu
 with its headline metrics (open/merged PRs, PR velocity and merge time,
-active/new contributors, open issues, stars). A dashboard window manages
-workspaces and renders the same numbers as metric tiles.
+active/new contributors, open issues, stars) plus clickable **Recent PRs** and
+**Recent Issues** rows — the newest open items across the workspace's repos,
+deep-linking to GitHub. A dashboard window manages workspaces and renders the
+same numbers as metric tiles.
 
 ## Install
 
@@ -32,6 +34,7 @@ end-user walkthrough lives in
 | --- | --- | --- |
 | Workspace lookup | Supabase REST `workspaces?slug=eq.{slug}` (anon key, or user JWT when signed in) | live |
 | Workspace metrics | `GET https://contributor.info/.netlify/functions/api-workspace-metrics?workspace_id={id}&time_range={range}` | live |
+| Recent open PRs/issues | Same endpoint — additive `recent_open_prs` / `recent_open_issues` arrays (5 newest open items each, not scoped to `time_range`) | live |
 
 RLS lets anonymous clients read **public** workspaces, so workspace identity
 resolves with just the anon key. Signing in widens RLS to the workspaces you
