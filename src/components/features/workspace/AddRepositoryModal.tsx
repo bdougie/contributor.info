@@ -65,13 +65,6 @@ const WorkspaceService =
     ? (window as WindowWithMocks).__mockWorkspaceService!
     : DefaultWorkspaceService;
 
-// Tier configuration
-const TIER_LIMITS = {
-  free: 4,
-  pro: 10,
-  enterprise: 100,
-} as const;
-
 const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/contributor-info/installations/new';
 
 /**
@@ -128,6 +121,7 @@ export function AddRepositoryModal({
   const [stagedRepos, setStagedRepos] = useState<StagedRepository[]>([]);
   const [existingRepoIds, setExistingRepoIds] = useState<Set<string>>(new Set());
   const [existingRepos, setExistingRepos] = useState<ExistingRepository[]>([]);
+  const [currentRepoCount, setCurrentRepoCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,13 +144,9 @@ export function AddRepositoryModal({
 
   // Calculate limits
   const isFreeTier = workspace?.tier === 'free';
-  // Use the correct limits based on tier from configuration
-  const tier = workspace?.tier || 'free';
-  const maxRepos = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.free;
-  // Use the actual count of existing repos instead of relying on database field
-  const currentRepoCount = existingRepos.length;
-  const remainingSlots = maxRepos - currentRepoCount;
-  const canAddMore = stagedRepos.length < remainingSlots;
+  const maxRepos = workspace?.max_repositories ?? 0;
+  const remainingSlots = Math.max(0, maxRepos - currentRepoCount);
+  const canAddMore = !loading && !!workspace && stagedRepos.length < remainingSlots;
 
   useEffect(() => {
     // Get the current user and workspace details when the modal opens
@@ -165,6 +155,10 @@ export function AddRepositoryModal({
 
       setLoading(true);
       setError(null);
+      setWorkspace(null);
+      setExistingRepos([]);
+      setExistingRepoIds(new Set());
+      setCurrentRepoCount(0);
 
       try {
         const supabase = await getSupabaseClient();
@@ -189,18 +183,18 @@ export function AddRepositoryModal({
         }
 
         // Get workspace details
-        const { data: workspaceData } = await supabase
+        const { data: workspaceData, error: workspaceError } = await supabase
           .from('workspaces')
           .select('*')
           .eq('id', workspaceId)
           .maybeSingle();
 
-        if (workspaceData) {
-          setWorkspace(workspaceData);
+        if (workspaceError || !workspaceData) {
+          throw new Error('Unable to load workspace repository limit');
         }
 
         // Get existing repositories in workspace with full details
-        const { data: existingWorkspaceRepos } = await supabase
+        const { data: existingWorkspaceRepos, error: repositoriesError } = await supabase
           .from('workspace_repositories')
           .select(
             `
@@ -219,6 +213,10 @@ export function AddRepositoryModal({
           `
           )
           .eq('workspace_id', workspaceId);
+
+        if (repositoriesError || !existingWorkspaceRepos) {
+          throw new Error('Unable to load workspace repositories');
+        }
 
         if (existingWorkspaceRepos) {
           // Use Zod to validate the query result instead of casting
@@ -244,7 +242,7 @@ export function AddRepositoryModal({
           const validationResult = workspaceRepoSchema.safeParse(existingWorkspaceRepos);
           if (!validationResult.success) {
             console.error('%s %o', 'Invalid workspace repos data:', validationResult.error);
-            return [];
+            throw new Error('Unable to read workspace repositories');
           }
 
           const repos = validationResult.data
@@ -259,6 +257,9 @@ export function AddRepositoryModal({
 
           setExistingRepos(repos);
           setExistingRepoIds(new Set(repos.map((r) => r.full_name)));
+          // Every membership consumes a slot, even when its repository is not visible.
+          setCurrentRepoCount(validationResult.data.length);
+          setWorkspace(workspaceData);
         }
       } catch (err) {
         console.error('%s %o', 'Error initializing modal:', err);
@@ -274,6 +275,11 @@ export function AddRepositoryModal({
 
   const handleSelectRepository = useCallback(
     (repo: GitHubRepository) => {
+      if (loading || !workspace) {
+        setError('Workspace details are unavailable. Please reopen this dialog to try again.');
+        return;
+      }
+
       // Check if already in workspace
       if (existingRepoIds.has(repo.full_name)) {
         setError(`${repo.full_name} is already in this workspace`);
@@ -300,7 +306,7 @@ export function AddRepositoryModal({
       setStagedRepos([...stagedRepos, repo]);
       toast.success(`Added ${repo.full_name} to selection`);
     },
-    [stagedRepos, existingRepoIds, canAddMore, maxRepos, workspace?.tier]
+    [stagedRepos, existingRepoIds, canAddMore, maxRepos, workspace, loading]
   );
 
   const handleAddPrivateRepo = useCallback(() => {
@@ -358,11 +364,9 @@ export function AddRepositoryModal({
   }, [orgInput]);
 
   // Pre-select the org's eligible repos (most recently pushed first) up to
-  // the remaining workspace slots, once per loaded org. The modal's
-  // TIER_LIMITS cap is intentionally ≤ the DB max_repositories for every
-  // tier, so auto-staging can never exceed what the service accepts.
+  // the saved workspace capacity, once both the org and capacity have loaded.
   useEffect(() => {
-    if (!orgQuery || orgLoading || orgRepos.length === 0) return;
+    if (loading || !workspace || !orgQuery || orgLoading || orgRepos.length === 0) return;
     if (autoStagedOrgRef.current === orgQuery) return;
     autoStagedOrgRef.current = orgQuery;
 
@@ -375,7 +379,16 @@ export function AddRepositoryModal({
 
     setStagedRepos((prev) => [...prev, ...toStage.map(toStagedRepository)]);
     toast.success(`Selected ${toStage.length} repositories from ${orgQuery}`);
-  }, [orgQuery, orgLoading, orgRepos, isOrgRepoSelectable, remainingSlots, stagedRepos]);
+  }, [
+    loading,
+    workspace,
+    orgQuery,
+    orgLoading,
+    orgRepos,
+    isOrgRepoSelectable,
+    remainingSlots,
+    stagedRepos,
+  ]);
 
   const handleRemoveFromStaging = useCallback(
     (fullName: string) => {
@@ -423,6 +436,7 @@ export function AddRepositoryModal({
 
         // Update local state only after successful removal
         setExistingRepos((prevRepos) => prevRepos.filter((r) => r.id !== repoId));
+        setCurrentRepoCount((count) => Math.max(0, count - 1));
         setExistingRepoIds((prev) => {
           const newSet = new Set(prev);
           newSet.delete(repoName);
@@ -559,6 +573,11 @@ export function AddRepositoryModal({
       return;
     }
 
+    if (loading || !workspace || stagedRepos.length > remainingSlots) {
+      setError('Your selection exceeds the available workspace repository slots.');
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     setInstallNeeded(null);
@@ -611,7 +630,7 @@ export function AddRepositoryModal({
       }
 
       // Add all resolved repositories to the workspace in one batch
-      let successCount = 0;
+      const addedRepos: ExistingRepository[] = [];
       const errors: string[] = failed
         .filter((r) => !installFailures.includes(r))
         .map((r) => r.error!);
@@ -624,7 +643,12 @@ export function AddRepositoryModal({
         );
 
         if (response.success && response.data) {
-          successCount = response.data.added.length;
+          const addedIds = new Set(response.data.added);
+          for (const { id, repo } of resolved) {
+            if (addedIds.has(id)) {
+              addedRepos.push({ ...repo, id, owner: repo.owner.login });
+            }
+          }
           if (response.data.skipped.length > 0) {
             errors.push(
               `${response.data.skipped.length} ${response.data.skipped.length === 1 ? 'repository was' : 'repositories were'} already in this workspace`
@@ -635,13 +659,17 @@ export function AddRepositoryModal({
         }
       }
 
+      const successCount = addedRepos.length;
       if (successCount > 0) {
         toast.success(
           `Successfully added ${successCount} ${successCount === 1 ? 'repository' : 'repositories'} to workspace!`
         );
 
-        // Clear staging area
-        setStagedRepos([]);
+        const addedNames = new Set(addedRepos.map((repo) => repo.full_name));
+        setExistingRepos((repos) => [...repos, ...addedRepos]);
+        setExistingRepoIds((ids) => new Set([...ids, ...addedNames]));
+        setCurrentRepoCount((count) => count + successCount);
+        setStagedRepos((repos) => repos.filter((repo) => !addedNames.has(repo.full_name)));
 
         // Call success callback
         if (onSuccess) {
@@ -649,7 +677,7 @@ export function AddRepositoryModal({
         }
 
         // Close modal if all succeeded
-        if (errors.length === 0) {
+        if (errors.length === 0 && failed.length === 0) {
           onOpenChange(false);
         }
       }
@@ -663,7 +691,17 @@ export function AddRepositoryModal({
     } finally {
       setSubmitting(false);
     }
-  }, [appUserId, workspaceId, stagedRepos, onOpenChange, onSuccess, trackAndResolveRepository]);
+  }, [
+    appUserId,
+    workspaceId,
+    workspace,
+    loading,
+    remainingSlots,
+    stagedRepos,
+    onOpenChange,
+    onSuccess,
+    trackAndResolveRepository,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (!submitting) {
@@ -701,7 +739,7 @@ export function AddRepositoryModal({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Repository Slots:</span>
             <Badge variant={remainingSlots <= 2 ? 'destructive' : 'secondary'}>
-              {currentRepoCount} / {maxRepos} used
+              {workspace ? `${currentRepoCount} / ${maxRepos} used` : 'Capacity unavailable'}
             </Badge>
           </div>
           {isFreeTier && (
@@ -1068,10 +1106,7 @@ export function AddRepositoryModal({
         {!error && remainingSlots > 0 && remainingSlots <= stagedRepos.length && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              You're about to use all remaining repository slots.
-              {isFreeTier && ' Upgrade to Pro for unlimited repositories.'}
-            </AlertDescription>
+            <AlertDescription>You're about to use all remaining repository slots.</AlertDescription>
           </Alert>
         )}
 
@@ -1081,7 +1116,13 @@ export function AddRepositoryModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || stagedRepos.length === 0 || loading}
+            disabled={
+              submitting ||
+              stagedRepos.length === 0 ||
+              loading ||
+              !workspace ||
+              stagedRepos.length > remainingSlots
+            }
             className="gap-2"
           >
             {submitting ? (

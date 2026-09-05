@@ -61,7 +61,10 @@ export default function WorkspaceNewPage() {
         return;
       }
 
-      const response = await WorkspaceService.createWorkspace(resolvedUserId, data);
+      const response = await WorkspaceService.createWorkspace(
+        { appUserId: resolvedUserId, authUserId: user.id },
+        data
+      );
 
       if (response.success && response.data) {
         // Track successful workspace creation

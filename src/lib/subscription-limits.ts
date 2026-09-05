@@ -11,8 +11,11 @@ export interface LimitCheckResult {
 /**
  * Check if a user can create a new workspace
  */
-export async function checkWorkspaceLimit(userId: string): Promise<LimitCheckResult> {
-  const limit = await SubscriptionService.getFeatureLimit(userId, 'maxWorkspaces');
+export async function checkWorkspaceLimit(authUserId: string): Promise<LimitCheckResult> {
+  const subscription = await SubscriptionService.getCurrentSubscription(authUserId);
+  const limit =
+    subscription?.max_workspaces ??
+    (await SubscriptionService.getFeatureLimit(authUserId, 'maxWorkspaces'));
 
   if (limit === 'unlimited') {
     return {
@@ -22,10 +25,25 @@ export async function checkWorkspaceLimit(userId: string): Promise<LimitCheckRes
     };
   }
 
+  const { data: appUser, error: appUserError } = await supabase
+    .from('app_users')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (appUserError || !appUser) {
+    return {
+      allowed: false,
+      limit,
+      current: 0,
+      message: 'Unable to resolve your account. Please try logging in again.',
+    };
+  }
+
   const { count, error } = await supabase
     .from('workspaces')
     .select('*', { count: 'exact', head: true })
-    .eq('owner_id', userId);
+    .eq('owner_id', appUser.id);
 
   if (error) {
     console.error('Error checking workspace count:', error);
@@ -54,18 +72,25 @@ export async function checkWorkspaceLimit(userId: string): Promise<LimitCheckRes
  * Check if a user can add a repository to a workspace
  */
 export async function checkRepositoryLimit(
-  userId: string,
+  _authUserId: string,
   workspaceId: string
 ): Promise<LimitCheckResult> {
-  const limit = await SubscriptionService.getFeatureLimit(userId, 'maxReposPerWorkspace');
+  const { data: workspace, error: workspaceError } = await supabase
+    .from('workspaces')
+    .select('max_repositories')
+    .eq('id', workspaceId)
+    .maybeSingle();
 
-  if (limit === 'unlimited') {
+  if (workspaceError || !workspace) {
     return {
-      allowed: true,
-      limit: 'unlimited',
+      allowed: false,
+      limit: 0,
       current: 0,
+      message: 'Unable to load workspace repository limit',
     };
   }
+
+  const limit = workspace.max_repositories;
 
   const { count, error } = await supabase
     .from('workspace_repositories')

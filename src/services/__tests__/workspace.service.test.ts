@@ -8,6 +8,7 @@ import type {
   AddRepositoryRequest,
 } from '@/types/workspace';
 import type { MockQueryBuilder, MockSupabaseResponse } from './test-types';
+import { createMockQueryBuilder } from './test-types';
 
 // Mock Supabase
 vi.mock('@/lib/supabase', () => ({
@@ -128,7 +129,10 @@ describe('WorkspaceService', () => {
       } as MockSupabaseResponse);
 
       // Execute
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       // Assert
       expect(result.success).toBe(true);
@@ -211,7 +215,10 @@ describe('WorkspaceService', () => {
       });
 
       // Execute
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       // Assert
       expect(result.success).toBe(true);
@@ -256,7 +263,10 @@ describe('WorkspaceService', () => {
       });
 
       // Execute
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       // Assert
       expect(result.success).toBe(false);
@@ -272,7 +282,10 @@ describe('WorkspaceService', () => {
       };
 
       // Execute
-      const result = await WorkspaceService.createWorkspace(mockUserId, invalidData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        invalidData
+      );
 
       // Assert
       expect(result.success).toBe(false);
@@ -347,7 +360,10 @@ describe('WorkspaceService', () => {
       } as MockSupabaseResponse);
 
       // Execute
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       // Assert
       expect(result.success).toBe(true);
@@ -355,6 +371,124 @@ describe('WorkspaceService', () => {
 
       // IMPORTANT: Verify that workspace_members insert was NOT called
       expect(memberInsertSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('workspace billing identity', () => {
+    const identity = { appUserId: 'app-user-123', authUserId: 'auth-user-456' };
+    const data: CreateWorkspaceRequest = { name: 'Tapes and PCC Labs', visibility: 'public' };
+    const countQuery = vi.fn();
+    const subscriptionQuery = vi.fn();
+    const insert = vi.fn();
+    let subscriptionError: Error | null;
+    let maxWorkspaces: number;
+    let maxRepositories: number;
+
+    beforeEach(() => {
+      subscriptionError = null;
+      maxWorkspaces = 3;
+      maxRepositories = 12;
+      countQuery.mockResolvedValue({ count: 1, error: null });
+      subscriptionQuery.mockImplementation((_column: string, id: string) => ({
+        in: () => ({
+          maybeSingle: () =>
+            Promise.resolve({
+              data:
+                id === identity.authUserId
+                  ? {
+                      tier: 'team',
+                      max_workspaces: maxWorkspaces,
+                      max_repos_per_workspace: maxRepositories,
+                    }
+                  : null,
+              error: subscriptionError,
+            }),
+        }),
+      }));
+      insert.mockImplementation((row: Record<string, unknown>) => ({
+        select: () => ({ maybeSingle: () => Promise.resolve({ data: row, error: null }) }),
+      }));
+      vi.mocked(supabase.from).mockImplementation((table: string) => {
+        if (table === 'workspaces') {
+          return { select: () => ({ eq: countQuery }), insert } as unknown as MockQueryBuilder;
+        }
+        if (table === 'subscriptions') {
+          return { select: () => ({ eq: subscriptionQuery }) } as unknown as MockQueryBuilder;
+        }
+        throw new Error(`Unexpected table: ${table}`);
+      });
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: 'tapes-and-pcc-labs', error: null });
+    });
+
+    it('uses billing identity and retains paid overrides when an app user already owns a workspace', async () => {
+      const result = await WorkspaceService.createWorkspace(identity, data);
+
+      expect(result.success).toBe(true);
+      expect(countQuery).toHaveBeenCalledWith('owner_id', identity.appUserId);
+      expect(subscriptionQuery).toHaveBeenCalledWith('user_id', identity.authUserId);
+      expect(insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          owner_id: identity.appUserId,
+          tier: 'team',
+          max_repositories: 12,
+        })
+      );
+    });
+
+    it('does not create a free workspace when the billing query fails', async () => {
+      subscriptionError = new Error('Billing unavailable');
+      const result = await WorkspaceService.createWorkspace(identity, data);
+
+      expect(result).toMatchObject({ success: false, statusCode: 500 });
+      expect(result.error).toContain('subscription');
+      expect(insert).not.toHaveBeenCalled();
+      expect(supabase.rpc).not.toHaveBeenCalled();
+    });
+
+    it('honors an explicit zero workspace allowance', async () => {
+      maxWorkspaces = 0;
+      countQuery.mockResolvedValue({ count: 0, error: null });
+      const result = await WorkspaceService.createWorkspace(identity, data);
+
+      expect(result).toMatchObject({ success: false, statusCode: 403 });
+      expect(insert).not.toHaveBeenCalled();
+    });
+
+    it('preserves an explicit zero repository allowance', async () => {
+      maxRepositories = 0;
+      await WorkspaceService.createWorkspace(identity, data);
+
+      expect(insert).toHaveBeenCalledWith(expect.objectContaining({ max_repositories: 0 }));
+    });
+  });
+
+  describe('repository count failures', () => {
+    it('does not insert a repository when the current count cannot be read', async () => {
+      vi.spyOn(WorkspaceService, 'checkPermission').mockResolvedValue({
+        hasPermission: true,
+        role: 'owner',
+      });
+      vi.mocked(supabase.from)
+        .mockReturnValueOnce(createMockQueryBuilder({ data: null, error: null }))
+        .mockReturnValueOnce(createMockQueryBuilder({ data: { max_repositories: 3 }, error: null }))
+        .mockReturnValueOnce(
+          createMockQueryBuilder({
+            data: null,
+            count: null,
+            error: new Error('Count unavailable'),
+          })
+        );
+
+      const result = await WorkspaceService.addRepositoryToWorkspace(
+        'workspace-123',
+        'app-user-123',
+        {
+          repository_id: 'repo-123',
+        }
+      );
+
+      expect(result).toMatchObject({ success: false, statusCode: 500 });
+      expect(supabase.from).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -837,7 +971,10 @@ describe('WorkspaceService', () => {
         error: null,
       } as MockSupabaseResponse);
 
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.tier).toBe('team');
@@ -902,7 +1039,10 @@ describe('WorkspaceService', () => {
         error: null,
       } as MockSupabaseResponse);
 
-      const result = await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      const result = await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       expect(result.success).toBe(true);
       expect(result.data?.tier).toBe('pro');
@@ -967,7 +1107,10 @@ describe('WorkspaceService', () => {
         error: null,
       } as MockSupabaseResponse);
 
-      await WorkspaceService.createWorkspace(mockUserId, mockWorkspaceData);
+      await WorkspaceService.createWorkspace(
+        { appUserId: mockUserId, authUserId: 'auth-user-456' },
+        mockWorkspaceData
+      );
 
       // Verify that .in() was called with both 'active' and 'trialing'
       expect(inSpy).toHaveBeenCalledWith('status', ['active', 'trialing']);
