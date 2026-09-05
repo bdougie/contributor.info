@@ -24,18 +24,21 @@ baseline at `e3d9e813`; they are retained as reproduction evidence.
   `max_repositories`. The picker counts memberships even when a joined repository
   is not visible, blocks selection when loading fails, includes pending selections
   in capacity checks, and updates capacity after partial success while retaining
-  failed selections. Repository insertion stops if its count query fails.
+  failed selections. Single and bulk repository insertion stop if their count
+  query fails. Organization import waits for workspace capacity before selecting
+  repositories and caps the batch to the saved remaining slots.
 - Commercial tier defaults were not changed. Capacity uses the existing finite
   database limit; no `-1` unlimited convention was introduced because the workspace
   schema constrains `current_repository_count <= max_repositories`.
 
-Validation: 67 tests passed across the workspace service, subscription capacity
-checks, repository picker, and subscription hook suites. Changed TypeScript files
+Validation: 84 tests passed across the workspace service, bulk import, organization
+selection, subscription capacity checks, repository picker, and subscription hook
+suites after integration with main at `babb1aa9`. Changed TypeScript files
 passed ESLint; `npm run typecheck` and `npm run build` passed, including CSP
 verification. The new regression cases cover different auth/app IDs, an existing
 workspace, paid overrides, zero limits, failed billing/count queries, the fourth
 repository on a three-slot workspace, five selected repos on an eight-slot team
-workspace, and partial additions.
+workspace, partial additions, and organization results arriving before capacity.
 
 These changes have not been deployed. Previously created workspace records were
 not rewritten; any account already assigned incorrect limits needs verification

@@ -53,7 +53,8 @@ const REPO_B = '22222222-2222-4222-8222-222222222222';
 function setupFromMock(opts: {
   existingRepoIds: string[];
   maxRepositories: number;
-  currentCount: number;
+  currentCount: number | null;
+  countError?: { message: string } | null;
   insertError?: { message: string } | null;
   /** Row returned by workspaces.maybeSingle(); pass null to simulate a missing workspace. */
   workspaceRow?: { max_repositories: number } | null;
@@ -85,7 +86,7 @@ function setupFromMock(opts: {
           return {
             eq: vi.fn().mockResolvedValue({
               count: opts.currentCount,
-              error: null,
+              error: opts.countError ?? null,
             }),
           };
         }),
@@ -178,6 +179,21 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
     expect(result.success).toBe(false);
     expect(result.statusCode).toBe(403);
     expect(result.error).toContain('limit');
+  });
+
+  it('does not insert a batch when its capacity check fails', async () => {
+    const { insertMock } = setupFromMock({
+      existingRepoIds: [],
+      maxRepositories: 3,
+      currentCount: null,
+      countError: { message: 'Count unavailable' },
+    });
+    const result = await WorkspaceService.addRepositoriesToWorkspace(WORKSPACE_ID, USER_ID, [
+      REPO_A,
+    ]);
+    expect(result).toMatchObject({ success: false, statusCode: 500 });
+    expect(insertMock).not.toHaveBeenCalled();
+    expect(inngest.send).not.toHaveBeenCalled();
   });
 
   it('rejects with 404 when the workspace is not found', async () => {

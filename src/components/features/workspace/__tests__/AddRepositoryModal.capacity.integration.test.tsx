@@ -1,16 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AddRepositoryModal } from '../AddRepositoryModal';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { WorkspaceService } from '@/services/workspace.service';
 import { createMockQueryBuilder } from '@/services/__tests__/test-types';
 import type { GitHubRepository } from '@/lib/github';
+import { useOrgReposForImport } from '@/hooks/use-org-repos-for-import';
+import { toOrgImportRepo } from '@/lib/utils/org-import';
 
 vi.mock('@/lib/supabase-lazy', () => ({ getSupabase: vi.fn() }));
 vi.mock('@/lib/auth-helpers', () => ({ getAppUserId: vi.fn().mockResolvedValue('app-user') }));
 vi.mock('@/services/workspace.service', () => ({
-  WorkspaceService: { addRepositoryToWorkspace: vi.fn() },
+  WorkspaceService: { addRepositoriesToWorkspace: vi.fn() },
 }));
+vi.mock('@/hooks/use-org-repos-for-import', () => ({ useOrgReposForImport: vi.fn() }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/components/ui/github-search-input', () => ({
   GitHubSearchInput: ({ onSelect }: { onSelect: (repo: GitHubRepository) => void }) => (
@@ -60,22 +63,54 @@ describe('workspace picker capacity', () => {
     repositories: ReturnType<typeof membership>['repositories'] | null;
   }>;
   let workspaceError: Error | null;
+  let trackingFailureName: string | null;
+  let workspaceLoad: Promise<{ data: typeof workspace; error: null }> | null;
 
   beforeEach(() => {
     vi.clearAllMocks();
     workspace = { tier: 'free', max_repositories: 3, current_repository_count: 999 };
     memberships = [];
     workspaceError = null;
+    trackingFailureName = null;
+    workspaceLoad = null;
+    const orgRepos = Array.from({ length: 7 }, (_, index) =>
+      toOrgImportRepo({
+        id: index,
+        name: `project-${index}`,
+        full_name: `pcc-labs/project-${index}`,
+      })
+    );
+    vi.mocked(useOrgReposForImport).mockImplementation((org) => ({
+      repos: org ? orgRepos : [],
+      appInstalled: false,
+      isLoading: false,
+      error: null,
+    }));
     vi.mocked(getSupabase).mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-user' } } }) },
       from: vi.fn((table: string) => {
         if (table === 'workspaces') {
-          return createMockQueryBuilder({ data: workspace, error: workspaceError });
+          const query = createMockQueryBuilder({ data: workspace, error: workspaceError });
+          if (workspaceLoad) query.maybeSingle = () => workspaceLoad!;
+          return query;
         }
         if (table === 'workspace_repositories') {
           return createMockQueryBuilder({ data: memberships, error: null });
         }
-        if (table === 'repositories' || table === 'tracked_repositories') {
+        if (table === 'repositories') {
+          let name: string;
+          const query = createMockQueryBuilder({ data: { id: '' }, error: null });
+          query.eq = (column, value) => {
+            if (column === 'name') name = String(value);
+            return query;
+          };
+          query.maybeSingle = () => {
+            if (name === trackingFailureName) return Promise.reject(new Error('Temporary failure'));
+            return Promise.resolve({ data: { id: `tracked-${name}` }, error: null });
+          };
+          return query;
+        }
+        if (table === 'tracked_repositories') {
           return createMockQueryBuilder({ data: { id: 'tracked-repo' }, error: null });
         }
         throw new Error(`Unexpected table: ${table}`);
@@ -152,9 +187,11 @@ describe('workspace picker capacity', () => {
   });
 
   it('updates occupied slots and retains failed selections after partial success', async () => {
-    vi.mocked(WorkspaceService.addRepositoryToWorkspace)
-      .mockResolvedValueOnce({ success: true })
-      .mockResolvedValueOnce({ success: false, error: 'Temporary failure' });
+    trackingFailureName = 'project-1';
+    vi.mocked(WorkspaceService.addRepositoriesToWorkspace).mockResolvedValueOnce({
+      success: true,
+      data: { added: ['tracked-project-0'], skipped: [] },
+    });
     renderPicker();
     await screen.findByText('0 / 3 used');
     select(0);
@@ -171,5 +208,38 @@ describe('workspace picker capacity', () => {
 
     expect(screen.getByText('Selected Repositories (2)')).toBeInTheDocument();
     expect(screen.getByText(/Maximum 3 repositories allowed/)).toBeInTheDocument();
+    expect(WorkspaceService.addRepositoriesToWorkspace).toHaveBeenCalledWith(
+      'workspace',
+      'app-user',
+      ['tracked-project-0']
+    );
+  });
+
+  it('waits for saved capacity before selecting an organization batch', async () => {
+    workspace = { tier: 'team', max_repositories: 8, current_repository_count: 999 };
+    memberships = Array.from({ length: 3 }, (_, index) => membership(index));
+    let resolveWorkspace!: (value: { data: typeof workspace; error: null }) => void;
+    workspaceLoad = new Promise((resolve) => {
+      resolveWorkspace = resolve;
+    });
+    renderPicker();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Import from org' }), {
+      button: 0,
+      ctrlKey: false,
+    });
+    fireEvent.change(await screen.findByRole('textbox', { name: 'GitHub organization name' }), {
+      target: { value: 'pcc-labs' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Load repos' }));
+    await screen.findByText('7 repositories in pcc-labs');
+    expect(screen.getByText('Selected Repositories (0)')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveWorkspace({ data: workspace, error: null });
+    });
+
+    await screen.findByText('3 / 8 used');
+    expect(screen.getByText('Selected Repositories (5)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add 5 Repositories' })).toBeEnabled();
   });
 });
