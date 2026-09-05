@@ -19,14 +19,17 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   const activityTab = useRef<HTMLButtonElement>(null);
   const activity = useNotifications({ limit: 20 });
   const work = useWorkInbox();
-  const unread = work.eligible ? work.unreadCount : activity.unreadCount;
+  // Work is already zero without a workspace, so the bell reflects both sections.
+  const unread = work.unreadCount + activity.unreadCount;
 
   return (
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen) setSection('work');
+        // Land on the section that has something unread, preferring work.
+        if (nextOpen)
+          setSection(work.unreadCount === 0 && activity.unreadCount > 0 ? 'activity' : 'work');
       }}
     >
       <PopoverTrigger asChild>
@@ -127,7 +130,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                   <WorkInboxList
                     key={work.signedIn ? 'signed-in' : 'signed-out'}
                     items={work.items}
-                    loading={work.loading || (work.refreshing && !work.items.length)}
+                    loading={work.loading}
                     eligible={work.eligible}
                     onRead={work.markAsRead}
                   />

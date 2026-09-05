@@ -37,16 +37,24 @@ afterEach(() => {
   client.clear();
 });
 describe('Notification state isolation', () => {
-  it('does not duplicate notifications or inflate counts on repeated realtime deliveries', async () => {
+  it('collapses a burst of realtime deliveries into one refetch without duplicating rows', async () => {
     const { result } = renderHook(() => useNotifications({ limit: 20 }), { wrapper });
     await waitFor(() => expect(result.current.notifications).toHaveLength(1));
     act(() => {
-      mocks.subscribe.mock.calls[0][1]();
-      mocks.subscribe.mock.calls[0][1]();
+      for (let event = 0; event < 20; event++) mocks.subscribe.mock.calls[0][1]();
     });
-    await waitFor(() => expect(mocks.list.mock.calls.length).toBeGreaterThan(1));
+    await waitFor(() => expect(mocks.list).toHaveBeenCalledTimes(2));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(mocks.list).toHaveBeenCalledTimes(2);
+    expect(mocks.count).toHaveBeenCalledTimes(2);
     expect(result.current.notifications).toHaveLength(1);
     expect(result.current.unreadCount).toBe(1);
+  });
+  it('passes the query abort signal to Supabase reads', async () => {
+    renderHook(() => useNotifications({ limit: 20 }), { wrapper });
+    await waitFor(() => expect(mocks.list).toHaveBeenCalled());
+    expect(mocks.list.mock.calls[0][1]).toBeInstanceOf(AbortSignal);
+    expect(mocks.count.mock.calls[0][0]).toBeInstanceOf(AbortSignal);
   });
   it('clears old notifications on account switch and sign-out', async () => {
     const { result, rerender } = renderHook(useNotifications, { wrapper });

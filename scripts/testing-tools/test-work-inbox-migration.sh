@@ -13,4 +13,5 @@ pg_ctl -D "$tmp/data" -o "-k $tmp -c listen_addresses='' -p 55491" -l "$tmp/serv
 psql -X -h "$tmp" -p 55491 -d postgres -v ON_ERROR_STOP=1 \
   -f "$root/supabase/tests/fixtures/work-inbox-schema.sql" \
   -f "$root/supabase/migrations/20260905210000_workspace_work_inbox.sql" \
+  -f "$root/supabase/migrations/20260905230000_workspace_work_inbox_baseline.sql" \
   -f "$root/supabase/tests/workspace-work-inbox.test.sql"

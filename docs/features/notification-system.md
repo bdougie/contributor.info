@@ -5,9 +5,12 @@
 The header bell now separates **Needs attention** from **Activity**. Needs attention
 is the default and shows suggested replies and review requests across all active
 workspaces the account owns or has accepted membership in. Activity retains existing
-tracking, sync, and invitation notifications. Workspace users' bell badge counts new
-unread work; Activity has its own unread count. Users without workspaces keep their
-existing activity notifications but do not perform GitHub work scans.
+tracking, sync, and invitation notifications. The bell badge is the sum of unread work
+and unread activity, so tracking and invitation alerts still surface in the header.
+Opening the popover lands on Needs attention unless only Activity has unread items.
+Users without workspaces keep their existing activity notifications but do not
+perform GitHub work scans. On viewports narrower than 768px both sections render
+inside the account menu instead of the header bell.
 
 Work rows show repository owner logos, the repository, a direct GitHub conversation
 link, the latest comment preview, and an explicit Mark read action. Reading does not
@@ -32,9 +35,17 @@ to prevent ordinary refreshes from recreating the same alert.
 ### Baselines, Ordering, And Partial Results
 
 Each account/repository/category has a cursor. First-run items are visible but read,
-so onboarding does not flood users with historical alerts. The baseline is not
-considered initialized until a complete snapshot is received. Future new items and
-comment versions become unread. Repeated snapshots leave read state unchanged.
+so onboarding does not flood users with historical alerts. The first snapshot
+initializes the baseline whether or not it was complete; a busy conversation with
+truncated history must not silence a category forever. Future new items and comment
+versions become unread. Repeated snapshots leave read state unchanged.
+
+Completeness is tracked per repository. Truncated search pages, a conversation whose
+visible comment window could not rule the viewer in or out, a failed comment batch,
+and search hits returned under a different repository name (a rename or transfer)
+all mark only the affected repositories incomplete. Only repositories with a complete
+result resolve missing work. Snapshot writes run per repository in parallel; one
+failing repository is reported by name and does not block the others.
 
 Scans receive a server timestamp before contacting GitHub. Per-cursor transaction
 locks and timestamp comparisons reject older responses that arrive after a newer
@@ -42,9 +53,18 @@ scan, including scans from other tabs/devices. Incomplete responses may update k
 items but never resolve missing work. Inaccessible repositories and failed categories
 do not write empty snapshots. Errors are shown, not presented as an empty inbox.
 
+Scans are keyed by the account's repository set and reuse their result for five
+minutes across scope refetches, window focus, and reconnects. GitHub search allows
+30 requests per minute per account and the workspace Priority tab shares that budget.
+Each scan requests a fresh server timestamp and repository list at scan time.
+
 ### Scope And Security
 
-Migration: `supabase/migrations/20260905210000_workspace_work_inbox.sql`.
+Migrations: `supabase/migrations/20260905210000_workspace_work_inbox.sql` and
+`supabase/migrations/20260905230000_workspace_work_inbox_baseline.sql`. Run
+`scripts/testing-tools/test-work-inbox-migration.sh` to exercise both against a
+disposable local PostgreSQL. Repository names in item URLs are compared
+case-insensitively, matching GitHub.
 
 - `begin_workspace_work_scan` resolves `auth.uid()` through `app_users.auth_user_id`,
   then unions active owned workspaces and accepted memberships. It returns all distinct

@@ -141,15 +141,27 @@ describe('GitHub comments awaiting response', () => {
     expect((await fetchAwaitingReplies(options())).items[0].replies).toHaveLength(1);
   });
 
-  it('marks truncated history and inaccessible nodes as incomplete', async () => {
+  it('marks truncated history and inaccessible nodes as incomplete per repository', async () => {
+    // The viewer authored this conversation, so the visible window decides it fully.
     const node = conversation();
     node.reviewThreads.nodes[0].comments.pageInfo.hasPreviousPage = true;
     mockResponse(node);
-    expect((await fetchAwaitingReplies(options())).incomplete).toBe(true);
-    expect(
-      (await fetchAwaitingReplies({ ...options(), items: [{ ...item, nodeId: 'missing' }] }))
-        .incomplete
-    ).toBe(true);
+    const decided = await fetchAwaitingReplies(options());
+    expect(decided.incomplete).toBe(false);
+    expect(decided.items[0].replies).toHaveLength(1);
+    // Someone else's conversation with older comments may hide the viewer's participation.
+    node.author = { login: 'maintainer' };
+    mockResponse(node);
+    const uncertain = await fetchAwaitingReplies(options());
+    expect(uncertain.items).toEqual([]);
+    expect(uncertain.incomplete).toBe(true);
+    expect(uncertain.incompleteRepositories).toEqual([item.repository.toLowerCase()]);
+    const missing = await fetchAwaitingReplies({
+      ...options(),
+      items: [{ ...item, nodeId: 'missing' }],
+    });
+    expect(missing.incomplete).toBe(true);
+    expect(missing.incompleteRepositories).toEqual([item.repository.toLowerCase()]);
   });
 
   it('does not include an item closed since search or an unsafe comment URL', async () => {
@@ -167,7 +179,12 @@ describe('GitHub comments awaiting response', () => {
     const fetchMock = mockResponse();
     expect(
       await fetchGitHubWorkCategory({ ...options(), repositories: [], category: 'awaiting_reply' })
-    ).toEqual({ items: [], incomplete: false, unavailableRepositories: [] });
+    ).toEqual({
+      items: [],
+      incomplete: false,
+      unavailableRepositories: [],
+      incompleteRepositories: [],
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

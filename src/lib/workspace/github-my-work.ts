@@ -31,6 +31,12 @@ export interface GitHubWorkResult {
   incomplete: boolean;
   /** Repositories GitHub refused to search for this account, such as private or renamed repos. */
   unavailableRepositories: string[];
+  /**
+   * Lowercased repositories whose results may be missing work (truncated search or
+   * conversation history, renamed repository, or a failed comment batch). Absence
+   * from these results must never resolve saved work.
+   */
+  incompleteRepositories: string[];
 }
 
 interface SearchItem {
@@ -171,8 +177,14 @@ interface SearchState {
   items: GitHubWorkItem[];
   incomplete: boolean;
   unavailableRepositories: string[];
+  incompleteRepositories: Set<string>;
   /** Set once the awaiting-reply candidate budget is reached; later scopes are skipped. */
   stopped: boolean;
+}
+
+function markIncomplete(state: SearchState, repositories: string[]) {
+  state.incomplete = true;
+  for (const repository of repositories) state.incompleteRepositories.add(repository.toLowerCase());
 }
 
 function toWorkItem(item: SearchItem, repository: string, category: GitHubWorkCategory) {
@@ -207,7 +219,11 @@ async function collectScope(
     remainingScopes: boolean;
   }
 ): Promise<void> {
-  if (state.stopped) return;
+  if (state.stopped) {
+    // The candidate budget was spent on earlier scopes, so nothing here was searched.
+    markIncomplete(state, repositories);
+    return;
+  }
   const allowedRepos = new Set(repositories.map((repo) => repo.toLowerCase()));
   const query = toQuery(repositories, category);
   const collected: GitHubWorkItem[] = [];
@@ -218,7 +234,14 @@ async function collectScope(
       incomplete ||= data.incomplete_results || data.total_count > 1000;
       for (const item of data.items) {
         const repository = item.repository_url.replace('https://api.github.com/repos/', '');
-        if (!allowedRepos.has(repository.toLowerCase()) || item.state !== 'open') continue;
+        if (!allowedRepos.has(repository.toLowerCase())) {
+          // GitHub answered a repo: qualifier with its current name, so one of the
+          // requested repositories was renamed or transferred. Nothing in this scope
+          // can be attributed safely, and an empty result must not resolve work.
+          incomplete = true;
+          continue;
+        }
+        if (item.state !== 'open') continue;
         collected.push(toWorkItem(item, repository, category));
       }
       // Bound conversation inspection independently from the fast work categories.
@@ -228,8 +251,9 @@ async function collectScope(
       ) {
         incomplete ||=
           state.items.length + collected.length > REPLY_CANDIDATE_LIMIT ||
-          data.total_count > page * 100 ||
-          remainingScopes;
+          data.total_count > page * 100;
+        // Later scopes are marked when they are skipped; the overall result is partial now.
+        state.incomplete ||= remainingScopes;
         state.stopped = true;
         break;
       }
@@ -257,7 +281,7 @@ async function collectScope(
     return;
   }
   state.items.push(...collected);
-  state.incomplete ||= incomplete;
+  if (incomplete) markIncomplete(state, repositories);
 }
 
 export async function fetchGitHubWorkCategory({
@@ -277,6 +301,7 @@ export async function fetchGitHubWorkCategory({
     items: [],
     incomplete: false,
     unavailableRepositories: [],
+    incompleteRepositories: new Set(),
     stopped: false,
   };
   const scopes = groupWorkRepositories(repositories, category);
@@ -296,16 +321,20 @@ export async function fetchGitHubWorkCategory({
       items: state.items.slice(0, REPLY_CANDIDATE_LIMIT),
       signal,
     });
+    for (const repository of replies.incompleteRepositories)
+      state.incompleteRepositories.add(repository);
     return {
       items: replies.items,
       incomplete: state.incomplete || replies.incomplete,
       unavailableRepositories: state.unavailableRepositories,
+      incompleteRepositories: [...state.incompleteRepositories].sort(),
     };
   }
   return {
     items: state.items,
     incomplete: state.incomplete,
     unavailableRepositories: state.unavailableRepositories,
+    incompleteRepositories: [...state.incompleteRepositories].sort(),
   };
 }
 

@@ -56,6 +56,25 @@ BEGIN
   PERFORM public.read_workspace_work(row.id,2);
   ASSERT NOT (SELECT is_read FROM public.workspace_work_inbox), 'Old acknowledgement cannot read a reactivated request';
 
+  -- GitHub's canonical URL casing may differ from the stored repository name.
+  PERFORM public.record_workspace_work_snapshot(repo,'awaiting_reply',baseline + interval '6 minutes',
+    jsonb_set(payload,'{0,url}','"https://github.com/PaperComputeCo/Tapes/pull/1#discussion_r1"'),true);
+  ASSERT (SELECT url FROM public.workspace_work_inbox) LIKE '%PaperComputeCo%', 'Canonical casing is accepted';
+
+  -- A category whose scans are never complete still baselines, then alerts on change.
+  payload := jsonb_set(payload,'{0,subject_key}','"review:1"');
+  PERFORM public.record_workspace_work_snapshot(repo,'review_requested',baseline,payload,false);
+  ASSERT (SELECT is_read AND is_pending FROM public.workspace_work_inbox WHERE category = 'review_requested'),
+    'Partial first scan is a quiet baseline';
+  payload := jsonb_set(payload,'{0,source_version}','"comment:3"');
+  PERFORM public.record_workspace_work_snapshot(repo,'review_requested',baseline + interval '1 minute',payload,false);
+  ASSERT NOT (SELECT is_read FROM public.workspace_work_inbox WHERE category = 'review_requested'),
+    'Changes after a partial baseline must alert';
+  PERFORM public.record_workspace_work_snapshot(repo,'review_requested',baseline + interval '2 minutes','[]',false);
+  ASSERT (SELECT is_pending FROM public.workspace_work_inbox WHERE category = 'review_requested'),
+    'Partial absence still cannot resolve work';
+  payload := jsonb_set(payload,'{0,subject_key}','"thread:1"');
+
   BEGIN
     INSERT INTO public.workspace_work_inbox SELECT * FROM public.workspace_work_inbox;
     RAISE EXCEPTION 'Direct writes should be forbidden';

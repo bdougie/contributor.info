@@ -41,7 +41,12 @@ beforeEach(() => {
   });
   mocks.inbox.mockResolvedValue({ items: [], unreadCount: 0 });
   mocks.session.mockResolvedValue({ provider_token: 'test-only-token' });
-  mocks.github.mockResolvedValue({ items: [], incomplete: false, unavailableRepositories: [] });
+  mocks.github.mockResolvedValue({
+    items: [],
+    incomplete: false,
+    unavailableRepositories: [],
+    incompleteRepositories: [],
+  });
   mocks.rpc.mockResolvedValue({ error: null });
 });
 afterEach(() => {
@@ -83,19 +88,89 @@ describe('Workspace inbox scanning', () => {
     expect(mocks.github).not.toHaveBeenCalled();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
-  it('does not resolve work when the GitHub response is incomplete', async () => {
-    mocks.github.mockResolvedValue({ items: [], incomplete: true, unavailableRepositories: [] });
+  it('only withholds resolution from the repositories with incomplete results', async () => {
+    mocks.scope.mockResolvedValue({
+      observed_at: '2026-09-05T00:00:00Z',
+      workspace_count: 1,
+      repositories: [
+        { id: 'repo-1', full_name: 'papercomputeco/tapes' },
+        { id: 'repo-2', full_name: 'papercomputeco/masterblaster' },
+      ],
+    });
+    mocks.github.mockResolvedValue({
+      items: [],
+      incomplete: true,
+      unavailableRepositories: [],
+      incompleteRepositories: ['papercomputeco/tapes'],
+    });
     renderHook(useWorkInbox, { wrapper });
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(4));
     expect(mocks.rpc).toHaveBeenCalledWith(
       'record_workspace_work_snapshot',
-      expect.objectContaining({ p_complete: false })
+      expect.objectContaining({ p_repository_id: 'repo-1', p_complete: false })
     );
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      'record_workspace_work_snapshot',
+      expect.objectContaining({ p_repository_id: 'repo-2', p_complete: true })
+    );
+  });
+  it('never resolves work from an unattributed incomplete response', async () => {
+    mocks.github.mockResolvedValue({
+      items: [],
+      incomplete: true,
+      unavailableRepositories: [],
+      incompleteRepositories: [],
+    });
+    renderHook(useWorkInbox, { wrapper });
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2));
+    expect(mocks.rpc).not.toHaveBeenCalledWith(
+      'record_workspace_work_snapshot',
+      expect.objectContaining({ p_complete: true })
+    );
+  });
+  it('saves the other repositories and names the one that failed', async () => {
+    mocks.scope.mockResolvedValue({
+      observed_at: '2026-09-05T00:00:00Z',
+      workspace_count: 1,
+      repositories: [
+        { id: 'repo-1', full_name: 'papercomputeco/tapes' },
+        { id: 'repo-2', full_name: 'papercomputeco/masterblaster' },
+      ],
+    });
+    mocks.rpc.mockImplementation(async (_name: string, args: { p_repository_id: string }) =>
+      args.p_repository_id === 'repo-1'
+        ? { error: { message: 'Invalid work item' } }
+        : { error: null }
+    );
+    const { result } = renderHook(useWorkInbox, { wrapper });
+    await waitFor(() =>
+      expect(result.current.errors).toContain(
+        'Could not save work for papercomputeco/tapes: Invalid work item'
+      )
+    );
+    expect(mocks.rpc).toHaveBeenCalledWith(
+      'record_workspace_work_snapshot',
+      expect.objectContaining({ p_repository_id: 'repo-2' })
+    );
+    expect(mocks.inbox).toHaveBeenCalled();
+  });
+  it('reuses a fresh scan when the workspace scope refetches with the same repositories', async () => {
+    const { result } = renderHook(useWorkInbox, { wrapper });
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledTimes(2));
+    await client.refetchQueries({ queryKey: ['work-inbox-scope'] });
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    expect(mocks.github).toHaveBeenCalledTimes(2);
+    expect(mocks.rpc).toHaveBeenCalledTimes(2);
   });
   it('does not write an inaccessible repository or failed category', async () => {
     mocks.github.mockImplementation(async ({ category }) => {
       if (category === 'review_requested') throw new Error('Rate limited');
-      return { items: [], incomplete: true, unavailableRepositories: ['papercomputeco/tapes'] };
+      return {
+        items: [],
+        incomplete: true,
+        unavailableRepositories: ['papercomputeco/tapes'],
+        incompleteRepositories: [],
+      };
     });
     const { result } = renderHook(useWorkInbox, { wrapper });
     await waitFor(() => expect(result.current.errors).toContain('Rate limited'));
@@ -113,7 +188,12 @@ describe('Workspace inbox scanning', () => {
   it('rechecks account identity after fetching before writing', async () => {
     mocks.github.mockImplementation(async () => {
       mocks.session.mockRejectedValue(new Error('Session changed'));
-      return { items: [], incomplete: false, unavailableRepositories: [] };
+      return {
+        items: [],
+        incomplete: false,
+        unavailableRepositories: [],
+        incompleteRepositories: [],
+      };
     });
     const { result } = renderHook(useWorkInbox, { wrapper });
     await waitFor(() => expect(result.current.errors).toContain('Session changed'));

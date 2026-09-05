@@ -57,6 +57,7 @@ describe('GitHub personal work queries', () => {
       items: [],
       incomplete: false,
       unavailableRepositories: [],
+      incompleteRepositories: [],
     });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -160,7 +161,7 @@ describe('GitHub personal work queries', () => {
     expect((await fetchGitHubWorkCategory(options())).items).toEqual([]);
   });
 
-  it('flags incomplete search results', async () => {
+  it('flags incomplete search results for the searched repositories', async () => {
     vi.stubGlobal(
       'fetch',
       vi
@@ -169,7 +170,28 @@ describe('GitHub personal work queries', () => {
           Response.json({ total_count: 1, incomplete_results: true, items: [source] })
         )
     );
-    expect((await fetchGitHubWorkCategory(options())).incomplete).toBe(true);
+    const result = await fetchGitHubWorkCategory(options());
+    expect(result.incomplete).toBe(true);
+    expect(result.incompleteRepositories).toEqual(['papercomputeco/stereos']);
+  });
+
+  it('treats results from a renamed repository as incomplete instead of empty', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({
+          total_count: 1,
+          incomplete_results: false,
+          items: [
+            { ...source, repository_url: 'https://api.github.com/repos/papercomputeco/stereos-v2' },
+          ],
+        })
+      )
+    );
+    const result = await fetchGitHubWorkCategory(options());
+    expect(result.items).toEqual([]);
+    expect(result.incomplete).toBe(true);
+    expect(result.incompleteRepositories).toEqual(['papercomputeco/stereos']);
   });
 
   it('surfaces expired auth instead of silently returning no work', async () => {

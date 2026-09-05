@@ -57,6 +57,7 @@ Testing tools cover:
 | `test-console-warn.js` | Console warning detection | Debug output issues |
 | `test-last-updated-logic.js` | Timestamp calculation testing | Date logic validation |
 | `test-sanitize.js` | HTML sanitization testing | Security validation |
+| `test-work-inbox-migration.sh` | Workspace inbox RLS and state transitions in a disposable local PostgreSQL (needs `initdb`, `pg_ctl`, `psql`) | Changing inbox migrations |
 
 ## 💡 Usage Examples
 

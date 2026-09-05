@@ -129,6 +129,37 @@ describe('Workspace-first inbox design', () => {
     openInbox();
     expect(screen.getByText('A work inbox for your workspaces')).toBeInTheDocument();
   });
+  it('counts unread activity on the bell and opens there when work is quiet', () => {
+    mocks.work.mockReturnValue({ ...work(), items: [], unreadCount: 0 });
+    mocks.activity.mockReturnValue({
+      ...mocks.activity(),
+      unreadCount: 1,
+    });
+    render(<NotificationDropdown />);
+    const bell = screen.getByRole('button', { name: 'Notifications, 1 unread' });
+    expect(bell).toHaveTextContent('1');
+    fireEvent.click(bell);
+    expect(screen.getByRole('tab', { name: /Activity/ })).toHaveAttribute('aria-selected', 'true');
+  });
+  it('adds work and activity unread counts on the bell', () => {
+    mocks.activity.mockReturnValue({ ...mocks.activity(), unreadCount: 2 });
+    render(<NotificationDropdown />);
+    expect(screen.getByRole('button', { name: 'Notifications, 3 unread' })).toHaveTextContent('3');
+  });
+  it('keeps the empty state steady while a background refresh runs', () => {
+    mocks.work.mockReturnValue({ ...work(), items: [], unreadCount: 0, refreshing: true });
+    openInbox();
+    expect(screen.getByText('Nothing needs attention right now')).toBeInTheDocument();
+    expect(screen.queryByText('Checking your workspace work...')).not.toBeInTheDocument();
+  });
+  it('accepts GitHub links whose casing differs from the stored repository name', () => {
+    mocks.work.mockReturnValue({
+      ...work(),
+      items: [{ ...item, url: 'https://github.com/PaperComputeCo/Tapes/pull/341#discussion_r1' }],
+    });
+    openInbox();
+    expect(screen.getByRole('link', { name: item.title })).toBeInTheDocument();
+  });
   it('rejects links outside the referenced GitHub repository', () => {
     mocks.work.mockReturnValue({ ...work(), items: [{ ...item, url: 'https://evil.example' }] });
     openInbox();

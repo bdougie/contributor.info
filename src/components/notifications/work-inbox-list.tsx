@@ -65,9 +65,10 @@ export function WorkInboxList({
         {items.map((item) => {
           const repo = item.repository.full_name;
           const owner = repo.split('/')[0];
-          const safeUrl =
-            item.url.startsWith(`https://github.com/${repo}/pull/`) ||
-            item.url.startsWith(`https://github.com/${repo}/issues/`);
+          // GitHub names are case-insensitive, so compare against the canonical URL casing.
+          const url = item.url.toLowerCase();
+          const base = `https://github.com/${repo.toLowerCase()}`;
+          const safeUrl = url.startsWith(`${base}/pull/`) || url.startsWith(`${base}/issues/`);
           return (
             <li
               key={item.id}

@@ -5,6 +5,9 @@ import { NotificationService } from '@/lib/notifications';
 import type { NotificationFilters } from '@/lib/notifications';
 import { EPHEMERAL_QUERY_META } from '@/lib/query-client';
 
+/** Realtime delivers one event per affected row; a short trailing window merges bursts. */
+const REALTIME_SETTLE_MS = 300;
+
 export function useNotifications(filters: NotificationFilters = {}) {
   const { user } = useCurrentUser();
   const userId = user?.id;
@@ -12,10 +15,10 @@ export function useNotifications(filters: NotificationFilters = {}) {
   const identity = ['notifications', user?.id, user?.last_sign_in_at];
   const result = useQuery({
     queryKey: [...identity, filters],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const [notifications, unreadCount] = await Promise.all([
-        NotificationService.getNotifications(filters),
-        NotificationService.getUnreadCount(),
+        NotificationService.getNotifications(filters, signal),
+        NotificationService.getUnreadCount(signal),
       ]);
       return { notifications, unreadCount };
     },
@@ -32,10 +35,28 @@ export function useNotifications(filters: NotificationFilters = {}) {
   useEffect(() => {
     if (!userId) return;
     // Re-read the authoritative list/count instead of incrementing for replayed events.
+    // Bursts (mark all read, bulk tracking) collapse into one refetch that is allowed to
+    // finish rather than being cancelled and restarted by each row event.
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
-      void client.invalidateQueries({ queryKey: ['notifications', userId] });
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        void client.invalidateQueries(
+          { queryKey: ['notifications', userId] },
+          { cancelRefetch: false }
+        );
+      }, REALTIME_SETTLE_MS);
     };
-    return NotificationService.subscribeToNotifications(userId, refresh, refresh, refresh);
+    const unsubscribe = NotificationService.subscribeToNotifications(
+      userId,
+      refresh,
+      refresh,
+      refresh
+    );
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [client, userId]);
 
   const mutate = async (action: () => Promise<boolean>) => {
