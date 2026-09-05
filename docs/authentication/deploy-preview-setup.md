@@ -60,6 +60,46 @@ Added environment variable mappings for different deploy contexts:
 
 ## Supabase Configuration
 
+### GitHub API Authorization Uses the Existing Sign-In
+
+Workspace features do not have a separate "Connect GitHub" step. The normal
+GitHub OAuth sign-in supplies `session.provider_token` through Supabase. See
+`mintlify-docs/features/authentication.mdx` for the user-facing login contract and
+`docs/product-requirements/prd-private-repo-opt-in.md` for the distinction between
+public-scoped login OAuth and private-repository GitHub App installations.
+
+The shared client has `detectSessionInUrl: true` and `flowType: 'implicit'`.
+Let `getSession()` await Supabase initialization so the SDK consumes the complete
+OAuth callback, including provider credentials. Do not manually rebuild that
+callback with `setSession({ access_token, refresh_token })`: those two fields
+are Supabase credentials, and rebuilding loses the GitHub provider fields.
+
+Supabase's auth refresh response can omit the provider fields. The storage
+adapter in `src/lib/auth/github-session-storage.ts` retains them in the existing
+Supabase auth record only when both the user ID and JWT `session_id` match.
+It does not create a separate token store, copy tokens between browser profiles,
+or expand OAuth scopes. New provider credentials take precedence, explicit null
+clears them, and sign-out removes the record. Credentials must never be carried
+to another user, provider, or login session.
+
+`src/lib/auth/github-session.ts` provides the shared reader for the GitHub API
+hook and workspace work list. It uses timeout-protected Supabase session reads,
+and re-reads the auth record if an immediate refresh response lacks the retained
+provider token. The Supabase JWT must never be sent to GitHub as a substitute.
+
+This retains a supplied provider token; it cannot recover one already discarded
+before this fix or renew one revoked by GitHub. Such sessions report a sign-in
+error and use the normal account sign-in flow, not a second integration setup.
+See [Supabase provider-token documentation](https://supabase.com/docs/guides/auth/social-login#provider-tokens).
+
+Regression tests in `src/lib/auth/__tests__/github-session-storage.integration.test.ts`
+exercise callback parsing, auth refresh, reload, sign-out, and account/session
+isolation, including the actual Supabase SDK with mocked HTTP responses.
+Validation on September 5, 2026: the full CI Vitest configuration passed 1,759
+tests (26 skipped); changed-file ESLint, typecheck, and production build passed.
+The user's current browser session has not been inspected or repaired by these
+tests; they cannot recover credentials that were previously discarded.
+
 ### Required Redirect URLs
 
 Add these redirect URL patterns to your Supabase project's authentication settings:

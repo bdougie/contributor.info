@@ -190,6 +190,7 @@ export async function syncWorkspaceIssuesForRepositories(
 
   if (failures.length > 0) {
     console.error('Failed to sync %d repositories', failures.length);
+    throw new Error(`Failed to refresh issues for ${failures.length} repositories`);
   }
 
   const successes = results.filter((r) => r.status === 'fulfilled');

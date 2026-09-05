@@ -1,0 +1,163 @@
+import type { GitHubWorkItem, GitHubWorkReply } from './github-my-work';
+
+interface Actor {
+  login: string;
+  __typename?: string;
+}
+
+interface Comment {
+  author: Actor | null;
+  bodyText: string;
+  url: string;
+  createdAt: string;
+}
+
+interface Connection<T> {
+  nodes: (T | null)[];
+  pageInfo: { hasNextPage?: boolean; hasPreviousPage?: boolean };
+}
+
+interface Conversation {
+  id: string;
+  state: string;
+  author: Actor | null;
+  assignees: Connection<Actor>;
+  comments: Connection<Comment>;
+  reviewThreads?: Connection<{
+    isResolved: boolean;
+    comments: Connection<Comment>;
+  }>;
+}
+
+interface ReplyResponse {
+  data?: { viewer: { login: string }; nodes: (Conversation | null)[] };
+  errors?: { message: string }[];
+}
+
+const commentFields = `nodes { author { login __typename } bodyText url createdAt }
+  pageInfo { hasPreviousPage }`;
+const conversationFields = `id state author { login }
+  assignees(first: 100) { nodes { login } pageInfo { hasNextPage } }
+  comments(last: 50) { ${commentFields} }`;
+const query = `query WorkspaceReplyQueue($ids: [ID!]!) {
+  viewer { login }
+  nodes(ids: $ids) {
+    ... on Issue { ${conversationFields} }
+    ... on PullRequest {
+      ${conversationFields}
+      reviewThreads(first: 50) {
+        nodes { isResolved comments(last: 50) { ${commentFields} } }
+        pageInfo { hasNextPage }
+      }
+    }
+  }
+}`;
+
+function isHuman(comment: Comment | null): comment is Comment {
+  return (
+    !!comment?.author &&
+    comment.author.__typename !== 'Bot' &&
+    !comment.author.login.toLowerCase().endsWith('[bot]')
+  );
+}
+
+function pendingReply(
+  comments: Connection<Comment>,
+  viewer: string,
+  responsible: boolean,
+  item: GitHubWorkItem,
+  kind: GitHubWorkReply['kind']
+): GitHubWorkReply | undefined {
+  const humans = comments.nodes.filter(isHuman);
+  const latest = humans[humans.length - 1];
+  if (!latest?.author || latest.author.login.toLowerCase() === viewer) return;
+  const participated = humans.some((comment) => comment.author?.login.toLowerCase() === viewer);
+  const mentions: string[] = latest.bodyText.toLowerCase().match(/@[a-z\d-]+/g) || [];
+  if (!responsible && !participated && !mentions.includes(`@${viewer}`)) return;
+  // Only allow deep links into the item we requested, not arbitrary comment URLs.
+  if (!latest.url.startsWith(`${item.url}#`)) return;
+  return {
+    author: latest.author.login,
+    body: latest.bodyText.replace(/\s+/g, ' ').trim().slice(0, 280),
+    url: latest.url,
+    createdAt: latest.createdAt,
+    kind,
+  };
+}
+
+export async function fetchAwaitingReplies({
+  token,
+  items,
+  signal,
+}: {
+  token: string;
+  items: GitHubWorkItem[];
+  signal: AbortSignal;
+}): Promise<{ items: GitHubWorkItem[]; incomplete: boolean }> {
+  const result: GitHubWorkItem[] = [];
+  let incomplete = items.some((item) => !item.nodeId);
+  const candidates = items.filter((item) => item.nodeId);
+  // Small batches keep nested review-thread queries below GitHub's node limits.
+  for (let offset = 0; offset < candidates.length; offset += 5) {
+    const batch = candidates.slice(offset, offset + 5);
+    const response = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables: { ids: batch.map((item) => item.nodeId) } }),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `GitHub could not load comments (HTTP ${response.status}). Try refreshing later.`
+      );
+    }
+    const payload: ReplyResponse = await response.json();
+    if (!payload.data?.viewer?.login || !Array.isArray(payload.data.nodes)) {
+      throw new Error('GitHub could not load the reply queue. Other work is still available.');
+    }
+    incomplete ||= !!payload.errors?.length;
+    const viewer = payload.data.viewer.login.toLowerCase();
+    for (const item of batch) {
+      const node = payload.data.nodes.find((node) => node?.id === item.nodeId);
+      if (!node?.comments || !node.assignees) {
+        incomplete = true;
+        continue;
+      }
+      // Recheck state after search, which can lag behind a close or merge.
+      if (node.state !== 'OPEN') continue;
+      const responsible =
+        node.author?.login.toLowerCase() === viewer ||
+        node.assignees.nodes.some((actor) => actor?.login.toLowerCase() === viewer);
+      const replies: GitHubWorkReply[] = [];
+      const general = pendingReply(node.comments, viewer, responsible, item, 'conversation');
+      if (general) replies.push(general);
+      incomplete ||=
+        !!node.comments.pageInfo.hasPreviousPage ||
+        !!node.assignees.pageInfo.hasNextPage ||
+        !!node.reviewThreads?.pageInfo.hasNextPage;
+      for (const thread of node.reviewThreads?.nodes || []) {
+        if (!thread) {
+          incomplete = true;
+          continue;
+        }
+        if (thread.isResolved) continue;
+        incomplete ||= !!thread.comments.pageInfo.hasPreviousPage;
+        const reply = pendingReply(thread.comments, viewer, responsible, item, 'review');
+        if (reply) replies.push(reply);
+      }
+      replies.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+      if (replies.length)
+        result.push({
+          ...item,
+          categories: ['awaiting_reply'],
+          replies,
+          updatedAt: replies[0].createdAt,
+        });
+    }
+  }
+  return { items: result, incomplete };
+}

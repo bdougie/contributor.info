@@ -26,6 +26,7 @@ import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
 import { useToast } from '@/hooks/use-toast';
 import { SyncStatusErrorBoundary } from './components/SyncStatusErrorBoundary';
+import { Link } from 'react-router';
 
 export interface MyWorkItem {
   id: string;
@@ -71,6 +72,8 @@ export interface MyWorkCardProps {
   items: MyWorkItem[];
   stats?: MyWorkStats;
   loading?: boolean;
+  error?: string | null;
+  activityUrls?: { prs: string; issues: string };
   className?: string;
   totalCount?: number;
   tabCounts?: { needsResponse: number; followUps: number; replies: number };
@@ -291,7 +294,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
         <div className="flex flex-col space-y-1 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center space-x-1 text-sm flex-wrap">
-              <span className="font-medium">{sanitizeText(item.user.username)}</span>
+              <span className="font-medium">By {sanitizeText(item.user.username)}</span>
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
                 href={sanitizeURL(item.url)}
@@ -326,6 +329,8 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
 export function MyWorkCard({
   items,
   loading = false,
+  error,
+  activityUrls,
   className,
   totalCount = 0,
   tabCounts,
@@ -413,12 +418,27 @@ export function MyWorkCard({
   const followUpsCount = tabCounts?.followUps ?? 0;
   const repliesCount = tabCounts?.replies ?? 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const queueDescription = (
+    <>
+      Your review requests, assigned issues, and workspace discussions. Not all repository activity.
+      {activityUrls && (
+        <span className="flex gap-4 mt-2">
+          <Link className="underline underline-offset-4" to={activityUrls.prs}>
+            All pull requests
+          </Link>
+          <Link className="underline underline-offset-4" to={activityUrls.issues}>
+            All issues
+          </Link>
+        </span>
+      )}
+    </>
+  );
   if (loading) {
     return (
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Items requiring your attention</CardDescription>
+          <CardDescription>{queueDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -503,14 +523,16 @@ export function MyWorkCard({
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Items requiring your attention</CardDescription>
+          <CardDescription>{queueDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Nothing needs your attention</p>
+            <p role={error ? 'alert' : undefined} className="text-sm text-muted-foreground">
+              {error || 'No items in this personal queue'}
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Assigned issues and unanswered discussions will appear here
+              Use the Pull Requests and Issues tabs to see repository activity.
             </p>
           </div>
         </CardContent>
@@ -522,13 +544,14 @@ export function MyWorkCard({
     <Card className={cn('transition-all', className)}>
       <CardHeader>
         <CardTitle>My Work</CardTitle>
-        <CardDescription>
-          {totalCount > 0
-            ? `${totalCount} items requiring attention`
-            : 'Items requiring your attention'}
-        </CardDescription>
+        <CardDescription>{queueDescription}</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
         {/* Type Filters */}
         <div className="flex flex-wrap gap-4 mb-4 pb-4 border-b">
           <div className="flex items-center space-x-2">

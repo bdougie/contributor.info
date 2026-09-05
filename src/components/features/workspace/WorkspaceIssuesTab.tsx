@@ -239,7 +239,7 @@ export function WorkspaceIssuesTab({
   const shouldShowTwoColumns = stableHasAssignees ?? hasAssignees;
 
   // Display error message if there's an error
-  if (error) {
+  if (error && issues.length === 0) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
         <Card className="border-destructive">
@@ -258,6 +258,11 @@ export function WorkspaceIssuesTab({
 
   return (
     <div className="space-y-6">
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error} Saved issues are still shown below.
+        </p>
+      )}
       {/* Auto-sync indicator and action buttons at top */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">

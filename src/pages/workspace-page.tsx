@@ -42,6 +42,7 @@ import type {
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
 import { useMyWork } from '@/hooks/use-my-work';
+import { GitHubMyWorkCard } from '@/components/features/workspace/GitHubMyWorkCard';
 import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
 import type { WorkspaceActivityTabProps as WorkspaceActivityProps } from '@/components/features/workspace/WorkspaceActivityTab';
 import { fetchGitHubUserProfile } from '@/services/github-profile';
@@ -201,20 +202,21 @@ function WorkspacePage() {
     [myWorkSelectedTypes, myWorkActiveTab]
   );
 
-  // Fetch live My Work data
-  // Use workspace?.id (UUID) instead of workspaceId (which is a slug)
+  // Keep legacy response helpers for the other tabs, but do not fetch the stored
+  // personal queue. The overview uses the GitHub-backed card below instead.
   const {
     items: myWorkItems,
     totalCount: myWorkTotalCount,
     tabCounts: myWorkTabCounts,
     loading: myWorkLoading,
+    error: myWorkError,
     refresh: refreshMyWork,
     optimisticallyRemoveItem,
     restoreItem,
     syncComments,
     isSyncingComments,
     commentSyncStatus,
-  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, myWorkFilters);
+  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, myWorkFilters, false);
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -1806,11 +1808,32 @@ function WorkspacePage() {
                 activityData={activityData}
                 repositories={repositories}
                 myWorkItems={myWorkItems}
+                myWorkContent={
+                  <GitHubMyWorkCard
+                    key={`${workspace.id}:${selectedRepositories.slice().sort().join(',')}`}
+                    workspaceId={workspace.id}
+                    repositoryAvatars={Object.fromEntries(
+                      repositories.map((repo) => [repo.full_name, repo.avatar_url])
+                    )}
+                    repositories={repositories
+                      .filter(
+                        (repo) =>
+                          selectedRepositories.length === 0 ||
+                          selectedRepositories.includes(repo.id)
+                      )
+                      .map((repo) => repo.full_name)}
+                  />
+                }
                 myWorkTotalCount={myWorkTotalCount}
                 myWorkTabCounts={myWorkTabCounts}
                 myWorkCurrentPage={myWorkPage}
                 myWorkItemsPerPage={myWorkItemsPerPage}
                 myWorkLoading={myWorkLoading}
+                myWorkError={myWorkError?.message}
+                activityUrls={{
+                  prs: `/i/${workspace.slug || workspace.id}/prs`,
+                  issues: `/i/${workspace.slug || workspace.id}/issues`,
+                }}
                 myWorkSelectedTypes={myWorkSelectedTypes}
                 myWorkActiveTab={myWorkActiveTab}
                 onMyWorkPageChange={setMyWorkPage}

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { getSupabase } from '@/lib/supabase-lazy';
+import { getGitHubSession } from '@/lib/auth/github-session';
 import * as GitHubApiService from '@/lib/github/api-service';
 import type { RateLimitInfo, GitHubApiConfig } from '@/lib/github/api-service';
 
@@ -16,16 +16,8 @@ export function useGitHubApi() {
    */
   const getAuthToken = useCallback(async (): Promise<string | null> => {
     try {
-      const supabase = await getSupabase();
-      const sessionData = await supabase.auth.getSession();
-
-      if (!sessionData?.data?.session) {
-        return null;
-      }
-
-      // For GitHub OAuth, we should be able to get a token from the provider token
-      const token = sessionData.data.session.provider_token;
-      return token || null;
+      const session = await getGitHubSession();
+      return session?.provider_token || null;
     } catch (err) {
       console.error('Failed to get auth token:', err);
       return null;

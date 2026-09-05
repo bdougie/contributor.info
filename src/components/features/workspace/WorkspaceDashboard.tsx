@@ -41,12 +41,15 @@ export interface WorkspaceDashboardProps {
   activityData?: unknown; // Made generic since we removed the import
   repositories: Repository[];
   myWorkItems?: MyWorkItem[];
+  myWorkContent?: React.ReactNode;
   myWorkStats?: MyWorkStats;
   myWorkTotalCount?: number;
   myWorkTabCounts?: { needsResponse: number; followUps: number; replies: number };
   myWorkCurrentPage?: number;
   myWorkItemsPerPage?: number;
   myWorkLoading?: boolean;
+  myWorkError?: string | null;
+  activityUrls?: { prs: string; issues: string };
   myWorkSelectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
   myWorkActiveTab?: 'needs_response' | 'follow_ups' | 'replies';
   onMyWorkPageChange?: (page: number) => void;
@@ -94,12 +97,15 @@ export function WorkspaceDashboard({
   metrics,
   repositories,
   myWorkItems = [],
+  myWorkContent,
   myWorkStats,
   myWorkTotalCount = 0,
   myWorkTabCounts,
   myWorkCurrentPage = 1,
   myWorkItemsPerPage = 10,
   myWorkLoading = false,
+  myWorkError,
+  activityUrls,
   myWorkSelectedTypes = ['pr', 'issue', 'discussion'],
   myWorkActiveTab = 'needs_response',
   onMyWorkPageChange,
@@ -264,26 +270,30 @@ export function WorkspaceDashboard({
       </div>
 
       {/* My Work Section - Always show to display loading/empty states */}
-      <MyWorkCard
-        items={myWorkItems || []}
-        stats={myWorkStats}
-        totalCount={myWorkTotalCount}
-        tabCounts={myWorkTabCounts}
-        currentPage={myWorkCurrentPage}
-        itemsPerPage={myWorkItemsPerPage}
-        loading={myWorkLoading}
-        selectedTypes={myWorkSelectedTypes}
-        activeTab={myWorkActiveTab}
-        onPageChange={onMyWorkPageChange}
-        onTypesChange={onMyWorkTypesChange}
-        onTabChange={onMyWorkTabChange}
-        onItemClick={onMyWorkItemClick}
-        onRespond={onMyWorkItemRespond}
-        onMarkAsResponded={onMyWorkItemMarkAsResponded}
-        onSyncComments={onSyncComments}
-        isSyncingComments={isSyncingComments}
-        commentSyncStatus={commentSyncStatus}
-      />
+      {myWorkContent ?? (
+        <MyWorkCard
+          items={myWorkItems || []}
+          stats={myWorkStats}
+          totalCount={myWorkTotalCount}
+          tabCounts={myWorkTabCounts}
+          currentPage={myWorkCurrentPage}
+          itemsPerPage={myWorkItemsPerPage}
+          loading={myWorkLoading}
+          error={myWorkError}
+          activityUrls={activityUrls}
+          selectedTypes={myWorkSelectedTypes}
+          activeTab={myWorkActiveTab}
+          onPageChange={onMyWorkPageChange}
+          onTypesChange={onMyWorkTypesChange}
+          onTabChange={onMyWorkTabChange}
+          onItemClick={onMyWorkItemClick}
+          onRespond={onMyWorkItemRespond}
+          onMarkAsResponded={onMyWorkItemMarkAsResponded}
+          onSyncComments={onSyncComments}
+          isSyncingComments={isSyncingComments}
+          commentSyncStatus={commentSyncStatus}
+        />
+      )}
 
       {/* Additional Content (e.g., Rising Stars Chart) */}
       {children}

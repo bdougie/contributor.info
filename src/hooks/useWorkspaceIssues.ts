@@ -575,8 +575,7 @@ export function useWorkspaceIssues({
         const githubToken = session?.provider_token || env.GITHUB_TOKEN;
 
         if (!githubToken) {
-          console.warn('No GitHub token available for syncing issues');
-          return;
+          throw new Error('Sign in with GitHub again to refresh issues. Showing saved issues.');
         }
 
         const filteredRepos = getFilteredRepos();
@@ -612,11 +611,13 @@ export function useWorkspaceIssues({
         // Re-fetch from database with fresh data
         const dbIssues = await fetchFromDatabase(repoIds);
         const transformedIssues = dbIssues.map(transformIssue);
+        const freshness = await checkStaleness(repoIds);
 
         queueStateUpdate({
           issues: transformedIssues,
-          lastSynced: new Date(),
-          isStale: false,
+          lastSynced: freshness.oldestSync,
+          isStale: freshness.needsSync,
+          error: null,
         });
       } catch (err) {
         // Don't log abort errors
@@ -624,6 +625,10 @@ export function useWorkspaceIssues({
           return;
         }
         console.error('Background sync failed:', err);
+        queueStateUpdate({
+          isStale: true,
+          error: err instanceof Error ? err.message : 'Issue refresh failed. Showing saved issues.',
+        });
       } finally {
         queueStateUpdate({ isSyncing: false });
         flushImmediately();

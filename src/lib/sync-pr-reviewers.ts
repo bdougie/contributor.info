@@ -140,7 +140,7 @@ export async function syncPullRequestReviewers(
       });
     } catch (fallbackError) {
       console.error('Local backoff also failed:', fallbackError);
-      return [];
+      throw fallbackError;
     }
   }
 }

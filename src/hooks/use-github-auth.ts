@@ -39,41 +39,8 @@ export function useGitHubAuth() {
       const supabase = await getSupabase();
       if (!isMounted) return;
 
-      // Check URL for auth tokens first and handle them manually
-      // This prevents 401 errors that occur when Supabase's automatic detection fails
-      if (typeof window !== 'undefined' && window.location?.hash?.includes('access_token')) {
-        try {
-          // Manually parse the hash parameters
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            // Set the session manually using the extracted tokens
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              // Silently handle session setting errors
-            }
-          }
-        } catch {
-          // Silently handle auth token processing errors
-        }
-
-        // Clear the URL hash after processing
-        if (typeof window !== 'undefined' && window.history) {
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname + window.location.search
-          );
-        }
-      }
-
-      // Use safe session check with timeout protection
+      // getSession waits for Supabase's OAuth initialization, which consumes the
+      // complete callback including provider_token. Do not replace it with setSession.
       const { session, error: sessionError } = await safeGetSession();
       if (sessionError) {
         // Handle session check error gracefully

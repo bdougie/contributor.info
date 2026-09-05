@@ -1,5 +1,53 @@
 # My Work Dashboard
 
+## Current Workspace Overview
+
+The workspace overview now renders `GitHubMyWorkCard` using the GitHub provider token
+from the existing Supabase sign-in session. No separate GitHub connection is required.
+`use-github-workspace-work.ts` keeps personal work in a component-owned, non-persisted
+query cache, scoped by account, session, workspace, and selected repositories.
+
+Four independent GitHub API queries show your open PRs, review requests (including
+teams), assigned issues, and **Awaiting your reply**. Repository owner logos use the
+workspace avatar when available. One row represents one PR or issue, even when it
+matches several categories; pending conversations have their own previews and links.
+
+**Priority** is the default view: items awaiting your reply first, then review requests,
+newest conversation first within each group. **All work** includes the other categories.
+
+### Reply Suggestions
+
+`github-work-replies.ts` inspects open PRs/issues returned by GitHub's `involves:@me`
+search within the selected repositories. GraphQL supplies general comments and PR
+review threads, using the authenticated `viewer` for identity. A conversation is
+suggested when its last human comment is from someone else and you authored or are
+assigned to the parent, previously commented in that conversation, or are directly
+mentioned in its last human comment. Your subsequent reply clears that suggestion.
+Resolved review threads and bot-only activity are excluded. Replying to one thread
+does not clear other unanswered review threads on the same PR.
+
+This is a follow-up heuristic, not GitHub unread status or a guarantee that a response
+is required. General PR/issue comments are one chronological conversation; inline
+review threads are assessed independently. Discussion threads, standalone review
+summaries, and closed work are not included in this queue. Search-index delays can
+temporarily hide recent activity.
+
+To bound API cost, the reply category inspects up to 100 candidate items, 50 review
+threads per PR, and the latest 50 comments per conversation, in batches of five items.
+Truncated history or partial GraphQL results display an incomplete-results notice;
+narrowing the repository selection reduces the candidate set. Large individual
+conversations may still exceed these limits. The other work categories paginate
+independently and remain available if reply inspection fails. Refresh and window focus
+revalidate GitHub results; this does not repair stale Supabase analytics or counts.
+
+References: [GitHub issue search](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests)
+and [review thread fields](https://docs.github.com/en/graphql/reference/pulls#pullrequestreviewthread).
+
+## Legacy Database-Backed Card
+
+The sections below describe the older `MyWorkCard`, still used outside the new
+workspace overview. They do not describe the GitHub-backed reply suggestions above.
+
 ## Overview
 
 The My Work feature provides a personalized dashboard showing GitHub items that require user attention, including PRs awaiting review, assigned issues, and unanswered discussions. It includes AI-powered response suggestions using semantic similarity search.
