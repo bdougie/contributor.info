@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
 import { safeGetSession } from '@/lib/auth/safe-auth';
+import { getLoginReturnPath } from '@/lib/auth/login-redirect';
 
 /**
  * Hook for managing GitHub authentication state and actions
@@ -64,7 +65,11 @@ export function useGitHubAuth() {
 
         // Clear the URL hash after processing
         if (typeof window !== 'undefined' && window.history) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname + window.location.search
+          );
         }
       }
 
@@ -91,7 +96,7 @@ export function useGitHubAuth() {
           localStorage.removeItem('redirectAfterLogin');
           // Only navigate if we're not already on the target path
           if (window.location.pathname !== redirectPath) {
-            navigate(redirectPath);
+            navigate(getLoginReturnPath(redirectPath));
           }
         }
       }
@@ -118,7 +123,7 @@ export function useGitHubAuth() {
             if (redirectPath) {
               localStorage.removeItem('redirectAfterLogin');
               if (window.location.pathname !== redirectPath) {
-                navigate(redirectPath);
+                navigate(getLoginReturnPath(redirectPath));
               }
             }
           }
@@ -143,8 +148,8 @@ export function useGitHubAuth() {
   const login = async () => {
     try {
       // Store the current path for redirect after login if needed
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login') {
+      const currentPath = window.location.pathname + window.location.search;
+      if (window.location.pathname !== '/login') {
         localStorage.setItem('redirectAfterLogin', currentPath);
       }
       // Start the login flow with the correct redirect URL

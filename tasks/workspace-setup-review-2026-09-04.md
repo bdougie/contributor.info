@@ -42,7 +42,53 @@ workspace, partial additions, and organization results arriving before capacity.
 
 These changes have not been deployed. Previously created workspace records were
 not rewritten; any account already assigned incorrect limits needs verification
-before a targeted correction. The P2 findings remain open.
+before a targeted correction.
+
+## P2 implementation update
+
+All five P2 findings below are addressed on `fix/workspace-onboarding`, stacked on
+the P1 fixes in [PR #1830](https://github.com/bdougie/contributor.info/pull/1830).
+The findings retain their original baseline evidence; these changes are not deployed.
+
+- Workspace marketing and creation use a shared, same-origin-validated
+  `redirectTo` handoff. Login still accepts existing `redirect` links, uses
+  workspace-specific copy, and replaces stale stored destinations. OAuth token
+  cleanup and stored return paths retain query parameters, including the pending
+  repository. Stored OAuth destinations are validated before navigation.
+- Creation checks authentication before enabling submission and rechecks the
+  session on submit. Signed-out and expired-session flows offer sign-in. Drafts
+  persist in this tab's session storage, separately per repository, survive
+  sign-in/navigation and refresh, and clear on success or explicit cancellation.
+  Storage failures show a warning instead of breaking the form.
+- Setup help links to the published workspace documentation, not the app's
+  `/docs` organization route.
+- Exact `owner/repo` or GitHub repository URLs resolve and stage on Enter or
+  **Select**. Failed lookups, invalid input, duplicate selection, and full capacity
+  retain the query with an actionable error. Keyboard suggestion selection and
+  existing synchronous search callbacks remain supported. Late lookups respect
+  current capacity/selection and are discarded if the dialog closes.
+- Choosing **Create new workspace** from a repository carries it through creation
+  and opens the new owner's repository picker with that repository prefilled.
+  **Select**, then **Add**, uses the existing explicit tracking/addition flow and
+  its failure reporting. Closing the picker consumes only the pending-repository
+  query parameter, preserving other query parameters. Nothing is automatically tracked.
+
+Validation: 146 tests passed across 16 focused suites, including the P1 regression
+coverage. Changed TypeScript files passed ESLint and Prettier; `npm run typecheck`
+and `npm run build` passed, including CSP verification.
+
+Local Chrome checks at `http://localhost:5174` verified disabled signed-out
+creation, restoration of the Tapes workspace name and description after reload,
+the exact documentation destination, the encoded login return path, and
+workspace-specific login copy. Desktop (1365px) and mobile (390px) screenshots
+were inspected, with no mobile horizontal overflow:
+[desktop](evidence/workspace-setup-2026-09-04/p2-local-desktop.png),
+[mobile](evidence/workspace-setup-2026-09-04/p2-local-mobile.png).
+
+Authentication callbacks and successful/failed creation were exercised with
+integration-test mocks, not a fresh live OAuth round trip. No production workspace
+records were created or changed. Post-deployment verification with the signed-in
+account remains necessary.
 
 ## Findings
 

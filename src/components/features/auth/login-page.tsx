@@ -8,21 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useGitHubAuth } from '@/hooks/use-github-auth';
 import { SocialMetaTags } from '@/components/common/layout';
 import { useAnalytics } from '@/hooks/use-analytics';
-
-/**
- * Validates redirect URLs to prevent open redirect attacks
- */
-function isValidRedirectUrl(url: string): boolean {
-  try {
-    // Parse the URL relative to current origin
-    const parsed = new URL(url, window.location.origin);
-    // Only allow same-origin redirects
-    return parsed.origin === window.location.origin;
-  } catch {
-    // If URL parsing fails, check if it's a valid relative path
-    return url.startsWith('/') && !url.startsWith('//');
-  }
-}
+import { getLoginReturnPath } from '@/lib/auth/login-redirect';
 
 /**
  * Check if we're in test mode (CI environment with mock credentials)
@@ -49,9 +35,8 @@ export default function LoginPage() {
 
   // Get the intended destination from URL param or use home page as default
   const urlParams = new URLSearchParams(window.location.search);
-  const rawRedirectTo = urlParams.get('redirectTo') || '/';
-  // Validate the redirect URL to prevent open redirect attacks
-  const redirectTo = isValidRedirectUrl(rawRedirectTo) ? rawRedirectTo : '/';
+  const redirectTo = getLoginReturnPath(urlParams.get('redirectTo') || urlParams.get('redirect'));
+  const isWorkspaceLogin = /^\/(workspaces|i)(\/|\?|$)/.test(redirectTo);
 
   // If already logged in, redirect to the intended destination
   useEffect(() => {
@@ -72,9 +57,7 @@ export default function LoginPage() {
       trackLoginInitiated('github', 'login_page');
 
       // Store redirect destination
-      if (redirectTo !== '/') {
-        localStorage.setItem('redirectAfterLogin', redirectTo);
-      }
+      localStorage.setItem('redirectAfterLogin', redirectTo);
 
       await login();
     } catch (err) {
@@ -123,8 +106,9 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Login Required</CardTitle>
           <CardDescription>
-            You need to log in to search for repositories. This helps avoid rate limiting and
-            provides access to more GitHub data.
+            {isWorkspaceLogin
+              ? 'Log in with GitHub to create and manage your workspaces. You will return to workspace setup after signing in.'
+              : 'You need to log in to search for repositories. This helps avoid rate limiting and provides access to more GitHub data.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 items-center">

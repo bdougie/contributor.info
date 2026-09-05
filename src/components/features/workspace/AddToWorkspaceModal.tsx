@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Crown, LogIn, Plus, Loader2, AlertCircle } from '@/components/ui/icon';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
+import { getWorkspaceCreationRoute } from '@/lib/utils/workspace-onboarding';
 import { toast } from 'sonner';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { getAppUserId } from '@/lib/auth-helpers';
@@ -203,7 +204,7 @@ export function AddToWorkspaceModal({ open, onOpenChange, owner, repo }: AddToWo
   const handleWorkspaceSelect = (value: string) => {
     if (value === 'new') {
       onOpenChange(false);
-      navigate('/workspaces/new');
+      navigate(getWorkspaceCreationRoute(`${owner}/${repo}`));
     } else {
       setSelectedWorkspaceId(value);
     }
