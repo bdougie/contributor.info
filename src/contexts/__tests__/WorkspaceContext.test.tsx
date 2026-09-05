@@ -71,16 +71,19 @@ describe('WorkspaceContext - URL Sync', () => {
 
     // Mock localStorage
     mockLocalStorage = {};
-    Storage.prototype.getItem = vi.fn((key) => mockLocalStorage[key] || null);
-    Storage.prototype.setItem = vi.fn((key, value) => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(
+      (key) => mockLocalStorage[key] || null
+    );
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => {
       mockLocalStorage[key] = value;
     });
-    Storage.prototype.removeItem = vi.fn((key) => {
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => {
       delete mockLocalStorage[key];
     });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 

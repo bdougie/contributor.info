@@ -31,7 +31,8 @@ import {
   Star,
 } from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
-import type { GitHubRepository } from '@/lib/github';
+import { fetchRepositoryInfo, type GitHubRepository } from '@/lib/github';
+import { parseRepositoryInput } from '@/lib/utils/workspace-onboarding';
 import { z } from 'zod';
 import { waitForRepository } from '@/lib/utils/repository-helpers';
 import { getAppUserId } from '@/lib/auth-helpers';
@@ -108,6 +109,7 @@ export interface AddRepositoryModalProps {
   onOpenChange: (open: boolean) => void;
   workspaceId: string;
   onSuccess?: () => void;
+  initialRepository?: string;
 }
 
 export function AddRepositoryModal({
@@ -115,6 +117,7 @@ export function AddRepositoryModal({
   onOpenChange,
   workspaceId,
   onSuccess,
+  initialRepository,
 }: AddRepositoryModalProps) {
   const [appUserId, setAppUserId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -147,6 +150,13 @@ export function AddRepositoryModal({
   const maxRepos = workspace?.max_repositories ?? 0;
   const remainingSlots = Math.max(0, maxRepos - currentRepoCount);
   const canAddMore = !loading && !!workspace && stagedRepos.length < remainingSlots;
+  const lookupGeneration = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      lookupGeneration.current += 1;
+    };
+  }, [open, workspaceId]);
 
   useEffect(() => {
     // Get the current user and workspace details when the modal opens
@@ -277,21 +287,23 @@ export function AddRepositoryModal({
     (repo: GitHubRepository) => {
       if (loading || !workspace) {
         setError('Workspace details are unavailable. Please reopen this dialog to try again.');
-        return;
+        return false;
       }
 
       // Check if already in workspace
-      if (existingRepoIds.has(repo.full_name)) {
+      if (
+        [...existingRepoIds].some((name) => name.toLowerCase() === repo.full_name.toLowerCase())
+      ) {
         setError(`${repo.full_name} is already in this workspace`);
         setTimeout(() => setError(null), 3000);
-        return;
+        return false;
       }
 
       // Check if already staged
-      if (stagedRepos.some((r) => r.full_name === repo.full_name)) {
+      if (stagedRepos.some((r) => r.full_name.toLowerCase() === repo.full_name.toLowerCase())) {
         setError(`${repo.full_name} is already in your selection`);
         setTimeout(() => setError(null), 3000);
-        return;
+        return false;
       }
 
       // Check if we have room
@@ -299,15 +311,53 @@ export function AddRepositoryModal({
         setError(
           `Repository limit reached. Maximum ${maxRepos} repositories allowed for ${workspace?.tier || 'free'} tier.`
         );
-        return;
+        return false;
       }
 
       // Add to staging
       setStagedRepos([...stagedRepos, repo]);
+      setError(null);
       toast.success(`Added ${repo.full_name} to selection`);
+      return true;
     },
     [stagedRepos, existingRepoIds, canAddMore, maxRepos, workspace, loading]
   );
+
+  // An exact lookup can finish after capacity or the staged selection changes.
+  const selectRepositoryRef = useRef(handleSelectRepository);
+  selectRepositoryRef.current = handleSelectRepository;
+
+  const handleExactRepositorySearch = useCallback(async (query: string): Promise<boolean> => {
+    const fullName = parseRepositoryInput(query);
+    if (!fullName) {
+      setError(
+        'Enter an exact owner/repository or GitHub repository URL, or choose a search result.'
+      );
+      return false;
+    }
+    const generation = lookupGeneration.current;
+    const [owner, name] = fullName.split('/');
+    try {
+      const repo = await fetchRepositoryInfo(owner, name);
+      if (generation !== lookupGeneration.current) return false;
+      if (!repo) {
+        setError(
+          `Unable to find ${fullName}. Check the name and try again, or use the private repository field below.`
+        );
+        return false;
+      }
+      const canonicalOwner = repo.full_name.split('/')[0];
+      return selectRepositoryRef.current({
+        ...repo,
+        description: null,
+        owner: { login: canonicalOwner, avatar_url: `https://github.com/${canonicalOwner}.png` },
+      });
+    } catch {
+      if (generation === lookupGeneration.current)
+        setError('Repository lookup failed. Please try again.');
+      return false;
+    }
+  }, []);
 
   const handleAddPrivateRepo = useCallback(() => {
     const match = privateRepoInput.trim().match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
@@ -321,7 +371,7 @@ export function AddRepositoryModal({
     // Private repos can't be found via GitHub search with our public-only
     // OAuth scope, so stage them from the typed owner/name — the tracking
     // API verifies access via the GitHub App installation
-    handleSelectRepository({
+    const selected = handleSelectRepository({
       id: 0,
       name,
       full_name: `${owner}/${name}`,
@@ -331,7 +381,7 @@ export function AddRepositoryModal({
       forks_count: 0,
       private: true,
     });
-    setPrivateRepoInput('');
+    if (selected) setPrivateRepoInput('');
   }, [privateRepoInput, handleSelectRepository]);
 
   /** A repo row can be checked when it isn't already in the workspace and,
@@ -759,13 +809,11 @@ export function AddRepositoryModal({
 
           <TabsContent value="search" className="space-y-2">
             <GitHubSearchInput
+              value={initialRepository}
               placeholder="Search for repositories (e.g., facebook/react)"
-              onSearch={(query) => {
-                // This is for manual search submission
-                console.log('%s', `Manual search: ${query}`);
-              }}
+              onSearch={handleExactRepositorySearch}
               onSelect={handleSelectRepository}
-              showButton={false}
+              buttonText="Select"
             />
             <div className="flex gap-2">
               <Input

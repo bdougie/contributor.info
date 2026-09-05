@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { getLoginRoute } from '@/lib/auth/login-redirect';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -162,7 +163,7 @@ function UnauthenticatedWorkspaces({ stats }: { stats: DemoStats }) {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    navigate('/login?redirect=/workspaces');
+    navigate(getLoginRoute('/workspaces'));
   };
 
   return (

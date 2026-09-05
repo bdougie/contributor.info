@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router';
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { parseRepositoryInput } from '@/lib/utils/workspace-onboarding';
 import type { User } from '@supabase/supabase-js';
 import { getFallbackAvatar } from '@/lib/utils/avatar';
 import { logger } from '@/lib/logger';
@@ -229,6 +230,9 @@ function WorkspacePage() {
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
   const [memberCount, setMemberCount] = useState(0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
+  const pendingRepository = parseRepositoryInput(
+    new URLSearchParams(location.search).get('addRepository')
+  );
   const [appUserId, setAppUserId] = useState<string | null>(null);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
@@ -2101,8 +2105,19 @@ function WorkspacePage() {
       {/* Add Repository Modal */}
       {workspace && (
         <AddRepositoryModal
-          open={addRepositoryModalOpen}
-          onOpenChange={setAddRepositoryModalOpen}
+          open={addRepositoryModalOpen || (!!pendingRepository && isWorkspaceOwner)}
+          initialRepository={pendingRepository || undefined}
+          onOpenChange={(open) => {
+            setAddRepositoryModalOpen(open);
+            if (!open && pendingRepository) {
+              const params = new URLSearchParams(location.search);
+              params.delete('addRepository');
+              navigate(
+                { pathname: location.pathname, search: params.toString(), hash: location.hash },
+                { replace: true }
+              );
+            }
+          }}
           workspaceId={workspace.id}
           onSuccess={handleAddRepositorySuccess}
         />

@@ -22,6 +22,8 @@ export interface WorkspaceCreateFormProps {
   error?: string | null;
   mode?: 'create' | 'edit';
   initialValues?: Partial<CreateWorkspaceRequest>;
+  onChange?: (data: CreateWorkspaceRequest) => void;
+  submitDisabled?: boolean;
 }
 
 export function WorkspaceCreateForm({
@@ -31,6 +33,8 @@ export function WorkspaceCreateForm({
   error = null,
   mode = 'create',
   initialValues,
+  onChange,
+  submitDisabled = false,
 }: WorkspaceCreateFormProps) {
   const [formData, setFormData] = useState<CreateWorkspaceRequest>({
     name: initialValues?.name || '',
@@ -63,7 +67,7 @@ export function WorkspaceCreateForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    if (loading || submitDisabled || !validateForm()) {
       return;
     }
 
@@ -71,7 +75,9 @@ export function WorkspaceCreateForm({
   };
 
   const handleInputChange = (field: keyof CreateWorkspaceRequest, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    const next = { ...formData, [field]: value };
+    setFormData(next);
+    onChange?.(next);
     // Clear validation error for this field when user starts typing
     if (validationErrors[field]) {
       setValidationErrors((prev) => {
@@ -191,7 +197,11 @@ export function WorkspaceCreateForm({
       </div>
 
       <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={loading || !formData.name.trim()} className="flex-1">
+        <Button
+          type="submit"
+          disabled={loading || submitDisabled || !formData.name.trim()}
+          className="flex-1"
+        >
           {loading && (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

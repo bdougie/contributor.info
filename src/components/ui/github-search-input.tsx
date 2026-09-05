@@ -40,8 +40,8 @@ function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
 interface GitHubSearchInputProps {
   placeholder?: string;
   value?: string;
-  onSearch: (repository: string) => void;
-  onSelect?: (repository: GitHubRepository) => void;
+  onSearch: (repository: string) => void | boolean | Promise<void | boolean>;
+  onSelect?: (repository: GitHubRepository) => void | boolean | Promise<void | boolean>;
   className?: string;
   showButton?: boolean;
   buttonText?: string;
@@ -88,6 +88,10 @@ export function GitHubSearchInput({
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [isFocused, setIsFocused] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const pendingRef = useRef(false);
+  const mountedRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { formatRelativeTime } = useTimeFormatter();
@@ -100,6 +104,45 @@ export function GitHubSearchInput({
     trackRepoSearchCompleted,
   } = useAnalytics();
   const hasTrackedFocusRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const runSelection = (action: () => void | boolean | Promise<void | boolean>) => {
+    if (pendingRef.current) return;
+    setSubmissionError(null);
+    const finish = (accepted: void | boolean) => {
+      if (!mountedRef.current || accepted === false) return;
+      setInputValue('');
+      setShowDropdown(false);
+      setSelectedIndex(-1);
+    };
+    const fail = () => {
+      if (mountedRef.current) setSubmissionError('Search failed. Please try again.');
+    };
+    try {
+      const result = action();
+      if (result instanceof Promise) {
+        pendingRef.current = true;
+        setSubmitting(true);
+        void result
+          .then(finish)
+          .catch(fail)
+          .finally(() => {
+            pendingRef.current = false;
+            if (mountedRef.current) setSubmitting(false);
+          });
+      } else {
+        finish(result);
+      }
+    } catch {
+      fail();
+    }
+  };
 
   const { setQuery, results, loading } = useGitHubSearch({
     debounceMs: 300,
@@ -184,9 +227,7 @@ export function GitHubSearchInput({
       const selected = results[selectedIndex];
       handleSelectRepository(selected);
     } else {
-      onSearch(inputValue);
-      setInputValue(''); // Clear the input after search
-      setShowDropdown(false);
+      runSelection(() => onSearch(inputValue));
     }
   };
 
@@ -202,15 +243,7 @@ export function GitHubSearchInput({
     // Track search completion which also handles activation milestone
     trackRepoSearchCompleted(searchLocation, repository.full_name);
 
-    setInputValue(''); // Clear the input when selecting a repository
-    setShowDropdown(false);
-    setSelectedIndex(-1);
-
-    if (onSelect) {
-      onSelect(repository);
-    } else {
-      onSearch(repository.full_name);
-    }
+    runSelection(() => (onSelect ? onSelect(repository) : onSearch(repository.full_name)));
   };
 
   // Handle keyboard navigation
@@ -277,6 +310,8 @@ export function GitHubSearchInput({
             ref={inputRef}
             placeholder={placeholder}
             value={inputValue}
+            disabled={submitting}
+            aria-busy={submitting}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
@@ -334,6 +369,7 @@ export function GitHubSearchInput({
               <TooltipTrigger asChild>
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={handleClear}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 p-1 rounded-sm hover:bg-accent transition-colors"
                   aria-label="Clear search"
@@ -459,12 +495,17 @@ export function GitHubSearchInput({
         </div>
 
         {showButton && (
-          <Button type="submit" aria-label={buttonText}>
+          <Button type="submit" aria-label={buttonText} disabled={submitting}>
             <SearchIcon className="mr-2 h-4 w-4" />
             {buttonText}
           </Button>
         )}
       </form>
+      {submissionError && (
+        <p role="alert" className="mt-2 text-sm text-destructive">
+          {submissionError}
+        </p>
+      )}
     </div>
   );
 }

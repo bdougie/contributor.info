@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createChartShareUrl } from '@/lib/dub';
 
 vi.mock('@/lib/dub', () => ({
@@ -31,6 +31,10 @@ vi.mock('sonner', () => ({
 }));
 
 describe('ShareableCard Link Capture - URL Only', () => {
+  const originalLocation = Object.getOwnPropertyDescriptor(window, 'location')!;
+  afterEach(() => {
+    Object.defineProperty(window, 'location', originalLocation);
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock window.location.href

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from '@/components/ui/icon';
@@ -12,38 +12,62 @@ import type { CreateWorkspaceRequest } from '@/types/workspace';
 import type { User } from '@supabase/supabase-js';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { getAppUserId } from '@/lib/auth-helpers';
+import { getLoginRoute } from '@/lib/auth/login-redirect';
+import {
+  parseRepositoryInput,
+  readWorkspaceDraft,
+  saveWorkspaceDraft,
+  clearWorkspaceDraft,
+} from '@/lib/utils/workspace-onboarding';
 
 export default function WorkspaceNewPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const repository = parseRepositoryInput(new URLSearchParams(location.search).get('repository'));
+  const initialValues = useMemo(() => readWorkspaceDraft(repository), [repository]);
   const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [draftSaved, setDraftSaved] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasTrackedPageView = useRef(false);
   const creationStartTime = useRef<number>(Date.now());
 
   useEffect(() => {
+    let active = true;
     // Get the current user when the page loads
     const getUser = async () => {
-      const supabase = await getSupabase();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      try {
+        const supabase = await getSupabase();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!active) return;
+        setUser(user);
 
-      // Track workspace creation page view
-      if (!hasTrackedPageView.current && user) {
-        hasTrackedPageView.current = true;
-        trackEvent('workspace_creation_started', {
-          source: 'workspace_new_page',
-          user_id: user.id,
-        });
+        // Track workspace creation page view
+        if (!hasTrackedPageView.current && user) {
+          hasTrackedPageView.current = true;
+          trackEvent('workspace_creation_started', {
+            source: 'workspace_new_page',
+            user_id: user.id,
+          });
+        }
+      } catch {
+        if (active) setError('Unable to check your session. Sign in to continue.');
+      } finally {
+        if (active) setAuthLoading(false);
       }
     };
 
     getUser();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleWorkspaceSubmit = async (data: CreateWorkspaceRequest) => {
+    setDraftSaved(saveWorkspaceDraft(repository, data));
     if (!user?.id) {
       setError('You must be logged in to create a workspace');
       return;
@@ -53,16 +77,26 @@ export default function WorkspaceNewPage() {
     setError(null);
 
     try {
+      const supabase = await getSupabase();
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+      if (!currentUser) {
+        setUser(null);
+        setError('Your session expired. Sign in to continue with your workspace draft.');
+        return;
+      }
       // Resolve auth.users.id to app_users.id for workspace operations
       const resolvedUserId = await getAppUserId();
       if (!resolvedUserId) {
+        setUser(null);
         setError('Unable to resolve your user account. Please try logging in again.');
         setLoading(false);
         return;
       }
 
       const response = await WorkspaceService.createWorkspace(
-        { appUserId: resolvedUserId, authUserId: user.id },
+        { appUserId: resolvedUserId, authUserId: currentUser.id },
         data
       );
 
@@ -77,7 +111,6 @@ export default function WorkspaceNewPage() {
         });
 
         // Track if this is the user's first workspace
-        const supabase = await getSupabase();
         const { count } = await supabase
           .from('workspaces')
           .select('*', { count: 'exact', head: true })
@@ -98,7 +131,9 @@ export default function WorkspaceNewPage() {
           setError('Workspace created but navigation failed. Please refresh the page.');
           return;
         }
-        navigate(getWorkspaceRoute(response.data));
+        clearWorkspaceDraft(repository);
+        const query = repository ? `?${new URLSearchParams({ addRepository: repository })}` : '';
+        navigate(`${getWorkspaceRoute(response.data)}${query}`);
       } else {
         setError(response.error || 'Failed to create workspace');
 
@@ -123,6 +158,7 @@ export default function WorkspaceNewPage() {
   };
 
   const handleCancel = () => {
+    clearWorkspaceDraft(repository);
     navigate('/');
   };
 
@@ -151,10 +187,41 @@ export default function WorkspaceNewPage() {
             <CardTitle>Workspace Details</CardTitle>
           </CardHeader>
           <CardContent>
+            {authLoading && (
+              <p role="status" className="mb-4 text-sm">
+                Checking your session...
+              </p>
+            )}
+            {!authLoading && !user && (
+              <div className="mb-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Sign in with GitHub before creating your workspace. Your draft will be kept in
+                  this tab.
+                </p>
+                <Button
+                  onClick={() => navigate(getLoginRoute(location.pathname + location.search))}
+                >
+                  Sign in to continue
+                </Button>
+              </div>
+            )}
+            {!draftSaved && (
+              <p role="alert" className="mb-4 text-sm text-destructive">
+                Browser storage is unavailable. Your draft cannot be restored after sign-in or a
+                refresh.
+              </p>
+            )}
+            {repository && (
+              <p className="mb-4 text-sm">After creation, continue adding {repository}.</p>
+            )}
             <WorkspaceCreateForm
+              key={repository || 'new'}
               onSubmit={handleWorkspaceSubmit}
               onCancel={handleCancel}
-              loading={loading}
+              loading={loading || authLoading}
+              submitDisabled={!user}
+              initialValues={initialValues}
+              onChange={(data) => setDraftSaved(saveWorkspaceDraft(repository, data))}
               error={error}
               mode="create"
             />
@@ -165,8 +232,14 @@ export default function WorkspaceNewPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
             Need help? Check out our{' '}
-            <Button variant="link" className="p-0 h-auto text-sm" onClick={() => navigate('/docs')}>
-              documentation
+            <Button variant="link" className="p-0 h-auto text-sm" asChild>
+              <a
+                href="https://docs.contributor.info/workspaces/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                documentation
+              </a>
             </Button>{' '}
             to learn more about workspaces.
           </p>
