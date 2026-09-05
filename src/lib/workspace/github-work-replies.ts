@@ -27,6 +27,7 @@ interface Conversation {
   assignees: Connection<Actor>;
   comments: Connection<Comment>;
   reviewThreads?: Connection<{
+    id?: string;
     isResolved: boolean;
     comments: Connection<Comment>;
   }>;
@@ -59,7 +60,7 @@ const query = `query WorkspaceReplyQueue($ids: [ID!]!) {
     ... on PullRequest {
       ${conversationFields}
       reviewThreads(first: 50) {
-        nodes { isResolved comments(last: 50) { ${commentFields} } }
+        nodes { id isResolved comments(last: 50) { ${commentFields} } }
         pageInfo { hasNextPage }
       }
     }
@@ -86,27 +87,39 @@ function isHuman(comment: Comment | null): comment is Comment {
   );
 }
 
+interface ReplyDecision {
+  reply?: GitHubWorkReply;
+  /** The visible comment window was too short to rule the conversation in or out. */
+  uncertain: boolean;
+}
+
 function pendingReply(
   comments: Connection<Comment>,
   viewer: string,
   responsible: boolean,
   item: GitHubWorkItem,
   kind: GitHubWorkReply['kind']
-): GitHubWorkReply | undefined {
+): ReplyDecision {
   const humans = comments.nodes.filter(isHuman);
   const latest = humans[humans.length - 1];
-  if (!latest?.author || latest.author.login.toLowerCase() === viewer) return;
+  if (!latest?.author || latest.author.login.toLowerCase() === viewer) return { uncertain: false };
   const participated = humans.some((comment) => comment.author?.login.toLowerCase() === viewer);
   const mentions: string[] = latest.bodyText.toLowerCase().match(/@[a-z\d-]+/g) || [];
-  if (!responsible && !participated && !mentions.includes(`@${viewer}`)) return;
+  if (!responsible && !participated && !mentions.includes(`@${viewer}`)) {
+    // Comments before the window could show the viewer took part in this conversation.
+    return { uncertain: !!comments.pageInfo.hasPreviousPage };
+  }
   // Only allow deep links into the item we requested, not arbitrary comment URLs.
-  if (!latest.url.startsWith(`${item.url}#`)) return;
+  if (!latest.url.startsWith(`${item.url}#`)) return { uncertain: false };
   return {
-    author: latest.author.login,
-    body: latest.bodyText.replace(/\s+/g, ' ').trim().slice(0, 280),
-    url: latest.url,
-    createdAt: latest.createdAt,
-    kind,
+    uncertain: false,
+    reply: {
+      author: latest.author.login,
+      body: latest.bodyText.replace(/\s+/g, ' ').trim().slice(0, 280),
+      url: latest.url,
+      createdAt: latest.createdAt,
+      kind,
+    },
   };
 }
 
@@ -159,9 +172,13 @@ export async function fetchAwaitingReplies({
   token: string;
   items: GitHubWorkItem[];
   signal: AbortSignal;
-}): Promise<{ items: GitHubWorkItem[]; incomplete: boolean }> {
+}): Promise<{ items: GitHubWorkItem[]; incomplete: boolean; incompleteRepositories: string[] }> {
   const result: GitHubWorkItem[] = [];
-  let incomplete = items.some((item) => !item.nodeId);
+  const incompleteRepositories = new Set<string>();
+  const markIncomplete = (item: GitHubWorkItem) => {
+    incompleteRepositories.add(item.repository.toLowerCase());
+  };
+  for (const item of items) if (!item.nodeId) markIncomplete(item);
   const candidates = items.filter((item) => item.nodeId);
   // Small batches keep nested review-thread queries below GitHub's node limits.
   const batches: GitHubWorkItem[][] = [];
@@ -182,12 +199,12 @@ export async function fetchAwaitingReplies({
   );
   // Walk batches in search order so newest activity stays first whatever finished first.
   for (const [index, { data, errors }] of payloads.entries()) {
-    incomplete ||= !!errors?.length;
+    if (errors?.length) batches[index].forEach(markIncomplete);
     const viewer = data.viewer.login.toLowerCase();
     for (const item of batches[index]) {
       const node = data.nodes.find((node) => node?.id === item.nodeId);
       if (!node?.comments || !node.assignees) {
-        incomplete = true;
+        markIncomplete(item);
         continue;
       }
       // Recheck state after search, which can lag behind a close or merge.
@@ -197,20 +214,22 @@ export async function fetchAwaitingReplies({
         node.assignees.nodes.some((actor) => actor?.login.toLowerCase() === viewer);
       const replies: GitHubWorkReply[] = [];
       const general = pendingReply(node.comments, viewer, responsible, item, 'conversation');
-      if (general) replies.push(general);
-      incomplete ||=
-        !!node.comments.pageInfo.hasPreviousPage ||
-        !!node.assignees.pageInfo.hasNextPage ||
-        !!node.reviewThreads?.pageInfo.hasNextPage;
+      if (general.reply) replies.push(general.reply);
+      if (
+        general.uncertain ||
+        node.assignees.pageInfo.hasNextPage ||
+        node.reviewThreads?.pageInfo.hasNextPage
+      )
+        markIncomplete(item);
       for (const thread of node.reviewThreads?.nodes || []) {
         if (!thread) {
-          incomplete = true;
+          markIncomplete(item);
           continue;
         }
         if (thread.isResolved) continue;
-        incomplete ||= !!thread.comments.pageInfo.hasPreviousPage;
-        const reply = pendingReply(thread.comments, viewer, responsible, item, 'review');
-        if (reply) replies.push(reply);
+        const decision = pendingReply(thread.comments, viewer, responsible, item, 'review');
+        if (decision.uncertain) markIncomplete(item);
+        if (decision.reply) replies.push({ ...decision.reply, threadId: thread.id });
       }
       replies.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
       if (replies.length)
@@ -222,5 +241,9 @@ export async function fetchAwaitingReplies({
         });
     }
   }
-  return { items: result, incomplete };
+  return {
+    items: result,
+    incomplete: incompleteRepositories.size > 0,
+    incompleteRepositories: [...incompleteRepositories].sort(),
+  };
 }

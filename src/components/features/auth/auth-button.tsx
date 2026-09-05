@@ -24,11 +24,15 @@ import { useNavigate } from 'react-router';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import { markAuthRedirectStart, getAuthRedirectDuration } from '@/lib/plg-tracking-utils';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useWorkInbox } from '@/hooks/use-work-inbox';
 import { NotificationsList } from '@/components/notifications/notifications-list';
+import { WorkInboxList } from '@/components/notifications/work-inbox-list';
+import { useIsMobile } from '@/lib/utils/mobile-detection';
 import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -348,17 +352,9 @@ export function AuthButton() {
           </>
         )}
 
-        {/* Mobile-only: inline notifications (bell is hidden from header on mobile) */}
-        <div className="md:hidden">
-          <DropdownMenuSeparator />
-          <DropdownMenuLabel className="flex items-center gap-2 text-sm">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </DropdownMenuLabel>
-          <div className="max-h-[200px] overflow-y-auto">
-            <MobileNotifications />
-          </div>
-        </div>
+        {/* Mobile-only: inline inbox (the header bell is not mounted on mobile). Gated in
+            JavaScript so desktop does not run a second hidden notifications subscription. */}
+        {isMobile && <MobileNotifications />}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate('/billing')}>
           <Key className="mr-2 h-4 w-4" />
@@ -388,14 +384,53 @@ export function AuthButton() {
 }
 
 function MobileNotifications() {
-  const { notifications, loading, markAsRead, deleteNotification } = useNotifications({ limit: 5 });
+  const work = useWorkInbox();
+  const activity = useNotifications({ limit: 5 });
 
   return (
-    <NotificationsList
-      notifications={notifications}
-      loading={loading}
-      onMarkAsRead={markAsRead}
-      onDelete={deleteNotification}
-    />
+    <>
+      {!work.unavailable && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="flex items-center gap-2 text-sm">
+            <Bell className="h-4 w-4" />
+            Needs attention
+            <span className="ml-auto tabular-nums text-muted-foreground">{work.unreadCount}</span>
+          </DropdownMenuLabel>
+          {work.errors.length > 0 && (
+            <p role="alert" className="px-2 py-1 text-xs text-destructive">
+              {work.errors[0]}
+            </p>
+          )}
+          <div className="max-h-[240px] overflow-y-auto">
+            <WorkInboxList
+              key={work.signedIn ? 'signed-in' : 'signed-out'}
+              items={work.items}
+              loading={work.loading}
+              eligible={work.eligible}
+              onRead={work.markAsRead}
+            />
+          </div>
+        </>
+      )}
+      <DropdownMenuSeparator />
+      <DropdownMenuLabel className="flex items-center gap-2 text-sm">
+        Activity
+        <span className="ml-auto tabular-nums text-muted-foreground">{activity.unreadCount}</span>
+      </DropdownMenuLabel>
+      {activity.error && (
+        <p role="alert" className="px-2 py-1 text-xs text-destructive">
+          {activity.error}
+        </p>
+      )}
+      <div className="max-h-[200px] overflow-y-auto">
+        <NotificationsList
+          notifications={activity.notifications}
+          loading={activity.loading}
+          onMarkAsRead={activity.markAsRead}
+          onDelete={activity.deleteNotification}
+        />
+      </div>
+    </>
   );
 }

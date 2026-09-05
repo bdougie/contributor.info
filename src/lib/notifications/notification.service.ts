@@ -5,6 +5,8 @@ import { supabase } from '../supabase';
 import type { Notification, CreateNotificationParams, NotificationFilters } from './types';
 import { safeGetUser } from '../auth/safe-auth';
 
+let subscriptionId = 0;
+
 export class NotificationService {
   /**
    * Create a new notification
@@ -48,7 +50,10 @@ export class NotificationService {
   /**
    * Get notifications for the current user
    */
-  static async getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
+  static async getNotifications(
+    filters: NotificationFilters = {},
+    signal?: AbortSignal
+  ): Promise<Notification[]> {
     // Use safe auth utility with timeout protection
     const { user } = await safeGetUser();
 
@@ -61,6 +66,10 @@ export class NotificationService {
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
+
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
 
     if (filters.unread_only) {
       query = query.eq('read', false);
@@ -82,7 +91,7 @@ export class NotificationService {
 
     if (error) {
       console.error('Error fetching notifications:', error);
-      return [];
+      throw new Error('Activity notifications could not be loaded.');
     }
 
     return data || [];
@@ -91,7 +100,7 @@ export class NotificationService {
   /**
    * Get unread notification count
    */
-  static async getUnreadCount(): Promise<number> {
+  static async getUnreadCount(signal?: AbortSignal): Promise<number> {
     // Use safe auth utility with timeout protection
     const { user } = await safeGetUser();
 
@@ -99,15 +108,21 @@ export class NotificationService {
       return 0;
     }
 
-    const { count, error } = await supabase
+    let query = supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('read', false);
 
+    if (signal) {
+      query = query.abortSignal(signal);
+    }
+
+    const { count, error } = await query;
+
     if (error) {
       console.error('Error fetching unread count:', error);
-      return 0;
+      throw new Error('The activity unread count could not be loaded.');
     }
 
     return count || 0;
@@ -204,7 +219,7 @@ export class NotificationService {
     onDelete: (notificationId: string) => void
   ) {
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications:${userId}:${++subscriptionId}`)
       .on(
         'postgres_changes',
         {
