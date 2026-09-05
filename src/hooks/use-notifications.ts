@@ -1,178 +1,58 @@
-// React hook for notifications with Realtime subscriptions
-// Related to issue #959: Add notification system for async operations
-
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { getSupabase } from '../lib/supabase-lazy';
-import { NotificationService } from '../lib/notifications';
-import type { Notification, NotificationFilters } from '../lib/notifications';
-import type { User } from '@supabase/supabase-js';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from './use-current-user';
+import { NotificationService } from '@/lib/notifications';
+import type { NotificationFilters } from '@/lib/notifications';
+import { EPHEMERAL_QUERY_META } from '@/lib/query-client';
 
 export function useNotifications(filters: NotificationFilters = {}) {
-  const [user, setUser] = useState<User | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [hasInitialLoad, setHasInitialLoad] = useState(false);
+  const { user } = useCurrentUser();
+  const userId = user?.id;
+  const client = useQueryClient();
+  const identity = ['notifications', user?.id, user?.last_sign_in_at];
+  const result = useQuery({
+    queryKey: [...identity, filters],
+    queryFn: async () => {
+      const [notifications, unreadCount] = await Promise.all([
+        NotificationService.getNotifications(filters),
+        NotificationService.getUnreadCount(),
+      ]);
+      return { notifications, unreadCount };
+    },
+    enabled: !!user,
+    meta: EPHEMERAL_QUERY_META,
+    gcTime: 0,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+  });
 
-  // Memoize filters to prevent infinite loops from object recreation
-  const stableFilters = useMemo(
-    () => ({
-      limit: filters.limit,
-      offset: filters.offset,
-      operation_type: filters.operation_type,
-      unread_only: filters.unread_only,
-    }),
-    [filters.limit, filters.offset, filters.operation_type, filters.unread_only]
-  );
-
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    if (!user) return;
-
-    // Only show loading on initial fetch
-    if (!hasInitialLoad) {
-      setLoading(true);
-    }
-
-    const data = await NotificationService.getNotifications(stableFilters);
-    setNotifications(data);
-    setLoading(false);
-    setHasInitialLoad(true);
-  }, [user, stableFilters, hasInitialLoad]);
-
-  // Fetch unread count
-  const fetchUnreadCount = useCallback(async () => {
-    if (!user) return;
-
-    const count = await NotificationService.getUnreadCount();
-    setUnreadCount(count);
-  }, [user]);
-
-  // Mark as read
-  const markAsRead = useCallback(async (notificationId: string) => {
-    const success = await NotificationService.markAsRead(notificationId);
-    if (success) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    }
-    return success;
-  }, []);
-
-  // Mark all as read
-  const markAllAsRead = useCallback(async () => {
-    const success = await NotificationService.markAllAsRead();
-    if (success) {
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
-    }
-    return success;
-  }, []);
-
-  // Delete notification
-  const deleteNotification = useCallback(async (notificationId: string) => {
-    const success = await NotificationService.deleteNotification(notificationId);
-    if (success) {
-      setNotifications((prev) => {
-        const notification = prev.find((n) => n.id === notificationId);
-        // Update unread count if deleted notification was unread
-        if (notification && !notification.read) {
-          setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
-        }
-        return prev.filter((n) => n.id !== notificationId);
-      });
-    }
-    return success;
-  }, []);
-
-  // Delete all read notifications
-  const deleteAllRead = useCallback(async () => {
-    const success = await NotificationService.deleteAllRead();
-    if (success) {
-      setNotifications((prev) => prev.filter((n) => !n.read));
-    }
-    return success;
-  }, []);
-
-  // Get current user
   useEffect(() => {
-    let subscription: { unsubscribe: () => void } | null = null;
-    let isMounted = true;
-
-    const initAuth = async () => {
-      try {
-        const supabase = await getSupabase();
-        if (!isMounted) return;
-
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
-        if (isMounted) {
-          setUser(currentUser);
-        }
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((_, session) => {
-          if (isMounted) {
-            setUser(session?.user ?? null);
-          }
-        });
-        subscription = authListener.subscription;
-      } catch (error) {
-        console.error('Error initializing auth for notifications:', error);
-      }
+    if (!userId) return;
+    // Re-read the authoritative list/count instead of incrementing for replayed events.
+    const refresh = () => {
+      void client.invalidateQueries({ queryKey: ['notifications', userId] });
     };
+    return NotificationService.subscribeToNotifications(userId, refresh, refresh, refresh);
+  }, [client, userId]);
 
-    initAuth();
-
-    return () => {
-      isMounted = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  // Subscribe to real-time updates
-  useEffect(() => {
-    if (!user) return;
-
-    fetchNotifications();
-    fetchUnreadCount();
-
-    const unsubscribe = NotificationService.subscribeToNotifications(
-      user.id,
-      // On new notification
-      (notification) => {
-        setNotifications((prev) => [notification, ...prev]);
-        if (!notification.read) {
-          setUnreadCount((prev) => prev + 1);
-        }
-      },
-      // On notification update
-      (notification) => {
-        setNotifications((prev) => prev.map((n) => (n.id === notification.id ? notification : n)));
-        fetchUnreadCount();
-      },
-      // On notification delete
-      (notificationId) => {
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        // Refetch unread count to ensure accuracy
-        fetchUnreadCount();
-      }
-    );
-
-    return () => {
-      unsubscribe();
-    };
-  }, [user, fetchNotifications, fetchUnreadCount]);
+  const mutate = async (action: () => Promise<boolean>) => {
+    const success = await action();
+    if (success) await client.invalidateQueries({ queryKey: identity });
+    return success;
+  };
 
   return {
-    notifications,
-    unreadCount,
-    loading,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-    deleteAllRead,
-    refresh: fetchNotifications,
+    notifications: user ? result.data?.notifications || [] : [],
+    unreadCount: user ? result.data?.unreadCount || 0 : 0,
+    loading: !!user && result.isLoading,
+    error: result.error?.message,
+    markAsRead: (id: string) => mutate(() => NotificationService.markAsRead(id)),
+    markAllAsRead: () => mutate(() => NotificationService.markAllAsRead()),
+    deleteNotification: (id: string) => mutate(() => NotificationService.deleteNotification(id)),
+    deleteAllRead: () => mutate(() => NotificationService.deleteAllRead()),
+    refresh: () => result.refetch(),
   };
 }

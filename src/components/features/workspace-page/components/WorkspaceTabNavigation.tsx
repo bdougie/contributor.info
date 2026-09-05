@@ -11,39 +11,44 @@ import {
 } from '@/components/ui/icon';
 
 export function WorkspaceTabNavigation() {
+  const triggerClassName =
+    'flex min-h-11 min-w-0 items-center gap-2 px-2 text-xs sm:text-sm [&>svg]:shrink-0';
   return (
-    <TabsList className="grid w-full grid-cols-4 grid-rows-2 sm:flex sm:w-full sm:justify-between sm:grid-rows-1 mb-6 min-h-[88px] sm:min-h-[44px]">
-      <TabsTrigger value="overview" className="flex items-center gap-2 sm:pl-4">
+    <TabsList
+      aria-label="Workspace sections"
+      className="mb-6 grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-4 xl:grid-cols-8"
+    >
+      <TabsTrigger value="overview" className={triggerClassName}>
         <Layout className="h-4 w-4" />
-        <span className="hidden sm:inline">Overview</span>
+        <span className="truncate">Overview</span>
       </TabsTrigger>
-      <TabsTrigger value="prs" className="flex items-center gap-2">
+      <TabsTrigger value="prs" className={triggerClassName}>
         <GitPullRequest className="h-4 w-4" />
-        <span className="hidden sm:inline">PRs</span>
+        <span className="truncate">PRs</span>
       </TabsTrigger>
-      <TabsTrigger value="issues" className="flex items-center gap-2">
+      <TabsTrigger value="issues" className={triggerClassName}>
         <AlertCircle className="h-4 w-4" />
-        <span className="hidden sm:inline">Issues</span>
+        <span className="truncate">Issues</span>
       </TabsTrigger>
-      <TabsTrigger value="discussions" className="flex items-center gap-2">
+      <TabsTrigger value="discussions" className={triggerClassName}>
         <MessageSquare className="h-4 w-4" />
-        <span className="hidden sm:inline">Discussions</span>
+        <span className="truncate">Discussions</span>
       </TabsTrigger>
-      <TabsTrigger value="spam" className="flex items-center gap-2">
+      <TabsTrigger value="spam" className={triggerClassName}>
         <Shield className="h-4 w-4" />
-        <span className="hidden sm:inline">Spam</span>
+        <span className="truncate">Spam</span>
       </TabsTrigger>
-      <TabsTrigger value="contributors" className="flex items-center gap-2">
+      <TabsTrigger value="contributors" className={triggerClassName}>
         <Users className="h-4 w-4" />
-        <span className="hidden sm:inline">Contributors</span>
+        <span className="truncate">Contributors</span>
       </TabsTrigger>
-      <TabsTrigger value="activity" className="flex items-center gap-2">
+      <TabsTrigger value="activity" className={triggerClassName}>
         <Activity className="h-4 w-4" />
-        <span className="hidden sm:inline">Activity</span>
+        <span className="truncate">Activity</span>
       </TabsTrigger>
-      <TabsTrigger value="settings" className="flex items-center gap-2 sm:pr-4">
+      <TabsTrigger value="settings" className={triggerClassName}>
         <Settings className="h-4 w-4" />
-        <span className="hidden sm:inline">Settings</span>
+        <span className="truncate">Settings</span>
       </TabsTrigger>
     </TabsList>
   );

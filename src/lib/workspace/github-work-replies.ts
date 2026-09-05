@@ -27,6 +27,7 @@ interface Conversation {
   assignees: Connection<Actor>;
   comments: Connection<Comment>;
   reviewThreads?: Connection<{
+    id?: string;
     isResolved: boolean;
     comments: Connection<Comment>;
   }>;
@@ -59,7 +60,7 @@ const query = `query WorkspaceReplyQueue($ids: [ID!]!) {
     ... on PullRequest {
       ${conversationFields}
       reviewThreads(first: 50) {
-        nodes { isResolved comments(last: 50) { ${commentFields} } }
+        nodes { id isResolved comments(last: 50) { ${commentFields} } }
         pageInfo { hasNextPage }
       }
     }
@@ -210,7 +211,7 @@ export async function fetchAwaitingReplies({
         if (thread.isResolved) continue;
         incomplete ||= !!thread.comments.pageInfo.hasPreviousPage;
         const reply = pendingReply(thread.comments, viewer, responsible, item, 'review');
-        if (reply) replies.push(reply);
+        if (reply) replies.push({ ...reply, threadId: thread.id });
       }
       replies.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
       if (replies.length)

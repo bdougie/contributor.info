@@ -4,6 +4,7 @@ import { fetchWithTimeout } from '@/lib/utils/abort-signal';
 export type GitHubWorkCategory = 'review_requested' | 'authored' | 'assigned' | 'awaiting_reply';
 
 export interface GitHubWorkReply {
+  threadId?: string;
   author: string;
   body: string;
   url: string;

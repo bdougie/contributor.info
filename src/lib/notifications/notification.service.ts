@@ -5,6 +5,8 @@ import { supabase } from '../supabase';
 import type { Notification, CreateNotificationParams, NotificationFilters } from './types';
 import { safeGetUser } from '../auth/safe-auth';
 
+let subscriptionId = 0;
+
 export class NotificationService {
   /**
    * Create a new notification
@@ -82,7 +84,7 @@ export class NotificationService {
 
     if (error) {
       console.error('Error fetching notifications:', error);
-      return [];
+      throw new Error('Activity notifications could not be loaded.');
     }
 
     return data || [];
@@ -107,7 +109,7 @@ export class NotificationService {
 
     if (error) {
       console.error('Error fetching unread count:', error);
-      return 0;
+      throw new Error('The activity unread count could not be loaded.');
     }
 
     return count || 0;
@@ -204,7 +206,7 @@ export class NotificationService {
     onDelete: (notificationId: string) => void
   ) {
     const channel = supabase
-      .channel('notifications')
+      .channel(`notifications:${userId}:${++subscriptionId}`)
       .on(
         'postgres_changes',
         {

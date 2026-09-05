@@ -1,5 +1,100 @@
 # Notification System
 
+## Workspace Work Inbox
+
+The header bell now separates **Needs attention** from **Activity**. Needs attention
+is the default and shows suggested replies and review requests across all active
+workspaces the account owns or has accepted membership in. Activity retains existing
+tracking, sync, and invitation notifications. Workspace users' bell badge counts new
+unread work; Activity has its own unread count. Users without workspaces keep their
+existing activity notifications but do not perform GitHub work scans.
+
+Work rows show repository owner logos, the repository, a direct GitHub conversation
+link, the latest comment preview, and an explicit Mark read action. Reading does not
+resolve a conversation or remove it from the work list. The UI uses a collision-aware
+popover with internal scrolling instead of an operation-only dropdown.
+
+### Account-Wide Identity
+
+`workspace_work_inbox` has a unique key on `(user_id, repository_id, category,
+subject_key)`. Workspace IDs never participate in notification identity. A repository
+shared by multiple workspaces is scanned once per category, and produces one inbox
+row per conversation/review request for that account, not one per workspace.
+
+General comments use the parent GitHub node ID. Inline comments use the stable review
+thread node ID, with the latest comment URL as the source version. Review requests
+use the PR node ID: unrelated PR updates do not produce new notifications. A complete
+scan that observes a request removed, followed by its reappearance, rearms the alert.
+The database revision increases on new comment versions/reactivations so an old
+Mark read request cannot consume a newer event. Tombstones remain after resolution
+to prevent ordinary refreshes from recreating the same alert.
+
+### Baselines, Ordering, And Partial Results
+
+Each account/repository/category has a cursor. First-run items are visible but read,
+so onboarding does not flood users with historical alerts. The baseline is not
+considered initialized until a complete snapshot is received. Future new items and
+comment versions become unread. Repeated snapshots leave read state unchanged.
+
+Scans receive a server timestamp before contacting GitHub. Per-cursor transaction
+locks and timestamp comparisons reject older responses that arrive after a newer
+scan, including scans from other tabs/devices. Incomplete responses may update known
+items but never resolve missing work. Inaccessible repositories and failed categories
+do not write empty snapshots. Errors are shown, not presented as an empty inbox.
+
+### Scope And Security
+
+Migration: `supabase/migrations/20260905210000_workspace_work_inbox.sql`.
+
+- `begin_workspace_work_scan` resolves `auth.uid()` through `app_users.auth_user_id`,
+  then unions active owned workspaces and accepted memberships. It returns all distinct
+  repository IDs/names, not the truncated repository previews used in the switcher.
+- Snapshot and read RPCs accept no arbitrary recipient ID. They recheck current
+  workspace repository eligibility and write only the caller's state.
+- Both new tables have RLS. Authenticated users can SELECT only their own eligible
+  inbox rows. Direct client INSERT/UPDATE/DELETE and cursor reads are revoked.
+- SECURITY DEFINER functions have fixed search paths and explicit authenticated
+  grants; PUBLIC and anon cannot execute them. Existing notification policies are
+  not broadened.
+- GitHub data is fetched with the existing Supabase session's provider token. The
+  browser never sends that token to these RPCs or stores it in notification rows.
+- Inbox/query data is ephemeral in the browser cache and scoped by auth account and
+  login session. Supabase stores only the durable inbox/read state, not provider tokens.
+
+These are browser-observed suggestions for the current user's own inbox, not verified
+webhook events for delivering messages to other recipients. A future server worker
+must independently resolve GitHub identity/access and recipient eligibility; it must
+not trust client-submitted snapshots to send email or push notifications.
+
+### Timing And Limits
+
+The current phase checks GitHub every two minutes while the app is visible, and on
+focus/reconnect. Other-device read state refreshes every 30 seconds. It is **not** an
+offline notification service: closing the app stops work detection. There are no email
+or browser-push permissions, subscriptions, or deliveries in this change.
+
+The reply heuristics and GitHub search limits described in [My Work](./my-work-dashboard.md)
+still apply. Review-request cycles that begin and end between scans cannot be detected.
+The popup shows up to 30 pending items, unread first, with a separately counted unread
+total. Existing stored work may be stale when GitHub is unavailable; the UI warns about
+failed checks. This does not repair background repository capture.
+
+### Validation And Deployment
+
+Run `bash scripts/testing-tools/test-work-inbox-migration.sh` to test the migration in
+a disposable PostgreSQL cluster over a Unix socket. It does not use `.env`, connect to
+Supabase, or expose a TCP listener. The fixture is intentionally minimal; deployment
+still requires testing against the full staging schema and checking security advisors.
+
+The migration must be deployed before the new inbox can collect work. Without it,
+the Work view shows a neutral "coming soon" empty state with a View activity action,
+not a setup error or a claim that no work needs attention. Other loading failures
+remain errors. The local
+application currently uses the shared Supabase project; do not apply this migration
+there implicitly as part of visual testing.
+
+## Existing Operation Notifications
+
 Real-time notification system for async operations like repository tracking, backfills, and sync operations.
 
 ## Table of Contents
