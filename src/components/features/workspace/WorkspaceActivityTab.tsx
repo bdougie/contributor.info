@@ -396,7 +396,7 @@ export function WorkspaceActivityTab({
             workspaceId={workspace.id}
             workspaceSlug={workspace.slug}
             repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-            onSyncComplete={onSyncComplete}
+            onSyncRequested={onSyncComplete}
             syncIntervalMinutes={60}
             className="text-sm text-muted-foreground"
           />

@@ -49,7 +49,9 @@ Sync data from GitHub to Supabase database:
 - `repository-sync-graphql` - GraphQL-based sync (recommended)
 - `repository-sync` - REST API-based sync (legacy)
 - `github-sync` - General GitHub data sync
-- `workspace-issues-sync` - Workspace-specific sync
+- `workspace-issues-sync` - Scheduled workspace issues sync (service role)
+- `workspace-issues-refresh` - On-demand Issues tab refresh; verifies the user JWT and workspace membership, fetches GitHub server-side, stores with the service role, returns fresh rows plus per-repository status
+- `workspace-sync` - Membership-checked request that marks a workspace's tracked repositories due for the capture queue (`next_sync_at`); queues only, does not refresh data
 
 ### 🪝 Webhook Processing
 

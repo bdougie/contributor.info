@@ -31,25 +31,32 @@ The Workspace Issue Sync system implements a **database-first, visibility-aware 
                       │
                       ▼
         ┌─────────────────────────────────┐
-        │   sync-workspace-issues.ts      │
+        │ github-issue-refresh.ts         │
+        │ (browser client, no DB writes)  │
         │                                 │
-        │ syncWorkspaceIssues()          │
-        │ ├─ fetchIssuesFromGitHub()     │
-        │ ├─ Parse assignees             │
-        │ └─ Upsert to database          │
-        │                                 │
-        │ Handles:                        │
-        │ ├─ Rate limiting               │
-        │ ├─ Pagination                  │
-        │ ├─ Error handling              │
-        │ └─ Logging                     │
+        │ requestWorkspaceIssuesRefresh() │
+        │ ├─ supabase.functions.invoke    │
+        │ │  (user JWT + GitHub token)    │
+        │ mergeRefreshedIssues()          │
+        │ summarizeIssueRefresh()         │
         └─────────────────────────────────┘
+                      │
+                      ▼
+        ┌──────────────────────────────────┐
+        │ workspace-issues-refresh         │
+        │ (Supabase edge function)         │
+        │ ├─ Verify user JWT               │
+        │ ├─ Verify workspace membership   │
+        │ ├─ Fetch GitHub (server-side)    │
+        │ ├─ Upsert issues (service role)  │
+        │ └─ Return rows + per-repo status │
+        └──────────────────────────────────┘
                       │
                       ▼
         ┌──────────────────────────────────┐
         │   GitHub API                     │
         │   /repos/{owner}/{repo}/issues   │
-        │   (pagination, state=all)        │
+        │   (since=30d, up to 5 pages)     │
         └──────────────────────────────────┘
                       │
                       ▼
@@ -110,35 +117,36 @@ refresh(): Promise<void>
   - Called by UI refresh button
 ```
 
-### 2. Sync Layer (`sync-workspace-issues.ts`)
+### 2. Refresh Layer (`src/lib/workspace/github-issue-refresh.ts` + `supabase/functions/workspace-issues-refresh`)
 
-**Responsibilities**:
-- Fetch data from GitHub
-- Transform GitHub format to database format
-- Update database with fresh data
-- Handle errors and rate limits
+**Why a backend step**: RLS on `public.issues` only lets the service role insert or
+update issue metadata; signed-in users may only change `responded_by` /
+`responded_at`. A browser-side upsert therefore fails for every repository. The
+browser never writes issue metadata.
 
-**Key Functions**:
+**Browser client responsibilities**:
+- Call the edge function with the user's Supabase JWT (sent by the SDK) and the
+  GitHub `provider_token` so private repositories the user can see are readable.
+- Overlay the returned rows on the saved rows (`mergeRefreshedIssues`), keeping
+  `responded_*`, linked PRs, and database ids from the saved copy. Repositories
+  that failed keep their saved rows. Saved rows older than the refresh window stay.
+- Turn per-repository outcomes into two messages (`summarizeIssueRefresh`):
+  `syncError` for repositories that failed (saved rows shown) and `syncWarning`
+  for rows shown live that could not be saved.
 
-```typescript
-fetchIssuesFromGitHub(owner, repo, token): GitHubIssue[]
-  - Paginate through all issues
-  - Filter out PRs (they also appear in issues endpoint)
-  - Only fetch last 30 days (optimization)
-  - Return array of parsed issues
-
-syncWorkspaceIssues(owner, repo, repoId, token): void
-  - Fetch from GitHub
-  - Get existing DB issues
-  - Build upsert payload
-  - Update database
-  - Log results
-
-syncWorkspaceIssuesForRepositories(repos, token): void
-  - Sync multiple repos in parallel
-  - Wait for all to complete
-  - Report aggregated results
-```
+**Edge function responsibilities**:
+- Reject callers who are not accepted members of the workspace, and repository
+  ids that are not in `workspace_repositories` for that workspace.
+- Fetch GitHub itself; it never accepts client-supplied issue rows.
+- Upsert authors into `contributors` and issues into `issues` with the service
+  role, then record the outcome on `workspace_tracked_repositories`.
+- Return HTTP 200 with a per-repository `status`:
+  - `refreshed`: fetched and stored (an empty 30-day window still counts).
+  - `fetched_not_stored`: GitHub read succeeded, the database write failed; rows
+    are still returned for display.
+  - `failed`: nothing usable; `stage` is `authorization`, `github`, or `database`
+    and `error` is a readable cause (401, rate limit with `retryAt`, 403, 404, 410,
+    5xx, timeout).
 
 ### 3. UI Layer (`WorkspaceIssuesTab`)
 
@@ -175,7 +183,7 @@ Error Handling
 1. Mount Component
    └─> useWorkspaceIssues()
        ├─> checkStaleness() → needs sync (never synced)
-       ├─> syncWorkspaceIssuesForRepositories()
+       ├─> requestWorkspaceIssuesRefresh()
        │   └─> GitHub API → Database ✓
        └─> fetchFromDatabase() → Hook State
 
@@ -194,7 +202,7 @@ Error Handling
    └─> refresh() called
        └─> fetchIssues(forceRefresh=true)
            ├─> Bypass staleness check
-           ├─> syncWorkspaceIssuesForRepositories()
+           ├─> requestWorkspaceIssuesRefresh()
            │   └─> GitHub API → Database ✓
            └─> Update component state
 
@@ -216,57 +224,24 @@ Error Handling
 
 ## Error Handling Strategy
 
-### 1. No GitHub Token
+Every outcome is reported per repository, and the tab shows the cause. A failed
+repository never blanks the others.
 
-```
-→ Log warning: "No GitHub token available"
-→ Return early
-→ Use cached data
-→ User can still work with stale data
-```
+| Situation | Where it is detected | What the user sees |
+|-----------|----------------------|--------------------|
+| Not signed in / expired Supabase session | Edge function returns 401 | `syncError` asks to sign in again; saved rows stay |
+| Not a workspace member | Edge function returns 403 | `syncError` with the membership message |
+| GitHub 401 for the provider token | Function, `stage: github` | Repository listed with "sign in with GitHub again" |
+| GitHub rate limit (403/429, remaining 0) | Function, `retryAt` set | Repository listed with the reset time |
+| Repository private/renamed/deleted (404) | Function, `stage: github` | Repository listed as not found; **not** treated as empty |
+| Issues disabled (410) | Function, `stage: github` | Repository listed as issues disabled |
+| Database write rejected | Function, `status: fetched_not_stored` | Live rows shown, `syncWarning` says they were not saved |
+| Refresh service unreachable | Browser client | `syncError` "Could not reach the refresh service" |
+| Saved rows cannot be loaded | Hook `error` | Tab replaced by an error card with retry |
 
-### 2. Network Error
-
-```
-→ Catch fetch error
-→ Log error details
-→ Mark sync as failed
-→ Continue with cached data
-→ Show error toast with retry button
-```
-
-### 3. Repository Not Found (404)
-
-```
-→ Detect 404 status
-→ Log warning: "Repository not found on GitHub"
-→ Return empty issues array
-→ Skip database updates
-→ User sees no issues for this repo (acceptable)
-```
-
-### 4. Rate Limit / Other HTTP Errors (403, 5xx, etc.)
-
-```
-→ Detect non-2xx response
-→ Throw error with statusText
-→ Caught by sync orchestrator
-→ Sync marked as failed
-→ Continue with cached data
-→ User sees stale data temporarily
-```
-
-**Future Enhancement**: Implement retry logic with exponential backoff for rate limits (429)
-
-### 5. Database Error
-
-```
-→ Catch upsert error
-→ Log error
-→ Show error toast
-→ Suggest manual refresh
-→ Keep previous cached data
-```
+`lastSynced` only advances to the refresh time when every requested repository
+was fresh. Otherwise it reflects the oldest saved data via `summarizeFreshness`.
+`lastRefreshAttempt` records that a refresh was tried regardless of outcome.
 
 ## Performance Optimizations
 
@@ -343,14 +318,14 @@ Example: Active repo with 2000 issues in last 30 days
 
 The current implementation does **NOT** actively manage rate limits:
 
-- ❌ No retry logic for 429 responses
-- ❌ No rate limit header checking
+- ❌ No automatic retry for 429 responses
+- ✅ Rate limit headers read server-side (`x-ratelimit-remaining`, `Retry-After`)
 - ❌ No backoff strategy
 
-**Behavior on 429**:
-- Error is thrown and propagated
-- Caught by `syncWorkspaceIssuesForRepositories()`
-- Sync marked as failed
+**Behavior on 429 / exhausted 403**:
+- The edge function marks that repository `failed` with `stage: github` and `retryAt`
+- Other repositories in the same request still refresh
+- The banner names the repository and the reset time
 - Next sync attempts after configured interval (default: 60 min)
 
 ### Future Enhancement
@@ -406,7 +381,7 @@ retry(syncFunction);
 ```typescript
 // Test sync function
 - fetchIssuesFromGitHub parses correctly
-- syncWorkspaceIssues handles errors
+- Per-repository outcomes come back from the edge function
 - Rate limiting logic works
 
 // Test hook

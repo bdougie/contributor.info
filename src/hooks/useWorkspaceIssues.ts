@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { env } from '@/lib/env';
 import { getGitHubSession } from '@/lib/auth/github-session';
-import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
+import {
+  mergeRefreshedIssues,
+  requestWorkspaceIssuesRefresh,
+  summarizeIssueRefresh,
+} from '@/lib/workspace/github-issue-refresh';
 import { summarizeFreshness } from '@/lib/workspace/sync-freshness';
 import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
@@ -39,7 +43,12 @@ interface UseWorkspaceIssuesResult {
   error: string | null;
   /** The GitHub refresh failed or only partly succeeded; saved issues are still available. */
   syncError: string | null;
+  /** Fresh GitHub rows are displayed for some repositories but could not be saved. */
+  syncWarning: string | null;
+  /** When every displayed repository's data was last confirmed current, or null if unknown. */
   lastSynced: Date | null;
+  /** When a refresh was last attempted from this tab, whatever its outcome. */
+  lastRefreshAttempt: Date | null;
   isStale: boolean;
   refresh: () => Promise<void>;
 }
@@ -221,12 +230,14 @@ const LINKED_PRS_TTL_HOURS = 1;
  * - linked_prs_synced_at is older than TTL
  * Closed issues are skipped entirely as they won't get new linked PRs
  */
+type LinkedPRUpdate = { id: string; linked_prs: Issue['linked_pull_requests'] };
+
 async function syncLinkedPRsForRepository(
   owner: string,
   repo: string,
   githubToken: string,
   repoId: string
-): Promise<void> {
+): Promise<LinkedPRUpdate[]> {
   try {
     const staleThreshold = new Date(
       Date.now() - LINKED_PRS_TTL_HOURS * 60 * 60 * 1000
@@ -246,11 +257,11 @@ async function syncLinkedPRsForRepository(
 
     if (fetchError) {
       console.error(`Failed to fetch issues for %s/%s: %o`, owner, repo, fetchError);
-      return;
+      return [];
     }
 
     if (!issues || issues.length === 0) {
-      return;
+      return [];
     }
 
     console.log(
@@ -276,13 +287,10 @@ async function syncLinkedPRsForRepository(
     const rawUpdates = await executeWithRateLimit(tasks, graphqlRateLimiter);
 
     // Filter out null results from failed requests
-    const updates = rawUpdates.filter(
-      (update): update is { id: string; linked_prs: Issue['linked_pull_requests'] } =>
-        update !== null
-    );
+    const updates = rawUpdates.filter((update): update is LinkedPRUpdate => update !== null);
 
     if (updates.length === 0) {
-      return;
+      return [];
     }
 
     // Batch update the database using PostgreSQL function for better performance
@@ -299,7 +307,7 @@ async function syncLinkedPRsForRepository(
 
     if (batchError) {
       console.error(`Batch update failed for %s/%s: %o`, owner, repo, batchError);
-      return;
+      return [];
     }
 
     console.log(
@@ -309,9 +317,20 @@ async function syncLinkedPRsForRepository(
       owner,
       repo
     );
+    return updates;
   } catch (error) {
     console.error(`Error syncing linked PRs for %s/%s: %o`, owner, repo, error);
+    return [];
   }
+}
+
+/** Apply freshly fetched linked PRs onto the displayed issues without another database read. */
+function applyLinkedPRUpdates(issues: Issue[], updates: LinkedPRUpdate[]): Issue[] {
+  if (updates.length === 0) return issues;
+  const byId = new Map(updates.map((update) => [update.id, update.linked_prs]));
+  return issues.map((issue) =>
+    byId.has(issue.id) ? { ...issue, linked_pull_requests: byId.get(issue.id) } : issue
+  );
 }
 
 /**
@@ -331,7 +350,9 @@ export function useWorkspaceIssues({
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncWarning, setSyncWarning] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [lastRefreshAttempt, setLastRefreshAttempt] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -342,7 +363,9 @@ export function useWorkspaceIssues({
     isSyncing?: boolean;
     error?: string | null;
     syncError?: string | null;
+    syncWarning?: string | null;
     lastSynced?: Date | null;
+    lastRefreshAttempt?: Date | null;
     isStale?: boolean;
   }
 
@@ -370,7 +393,9 @@ export function useWorkspaceIssues({
     if (pending.isSyncing !== undefined) setIsSyncing(pending.isSyncing);
     if (pending.error !== undefined) setError(pending.error);
     if (pending.syncError !== undefined) setSyncError(pending.syncError);
+    if (pending.syncWarning !== undefined) setSyncWarning(pending.syncWarning);
     if (pending.lastSynced !== undefined) setLastSynced(pending.lastSynced);
+    if (pending.lastRefreshAttempt !== undefined) setLastRefreshAttempt(pending.lastRefreshAttempt);
     if (pending.isStale !== undefined) setIsStale(pending.isStale);
   }, []);
 
@@ -541,9 +566,10 @@ export function useWorkspaceIssues({
       : repositories;
   }, [repositories, selectedRepositories]);
 
-  // Background sync function - runs without blocking UI
+  // Background refresh - the saved rows are already on screen; this asks the
+  // backend to fetch GitHub and overlays whatever came back.
   const backgroundSync = useCallback(
-    async (repoIds: string[], forceSync = false) => {
+    async (repoIds: string[], cachedIssues: Issue[], forceSync = false) => {
       // Abort any in-flight sync. Keep a local handle so a superseded run can
       // never write its outcome over a newer one.
       abortControllerRef.current?.abort();
@@ -566,73 +592,75 @@ export function useWorkspaceIssues({
           return;
         }
 
-        queueStateUpdate({ isSyncing: true });
+        queueStateUpdate({ isSyncing: true, lastRefreshAttempt: new Date() });
         flushImmediately();
 
         // Reuse the retained GitHub authorization; a plain getSession() read can
         // lose provider_token right after the SDK refreshes the JWT.
         const session = await getGitHubSession();
         if (superseded()) return;
-        const githubToken = session?.provider_token || env.GITHUB_TOKEN;
-
-        if (!githubToken) {
-          throw new Error('Sign in with GitHub again to refresh issues.');
+        if (!session) {
+          throw new Error('Sign in with GitHub to refresh issues.');
         }
+        const githubToken = session.provider_token || env.GITHUB_TOKEN || undefined;
 
         const filteredRepos = getFilteredRepos();
 
-        // Sync issue data from GitHub; repositories that fail keep their saved issues.
-        const outcome = await syncWorkspaceIssuesForRepositories(
-          filteredRepos.map((repo) => ({
-            id: repo.id,
-            owner: repo.owner,
-            name: repo.name,
-          })),
-          githubToken
-        );
+        // The backend fetches GitHub and stores rows with service credentials.
+        // Display is never gated on the database write succeeding.
+        const response = await requestWorkspaceIssuesRefresh({
+          workspaceId,
+          repositoryIds: filteredRepos.map((repo) => repo.id),
+          githubToken,
+        });
         if (superseded()) return;
 
-        // Sync linked PRs for each repository that refreshed
-        for (const repo of outcome.synced) {
+        const summary = summarizeIssueRefresh(response.results);
+        let nextIssues = mergeRefreshedIssues(cachedIssues, response.results, filteredRepos);
+
+        // Linked PRs are only read for repositories whose rows were just stored.
+        for (const result of summary.refreshed) {
           if (superseded()) return;
+          const repo = filteredRepos.find((candidate) => candidate.id === result.repositoryId);
+          if (!repo || !githubToken) continue;
           try {
-            await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
+            const updates = await syncLinkedPRsForRepository(
+              repo.owner,
+              repo.name,
+              githubToken,
+              repo.id
+            );
+            nextIssues = applyLinkedPRUpdates(nextIssues, updates);
           } catch (err) {
             console.error(`Failed to sync linked PRs for %s/%s:`, repo.owner, repo.name, err);
           }
         }
-
         if (superseded()) return;
 
-        // Re-fetch from database with fresh data
-        const dbIssues = await fetchFromDatabase(repoIds);
-        if (superseded()) return;
-        const transformedIssues = dbIssues.map(transformIssue);
-
-        if (outcome.failed.length === 0) {
-          // Every repository was stored just now, including any with no issues to keep.
+        const everyRepositoryFresh = summary.failed.length === 0;
+        if (everyRepositoryFresh) {
           queueStateUpdate({
-            issues: transformedIssues,
-            lastSynced: new Date(),
+            issues: nextIssues,
+            lastSynced: new Date(response.refreshedAt),
             isStale: false,
             syncError: null,
+            syncWarning: summary.warningMessage,
           });
           return;
         }
 
-        const names = outcome.failed.map(
-          ({ repository }) => `${repository.owner}/${repository.name}`
-        );
+        // Some repositories still show saved rows; report how old those are.
         const freshness = await checkStaleness(repoIds).catch(() => ({
           needsSync: true,
           oldestSync,
         }));
         if (superseded()) return;
         queueStateUpdate({
-          issues: transformedIssues,
+          issues: nextIssues,
           lastSynced: freshness.oldestSync,
           isStale: true,
-          syncError: `Could not refresh ${names.join(', ')}. Showing saved issues.`,
+          syncError: summary.errorMessage,
+          syncWarning: summary.warningMessage,
         });
       } catch (err) {
         // Don't log abort errors or report outcomes from a superseded run
@@ -643,7 +671,10 @@ export function useWorkspaceIssues({
         queueStateUpdate({
           isStale: true,
           syncError:
-            err instanceof Error ? err.message : 'Issue refresh failed. Showing saved issues.',
+            err instanceof Error
+              ? `${err.message.replace(/\.$/, '')}. Showing saved issues.`
+              : 'Issue refresh failed. Showing saved issues.',
+          syncWarning: null,
         });
       } finally {
         if (!superseded()) {
@@ -654,9 +685,8 @@ export function useWorkspaceIssues({
     },
     [
       checkStaleness,
-      fetchFromDatabase,
-      transformIssue,
       getFilteredRepos,
+      workspaceId,
       autoSyncOnMount,
       queueStateUpdate,
       flushImmediately,
@@ -673,7 +703,7 @@ export function useWorkspaceIssues({
       }
 
       try {
-        queueStateUpdate({ loading: true, error: null, syncError: null });
+        queueStateUpdate({ loading: true, error: null, syncError: null, syncWarning: null });
         flushImmediately();
 
         const repoIds = getFilteredRepoIds();
@@ -687,10 +717,10 @@ export function useWorkspaceIssues({
         // 2. Background sync (non-blocking unless forced)
         if (forceRefresh) {
           // Wait for sync to complete on manual refresh
-          await backgroundSync(repoIds, true);
+          await backgroundSync(repoIds, transformedIssues, true);
         } else {
           // Fire and forget for initial load
-          backgroundSync(repoIds, false);
+          backgroundSync(repoIds, transformedIssues, false);
         }
       } catch (err) {
         console.error('Error fetching issues:', err);
@@ -752,7 +782,9 @@ export function useWorkspaceIssues({
     isSyncing,
     error,
     syncError,
+    syncWarning,
     lastSynced,
+    lastRefreshAttempt,
     isStale,
     refresh,
   };
