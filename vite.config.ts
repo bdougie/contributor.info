@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react-swc';
 import { defineConfig, type PluginOption } from 'vite';
 import { imagetools } from 'vite-imagetools';
 
+// Explicit opt-in for testing a local UI against an existing deployment's API.
+// Keep the local Netlify backend as the default to avoid unexpected production writes.
+const apiProxyTarget = process.env.DEV_API_TARGET || 'http://localhost:8888';
+
 /**
  * Bundle analyzer, opt-in via `ANALYZE=true npm run build`.
  * Dynamically imported so production builds (e.g. Netlify with pruned
@@ -84,11 +88,11 @@ export default defineConfig(() => ({
     // Proxy API calls to Netlify functions during development
     proxy: {
       '/api': {
-        target: 'http://localhost:8888',
+        target: apiProxyTarget,
         changeOrigin: true,
       },
       '/.netlify/functions': {
-        target: 'http://localhost:8888',
+        target: apiProxyTarget,
         changeOrigin: true,
       },
     },

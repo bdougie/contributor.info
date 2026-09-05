@@ -34,6 +34,28 @@ npm run start
 npm run dev
 ```
 
+### API-Backed Workspace Actions
+
+`npm run dev` starts only Vite. Workspace repository tracking calls `/api`, which
+proxies to the local Netlify server on port 8888 by default. Without that server,
+repository searches can work while adding an untracked repository fails with a
+proxy error. Run `netlify dev` to start Netlify functions and the configured Vite
+server together; do not start a second Vite process on port 5174.
+
+Maintainers already using production Supabase can explicitly use the matching
+deployed API while testing local frontend changes:
+
+```bash
+DEV_API_TARGET=https://contributor.info npm run dev -- --host 127.0.0.1 --port 5174
+```
+
+This keeps the local browser origin and its sign-in session. It proxies both
+`/api` and `/.netlify/functions` to the selected deployment, including real writes
+and background tracking jobs. Use this only with the same Supabase project as the
+deployment, and never as an implicit fallback for an isolated local database.
+Set `DEV_API_TARGET` in the process environment when starting Vite; the default
+remains `http://localhost:8888`. Server credentials are not needed in the frontend.
+
 ## Environment Setup
 
 ### Flexible Environment Configuration
