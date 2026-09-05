@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   resetRateLimiter,
   getRateLimiterStats,
@@ -25,6 +25,10 @@ const localStorageMock = {
 };
 
 describe('PostHog Lazy Loading - Simple Tests', () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')!;
+  afterEach(() => {
+    Object.defineProperty(window, 'localStorage', originalStorage);
+  });
   beforeEach(() => {
     // Reset localStorage
     Object.defineProperty(window, 'localStorage', {

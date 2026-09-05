@@ -77,6 +77,17 @@ Validation: 146 tests passed across 16 focused suites, including the P1 regressi
 coverage. Changed TypeScript files passed ESLint and Prettier; `npm run typecheck`
 and `npm run build` passed, including CSP verification.
 
+The first CI run exposed legacy tests leaking mocked `window.location`,
+`localStorage`, and `Storage.prototype` methods between suites. Those tests now
+restore their browser globals. The complete CI test command
+`CI=true npx vitest run --config vitest.config.simple.ts --bail 1` passes locally:
+1,719 tests passed, 26 skipped across 175 files (170 passed, 5 skipped).
+
+The Security Audit still reports the same five high-severity dependency findings
+as the P1 branch, involving `adm-zip`/`onnxruntime-node` and `sharp`/`vite-imagetools`
+through the existing dependency tree. No package manifests or lockfiles changed
+in this follow-up. Dependency remediation is separate from these workspace fixes.
+
 Local Chrome checks at `http://localhost:5174` verified disabled signed-out
 creation, restoration of the Tapes workspace name and description after reload,
 the exact documentation destination, the encoded login return path, and
