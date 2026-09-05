@@ -126,7 +126,12 @@ export function useMyWork(
   >(new Map());
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchMyWork() {
+      setItems([]);
+      setTotalCount(0);
+      setTabCounts({ needsResponse: 0, followUps: 0, replies: 0 });
+      setError(null);
       if (!user?.user_metadata?.user_name) {
         setLoading(false);
         return;
@@ -156,6 +161,8 @@ export function useMyWork(
           .eq('username', githubLogin)
           .maybeSingle();
 
+        if (cancelled) return;
+
         if (contributorError) {
           console.error('Error fetching contributor:', contributorError);
           setError(contributorError);
@@ -175,10 +182,13 @@ export function useMyWork(
         // Get workspace repository IDs for filtering
         let workspaceRepoIds: string[] = [];
         if (workspaceId) {
-          const { data: workspaceRepos } = await supabase
+          const { data: workspaceRepos, error: workspaceError } = await supabase
             .from('workspace_repositories')
             .select('repository_id')
             .eq('workspace_id', workspaceId);
+
+          if (cancelled) return;
+          if (workspaceError) throw workspaceError;
 
           // Workspace found
 
@@ -213,6 +223,7 @@ export function useMyWork(
           `
           )
           .eq('state', 'open') // Only open PRs need reviews
+          .contains('reviewer_data', { requested_reviewers: [{ username: githubLogin }] })
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -245,6 +256,7 @@ export function useMyWork(
           )
           .eq('state', 'open') // Only open issues need attention
           .is('responded_by', null) // Exclude responded items
+          .contains('assignees', [{ login: githubLogin }])
           .order('updated_at', { ascending: false })
           .limit(20);
 
@@ -256,7 +268,6 @@ export function useMyWork(
 
         if (issueError) {
           console.error('Error fetching issues:', issueError);
-          setError(issueError);
         }
 
         // Query 3: ALL unanswered discussions in workspace (not just authored by user)
@@ -773,6 +784,8 @@ export function useMyWork(
         // Filter by selected types
         const typeFilteredItems = allItems.filter((item) => selectedTypes.includes(item.type));
 
+        if (cancelled) return;
+
         // Calculate tab counts from type-filtered items (before tab filtering)
         const needsResponseItems = typeFilteredItems.filter(
           (item) => item.itemType !== 'follow_up' && item.itemType !== 'my_comment'
@@ -807,16 +820,33 @@ export function useMyWork(
         // Showing paginated items
 
         setItems(paginatedItems);
-        setError(null);
+        const queryError = [
+          reviewPrError,
+          issueError,
+          discussionsError,
+          followUpIssueError,
+          followUpPRError,
+          followUpDiscussionError,
+          userCommentsError,
+          userDiscussionCommentsError,
+        ].find(Boolean);
+        setError(
+          queryError
+            ? new Error('Some work items could not be loaded. This queue may be incomplete.')
+            : null
+        );
       } catch (err) {
         console.error('Error in fetchMyWork:', err);
-        setError(err as Error);
+        if (!cancelled) setError(err as Error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchMyWork();
+    return () => {
+      cancelled = true;
+    };
   }, [
     user,
     workspaceId,

@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
+import { syncPullRequestReviewersWithStatus } from '@/lib/sync-pr-reviewers';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
+import { summarizeFreshness } from '@/lib/workspace/sync-freshness';
 import type { Repository } from '@/components/features/workspace';
 
 interface UseWorkspacePRsOptions {
@@ -17,6 +18,7 @@ interface UseWorkspacePRsOptions {
 interface UseWorkspacePRsResult {
   pullRequests: PullRequest[];
   loading: boolean;
+  isSyncing: boolean;
   error: string | null;
   lastSynced: Date | null;
   isStale: boolean;
@@ -112,26 +114,15 @@ const checkStaleness = async (repoIds: string[], maxStaleMinutes: number) => {
   if (repoIds.length === 0) return { needsSync: false, oldestSync: null };
 
   const supabase = await getSupabase();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('pull_requests')
     .select('last_synced_at, repository_id')
     .in('repository_id', repoIds)
     .order('last_synced_at', { ascending: true });
 
-  const reposWithData = new Set(data?.map((pr) => pr.repository_id) || []);
-  const missingRepos = repoIds.filter((id) => !reposWithData.has(id));
+  if (error) throw new Error(`Failed to check PR freshness: ${error.message}`);
 
-  if (missingRepos.length > 0 || !data || data.length === 0) {
-    return { needsSync: true, oldestSync: null };
-  }
-
-  const oldestSync = new Date(data[0].last_synced_at);
-  const minutesSinceSync = (Date.now() - oldestSync.getTime()) / (1000 * 60);
-
-  return {
-    needsSync: minutesSinceSync > maxStaleMinutes,
-    oldestSync,
-  };
+  return summarizeFreshness(repoIds, data || [], maxStaleMinutes);
 };
 
 const fetchFromDatabase = async (repoIds: string[]) => {
@@ -301,46 +292,90 @@ export function useWorkspacePRs({
 
   const repoIds = useMemo(() => filteredRepos.map((r) => r.id), [filteredRepos]);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['workspace-prs', workspaceId, repoIds],
+  const queryClient = useQueryClient();
+  const forceSync = useRef(false);
+  const queryKey = ['workspace-prs', workspaceId, repoIds];
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey,
     queryFn: async () => {
+      const manualSync = forceSync.current;
+      forceSync.current = false;
       if (repoIds.length === 0) {
-        return { prs: [], lastSynced: null, isStale: false };
-      }
-
-      // Check if data is stale
-      const { needsSync, oldestSync } = await checkStaleness(repoIds, maxStaleMinutes);
-
-      let currentLastSynced = oldestSync;
-      let currentIsStale = needsSync;
-
-      // Auto-sync if needed
-      if (needsSync && autoSyncOnMount) {
-        try {
-          await Promise.all(
-            filteredRepos.map(async (repo) => {
-              try {
-                await syncPullRequestReviewers(repo.owner, repo.name, workspaceId, {
-                  includeClosedPRs: true,
-                  maxClosedDays: 30,
-                  updateDatabase: true,
-                });
-              } catch (err) {
-                console.error('Failed to sync %s/%s:', repo.owner, repo.name, err);
-              }
-            })
-          );
-          currentLastSynced = new Date();
-          currentIsStale = false;
-        } catch (e) {
-          console.error('Sync failed, falling back to DB data', e);
-        }
+        return { prs: [], lastSynced: null, isStale: false, syncError: null };
       }
 
       const dbPRs = await fetchFromDatabase(repoIds);
-      const prs = dbPRs.map(transformPR);
+      const cached = {
+        prs: dbPRs.map(transformPR),
+        lastSynced: null as Date | null,
+        isStale: true,
+        syncError: null as string | null,
+      };
 
-      return { prs, lastSynced: currentLastSynced, isStale: currentIsStale };
+      let needsSync: boolean;
+      try {
+        const freshness = await checkStaleness(repoIds, maxStaleMinutes);
+        cached.lastSynced = freshness.oldestSync;
+        cached.isStale = freshness.needsSync;
+        needsSync = freshness.needsSync;
+      } catch (e) {
+        // Saved PRs are still worth showing when only the freshness lookup failed.
+        console.error('PR freshness check failed, showing saved data', e);
+        if (!manualSync) {
+          return { ...cached, syncError: 'Could not check PR freshness. Showing saved PRs.' };
+        }
+        needsSync = true;
+      }
+
+      // Publish the cache before waiting on slower GitHub requests.
+      queryClient.setQueryData(queryKey, cached);
+
+      if (manualSync || (needsSync && autoSyncOnMount)) {
+        try {
+          const results = await Promise.allSettled(
+            filteredRepos.map((repo) =>
+              syncPullRequestReviewersWithStatus(repo.owner, repo.name, workspaceId, {
+                includeClosedPRs: true,
+                maxClosedDays: 30,
+                updateDatabase: true,
+              })
+            )
+          );
+          const refreshedPRs = await fetchFromDatabase(repoIds);
+          const failed = results.some((result) => result.status === 'rejected');
+          const persisted = results.every(
+            (result) => result.status === 'fulfilled' && result.value.persisted
+          );
+          if (persisted) {
+            // Every repository was stored just now, including any with no PRs to keep.
+            return {
+              prs: refreshedPRs.map(transformPR),
+              lastSynced: new Date(),
+              isStale: false,
+              syncError: null,
+            };
+          }
+          // A fallback fetch returned PRs without storing them; the snapshot is only as
+          // fresh as the rows on disk.
+          const freshness = await checkStaleness(repoIds, maxStaleMinutes).catch(() => ({
+            needsSync: true,
+            oldestSync: cached.lastSynced,
+          }));
+          return {
+            prs: refreshedPRs.map(transformPR),
+            lastSynced: freshness.oldestSync,
+            isStale: failed || freshness.needsSync,
+            syncError: failed
+              ? 'Some repositories could not be refreshed. Showing saved PRs.'
+              : null,
+          };
+        } catch (e) {
+          console.error('Sync failed, falling back to DB data', e);
+          return { ...cached, isStale: true, syncError: 'Refresh failed. Showing saved PRs.' };
+        }
+      }
+
+      return cached;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
@@ -348,14 +383,18 @@ export function useWorkspacePRs({
     enabled: repositories.length > 0,
   });
 
+  const refresh = useCallback(async () => {
+    forceSync.current = true;
+    await refetch();
+  }, [refetch]);
+
   return {
     pullRequests: data?.prs || [],
     loading: isLoading,
-    error: error ? (error as Error).message : null,
+    isSyncing: isFetching && !isLoading,
+    error: error ? error.message : data?.syncError || null,
     lastSynced: data?.lastSynced ? new Date(data.lastSynced) : null,
     isStale: data?.isStale || false,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
   };
 }

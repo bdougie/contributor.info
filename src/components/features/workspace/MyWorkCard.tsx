@@ -291,7 +291,7 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
         <div className="flex flex-col space-y-1 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center space-x-1 text-sm flex-wrap">
-              <span className="font-medium">{sanitizeText(item.user.username)}</span>
+              <span className="font-medium">By {sanitizeText(item.user.username)}</span>
               <span className="text-muted-foreground">{getActivityText()}</span>
               <a
                 href={sanitizeURL(item.url)}
@@ -413,12 +413,14 @@ export function MyWorkCard({
   const followUpsCount = tabCounts?.followUps ?? 0;
   const repliesCount = tabCounts?.replies ?? 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const queueDescription =
+    'Your review requests, assigned issues, and workspace discussions. Not all repository activity.';
   if (loading) {
     return (
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Items requiring your attention</CardDescription>
+          <CardDescription>{queueDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -503,14 +505,14 @@ export function MyWorkCard({
       <Card className={cn('transition-all', className)}>
         <CardHeader>
           <CardTitle>My Work</CardTitle>
-          <CardDescription>Items requiring your attention</CardDescription>
+          <CardDescription>{queueDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Nothing needs your attention</p>
+            <p className="text-sm text-muted-foreground">No items in this personal queue</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Assigned issues and unanswered discussions will appear here
+              Use the Pull Requests and Issues tabs to see repository activity.
             </p>
           </div>
         </CardContent>
@@ -522,11 +524,7 @@ export function MyWorkCard({
     <Card className={cn('transition-all', className)}>
       <CardHeader>
         <CardTitle>My Work</CardTitle>
-        <CardDescription>
-          {totalCount > 0
-            ? `${totalCount} items requiring attention`
-            : 'Items requiring your attention'}
-        </CardDescription>
+        <CardDescription>{queueDescription}</CardDescription>
       </CardHeader>
       <CardContent>
         {/* Type Filters */}

@@ -44,14 +44,16 @@ export function WorkspacePRsTab({
   const navigate = useNavigate();
 
   // Use the new hook for automatic PR syncing and caching
-  const { pullRequests, loading, error, lastSynced, isStale, refresh } = useWorkspacePRs({
-    repositories,
-    selectedRepositories,
-    workspaceId,
-    refreshInterval: 60, // Hourly refresh interval
-    maxStaleMinutes: 60, // Consider data stale after 60 minutes
-    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
-  });
+  const { pullRequests, loading, isSyncing, error, lastSynced, isStale, refresh } = useWorkspacePRs(
+    {
+      repositories,
+      selectedRepositories,
+      workspaceId,
+      refreshInterval: 60, // Hourly refresh interval
+      maxStaleMinutes: 60, // Consider data stale after 60 minutes
+      autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+    }
+  );
 
   // Log sync status for debugging
   useEffect(() => {
@@ -141,6 +143,23 @@ export function WorkspacePRsTab({
           )}
         </div>
       </div>
+
+      {!loading && (error || isStale || isSyncing) && (
+        <div
+          role={error ? 'alert' : 'status'}
+          className="flex items-center justify-between gap-3 text-sm text-muted-foreground"
+        >
+          <p>
+            {error ||
+              (isSyncing
+                ? 'Refreshing PRs. Showing saved data.'
+                : 'Saved PR data may be outdated.')}
+          </p>
+          <Button variant="outline" size="sm" onClick={refresh} disabled={isSyncing}>
+            Retry refresh
+          </Button>
+        </div>
+      )}
 
       {/* Metrics and Trends - first, always full width */}
       <WorkspaceMetricsAndTrends

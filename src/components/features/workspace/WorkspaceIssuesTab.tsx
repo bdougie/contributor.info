@@ -129,14 +129,15 @@ export function WorkspaceIssuesTab({
   const navigate = useNavigate();
 
   // Use the new hook for automatic issue syncing and caching
-  const { issues, loading, isSyncing, error, lastSynced, isStale, refresh } = useWorkspaceIssues({
-    repositories,
-    selectedRepositories,
-    workspaceId,
-    refreshInterval: 60, // Hourly refresh interval
-    maxStaleMinutes: 60, // Consider data stale after 60 minutes
-    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
-  });
+  const { issues, loading, isSyncing, error, syncError, lastSynced, isStale, refresh } =
+    useWorkspaceIssues({
+      repositories,
+      selectedRepositories,
+      workspaceId,
+      refreshInterval: 60, // Hourly refresh interval
+      maxStaleMinutes: 60, // Consider data stale after 60 minutes
+      autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+    });
 
   // Log sync status for debugging
   useEffect(() => {
@@ -238,7 +239,7 @@ export function WorkspaceIssuesTab({
   // Use stable layout during refreshes to prevent CLS
   const shouldShowTwoColumns = stableHasAssignees ?? hasAssignees;
 
-  // Display error message if there's an error
+  // Only a failed load of saved issues replaces the tab; refresh failures keep the controls.
   if (error) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
@@ -258,6 +259,17 @@ export function WorkspaceIssuesTab({
 
   return (
     <div className="space-y-6">
+      {syncError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 text-sm text-destructive"
+        >
+          <p>{syncError}</p>
+          <Button variant="outline" size="sm" onClick={refresh} disabled={isSyncing}>
+            Retry refresh
+          </Button>
+        </div>
+      )}
       {/* Auto-sync indicator and action buttons at top */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">

@@ -5,6 +5,15 @@ import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
 import { safeGetSession } from '@/lib/auth/safe-auth';
 import { getLoginReturnPath } from '@/lib/auth/login-redirect';
 
+/** Remove OAuth token fragments from the current URL without touching the path or query. */
+function clearOAuthCallbackHash() {
+  if (typeof window === 'undefined' || !window.history || !window.location) return;
+  const { hash, href, pathname, search } = window.location;
+  const hasTokens = /(?:^|[#&])(?:access_token|refresh_token|provider_token)=/.test(hash);
+  if (!hasTokens && !href.endsWith('#')) return;
+  window.history.replaceState(window.history.state, document.title, pathname + search);
+}
+
 /**
  * Hook for managing GitHub authentication state and actions
  */
@@ -39,46 +48,17 @@ export function useGitHubAuth() {
       const supabase = await getSupabase();
       if (!isMounted) return;
 
-      // Check URL for auth tokens first and handle them manually
-      // This prevents 401 errors that occur when Supabase's automatic detection fails
-      if (typeof window !== 'undefined' && window.location?.hash?.includes('access_token')) {
-        try {
-          // Manually parse the hash parameters
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          if (accessToken && refreshToken) {
-            // Set the session manually using the extracted tokens
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              // Silently handle session setting errors
-            }
-          }
-        } catch {
-          // Silently handle auth token processing errors
-        }
-
-        // Clear the URL hash after processing
-        if (typeof window !== 'undefined' && window.history) {
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname + window.location.search
-          );
-        }
-      }
-
-      // Use safe session check with timeout protection
+      // getSession waits for Supabase's OAuth initialization, which consumes the
+      // complete callback including provider_token. Do not replace it with setSession.
       const { session, error: sessionError } = await safeGetSession();
       if (sessionError) {
         // Handle session check error gracefully
         console.error('Session check error:', sessionError);
       }
+      // Supabase only clears the fragment after a successful user lookup, and does so with
+      // a hash assignment that leaves a history entry. Drop the tokens from the address bar
+      // and history regardless of the outcome, keeping the encoded return path intact.
+      clearOAuthCallbackHash();
       const isAuthenticated = !!session;
       if (isMounted) {
         setIsLoggedIn(isAuthenticated);

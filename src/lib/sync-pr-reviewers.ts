@@ -37,6 +37,12 @@ export interface SyncOptions {
   useLocalBackoff?: boolean; // Use local exponential backoff instead of edge function
 }
 
+export interface SyncResult {
+  prs: PRWithReviewers[];
+  /** True only when the edge function stored the fetched PRs; local fallbacks never write. */
+  persisted: boolean;
+}
+
 /**
  * Fetches the latest PR data from GitHub including requested reviewers
  * Now with exponential backoff support for improved reliability
@@ -52,6 +58,20 @@ export async function syncPullRequestReviewers(
   workspaceId?: string,
   options: SyncOptions = {}
 ): Promise<PRWithReviewers[]> {
+  const { prs } = await syncPullRequestReviewersWithStatus(owner, repo, workspaceId, options);
+  return prs;
+}
+
+/**
+ * Same as syncPullRequestReviewers, but also reports whether the database was updated
+ * so callers can decide if their stored snapshot is now fresh.
+ */
+export async function syncPullRequestReviewersWithStatus(
+  owner: string,
+  repo: string,
+  workspaceId?: string,
+  options: SyncOptions = {}
+): Promise<SyncResult> {
   try {
     const {
       includeClosedPRs = true,
@@ -80,7 +100,7 @@ export async function syncPullRequestReviewers(
         console.log('Local backoff sync complete. Database update pending implementation.');
       }
 
-      return prs;
+      return { prs, persisted: false };
     }
 
     // Default: Use edge function (which will also be updated to use exponential backoff)
@@ -102,10 +122,11 @@ export async function syncPullRequestReviewers(
 
       // Fallback to local backoff on edge function failure
       const adapter = getGitHubAPIAdapter();
-      return await adapter.fetchPullRequestsWithReviewers(owner, repo, {
+      const prs = await adapter.fetchPullRequestsWithReviewers(owner, repo, {
         includeClosedPRs,
         maxClosedDays,
       });
+      return { prs, persisted: false };
     }
 
     if (!data.success) {
@@ -114,10 +135,11 @@ export async function syncPullRequestReviewers(
 
       // Fallback to local backoff on sync failure
       const adapter = getGitHubAPIAdapter();
-      return await adapter.fetchPullRequestsWithReviewers(owner, repo, {
+      const prs = await adapter.fetchPullRequestsWithReviewers(owner, repo, {
         includeClosedPRs,
         maxClosedDays,
       });
+      return { prs, persisted: false };
     }
 
     console.log(
@@ -126,7 +148,7 @@ export async function syncPullRequestReviewers(
       data.openCount || 0,
       data.closedCount || 0
     );
-    return data.prs || [];
+    return { prs: data.prs || [], persisted: updateDatabase };
   } catch (error) {
     console.error('Failed to sync PR reviewers:', error);
 
@@ -134,13 +156,14 @@ export async function syncPullRequestReviewers(
     try {
       console.log('Final fallback to local exponential backoff');
       const adapter = getGitHubAPIAdapter();
-      return await adapter.fetchPullRequestsWithReviewers(owner, repo, {
+      const prs = await adapter.fetchPullRequestsWithReviewers(owner, repo, {
         includeClosedPRs: options.includeClosedPRs ?? true,
         maxClosedDays: options.maxClosedDays ?? 30,
       });
+      return { prs, persisted: false };
     } catch (fallbackError) {
       console.error('Local backoff also failed:', fallbackError);
-      return [];
+      throw fallbackError;
     }
   }
 }

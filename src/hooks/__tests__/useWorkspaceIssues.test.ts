@@ -24,7 +24,11 @@ vi.mock('@/lib/env', () => ({
 }));
 
 vi.mock('@/lib/sync-workspace-issues', () => ({
-  syncWorkspaceIssuesForRepositories: vi.fn().mockResolvedValue(undefined),
+  syncWorkspaceIssuesForRepositories: vi.fn().mockResolvedValue({ synced: [], failed: [] }),
+}));
+
+vi.mock('@/lib/auth/github-session', () => ({
+  getGitHubSession: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/lib/rate-limiter', () => ({
@@ -160,6 +164,7 @@ describe('useWorkspaceIssues', () => {
     // These properties should be available for UI to display sync status
     expect('lastSynced' in result.current).toBe(true);
     expect('isStale' in result.current).toBe(true);
+    expect(result.current.syncError).toBeNull();
   });
 
   it.skip('should trigger background sync when data is stale', () => {

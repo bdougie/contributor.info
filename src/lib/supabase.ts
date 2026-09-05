@@ -10,6 +10,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { env } from './env';
 import { setSupabaseInstance } from './supabase-lazy';
+import { getBrowserGitHubSessionStorage } from './auth/github-session-storage';
 
 // Create Supabase client synchronously for backwards compatibility
 function createSupabaseClient(): SupabaseClient {
@@ -34,6 +35,7 @@ function createSupabaseClient(): SupabaseClient {
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'implicit',
+      storage: getBrowserGitHubSessionStorage(),
     },
     db: {
       schema: 'public',

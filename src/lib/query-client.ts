@@ -2,6 +2,12 @@ import { QueryClient } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
+/**
+ * Query meta that keeps a query out of the localStorage persister.
+ * Use it for personal or per-session data such as live GitHub work.
+ */
+export const EPHEMERAL_QUERY_META = { persist: false } as const;
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -29,6 +35,10 @@ if (typeof window !== 'undefined') {
       persister: localStoragePersister,
       maxAge: 30 * 60 * 1000, // 30 minutes
       buster: 'v1', // Increment this to bust the cache on version updates
+      dehydrateOptions: {
+        shouldDehydrateQuery: (query) =>
+          query.state.status === 'success' && query.meta?.persist !== false,
+      },
     });
   };
 

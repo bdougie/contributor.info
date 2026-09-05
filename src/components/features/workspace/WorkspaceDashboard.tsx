@@ -41,6 +41,7 @@ export interface WorkspaceDashboardProps {
   activityData?: unknown; // Made generic since we removed the import
   repositories: Repository[];
   myWorkItems?: MyWorkItem[];
+  myWorkContent?: React.ReactNode;
   myWorkStats?: MyWorkStats;
   myWorkTotalCount?: number;
   myWorkTabCounts?: { needsResponse: number; followUps: number; replies: number };
@@ -94,6 +95,7 @@ export function WorkspaceDashboard({
   metrics,
   repositories,
   myWorkItems = [],
+  myWorkContent,
   myWorkStats,
   myWorkTotalCount = 0,
   myWorkTabCounts,
@@ -264,26 +266,28 @@ export function WorkspaceDashboard({
       </div>
 
       {/* My Work Section - Always show to display loading/empty states */}
-      <MyWorkCard
-        items={myWorkItems || []}
-        stats={myWorkStats}
-        totalCount={myWorkTotalCount}
-        tabCounts={myWorkTabCounts}
-        currentPage={myWorkCurrentPage}
-        itemsPerPage={myWorkItemsPerPage}
-        loading={myWorkLoading}
-        selectedTypes={myWorkSelectedTypes}
-        activeTab={myWorkActiveTab}
-        onPageChange={onMyWorkPageChange}
-        onTypesChange={onMyWorkTypesChange}
-        onTabChange={onMyWorkTabChange}
-        onItemClick={onMyWorkItemClick}
-        onRespond={onMyWorkItemRespond}
-        onMarkAsResponded={onMyWorkItemMarkAsResponded}
-        onSyncComments={onSyncComments}
-        isSyncingComments={isSyncingComments}
-        commentSyncStatus={commentSyncStatus}
-      />
+      {myWorkContent ?? (
+        <MyWorkCard
+          items={myWorkItems || []}
+          stats={myWorkStats}
+          totalCount={myWorkTotalCount}
+          tabCounts={myWorkTabCounts}
+          currentPage={myWorkCurrentPage}
+          itemsPerPage={myWorkItemsPerPage}
+          loading={myWorkLoading}
+          selectedTypes={myWorkSelectedTypes}
+          activeTab={myWorkActiveTab}
+          onPageChange={onMyWorkPageChange}
+          onTypesChange={onMyWorkTypesChange}
+          onTabChange={onMyWorkTabChange}
+          onItemClick={onMyWorkItemClick}
+          onRespond={onMyWorkItemRespond}
+          onMarkAsResponded={onMyWorkItemMarkAsResponded}
+          onSyncComments={onSyncComments}
+          isSyncingComments={isSyncingComments}
+          commentSyncStatus={commentSyncStatus}
+        />
+      )}
 
       {/* Additional Content (e.g., Rising Stars Chart) */}
       {children}
