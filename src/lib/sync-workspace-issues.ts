@@ -171,28 +171,45 @@ export async function syncWorkspaceIssues(
   }
 }
 
+export interface SyncRepositoryRef {
+  id: string;
+  owner: string;
+  name: string;
+}
+
+export interface WorkspaceIssuesSyncResult {
+  /** Repositories whose issues were stored. */
+  synced: SyncRepositoryRef[];
+  /** Repositories that could not be refreshed; their saved issues remain untouched. */
+  failed: Array<{ repository: SyncRepositoryRef; error: Error }>;
+}
+
 /**
- * Sync multiple repositories in parallel
+ * Sync multiple repositories in parallel. One repository failing does not discard
+ * the others; callers decide how to surface partial failures.
  */
 export async function syncWorkspaceIssuesForRepositories(
-  repositories: Array<{
-    id: string;
-    owner: string;
-    name: string;
-  }>,
+  repositories: SyncRepositoryRef[],
   githubToken: string
-): Promise<void> {
+): Promise<WorkspaceIssuesSyncResult> {
   const results = await Promise.allSettled(
     repositories.map((repo) => syncWorkspaceIssues(repo.owner, repo.name, repo.id, githubToken))
   );
 
-  const failures = results.filter((r) => r.status === 'rejected');
+  const outcome: WorkspaceIssuesSyncResult = { synced: [], failed: [] };
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      outcome.synced.push(repositories[index]);
+    } else {
+      const error =
+        result.reason instanceof Error ? result.reason : new Error(String(result.reason));
+      outcome.failed.push({ repository: repositories[index], error });
+    }
+  });
 
-  if (failures.length > 0) {
-    console.error('Failed to sync %d repositories', failures.length);
-    throw new Error(`Failed to refresh issues for ${failures.length} repositories`);
+  if (outcome.failed.length > 0) {
+    console.error('Failed to sync %d repositories', outcome.failed.length);
   }
-
-  const successes = results.filter((r) => r.status === 'fulfilled');
-  console.log('Successfully synced %d/%d repositories', successes.length, repositories.length);
+  console.log('Successfully synced %d/%d repositories', outcome.synced.length, repositories.length);
+  return outcome;
 }

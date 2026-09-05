@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RefreshCw, GitPullRequest, AlertCircle, MessageSquare } from '@/components/ui/icon';
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
+import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { useGitHubWorkspaceWork } from '@/hooks/use-github-workspace-work';
 import {
   workCategoryLabels,
@@ -33,6 +34,11 @@ export function GitHubMyWorkCard({
   repositoryAvatars?: Record<string, string | undefined>;
 }) {
   const work = useGitHubWorkspaceWork(workspaceId, repositories);
+  // GitHub search echoes repository names in their canonical case, which may differ
+  // from the stored full_name, so avatars are matched case-insensitively.
+  const avatars = new Map(
+    Object.entries(repositoryAvatars).map(([name, url]) => [name.toLowerCase(), url])
+  );
   const [category, setCategory] = useState<WorkFilter>('priority');
   const [page, setPage] = useState(1);
   let emptyMessage = 'No matching open work in these repositories.';
@@ -99,6 +105,13 @@ export function GitHubMyWorkCard({
             )}
           </div>
         )}
+        {work.unavailableRepositories.length > 0 && (
+          <p role="status" className="text-sm text-muted-foreground">
+            GitHub could not search {work.unavailableRepositories.join(', ')} with your
+            authorization. Work from other repositories is shown; check the repository name or your
+            GitHub access for the rest.
+          </p>
+        )}
         {work.incomplete && (
           <p role="status" className="text-sm text-muted-foreground">
             Some results or conversation history are incomplete. Reply checks cover up to 100 open
@@ -151,10 +164,10 @@ export function GitHubMyWorkCard({
             <li key={item.id} className="rounded-lg border bg-muted/10 p-3 sm:p-4">
               <div className="flex items-start gap-3">
                 <OrganizationAvatar
-                  src={
-                    repositoryAvatars[item.repository] ||
-                    `https://avatars.githubusercontent.com/${item.repository.split('/')[0]}`
-                  }
+                  src={getRepoOwnerAvatarUrl(
+                    item.repository.split('/')[0],
+                    avatars.get(item.repository.toLowerCase())
+                  )}
                   alt={`${item.repository.split('/')[0]} logo`}
                   size={32}
                   lazy={false}

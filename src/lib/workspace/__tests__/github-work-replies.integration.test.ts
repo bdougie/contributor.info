@@ -2,6 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchAwaitingReplies } from '../github-work-replies';
 import { fetchGitHubWorkCategory, mergeGitHubWork, type GitHubWorkItem } from '../github-my-work';
 
+// The shared limiter's rate-limit backoff is covered by its own tests; keep these fast.
+vi.mock('@/lib/rate-limiter', () => ({
+  graphqlRateLimiter: { enqueue: <T>(task: () => Promise<T>) => task() },
+}));
+
 const item: GitHubWorkItem = {
   id: 341,
   nodeId: 'PR_341',
@@ -162,8 +167,76 @@ describe('GitHub comments awaiting response', () => {
     const fetchMock = mockResponse();
     expect(
       await fetchGitHubWorkCategory({ ...options(), repositories: [], category: 'awaiting_reply' })
-    ).toEqual({ items: [], incomplete: false });
+    ).toEqual({ items: [], incomplete: false, unavailableRepositories: [] });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('retries a transient GitHub outage instead of dropping the reply queue', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('', { status: 502 }))
+      .mockResolvedValueOnce(
+        Response.json({ data: { viewer: { login: 'BDougie' }, nodes: [conversation()] } })
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await fetchAwaitingReplies(options());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.items).toHaveLength(1);
+  });
+
+  it('inspects batches concurrently and keeps search order', async () => {
+    const items = Array.from({ length: 15 }, (_, index) => ({
+      ...item,
+      id: index,
+      nodeId: `PR_${index}`,
+      number: index,
+      url: `https://github.com/papercomputeco/tapes/pull/${index}`,
+    }));
+    let inFlight = 0;
+    let peak = 0;
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      inFlight -= 1;
+      const { variables } = JSON.parse(String(init.body)) as { variables: { ids: string[] } };
+      return Response.json({
+        data: {
+          viewer: { login: 'BDougie' },
+          nodes: variables.ids.map((id) => {
+            const index = Number(id.replace('PR_', ''));
+            const url = `https://github.com/papercomputeco/tapes/pull/${index}#discussion_r1`;
+            return {
+              ...conversation(),
+              id,
+              reviewThreads: {
+                nodes: [{ isResolved: false, comments: comments([{ ...comment(), url }]) }],
+                pageInfo: { hasNextPage: false },
+              },
+            };
+          }),
+        },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await fetchAwaitingReplies({ ...options(), items });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(peak).toBeGreaterThan(1);
+    expect(result.items.map((entry) => entry.id)).toEqual(items.map((entry) => entry.id));
+  });
+
+  it('treats -bot logins like other bots when deciding who spoke last', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes[0].comments = comments([
+      comment('reviewer', 'Can you add a test?', 1),
+      {
+        ...comment('release-bot', 'Deployed preview', 2),
+        author: { login: 'release-bot', __typename: 'User' },
+      },
+    ]);
+    mockResponse(node);
+    const result = await fetchAwaitingReplies(options());
+    expect(result.items[0]?.replies?.[0]?.author).toBe('reviewer');
   });
 
   it('surfaces GraphQL failures instead of claiming there are no replies', async () => {

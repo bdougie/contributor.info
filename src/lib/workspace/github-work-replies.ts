@@ -1,4 +1,7 @@
 import type { GitHubWorkItem, GitHubWorkReply } from './github-my-work';
+import { fetchWithTimeout } from '@/lib/utils/abort-signal';
+import { isBot } from '@/lib/utils/bot-detection';
+import { graphqlRateLimiter } from '@/lib/rate-limiter';
 
 interface Actor {
   login: string;
@@ -29,8 +32,18 @@ interface Conversation {
   }>;
 }
 
+interface ReplyData {
+  viewer: { login: string };
+  nodes: (Conversation | null)[];
+}
+
 interface ReplyResponse {
-  data?: { viewer: { login: string }; nodes: (Conversation | null)[] };
+  data?: ReplyData;
+  errors?: { message: string }[];
+}
+
+interface ValidReplyResponse {
+  data: ReplyData;
   errors?: { message: string }[];
 }
 
@@ -53,11 +66,23 @@ const query = `query WorkspaceReplyQueue($ids: [ID!]!) {
   }
 }`;
 
+const BATCH_SIZE = 5;
+const REQUEST_TIMEOUT_MS = 15_000;
+const TRANSIENT_RETRIES = 2;
+
+class GitHubReplyError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number
+  ) {
+    super(message);
+    this.name = 'GitHubReplyError';
+  }
+}
+
 function isHuman(comment: Comment | null): comment is Comment {
   return (
-    !!comment?.author &&
-    comment.author.__typename !== 'Bot' &&
-    !comment.author.login.toLowerCase().endsWith('[bot]')
+    !!comment?.author && !isBot({ username: comment.author.login, type: comment.author.__typename })
   );
 }
 
@@ -85,6 +110,47 @@ function pendingReply(
   };
 }
 
+async function fetchBatch(
+  token: string,
+  ids: string[],
+  signal: AbortSignal
+): Promise<ValidReplyResponse> {
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetchWithTimeout(
+      'https://api.github.com/graphql',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, variables: { ids } }),
+      },
+      signal,
+      REQUEST_TIMEOUT_MS
+    );
+    // GitHub's GraphQL endpoint returns transient 5xx responses under load; retry briefly.
+    if (response.status >= 500 && attempt < TRANSIENT_RETRIES && !signal.aborted) {
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt));
+      continue;
+    }
+    if (!response.ok) {
+      throw new GitHubReplyError(
+        `GitHub could not load comments (HTTP ${response.status}). Try refreshing later.`,
+        response.status
+      );
+    }
+    const payload: ReplyResponse = await response.json();
+    if (!payload.data?.viewer?.login || !Array.isArray(payload.data.nodes)) {
+      throw new GitHubReplyError(
+        'GitHub could not load the reply queue. Other work is still available.'
+      );
+    }
+    return { data: payload.data, errors: payload.errors };
+  }
+}
+
 export async function fetchAwaitingReplies({
   token,
   items,
@@ -98,31 +164,28 @@ export async function fetchAwaitingReplies({
   let incomplete = items.some((item) => !item.nodeId);
   const candidates = items.filter((item) => item.nodeId);
   // Small batches keep nested review-thread queries below GitHub's node limits.
-  for (let offset = 0; offset < candidates.length; offset += 5) {
-    const batch = candidates.slice(offset, offset + 5);
-    const response = await fetch('https://api.github.com/graphql', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query, variables: { ids: batch.map((item) => item.nodeId) } }),
-      signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
-    });
-    if (!response.ok) {
-      throw new Error(
-        `GitHub could not load comments (HTTP ${response.status}). Try refreshing later.`
-      );
-    }
-    const payload: ReplyResponse = await response.json();
-    if (!payload.data?.viewer?.login || !Array.isArray(payload.data.nodes)) {
-      throw new Error('GitHub could not load the reply queue. Other work is still available.');
-    }
-    incomplete ||= !!payload.errors?.length;
-    const viewer = payload.data.viewer.login.toLowerCase();
-    for (const item of batch) {
-      const node = payload.data.nodes.find((node) => node?.id === item.nodeId);
+  const batches: GitHubWorkItem[][] = [];
+  for (let offset = 0; offset < candidates.length; offset += BATCH_SIZE) {
+    batches.push(candidates.slice(offset, offset + BATCH_SIZE));
+  }
+  // The shared limiter bounds concurrency and retries GitHub rate-limit responses.
+  const payloads = await Promise.all(
+    batches.map((batch) =>
+      graphqlRateLimiter.enqueue(() =>
+        fetchBatch(
+          token,
+          batch.map((item) => item.nodeId as string),
+          signal
+        )
+      )
+    )
+  );
+  // Walk batches in search order so newest activity stays first whatever finished first.
+  for (const [index, { data, errors }] of payloads.entries()) {
+    incomplete ||= !!errors?.length;
+    const viewer = data.viewer.login.toLowerCase();
+    for (const item of batches[index]) {
+      const node = data.nodes.find((node) => node?.id === item.nodeId);
       if (!node?.comments || !node.assignees) {
         incomplete = true;
         continue;

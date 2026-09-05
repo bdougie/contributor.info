@@ -4,8 +4,16 @@
 
 The workspace overview now renders `GitHubMyWorkCard` using the GitHub provider token
 from the existing Supabase sign-in session. No separate GitHub connection is required.
-`use-github-workspace-work.ts` keeps personal work in a component-owned, non-persisted
-query cache, scoped by account, session, workspace, and selected repositories.
+`use-github-workspace-work.ts` runs its queries on the application's shared query
+client so focus and reconnect refetching work, but marks them ephemeral so personal
+work never enters the persisted offline cache. Queries are scoped by account, session,
+workspace, and selected repositories.
+
+GitHub rejects a whole search when any `repo:` qualifier names a repository the sign-in
+cannot see (private, renamed, or deleted). The fetcher narrows the scope until the
+readable repositories load and the card names the repositories it could not search.
+Requests use a plain `AbortController` for timeouts so older Safari and Firefox
+releases without `AbortSignal.any` still work.
 
 Four independent GitHub API queries show your open PRs, review requests (including
 teams), assigned issues, and **Awaiting your reply**. Repository owner logos use the
@@ -34,6 +42,9 @@ temporarily hide recent activity.
 
 To bound API cost, the reply category inspects up to 100 candidate items, 50 review
 threads per PR, and the latest 50 comments per conversation, in batches of five items.
+Batches run concurrently through the shared GraphQL rate limiter, and a transient 5xx
+response is retried before the category is reported as failed. Bot detection uses the
+shared `bot-detection.ts` rules, so `-bot` logins are excluded as well as `[bot]` apps.
 Truncated history or partial GraphQL results display an incomplete-results notice;
 narrowing the repository selection reduces the candidate set. Large individual
 conversations may still exceed these limits. The other work categories paginate

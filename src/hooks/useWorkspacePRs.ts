@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { syncPullRequestReviewers } from '@/lib/sync-pr-reviewers';
+import { syncPullRequestReviewersWithStatus } from '@/lib/sync-pr-reviewers';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
+import { summarizeFreshness } from '@/lib/workspace/sync-freshness';
 import type { Repository } from '@/components/features/workspace';
 
 interface UseWorkspacePRsOptions {
@@ -121,20 +122,7 @@ const checkStaleness = async (repoIds: string[], maxStaleMinutes: number) => {
 
   if (error) throw new Error(`Failed to check PR freshness: ${error.message}`);
 
-  const reposWithData = new Set(data?.map((pr) => pr.repository_id) || []);
-  const missingRepos = repoIds.filter((id) => !reposWithData.has(id));
-
-  if (missingRepos.length > 0 || !data || data.length === 0) {
-    return { needsSync: true, oldestSync: null };
-  }
-
-  const oldestSync = new Date(data[0].last_synced_at);
-  const minutesSinceSync = (Date.now() - oldestSync.getTime()) / (1000 * 60);
-
-  return {
-    needsSync: minutesSinceSync > maxStaleMinutes,
-    oldestSync,
-  };
+  return summarizeFreshness(repoIds, data || [], maxStaleMinutes);
 };
 
 const fetchFromDatabase = async (repoIds: string[]) => {
@@ -317,13 +305,27 @@ export function useWorkspacePRs({
       }
 
       const dbPRs = await fetchFromDatabase(repoIds);
-      const { needsSync, oldestSync } = await checkStaleness(repoIds, maxStaleMinutes);
       const cached = {
         prs: dbPRs.map(transformPR),
-        lastSynced: oldestSync,
-        isStale: needsSync,
+        lastSynced: null as Date | null,
+        isStale: true,
         syncError: null as string | null,
       };
+
+      let needsSync: boolean;
+      try {
+        const freshness = await checkStaleness(repoIds, maxStaleMinutes);
+        cached.lastSynced = freshness.oldestSync;
+        cached.isStale = freshness.needsSync;
+        needsSync = freshness.needsSync;
+      } catch (e) {
+        // Saved PRs are still worth showing when only the freshness lookup failed.
+        console.error('PR freshness check failed, showing saved data', e);
+        if (!manualSync) {
+          return { ...cached, syncError: 'Could not check PR freshness. Showing saved PRs.' };
+        }
+        needsSync = true;
+      }
 
       // Publish the cache before waiting on slower GitHub requests.
       queryClient.setQueryData(queryKey, cached);
@@ -332,7 +334,7 @@ export function useWorkspacePRs({
         try {
           const results = await Promise.allSettled(
             filteredRepos.map((repo) =>
-              syncPullRequestReviewers(repo.owner, repo.name, workspaceId, {
+              syncPullRequestReviewersWithStatus(repo.owner, repo.name, workspaceId, {
                 includeClosedPRs: true,
                 maxClosedDays: 30,
                 updateDatabase: true,
@@ -340,8 +342,25 @@ export function useWorkspacePRs({
             )
           );
           const refreshedPRs = await fetchFromDatabase(repoIds);
-          const freshness = await checkStaleness(repoIds, maxStaleMinutes);
           const failed = results.some((result) => result.status === 'rejected');
+          const persisted = results.every(
+            (result) => result.status === 'fulfilled' && result.value.persisted
+          );
+          if (persisted) {
+            // Every repository was stored just now, including any with no PRs to keep.
+            return {
+              prs: refreshedPRs.map(transformPR),
+              lastSynced: new Date(),
+              isStale: false,
+              syncError: null,
+            };
+          }
+          // A fallback fetch returned PRs without storing them; the snapshot is only as
+          // fresh as the rows on disk.
+          const freshness = await checkStaleness(repoIds, maxStaleMinutes).catch(() => ({
+            needsSync: true,
+            oldestSync: cached.lastSynced,
+          }));
           return {
             prs: refreshedPRs.map(transformPR),
             lastSynced: freshness.oldestSync,

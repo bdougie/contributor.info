@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { env } from '@/lib/env';
+import { getGitHubSession } from '@/lib/auth/github-session';
 import { syncWorkspaceIssuesForRepositories } from '@/lib/sync-workspace-issues';
+import { summarizeFreshness } from '@/lib/workspace/sync-freshness';
 import { executeWithRateLimit, graphqlRateLimiter } from '@/lib/rate-limiter';
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { Repository } from '@/components/features/workspace';
@@ -33,7 +35,10 @@ interface UseWorkspaceIssuesResult {
   issues: Issue[];
   loading: boolean;
   isSyncing: boolean;
+  /** Saved issues could not be loaded at all. */
   error: string | null;
+  /** The GitHub refresh failed or only partly succeeded; saved issues are still available. */
+  syncError: string | null;
   lastSynced: Date | null;
   isStale: boolean;
   refresh: () => Promise<void>;
@@ -325,6 +330,7 @@ export function useWorkspaceIssues({
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [isStale, setIsStale] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -335,6 +341,7 @@ export function useWorkspaceIssues({
     loading?: boolean;
     isSyncing?: boolean;
     error?: string | null;
+    syncError?: string | null;
     lastSynced?: Date | null;
     isStale?: boolean;
   }
@@ -362,6 +369,7 @@ export function useWorkspaceIssues({
     if (pending.loading !== undefined) setLoading(pending.loading);
     if (pending.isSyncing !== undefined) setIsSyncing(pending.isSyncing);
     if (pending.error !== undefined) setError(pending.error);
+    if (pending.syncError !== undefined) setSyncError(pending.syncError);
     if (pending.lastSynced !== undefined) setLastSynced(pending.lastSynced);
     if (pending.isStale !== undefined) setIsStale(pending.isStale);
   }, []);
@@ -401,26 +409,16 @@ export function useWorkspaceIssues({
       if (repoIds.length === 0) return { needsSync: false, oldestSync: null };
 
       const supabase = await getSupabase();
-      const { data } = await supabase
+      const { data, error: freshnessError } = await supabase
         .from('issues')
         .select('last_synced_at, repository_id')
         .in('repository_id', repoIds)
         .order('last_synced_at', { ascending: true });
 
-      const reposWithData = new Set(data?.map((issue) => issue.repository_id) || []);
-      const missingRepos = repoIds.filter((id) => !reposWithData.has(id));
-
-      if (missingRepos.length > 0 || !data || data.length === 0) {
-        return { needsSync: true, oldestSync: null };
+      if (freshnessError) {
+        throw new Error(`Failed to check issue freshness: ${freshnessError.message}`);
       }
-
-      const oldestSync = new Date(data[0].last_synced_at);
-      const minutesSinceSync = (Date.now() - oldestSync.getTime()) / (1000 * 60);
-
-      return {
-        needsSync: minutesSinceSync > maxStaleMinutes,
-        oldestSync,
-      };
+      return summarizeFreshness(repoIds, data || [], maxStaleMinutes);
     },
     [maxStaleMinutes]
   );
@@ -546,13 +544,17 @@ export function useWorkspaceIssues({
   // Background sync function - runs without blocking UI
   const backgroundSync = useCallback(
     async (repoIds: string[], forceSync = false) => {
-      // Abort any in-flight sync
+      // Abort any in-flight sync. Keep a local handle so a superseded run can
+      // never write its outcome over a newer one.
       abortControllerRef.current?.abort();
-      abortControllerRef.current = new AbortController();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const superseded = () => controller.signal.aborted;
 
       try {
         // Check staleness
         const { needsSync, oldestSync } = await checkStaleness(repoIds);
+        if (superseded()) return;
         queueStateUpdate({ lastSynced: oldestSync, isStale: needsSync });
 
         // Only sync if needed (or forced)
@@ -567,21 +569,20 @@ export function useWorkspaceIssues({
         queueStateUpdate({ isSyncing: true });
         flushImmediately();
 
-        // Get GitHub token
-        const supabase = await getSupabase();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // Reuse the retained GitHub authorization; a plain getSession() read can
+        // lose provider_token right after the SDK refreshes the JWT.
+        const session = await getGitHubSession();
+        if (superseded()) return;
         const githubToken = session?.provider_token || env.GITHUB_TOKEN;
 
         if (!githubToken) {
-          throw new Error('Sign in with GitHub again to refresh issues. Showing saved issues.');
+          throw new Error('Sign in with GitHub again to refresh issues.');
         }
 
         const filteredRepos = getFilteredRepos();
 
-        // Sync issue data from GitHub
-        await syncWorkspaceIssuesForRepositories(
+        // Sync issue data from GitHub; repositories that fail keep their saved issues.
+        const outcome = await syncWorkspaceIssuesForRepositories(
           filteredRepos.map((repo) => ({
             id: repo.id,
             owner: repo.owner,
@@ -589,13 +590,11 @@ export function useWorkspaceIssues({
           })),
           githubToken
         );
+        if (superseded()) return;
 
-        // Sync linked PRs for each repository
-        for (const repo of filteredRepos) {
-          // Check if aborted
-          if (abortControllerRef.current?.signal.aborted) {
-            return;
-          }
+        // Sync linked PRs for each repository that refreshed
+        for (const repo of outcome.synced) {
+          if (superseded()) return;
           try {
             await syncLinkedPRsForRepository(repo.owner, repo.name, githubToken, repo.id);
           } catch (err) {
@@ -603,35 +602,54 @@ export function useWorkspaceIssues({
           }
         }
 
-        // Check if aborted before updating state
-        if (abortControllerRef.current?.signal.aborted) {
-          return;
-        }
+        if (superseded()) return;
 
         // Re-fetch from database with fresh data
         const dbIssues = await fetchFromDatabase(repoIds);
+        if (superseded()) return;
         const transformedIssues = dbIssues.map(transformIssue);
-        const freshness = await checkStaleness(repoIds);
 
+        if (outcome.failed.length === 0) {
+          // Every repository was stored just now, including any with no issues to keep.
+          queueStateUpdate({
+            issues: transformedIssues,
+            lastSynced: new Date(),
+            isStale: false,
+            syncError: null,
+          });
+          return;
+        }
+
+        const names = outcome.failed.map(
+          ({ repository }) => `${repository.owner}/${repository.name}`
+        );
+        const freshness = await checkStaleness(repoIds).catch(() => ({
+          needsSync: true,
+          oldestSync,
+        }));
+        if (superseded()) return;
         queueStateUpdate({
           issues: transformedIssues,
           lastSynced: freshness.oldestSync,
-          isStale: freshness.needsSync,
-          error: null,
+          isStale: true,
+          syncError: `Could not refresh ${names.join(', ')}. Showing saved issues.`,
         });
       } catch (err) {
-        // Don't log abort errors
-        if (err instanceof Error && err.name === 'AbortError') {
+        // Don't log abort errors or report outcomes from a superseded run
+        if (superseded() || (err instanceof Error && err.name === 'AbortError')) {
           return;
         }
         console.error('Background sync failed:', err);
         queueStateUpdate({
           isStale: true,
-          error: err instanceof Error ? err.message : 'Issue refresh failed. Showing saved issues.',
+          syncError:
+            err instanceof Error ? err.message : 'Issue refresh failed. Showing saved issues.',
         });
       } finally {
-        queueStateUpdate({ isSyncing: false });
-        flushImmediately();
+        if (!superseded()) {
+          queueStateUpdate({ isSyncing: false });
+          flushImmediately();
+        }
       }
     },
     [
@@ -655,7 +673,7 @@ export function useWorkspaceIssues({
       }
 
       try {
-        queueStateUpdate({ loading: true, error: null });
+        queueStateUpdate({ loading: true, error: null, syncError: null });
         flushImmediately();
 
         const repoIds = getFilteredRepoIds();
@@ -733,6 +751,7 @@ export function useWorkspaceIssues({
     loading,
     isSyncing,
     error,
+    syncError,
     lastSynced,
     isStale,
     refresh,

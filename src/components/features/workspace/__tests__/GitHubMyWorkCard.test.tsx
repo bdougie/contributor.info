@@ -39,6 +39,7 @@ const state = () => ({
   refreshing: false,
   errors: [],
   incomplete: false,
+  unavailableRepositories: [],
   hasCachedResults: false,
   refresh: mocks.refresh,
 });
@@ -109,21 +110,20 @@ describe('GitHub My Work', () => {
     renderCard();
     expect(screen.getAllByRole('link')[0]).toHaveTextContent('Remove transcripts command');
   });
-  it('shows the repository owner logo with an accessible label', () => {
+  it('shows the repository owner logo with an accessible label and the shared fallback', () => {
     renderCard();
-    expect(screen.getAllByRole('img', { name: 'papercomputeco logo' })[0]).toHaveAttribute(
-      'src',
-      'https://avatars.githubusercontent.com/papercomputeco'
-    );
+    const logo = screen.getAllByRole('img', { name: 'papercomputeco logo' })[0];
+    expect(logo).toHaveAttribute('src');
+    expect(logo.getAttribute('src')).not.toContain('avatars.githubusercontent.com');
   });
 
-  it('prefers the workspace repository avatar when provided', () => {
+  it('prefers the workspace repository avatar, matching names case-insensitively', () => {
     render(
       <GitHubMyWorkCard
         workspaceId="workspace"
         repositories={['papercomputeco/tapes']}
         repositoryAvatars={{
-          'papercomputeco/tapes': 'https://avatars.githubusercontent.com/u/123',
+          'PaperComputeCo/Tapes': 'https://avatars.githubusercontent.com/u/123',
         }}
       />
     );
@@ -132,6 +132,16 @@ describe('GitHub My Work', () => {
       'src',
       'https://avatars.githubusercontent.com/u/123'
     );
+  });
+
+  it('names repositories GitHub refused to search while showing the rest', () => {
+    mocks.work.mockReturnValue({
+      ...state(),
+      unavailableRepositories: ['papercomputeco/private'],
+    });
+    renderCard();
+    expect(screen.getByRole('status')).toHaveTextContent('papercomputeco/private');
+    expect(screen.getByRole('button', { name: /^All work/ })).toHaveTextContent('2');
   });
 
   it('shows pending comment previews and links separately from the PR', () => {

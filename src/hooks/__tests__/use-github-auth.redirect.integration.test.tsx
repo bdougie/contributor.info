@@ -63,12 +63,29 @@ describe('GitHub OAuth workspace return paths', () => {
     );
     mocks.safeGetSession.mockImplementationOnce(async () => {
       expect(window.location.hash).toContain('provider_token=test-github');
-      window.history.replaceState({}, '', `/login${search}`);
       return { session: { user: { id: 'auth-user' }, provider_token: 'test-github' }, error: null };
     });
     const { result } = renderHook(() => useGitHubAuth());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(mocks.setSession).not.toHaveBeenCalled();
+    expect(window.location.hash).toBe('');
+    expect(window.location.href.endsWith('#')).toBe(false);
+    expect(window.location.search).toBe(search);
+  });
+
+  it('removes callback tokens from the URL even when the session lookup fails', async () => {
+    const search = `?${new URLSearchParams({ redirectTo: '/workspaces/new' })}`;
+    window.history.replaceState(
+      {},
+      '',
+      `/login${search}#access_token=test-access&refresh_token=test-refresh&provider_token=test-github`
+    );
+    mocks.safeGetSession.mockResolvedValueOnce({
+      session: null,
+      error: new Error('Invalid token'),
+    });
+    const { result } = renderHook(() => useGitHubAuth());
+    await waitFor(() => expect(result.current.loading).toBe(false));
     expect(window.location.hash).toBe('');
     expect(window.location.search).toBe(search);
   });

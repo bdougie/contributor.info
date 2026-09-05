@@ -48,8 +48,6 @@ export interface WorkspaceDashboardProps {
   myWorkCurrentPage?: number;
   myWorkItemsPerPage?: number;
   myWorkLoading?: boolean;
-  myWorkError?: string | null;
-  activityUrls?: { prs: string; issues: string };
   myWorkSelectedTypes?: Array<'pr' | 'issue' | 'discussion'>;
   myWorkActiveTab?: 'needs_response' | 'follow_ups' | 'replies';
   onMyWorkPageChange?: (page: number) => void;
@@ -104,8 +102,6 @@ export function WorkspaceDashboard({
   myWorkCurrentPage = 1,
   myWorkItemsPerPage = 10,
   myWorkLoading = false,
-  myWorkError,
-  activityUrls,
   myWorkSelectedTypes = ['pr', 'issue', 'discussion'],
   myWorkActiveTab = 'needs_response',
   onMyWorkPageChange,
@@ -279,8 +275,6 @@ export function WorkspaceDashboard({
           currentPage={myWorkCurrentPage}
           itemsPerPage={myWorkItemsPerPage}
           loading={myWorkLoading}
-          error={myWorkError}
-          activityUrls={activityUrls}
           selectedTypes={myWorkSelectedTypes}
           activeTab={myWorkActiveTab}
           onPageChange={onMyWorkPageChange}

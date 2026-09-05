@@ -26,7 +26,6 @@ import { sanitizeText, sanitizeURL } from '@/lib/sanitize';
 import { WorkspaceSubTabs } from '@/components/features/workspace/components/WorkspaceSubTabs';
 import { useToast } from '@/hooks/use-toast';
 import { SyncStatusErrorBoundary } from './components/SyncStatusErrorBoundary';
-import { Link } from 'react-router';
 
 export interface MyWorkItem {
   id: string;
@@ -72,8 +71,6 @@ export interface MyWorkCardProps {
   items: MyWorkItem[];
   stats?: MyWorkStats;
   loading?: boolean;
-  error?: string | null;
-  activityUrls?: { prs: string; issues: string };
   className?: string;
   totalCount?: number;
   tabCounts?: { needsResponse: number; followUps: number; replies: number };
@@ -329,8 +326,6 @@ const MyWorkItemComponent = memo(function MyWorkItemComponent({
 export function MyWorkCard({
   items,
   loading = false,
-  error,
-  activityUrls,
   className,
   totalCount = 0,
   tabCounts,
@@ -418,21 +413,8 @@ export function MyWorkCard({
   const followUpsCount = tabCounts?.followUps ?? 0;
   const repliesCount = tabCounts?.replies ?? 0;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
-  const queueDescription = (
-    <>
-      Your review requests, assigned issues, and workspace discussions. Not all repository activity.
-      {activityUrls && (
-        <span className="flex gap-4 mt-2">
-          <Link className="underline underline-offset-4" to={activityUrls.prs}>
-            All pull requests
-          </Link>
-          <Link className="underline underline-offset-4" to={activityUrls.issues}>
-            All issues
-          </Link>
-        </span>
-      )}
-    </>
-  );
+  const queueDescription =
+    'Your review requests, assigned issues, and workspace discussions. Not all repository activity.';
   if (loading) {
     return (
       <Card className={cn('transition-all', className)}>
@@ -528,9 +510,7 @@ export function MyWorkCard({
         <CardContent>
           <div className="text-center py-8">
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-            <p role={error ? 'alert' : undefined} className="text-sm text-muted-foreground">
-              {error || 'No items in this personal queue'}
-            </p>
+            <p className="text-sm text-muted-foreground">No items in this personal queue</p>
             <p className="text-xs text-muted-foreground mt-1">
               Use the Pull Requests and Issues tabs to see repository activity.
             </p>
@@ -547,11 +527,6 @@ export function MyWorkCard({
         <CardDescription>{queueDescription}</CardDescription>
       </CardHeader>
       <CardContent>
-        {error && (
-          <p role="alert" className="mb-3 text-sm text-destructive">
-            {error}
-          </p>
-        )}
         {/* Type Filters */}
         <div className="flex flex-wrap gap-4 mb-4 pb-4 border-b">
           <div className="flex items-center space-x-2">

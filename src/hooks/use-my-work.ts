@@ -108,8 +108,7 @@ export function useMyWork(
   workspaceId?: string,
   page = 1,
   itemsPerPage = 10,
-  filters?: MyWorkFilters,
-  enabled = true
+  filters?: MyWorkFilters
 ) {
   const { user } = useCurrentUser();
   const [items, setItems] = useState<MyWorkItem[]>([]);
@@ -133,7 +132,7 @@ export function useMyWork(
       setTotalCount(0);
       setTabCounts({ needsResponse: 0, followUps: 0, replies: 0 });
       setError(null);
-      if (!enabled || !user?.user_metadata?.user_name) {
+      if (!user?.user_metadata?.user_name) {
         setLoading(false);
         return;
       }
@@ -856,7 +855,6 @@ export function useMyWork(
     refreshTrigger,
     filters?.selectedTypes,
     filters?.activeTab,
-    enabled,
   ]);
 
   const refresh = () => {

@@ -56,8 +56,61 @@ describe('GitHub personal work queries', () => {
     expect(await fetchGitHubWorkCategory({ ...options(), repositories: [] })).toEqual({
       items: [],
       incomplete: false,
+      unavailableRepositories: [],
     });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('narrows the search to readable repositories when GitHub rejects one qualifier', async () => {
+    const readable = 'is:open is:pr review-requested:@me repo:papercomputeco/stereOS';
+    const fetchMock = vi.fn().mockImplementation(async (url: string) => {
+      const q = new URL(url).searchParams.get('q') || '';
+      if (q.includes('repo:papercomputeco/private')) {
+        return Response.json(
+          { message: 'The listed repositories cannot be searched' },
+          { status: 422 }
+        );
+      }
+      return Response.json({ total_count: 1, incomplete_results: false, items: [source] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const result = await fetchGitHubWorkCategory({
+      ...options(),
+      repositories: ['papercomputeco/stereOS', 'papercomputeco/private', 'papercomputeco/tapes'],
+    });
+    expect(result.items).toHaveLength(1);
+    expect(result.unavailableRepositories).toEqual(['papercomputeco/private']);
+    const queries = fetchMock.mock.calls.map((call) => new URL(call[0]).searchParams.get('q'));
+    expect(queries).toContain(readable);
+    expect(queries).toContain('is:open is:pr review-requested:@me repo:papercomputeco/tapes');
+  });
+
+  it('works without AbortSignal.any or AbortSignal.timeout', async () => {
+    vi.stubGlobal('AbortSignal', { ...AbortSignal, any: undefined, timeout: undefined });
+    const fetchMock = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      expect(init.signal?.aborted).toBe(false);
+      return Response.json({ total_count: 1, incomplete_results: false, items: [source] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await fetchGitHubWorkCategory(options())).items).toHaveLength(1);
+  });
+
+  it('aborts the request when the caller aborts', async () => {
+    const controller = new AbortController();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            init.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError'))
+            );
+          })
+      )
+    );
+    const pending = fetchGitHubWorkCategory({ ...options(), signal: controller.signal });
+    controller.abort();
+    await expect(pending).rejects.toThrow('Aborted');
   });
 
   it('rejects query injection in repository names', () => {

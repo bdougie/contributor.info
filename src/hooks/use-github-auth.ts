@@ -5,6 +5,15 @@ import { getAuthRedirectURL } from '@/lib/auth/auth-utils';
 import { safeGetSession } from '@/lib/auth/safe-auth';
 import { getLoginReturnPath } from '@/lib/auth/login-redirect';
 
+/** Remove OAuth token fragments from the current URL without touching the path or query. */
+function clearOAuthCallbackHash() {
+  if (typeof window === 'undefined' || !window.history || !window.location) return;
+  const { hash, href, pathname, search } = window.location;
+  const hasTokens = /(?:^|[#&])(?:access_token|refresh_token|provider_token)=/.test(hash);
+  if (!hasTokens && !href.endsWith('#')) return;
+  window.history.replaceState(window.history.state, document.title, pathname + search);
+}
+
 /**
  * Hook for managing GitHub authentication state and actions
  */
@@ -46,6 +55,10 @@ export function useGitHubAuth() {
         // Handle session check error gracefully
         console.error('Session check error:', sessionError);
       }
+      // Supabase only clears the fragment after a successful user lookup, and does so with
+      // a hash assignment that leaves a history entry. Drop the tokens from the address bar
+      // and history regardless of the outcome, keeping the encoded return path intact.
+      clearOAuthCallbackHash();
       const isAuthenticated = !!session;
       if (isMounted) {
         setIsLoggedIn(isAuthenticated);

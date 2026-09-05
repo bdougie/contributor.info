@@ -41,9 +41,7 @@ import type {
 } from '@/components/features/workspace';
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
 import { WorkspaceService } from '@/services/workspace.service';
-import { useMyWork } from '@/hooks/use-my-work';
 import { GitHubMyWorkCard } from '@/components/features/workspace/GitHubMyWorkCard';
-import type { MyWorkItem } from '@/components/features/workspace/MyWorkCard';
 import type { WorkspaceActivityTabProps as WorkspaceActivityProps } from '@/components/features/workspace/WorkspaceActivityTab';
 import { fetchGitHubUserProfile } from '@/services/github-profile';
 import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
@@ -183,40 +181,6 @@ function WorkspacePage() {
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
-  // My Work filter and pagination state
-  const [myWorkPage, setMyWorkPage] = useState(1);
-  const [myWorkItemsPerPage] = useState(10);
-  const [myWorkSelectedTypes, setMyWorkSelectedTypes] = useState<
-    Array<'pr' | 'issue' | 'discussion'>
-  >(['pr', 'issue', 'discussion']);
-  const [myWorkActiveTab, setMyWorkActiveTab] = useState<
-    'needs_response' | 'follow_ups' | 'replies'
-  >('needs_response');
-
-  // Memoize filter object to prevent unnecessary re-renders
-  const myWorkFilters = useMemo(
-    () => ({
-      selectedTypes: myWorkSelectedTypes,
-      activeTab: myWorkActiveTab,
-    }),
-    [myWorkSelectedTypes, myWorkActiveTab]
-  );
-
-  // Keep legacy response helpers for the other tabs, but do not fetch the stored
-  // personal queue. The overview uses the GitHub-backed card below instead.
-  const {
-    items: myWorkItems,
-    totalCount: myWorkTotalCount,
-    tabCounts: myWorkTabCounts,
-    loading: myWorkLoading,
-    error: myWorkError,
-    refresh: refreshMyWork,
-    optimisticallyRemoveItem,
-    restoreItem,
-    syncComments,
-    isSyncingComments,
-    commentSyncStatus,
-  } = useMyWork(workspace?.id, myWorkPage, myWorkItemsPerPage, myWorkFilters, false);
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
   const [fullReviewData, setFullReviewData] = useState<WorkspaceActivityProps['reviewData']>([]);
@@ -1578,84 +1542,6 @@ function WorkspacePage() {
     }
   };
 
-  const handleDirectMarkAsResponded = async (item: MyWorkItem) => {
-    if (!workspace?.id) {
-      return;
-    }
-
-    // Optimistically remove the item immediately for instant UI feedback
-    optimisticallyRemoveItem(item.id, item.itemType);
-
-    try {
-      const supabase = await getSupabase();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast.error('You must be logged in to mark items as responded.');
-        // Restore the item since we couldn't complete the action
-        restoreItem(item.id);
-        return;
-      }
-
-      // Determine the table name based on item type
-      let tableName: 'issues' | 'discussions' | 'pull_requests';
-      if (item.type === 'issue') {
-        tableName = 'issues';
-      } else if (item.type === 'discussion') {
-        tableName = 'discussions';
-      } else {
-        tableName = 'pull_requests';
-      }
-
-      // Extract the actual database ID by removing the prefix
-      // MyWorkItem IDs have format: "issue-{id}", "discussion-{id}", or "follow-up-pr-{id}", etc.
-      const actualId = item.id.replace(
-        /^(issue-|discussion-|review-pr-|follow-up-pr-|follow-up-issue-|follow-up-discussion-|my-comment-|my-discussion-comment-)/,
-        ''
-      );
-
-      // Update the item with responded_by and responded_at
-      const { error } = await supabase
-        .from(tableName)
-        .update({
-          responded_by: user.id,
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', actualId);
-
-      if (error) {
-        logger.error('Error marking item as responded: %s', error.message);
-        toast.error(`Failed to mark as responded: ${error.message}`);
-        // Restore the item since the database update failed
-        restoreItem(item.id);
-        return;
-      }
-
-      let itemTypeLabel: string;
-      if (item.type === 'issue') {
-        itemTypeLabel = 'Issue';
-      } else if (item.type === 'discussion') {
-        itemTypeLabel = 'Discussion';
-      } else {
-        itemTypeLabel = 'PR';
-      }
-
-      toast.success(`${itemTypeLabel} #${item.number} marked as responded.`);
-
-      // Don't call refreshMyWork() here - the optimistic UI already shows the correct state
-      // Data will sync naturally on next tab change, pagination, or page reload
-      // This prevents the whole list from flickering/disappearing during refresh
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Error marking item as responded: %s', errorMessage);
-      toast.error(`Failed to mark as responded: ${errorMessage}`);
-      // Restore the item since the operation failed
-      restoreItem(item.id);
-    }
-  };
-
   const handleWorkspaceUpdate = (updates: Partial<Workspace>) => {
     if (workspace) {
       setWorkspace((prev) => (prev ? { ...prev, ...updates } : prev));
@@ -1779,8 +1665,6 @@ function WorkspacePage() {
               onItemMarkedAsResponded: () => {
                 // Clear the current item when modal closes
                 setCurrentRespondItem(null);
-                // Refresh My Work data to remove the responded item from the list
-                refreshMyWork();
               },
             }}
           />
@@ -1807,10 +1691,8 @@ function WorkspacePage() {
                 trendData={trendData}
                 activityData={activityData}
                 repositories={repositories}
-                myWorkItems={myWorkItems}
                 myWorkContent={
                   <GitHubMyWorkCard
-                    key={`${workspace.id}:${selectedRepositories.slice().sort().join(',')}`}
                     workspaceId={workspace.id}
                     repositoryAvatars={Object.fromEntries(
                       repositories.map((repo) => [repo.full_name, repo.avatar_url])
@@ -1824,21 +1706,6 @@ function WorkspacePage() {
                       .map((repo) => repo.full_name)}
                   />
                 }
-                myWorkTotalCount={myWorkTotalCount}
-                myWorkTabCounts={myWorkTabCounts}
-                myWorkCurrentPage={myWorkPage}
-                myWorkItemsPerPage={myWorkItemsPerPage}
-                myWorkLoading={myWorkLoading}
-                myWorkError={myWorkError?.message}
-                activityUrls={{
-                  prs: `/i/${workspace.slug || workspace.id}/prs`,
-                  issues: `/i/${workspace.slug || workspace.id}/issues`,
-                }}
-                myWorkSelectedTypes={myWorkSelectedTypes}
-                myWorkActiveTab={myWorkActiveTab}
-                onMyWorkPageChange={setMyWorkPage}
-                onMyWorkTypesChange={setMyWorkSelectedTypes}
-                onMyWorkTabChange={setMyWorkActiveTab}
                 loading={metricsLoading}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
@@ -1848,89 +1715,6 @@ function WorkspacePage() {
                 onGitHubAppModalOpen={handleGitHubAppModalOpen}
                 onSettingsClick={handleSettingsClick}
                 onUpgradeClick={handleUpgradeClick}
-                onMyWorkItemClick={(item) => {
-                  // Open the URL in a new tab
-                  window.open(item.url, '_blank', 'noopener,noreferrer');
-                }}
-                onMyWorkItemRespond={async (item) => {
-                  // Debug logging for button visibility
-                  console.log('onMyWorkItemRespond called with:', {
-                    itemId: item.id,
-                    itemType: item.type,
-                    workspaceId: workspace.id,
-                  });
-
-                  // Set current item BEFORE opening modal
-                  setCurrentRespondItem({
-                    id: item.id,
-                    type: item.type,
-                    url: item.url,
-                    number: item.number,
-                    title: item.title,
-                    repository: item.repository,
-                  });
-
-                  setResponseModalOpen(true);
-                  setLoadingSimilarItems(true);
-
-                  try {
-                    // Check cache first
-                    const cacheKey = similarityCache.getCacheKey(workspace.id, item.id, item.type);
-                    const cachedItems = similarityCache.get(workspace.id, item.id, item.type);
-
-                    if (cachedItems) {
-                      // Use cached results
-                      setSimilarItems(cachedItems);
-                      const { generateResponseMessage } =
-                        await import('@/services/similarity-search');
-                      const message = generateResponseMessage(cachedItems);
-                      setResponseMessage(message);
-                      setLoadingSimilarItems(false);
-                      return;
-                    }
-
-                    // Perform debounced search if not cached
-                    const searchResult = await debouncedSearch(cacheKey, async () => {
-                      // Dynamically import similarity search to avoid loading ML models on page init
-                      const { findSimilarItems, generateResponseMessage } =
-                        await import('@/services/similarity-search');
-
-                      // Find similar items in the workspace
-                      const items = await findSimilarItems({
-                        workspaceId: workspace.id,
-                        queryItem: {
-                          id: item.id,
-                          title: item.title,
-                          body: null, // We don't have the body in MyWorkItem
-                          type: item.type,
-                        },
-                        limit: 7,
-                      });
-
-                      // Cache the results
-                      similarityCache.set(workspace.id, item.id, item.type, items);
-
-                      return { items, message: generateResponseMessage(items) };
-                    });
-
-                    if (searchResult) {
-                      setSimilarItems(searchResult.items);
-                      setResponseMessage(searchResult.message);
-                    }
-                  } catch (error) {
-                    logger.error('Error finding similar items:', error);
-                    setSimilarItems([]);
-                    setResponseMessage(
-                      'Similarity search is not available yet. Embeddings need to be generated for this workspace.'
-                    );
-                  } finally {
-                    setLoadingSimilarItems(false);
-                  }
-                }}
-                onMyWorkItemMarkAsResponded={handleDirectMarkAsResponded}
-                onSyncComments={syncComments}
-                isSyncingComments={isSyncingComments}
-                commentSyncStatus={commentSyncStatus ?? undefined}
                 repoStatuses={appStatus.repoStatuses}
               />
             </div>
