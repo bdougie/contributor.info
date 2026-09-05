@@ -130,7 +130,10 @@ export function WorkspaceCreateModal({
         let response;
 
         if (mode === 'create') {
-          response = await WorkspaceService.createWorkspace(resolvedUserId, data);
+          response = await WorkspaceService.createWorkspace(
+            { appUserId: resolvedUserId, authUserId: user.id },
+            data
+          );
         } else {
           // workspaceId is guaranteed to be defined here due to the check above
           response = await WorkspaceService.updateWorkspace(workspaceId!, resolvedUserId, data);

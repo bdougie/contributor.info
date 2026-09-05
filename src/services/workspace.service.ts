@@ -97,7 +97,7 @@ export class WorkspaceService {
    * Create a new workspace
    */
   static async createWorkspace(
-    userId: string,
+    { appUserId, authUserId }: { appUserId: string; authUserId: string },
     data: CreateWorkspaceRequest
   ): Promise<ServiceResponse<Workspace>> {
     try {
@@ -117,12 +117,12 @@ export class WorkspaceService {
       const { count, error: countError } = await supabase
         .from('workspaces')
         .select('id', { count: 'exact', head: true })
-        .eq('owner_id', userId);
+        .eq('owner_id', appUserId);
 
       if (countError) {
         logError('Error checking workspace count', countError, {
           tags: { feature: 'workspace', operation: 'check_count' },
-          extra: { userId },
+          extra: { appUserId },
         });
         return {
           success: false,
@@ -133,20 +133,33 @@ export class WorkspaceService {
 
       // Get user's subscription to determine tier and limits
       // Include both 'active' and 'trialing' status to match subscription service pattern
-      const { data: subscription } = await supabase
+      // Billing references auth.users; workspace ownership references app_users.
+      const { data: subscription, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('tier, max_workspaces, max_repos_per_workspace')
-        .eq('user_id', userId)
+        .eq('user_id', authUserId)
         .in('status', ['active', 'trialing'])
         .maybeSingle();
+
+      if (subscriptionError) {
+        logError('Error checking workspace subscription', subscriptionError, {
+          tags: { feature: 'workspace', operation: 'check_subscription' },
+          extra: { authUserId },
+        });
+        return {
+          success: false,
+          error: 'Failed to check your subscription. Please try again.',
+          statusCode: 500,
+        };
+      }
 
       // Determine tier and get limits from central source
       const tier = (subscription?.tier || 'free') as WorkspaceTier;
       const tierLimits = WorkspacePermissionService.getTierLimits(tier);
 
       // Use subscription overrides if available, otherwise use tier defaults
-      const workspaceLimit = subscription?.max_workspaces || 1; // Default to 1 workspace for all tiers
-      const maxRepositories = subscription?.max_repos_per_workspace || tierLimits.maxRepositories;
+      const workspaceLimit = subscription?.max_workspaces ?? 1;
+      const maxRepositories = subscription?.max_repos_per_workspace ?? tierLimits.maxRepositories;
 
       // Define tier limits mapping for clarity
       const tierRetentionDays = {
@@ -185,7 +198,7 @@ export class WorkspaceService {
           name: data.name,
           slug: slugData,
           description: data.description || null,
-          owner_id: userId,
+          owner_id: appUserId,
           visibility: data.visibility || 'public',
           settings: data.settings || {},
           tier: tier,
@@ -219,7 +232,7 @@ export class WorkspaceService {
     } catch (error) {
       logError('Create workspace error', error, {
         tags: { feature: 'workspace', operation: 'create' },
-        extra: { workspaceName: data.name, ownerId: userId },
+        extra: { workspaceName: data.name, ownerId: appUserId },
       });
       return {
         success: false,
@@ -709,10 +722,18 @@ export class WorkspaceService {
         };
       }
 
-      const { count: actualRepoCount } = await supabase
+      const { count: actualRepoCount, error: countError } = await supabase
         .from('workspace_repositories')
         .select('*', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId);
+
+      if (countError || actualRepoCount === null) {
+        return {
+          success: false,
+          error: 'Failed to check workspace repository count. Please try again.',
+          statusCode: 500,
+        };
+      }
 
       if ((actualRepoCount ?? 0) >= workspace.max_repositories) {
         return {
@@ -899,10 +920,18 @@ export class WorkspaceService {
       }
 
       // Check the batch against the limit using actual row count
-      const { count: currentCount } = await supabase
+      const { count: currentCount, error: countError } = await supabase
         .from('workspace_repositories')
         .select('*', { count: 'exact', head: true })
         .eq('workspace_id', workspaceId);
+
+      if (countError || currentCount === null) {
+        return {
+          success: false,
+          error: 'Failed to check workspace repository count. Please try again.',
+          statusCode: 500,
+        };
+      }
 
       if ((currentCount ?? 0) + newIds.length > workspace.max_repositories) {
         const remaining = Math.max(0, workspace.max_repositories - (currentCount ?? 0));

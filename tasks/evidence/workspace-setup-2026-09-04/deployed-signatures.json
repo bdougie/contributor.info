@@ -1,0 +1,6 @@
+[
+  {
+    "asset": "https://contributor.info/js/workspace.service-Dbjc9zX2.js",
+    "subscriptionLookup": "from(\"subscriptions\").select(\"tier, max_workspaces, max_repos_per_workspace\").eq(\"user_id\",e).in(\"status\",[\"active\",\"trialing\"]).maybeSingle(),p=c?.tier||\"free\",a=R.getTierLimits(p),d=c?.max_workspaces||1,m=c?.max_repos_per_workspace||a.maxRepositorie"
+  }
+]
