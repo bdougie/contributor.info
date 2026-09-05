@@ -75,6 +75,28 @@ pub struct WorkspaceMetrics {
     pub calculated_at: Option<String>,
     #[serde(default)]
     pub is_stale: bool,
+    #[serde(default)]
+    pub recent_open_prs: Vec<RecentItem>,
+    #[serde(default)]
+    pub recent_open_issues: Vec<RecentItem>,
+}
+
+/// A clickable recent-item row (open PR or issue) in the tray dropdown,
+/// deep-linking to GitHub.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentItem {
+    #[serde(default)]
+    pub number: i64,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub author: Option<String>,
+    #[serde(default)]
+    pub repo: Option<String>,
+    #[serde(default)]
+    pub created_at: String,
 }
 
 impl Supabase {
@@ -166,5 +188,36 @@ mod tests {
         assert_eq!(m.pr_velocity, Some(0.8));
         assert_eq!(m.stars_trend, None);
         assert!(!m.is_stale);
+        // Older endpoint deploys omit the recent-item arrays entirely.
+        assert!(m.recent_open_prs.is_empty());
+        assert!(m.recent_open_issues.is_empty());
+    }
+
+    #[test]
+    fn deserializes_recent_items() {
+        let body = r#"{
+            "time_range":"7d",
+            "recent_open_prs":[{
+                "number":1824,"title":"Import an org's repos",
+                "url":"https://github.com/bdougie/contributor.info/pull/1824",
+                "author":"bdougie","repo":"bdougie/contributor.info",
+                "created_at":"2026-07-13T10:00:00Z"
+            }],
+            "recent_open_issues":[{
+                "number":900,"title":"Tray shows stale metrics",
+                "url":"https://github.com/bdougie/contributor.info/issues/900",
+                "author":null,"repo":null,"created_at":""
+            }]
+        }"#;
+        let m: WorkspaceMetrics = serde_json::from_str(body).expect("valid metrics JSON");
+        assert_eq!(m.recent_open_prs.len(), 1);
+        let pr = &m.recent_open_prs[0];
+        assert_eq!(pr.number, 1824);
+        assert_eq!(pr.title, "Import an org's repos");
+        assert_eq!(pr.url, "https://github.com/bdougie/contributor.info/pull/1824");
+        assert_eq!(pr.author.as_deref(), Some("bdougie"));
+        let issue = &m.recent_open_issues[0];
+        assert_eq!(issue.number, 900);
+        assert_eq!(issue.author, None);
     }
 }

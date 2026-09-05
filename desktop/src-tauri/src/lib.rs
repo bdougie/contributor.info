@@ -25,7 +25,7 @@ use tauri_plugin_opener::OpenerExt;
 
 use auth::Session;
 use settings::Settings;
-use supabase::{Supabase, WorkspaceMetrics};
+use supabase::{RecentItem, Supabase, WorkspaceMetrics};
 
 /// Site base for `/i/{slug}` links and the `api-workspace-metrics` endpoint.
 /// Overridable at build time to aim the app at a local `netlify dev`, a deploy
@@ -122,6 +122,51 @@ fn metric_lines(m: &WorkspaceMetrics) -> Vec<String> {
     lines
 }
 
+/// Menu rows stay readable: titles beyond `max_chars` are cut on a char
+/// boundary and end with an ellipsis.
+fn truncate_title(title: &str, max_chars: usize) -> String {
+    if title.chars().count() <= max_chars {
+        return title.to_string();
+    }
+    let mut out: String = title.chars().take(max_chars.saturating_sub(1)).collect();
+    out.push('\u{2026}');
+    out
+}
+
+fn recent_line(item: &RecentItem) -> String {
+    let title = truncate_title(&item.title, 50);
+    match item.author.as_deref() {
+        Some(author) => format!("#{} {title} \u{00B7} {author}", item.number),
+        None => format!("#{} {title}", item.number),
+    }
+}
+
+/// Appends a disabled `header` followed by one clickable row per item, each
+/// with an `open-url:{url}` id the tray click handler opens in the browser.
+/// Empty sections render nothing.
+fn append_recent_section(
+    app: &AppHandle,
+    sub: &Submenu<tauri::Wry>,
+    header: &str,
+    items: &[RecentItem],
+) -> tauri::Result<()> {
+    if items.is_empty() {
+        return Ok(());
+    }
+    sub.append(&PredefinedMenuItem::separator(app)?)?;
+    sub.append(&MenuItem::with_id(app, format!("hdr:{header}"), header, false, None::<&str>)?)?;
+    for item in items {
+        sub.append(&MenuItem::with_id(
+            app,
+            format!("open-url:{}", item.url),
+            recent_line(item),
+            true,
+            None::<&str>,
+        )?)?;
+    }
+    Ok(())
+}
+
 fn build_menu(app: &AppHandle, snapshot: &Snapshot) -> tauri::Result<Menu<tauri::Wry>> {
     let menu = Menu::new(app)?;
 
@@ -159,6 +204,8 @@ fn build_menu(app: &AppHandle, snapshot: &Snapshot) -> tauri::Result<Menu<tauri:
                     None::<&str>,
                 )?)?;
             }
+            append_recent_section(app, &sub, "Recent PRs", &m.recent_open_prs)?;
+            append_recent_section(app, &sub, "Recent Issues", &m.recent_open_issues)?;
         }
         menu.append(&sub)?;
     }
@@ -420,6 +467,12 @@ pub fn run() {
                         other => {
                             if let Some(slug) = other.strip_prefix("ws:") {
                                 let _ = app.opener().open_url(format!("{SITE}/i/{slug}"), None::<&str>);
+                            } else if let Some(url) = other.strip_prefix("open-url:") {
+                                // Recent PR/issue rows. The URL comes from our own
+                                // endpoint, but only ever open web links.
+                                if url.starts_with("https://") || url.starts_with("http://") {
+                                    let _ = app.opener().open_url(url, None::<&str>);
+                                }
                             }
                         }
                     }
@@ -445,4 +498,55 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::supabase::RecentItem;
+
+    fn item(number: i64, title: &str, author: Option<&str>) -> RecentItem {
+        RecentItem {
+            number,
+            title: title.into(),
+            url: "https://github.com/x/y/pull/1".into(),
+            author: author.map(Into::into),
+            repo: Some("x/y".into()),
+            created_at: String::new(),
+        }
+    }
+
+    #[test]
+    fn short_titles_pass_through_untruncated() {
+        assert_eq!(truncate_title("fix the tray", 50), "fix the tray");
+    }
+
+    #[test]
+    fn long_titles_truncate_to_max_chars_with_ellipsis() {
+        let long = "a".repeat(60);
+        let t = truncate_title(&long, 50);
+        assert_eq!(t.chars().count(), 50);
+        assert!(t.ends_with('\u{2026}'));
+    }
+
+    #[test]
+    fn truncation_is_multibyte_safe() {
+        let long = "\u{1F331}".repeat(60);
+        let t = truncate_title(&long, 50);
+        assert_eq!(t.chars().count(), 50);
+        assert!(t.ends_with('\u{2026}'));
+    }
+
+    #[test]
+    fn recent_rows_show_number_title_and_author() {
+        assert_eq!(
+            recent_line(&item(1824, "Import org repos", Some("bdougie"))),
+            "#1824 Import org repos \u{00B7} bdougie"
+        );
+    }
+
+    #[test]
+    fn recent_rows_omit_missing_author() {
+        assert_eq!(recent_line(&item(900, "Fix tray", None)), "#900 Fix tray");
+    }
 }
