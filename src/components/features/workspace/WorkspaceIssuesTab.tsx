@@ -129,15 +129,24 @@ export function WorkspaceIssuesTab({
   const navigate = useNavigate();
 
   // Use the new hook for automatic issue syncing and caching
-  const { issues, loading, isSyncing, error, syncError, lastSynced, isStale, refresh } =
-    useWorkspaceIssues({
-      repositories,
-      selectedRepositories,
-      workspaceId,
-      refreshInterval: 60, // Hourly refresh interval
-      maxStaleMinutes: 60, // Consider data stale after 60 minutes
-      autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
-    });
+  const {
+    issues,
+    loading,
+    isSyncing,
+    error,
+    syncError,
+    syncWarning,
+    lastSynced,
+    isStale,
+    refresh,
+  } = useWorkspaceIssues({
+    repositories,
+    selectedRepositories,
+    workspaceId,
+    refreshInterval: 60, // Hourly refresh interval
+    maxStaleMinutes: 60, // Consider data stale after 60 minutes
+    autoSyncOnMount: true, // Auto-sync enabled with hourly refresh
+  });
 
   // Log sync status for debugging
   useEffect(() => {
@@ -270,14 +279,21 @@ export function WorkspaceIssuesTab({
           </Button>
         </div>
       )}
+      {syncWarning && (
+        <p role="status" className="text-sm text-yellow-700 dark:text-yellow-500">
+          {syncWarning}
+        </p>
+      )}
       {/* Auto-sync indicator and action buttons at top */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <div className="flex flex-wrap items-center gap-3">
           <WorkspaceAutoSync
             workspaceId={workspaceId}
             workspaceSlug={workspace?.slug || 'workspace'}
             repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-            onSyncComplete={refresh}
+            onSyncRequested={refresh}
+            dataRefreshedAt={lastSynced}
+            dataStale={isStale}
             syncIntervalMinutes={60}
             className="text-sm text-muted-foreground"
           />
