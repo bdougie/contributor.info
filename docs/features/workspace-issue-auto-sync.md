@@ -17,26 +17,26 @@ This meant that users who assigned themselves to issues on GitHub would not see 
 
 ### Core Components
 
-#### 1. **Issue Data Sync Function** (`src/lib/sync-workspace-issues.ts`)
+#### 1. **Refresh Client and Edge Function**
 
-Fetches fresh issue data from GitHub REST API:
-- Retrieves assignee information
-- Updates labels and metadata
-- Captures comment counts
-- Handles pagination for large repositories
-- Rate limit aware (respects GitHub API limits)
+- `src/lib/workspace/github-issue-refresh.ts` (browser): asks the backend for a
+  refresh, overlays the returned rows on the saved rows, and turns per-repository
+  outcomes into readable messages. It performs no database writes.
+- `supabase/functions/workspace-issues-refresh` (backend): verifies the user JWT
+  and workspace membership, fetches recent issues from GitHub server-side, stores
+  them with the service role, and returns the fresh rows plus a per-repository
+  status (`refreshed`, `fetched_not_stored`, `failed` with stage and cause).
 
-```typescript
-// Key function: syncWorkspaceIssuesForRepositories
-// - Syncs multiple repos in parallel
-// - Updates database with latest data
-// - Logs success/failure for monitoring
-```
+The browser cannot upsert issue metadata: RLS reserves that for the service role.
 
 #### 2. **Enhanced Hook** (`src/hooks/useWorkspaceIssues.ts`)
 
 Updated `useWorkspaceIssues` hook now:
-- Calls issue sync function before linked PR sync
+- Calls the refresh function, displays whatever came back, then syncs linked PRs
+  for repositories whose rows were stored
+- Exposes `syncError` (repositories that failed; saved rows shown), `syncWarning`
+  (rows shown live but not saved), `lastSynced` (data confirmed current), and
+  `lastRefreshAttempt` (a refresh was tried)
 - Maintains staleness checking (60 min default)
 - Provides manual refresh capability
 - Supports auto-sync on mount and intervals
@@ -52,13 +52,13 @@ Detects when user returns to workspace tab:
 ### Data Flow
 
 ```
-GitHub
-  ↓
-GitHub API (fetchIssuesFromGitHub)
-  ↓
-Database Update (Supabase upsert)
-  ↓
-Hook State Update (setIssues)
+Browser (useWorkspaceIssues)
+  ↓ supabase.functions.invoke (user JWT + GitHub token)
+Edge function workspace-issues-refresh
+  ↓ membership check → GitHub API → service-role upsert
+Per-repository results + fresh rows
+  ↓ mergeRefreshedIssues (saved rows kept for failures)
+Hook State Update (setIssues, syncError, syncWarning, lastSynced)
   ↓
 Component Re-render (WorkspaceIssuesTab)
 ```
@@ -71,9 +71,9 @@ Component Re-render (WorkspaceIssuesTab)
 2. **User Switches to App**: Returns to workspace issues tab
 3. **Visibility Detection**: Browser's `visibilitychange` fires
 4. **Staleness Check**: Hook checks if data is >5 minutes old
-5. **Auto-Sync Triggered**: Calls `syncWorkspaceIssuesForRepositories`
-6. **GitHub API Call**: Fetches fresh issue data including assignees
-7. **Database Update**: Upserts issue with new assignee
+5. **Auto-Sync Triggered**: Calls `requestWorkspaceIssuesRefresh`
+6. **Backend Fetch**: The edge function fetches fresh issue data including assignees
+7. **Database Update**: The function upserts the issue with the service role and returns it
 8. **UI Update**: Component re-renders showing user in assignees list
 
 ### Alternative Flows
@@ -119,10 +119,10 @@ Issues updated in `public.issues` table:
 
 | Field | Type | Updated By |
 |-------|------|-----------|
-| `assignees` | JSONB | sync function |
-| `labels` | JSONB | sync function |
-| `comments_count` | INT | sync function |
-| `last_synced_at` | TIMESTAMP | sync function |
+| `assignees` | JSONB | edge function (service role) |
+| `labels` | JSONB | edge function (service role) |
+| `comments_count` | INT | edge function (service role) |
+| `last_synced_at` | TIMESTAMP | edge function (service role) |
 
 ## Performance Considerations
 
@@ -149,13 +149,20 @@ For a 500-issue repo:
 
 ### Graceful Degradation
 
-- **No GitHub token**: Warns user, uses cached data
-- **Repository not found (404)**: Returns empty issues array, logs warning
-- **API errors (403, 5xx, etc.)**: Logs error, continues with cached data, sync marked as failed
-- **Network error**: Continues with cached data, logs error
-- **Database error**: Shows error toast, suggests retry
+Outcomes are reported per repository; one failure never hides the others.
 
-**Note**: Rate limit errors (429) are currently treated as generic API errors without retry logic. Retry mechanism is a planned enhancement.
+- **No GitHub authorization / expired session**: banner asks to sign in again; saved rows stay
+- **Not a workspace member**: banner with the membership message
+- **Repository not found (404)**: reported as a failure for that repository, never as an empty result
+- **Rate limit (403/429)**: reported with the reset time
+- **Issues disabled (410)**: reported for that repository
+- **Database write rejected**: live GitHub rows are shown with a warning that they were not saved
+- **Refresh service unreachable**: banner says so; saved rows stay
+- **Saved rows cannot be loaded**: error card with retry
+
+"Data refreshed" (from the hook's `lastSynced`) only advances when every
+repository was fresh. "Refresh requested" in `WorkspaceAutoSync` is a separate
+queue timestamp and does not claim the displayed data is current.
 
 ### Monitoring
 
@@ -191,7 +198,7 @@ console.log('[workspace-sync] Syncing issues for owner/repo');
 ## Related Features
 
 - **PR Tab**: Uses similar pattern for PR reviewer/author updates
-- **Workspace Auto-Sync**: Generic sync endpoint that marks repos for sync
+- **Workspace Auto-Sync**: `workspace-sync` edge function; a membership-checked request that marks `workspace_tracked_repositories.next_sync_at` due for the capture queue
 - **Progressive Data Capture**: Background sync strategy
 
 ## Future Enhancements

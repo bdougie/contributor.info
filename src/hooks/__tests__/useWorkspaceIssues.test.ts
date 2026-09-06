@@ -23,8 +23,22 @@ vi.mock('@/lib/env', () => ({
   },
 }));
 
-vi.mock('@/lib/sync-workspace-issues', () => ({
-  syncWorkspaceIssuesForRepositories: vi.fn().mockResolvedValue({ synced: [], failed: [] }),
+vi.mock('@/lib/workspace/github-issue-refresh', () => ({
+  requestWorkspaceIssuesRefresh: vi.fn().mockResolvedValue({
+    success: true,
+    refreshedAt: '2026-09-05T00:00:00Z',
+    windowDays: 30,
+    results: [],
+  }),
+  mergeRefreshedIssues: vi.fn((cached: Issue[]) => cached),
+  summarizeIssueRefresh: vi.fn(() => ({
+    refreshed: [],
+    fetchedNotStored: [],
+    failed: [],
+    freshRepositoryIds: [],
+    errorMessage: null,
+    warningMessage: null,
+  })),
 }));
 
 vi.mock('@/lib/auth/github-session', () => ({
@@ -165,6 +179,8 @@ describe('useWorkspaceIssues', () => {
     expect('lastSynced' in result.current).toBe(true);
     expect('isStale' in result.current).toBe(true);
     expect(result.current.syncError).toBeNull();
+    expect(result.current.syncWarning).toBeNull();
+    expect(result.current.lastRefreshAttempt).toBeNull();
   });
 
   it.skip('should trigger background sync when data is stale', () => {

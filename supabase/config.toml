@@ -116,6 +116,15 @@ verify_jwt = false
 [functions.slack-test-integration]
 verify_jwt = false
 
+# Workspace Issues refresh: user JWT plus workspace membership are checked in
+# the function; GitHub is fetched server-side and stored with the service role.
+[functions.workspace-issues-refresh]
+verify_jwt = false
+
+# Manual workspace sync request: same manual JWT + membership check.
+[functions.workspace-sync]
+verify_jwt = false
+
 # calculate-monthly-rankings also accepts the service-role key for the
 # Inngest cron caller; see _shared/auth.ts allowServiceRole option.
 [functions.calculate-monthly-rankings]

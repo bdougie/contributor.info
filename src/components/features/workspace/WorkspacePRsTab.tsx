@@ -122,7 +122,9 @@ export function WorkspacePRsTab({
           workspaceId={workspaceId}
           workspaceSlug={workspace?.slug || 'workspace'}
           repositoryIds={repositories.map((r) => r.id).filter(Boolean)}
-          onSyncComplete={refresh}
+          onSyncRequested={refresh}
+          dataRefreshedAt={lastSynced}
+          dataStale={isStale}
           syncIntervalMinutes={60}
           className="text-sm text-muted-foreground"
         />
