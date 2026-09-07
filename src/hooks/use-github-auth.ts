@@ -126,6 +126,14 @@ export function useGitHubAuth() {
    * Initiates GitHub OAuth login flow
    */
   const login = async () => {
+    if (import.meta.env.DEV && import.meta.env.VITE_REVIEW_LABEL_QA === 'true') {
+      setShowLoginDialog(false);
+      if (!window.location.pathname.startsWith('/review-labels')) {
+        navigate('/review-labels');
+      }
+      document.getElementById('review-label-qa-account')?.focus();
+      return;
+    }
     try {
       // Store the current path for redirect after login if needed
       const currentPath = window.location.pathname + window.location.search;

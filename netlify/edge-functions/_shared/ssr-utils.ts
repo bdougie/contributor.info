@@ -222,6 +222,7 @@ export function parseRepoPath(pathname: string): { owner: string; repo: string }
     'i',
     'billing',
     'invitation',
+    'review-labels',
     // Static asset directories - safety net in case excludedPath doesn't catch them
     'js',
     'css',

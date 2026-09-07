@@ -1,5 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { ChevronDown, Plus, Clock, GitBranch, Search, RefreshCw } from '@/components/ui/icon';
+import {
+  ChevronDown,
+  Plus,
+  Clock,
+  GitBranch,
+  Search,
+  RefreshCw,
+  MessageSquare,
+} from '@/components/ui/icon';
 import { PlantIcon } from '@/components/icons/PlantIcon';
 import { useWorkspaceContext, type Workspace } from '@/contexts/WorkspaceContext';
 import { Button } from '@/components/ui/button';
@@ -17,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { getWorkspaceRoute } from '@/lib/utils/workspace-routes';
 import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { WORKSPACE_TIMEOUTS } from '@/lib/workspace-config';
 
 // Define proper types for workspace tiers
@@ -254,6 +262,12 @@ export function WorkspaceSwitcher({
                   </Button>
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuItem asChild onSelect={() => setOpen(false)}>
+                <Link to={`/review-labels?workspace=${activeWorkspace.id}`}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Review labels
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
             </>
           )}

@@ -34,10 +34,13 @@ if (typeof window !== 'undefined') {
       queryClient,
       persister: localStoragePersister,
       maxAge: 30 * 60 * 1000, // 30 minutes
-      buster: 'v1', // Increment this to bust the cache on version updates
+      // A local QA database and the normal app must never restore each other's cache.
+      buster: `v2:${import.meta.env.VITE_SUPABASE_URL || ''}`,
       dehydrateOptions: {
         shouldDehydrateQuery: (query) =>
-          query.state.status === 'success' && query.meta?.persist !== false,
+          query.state.status === 'success' &&
+          query.queryKey[0] !== 'auth' &&
+          query.meta?.persist !== false,
       },
     });
   };

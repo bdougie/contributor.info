@@ -61,6 +61,7 @@ indexnow.txt
 
 # Local Netlify folder
 .netlify
+.review-labels-qa/
 
 # Rollout metrics and analysis files
 rollout-metrics-*.json

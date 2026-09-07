@@ -609,6 +609,7 @@ export const config = {
     '/terms',
     '/billing',
     '/invitation/*',
+    '/review-labels/*',
     '/*.js',
     '/*.css',
     '/*.json',

@@ -18,6 +18,8 @@ interface LoginDialogProps {
 }
 
 export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
+  const localQA = import.meta.env.DEV && import.meta.env.VITE_REVIEW_LABEL_QA === 'true';
+  const loginLabel = localQA ? 'Choose QA account' : 'Login with GitHub';
   const { login, isLoggedIn } = useGitHubAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       localStorage.setItem('redirectAfterLogin', currentPath);
 
       await login();
+      if (localQA) onOpenChange(false);
       // The dialog will close automatically when isLoggedIn changes
     } catch (err) {
       console.error('Login error:', err);
@@ -66,8 +69,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
           </DialogHeader>
           <div className="flex flex-col items-center pt-4 gap-2">
             <Button onClick={handleLogin} disabled={isLoggingIn}>
-              <GithubIcon className="mr-2 h-4 w-4" />
-              {isLoggingIn ? 'Logging in...' : 'Login with GitHub'}
+              {!localQA && <GithubIcon className="mr-2 h-4 w-4" />}
+              {isLoggingIn ? 'Logging in...' : loginLabel}
             </Button>
 
             {error && <div className="text-red-500 text-sm mt-2 text-center">{error}</div>}

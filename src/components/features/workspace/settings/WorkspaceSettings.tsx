@@ -449,6 +449,24 @@ function WorkspaceSettingsForm({
         memberCount={memberCount}
       />
 
+      <Card>
+        <CardHeader>
+          <h3 className="font-semibold">Review labels</h3>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Invite your team to label past reviews and see when personal invite links are viewed and
+            accepted.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/review-labels?workspace=${workspace.id}`)}
+          >
+            Open review labels
+          </Button>
+        </CardContent>
+      </Card>
+
       <SlackIntegrationCard
         workspaceId={workspace.id}
         canEditSettings={permissions.canEditSettings}

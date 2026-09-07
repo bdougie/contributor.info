@@ -4,6 +4,7 @@
  */
 
 import { env } from './env';
+import { redactReviewInviteTokens } from './review-labels-privacy';
 import { getRoutePattern } from './route-pattern';
 import type { CaptureResult } from 'posthog-js';
 
@@ -177,6 +178,11 @@ const POSTHOG_CONFIG = {
   disable_compression: false, // Keep compression for smaller payloads
   // Error filtering and sanitization
   before_send: (event: CaptureResult | null): CaptureResult | null => {
+    // Invite tokens and personal review judgments must not enter analytics or
+    // session recordings. Invite activity is recorded by the dedicated API.
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/review-labels')) {
+      return null;
+    }
     // Filter sensitive data from errors
     if (
       event &&
@@ -188,7 +194,7 @@ const POSTHOG_CONFIG = {
       // Remove potential tokens or API keys from error messages
       props.$exception_message = sanitizeErrorMessage(String(props.$exception_message));
     }
-    return event;
+    return redactReviewInviteTokens(event);
   },
   bootstrap: {
     distinctID: undefined, // Will be set on init
