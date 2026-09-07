@@ -1,5 +1,21 @@
 export type ReplyReason = 'question' | 'request' | 'changes_requested' | 'unresolved_thread';
 
+function isAcknowledgment(prose: string): boolean {
+  const phrase =
+    /(?:thanks?(?: you)?(?: so much| a lot| for (?:this|that|the update))?|lgtm|looks good(?: to me)?|sounds good|great|nice|awesome|agreed|got it|done|fixed|all set|no (?:reply|response) needed|(?:i'll|i will) (?:try (?:it|that)|give (?:it|that|the approach|approach) a shot)|(?:phase \d+|this|that) looks interesting)(?=[\s,.!;:]|$)/iy;
+  const separators = /[\s,.!;:]+/y;
+  let cursor = 0;
+  // Sticky matches consume one phrase at a time, without reconsidering earlier phrases.
+  while (cursor < prose.length) {
+    phrase.lastIndex = cursor;
+    if (!phrase.test(prose)) return false;
+    cursor = phrase.lastIndex;
+    separators.lastIndex = cursor;
+    if (separators.test(prose)) cursor = separators.lastIndex;
+  }
+  return cursor > 0;
+}
+
 /** Use authored prose, not quoted questions or code, as evidence of a request. */
 export function replySignal(
   body: string,
@@ -30,9 +46,7 @@ export function replySignal(
   )
     return 'request';
 
-  const acknowledgment =
-    /^(?:(?:thanks?(?: you)?(?: so much| a lot| for (?:this|that|the update))?|thank you|lgtm|looks good(?: to me)?|sounds good|great|nice|awesome|agreed|got it|done|fixed|all set|no (?:reply|response) needed|(?:i'll|i will) (?:try (?:it|that)|give (?:it|that|the approach|approach) a shot)|(?:phase \d+|this|that) looks interesting)[\s,.!;:]*)+$/i;
-  if (acknowledgment.test(prose)) return undefined;
+  if (isAcknowledgment(prose)) return undefined;
 
   // Unresolved inline feedback is structural evidence; ordinary chatter is not.
   return context.unresolvedThread ? 'unresolved_thread' : undefined;

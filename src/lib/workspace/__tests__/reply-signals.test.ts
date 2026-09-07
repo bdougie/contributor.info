@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { replySignal } from '../reply-signals';
 
 describe('Response signals', () => {
+  it('handles long repeated acknowledgments without backtracking across phrases', () => {
+    const body = `nice ${'thank you '.repeat(10_000)}`;
+    expect(replySignal(body, { unresolvedThread: true })).toBeUndefined();
+    expect(replySignal(`${body}but this leaks memory`, { unresolvedThread: true })).toBe(
+      'unresolved_thread'
+    );
+  });
+
+  it.each([
+    'Thank you so much! Nice, thank you for the update.',
+    'Thanks a lot; looks good to me!',
+    'I will try that. Thanks!',
+  ])('keeps compound acknowledgments: %s', (body) => {
+    expect(replySignal(body, { unresolvedThread: true })).toBeUndefined();
+  });
+
+  it('does not consume acknowledgment prefixes inside substantive words', () => {
+    expect(replySignal('nicely broken', { unresolvedThread: true })).toBe('unresolved_thread');
+    expect(replySignal('thank you but this leaks memory', { unresolvedThread: true })).toBe(
+      'unresolved_thread'
+    );
+  });
   it.each([
     'Thanks!',
     'LGTM',
