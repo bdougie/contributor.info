@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,6 +73,7 @@ function WorkspaceSettingsForm({
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { refreshWorkspaces } = useWorkspaceContext();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState(() => getFormData(workspace));
   const [savedFormData, setSavedFormData] = useState(formData);
@@ -149,7 +151,7 @@ function WorkspaceSettingsForm({
       const response = await WorkspaceService.updateWorkspace(workspace.id, currentMember.user_id, {
         name: formData.name,
         slug: formData.slug,
-        description: formData.description || undefined,
+        description: formData.description || null,
         visibility: formData.visibility as WorkspaceVisibility,
         settings: {
           ...workspace.settings,
@@ -166,6 +168,11 @@ function WorkspaceSettingsForm({
           description: 'Workspace settings have been updated successfully',
         });
         onWorkspaceUpdate?.(response.data);
+        // The page fetches by the slug in the URL; move there before the
+        // workspace list refresh retriggers that fetch with the old slug.
+        if (response.data.slug !== savedFormData.slug) {
+          navigate(`/i/${response.data.slug}/settings`, { replace: true });
+        }
         refreshWorkspaces();
       } else {
         throw new Error(response.error || 'Failed to update settings');
@@ -182,7 +189,8 @@ function WorkspaceSettingsForm({
     }
   };
 
-  // Memoize repositories array to prevent unnecessary re-renders
+  // Normalize optional counts once; the parent passes a memoized array so this
+  // only recomputes when the repository list actually changes.
   const memoizedRepositories = useMemo(
     () =>
       repositories.map((repo) => ({
@@ -304,7 +312,7 @@ function WorkspaceSettingsForm({
                   onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
                   disabled={!permissions.canEditSettings || isSaving}
                   placeholder="workspace-url-slug"
-                  pattern="^[a-z0-9-]+$"
+                  pattern="[a-z0-9\-]+"
                   required
                   aria-describedby={
                     formData.slug !== savedFormData.slug ? 'slug-help slug-warning' : 'slug-help'

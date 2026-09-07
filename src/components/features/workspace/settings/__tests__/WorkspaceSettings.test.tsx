@@ -59,7 +59,11 @@ describe('Workspace settings edits', () => {
 
   it('keeps technical details collapsed and deletion outside the preferences form', () => {
     renderSettings();
-    expect(screen.getByText('Workspace details').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByRole('button', { name: 'Workspace details' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.queryByText('Workspace ID')).not.toBeInTheDocument();
     expect(screen.getByRole('form')).not.toContainElement(
       screen.getByRole('button', { name: 'Delete workspace' })
     );

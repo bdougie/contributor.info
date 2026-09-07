@@ -59,6 +59,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
   const encryptionConfigured = isEncryptionConfigured();
 
+  useEffect(() => {
+    if (!encryptionConfigured) {
+      console.warn(
+        '%s',
+        'Slack integration disabled: VITE_SLACK_WEBHOOK_ENCRYPTION_KEY is missing or shorter than 32 characters'
+      );
+    }
+  }, [encryptionConfigured]);
+
   // Filter channels based on search query for each integration
   const getFilteredChannels = (integrationId: string): SlackChannel[] => {
     const integrationChannels = channels[integrationId] || [];
@@ -445,6 +454,12 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
           <p className="text-sm text-muted-foreground">
             Slack is unavailable. Contact support to enable this integration.
           </p>
+          {import.meta.env.DEV && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Developer note: set the Slack webhook encryption key (32+ characters) in your
+              environment. See docs/integrations/slack-assignee-reports.md.
+            </p>
+          )}
         </CardContent>
       </Card>
     );
@@ -481,17 +496,21 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
         {!loading && integrations.length === 0 && (
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              Connect a Slack workspace to get started.
+              {canEditSettings
+                ? 'Connect a Slack workspace to get started.'
+                : 'No Slack workspace is connected. Ask an owner or maintainer to connect one.'}
             </p>
-            <div className="flex flex-col gap-3 items-center">
-              <button
-                onClick={handleInstallSlackApp}
-                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
-                aria-label="Add to Slack"
-              >
-                <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
-              </button>
-            </div>
+            {canEditSettings && (
+              <div className="flex flex-col gap-3 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
+                  aria-label="Add to Slack"
+                >
+                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 

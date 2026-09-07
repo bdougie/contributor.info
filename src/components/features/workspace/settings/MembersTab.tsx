@@ -661,7 +661,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                             <TableHead>Member</TableHead>
                             <TableHead className="hidden sm:table-cell">Role</TableHead>
                             <TableHead className="hidden md:table-cell">Joined</TableHead>
-                            <TableHead className="w-14 text-right">
+                            <TableHead className="w-16 text-right">
                               <span className="sr-only">Actions</span>
                             </TableHead>
                           </TableRow>
@@ -702,6 +702,11 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                       <span className="mt-1 block text-xs capitalize text-muted-foreground sm:hidden">
                                         {member.role}
                                       </span>
+                                      {!member.accepted_at && (
+                                        <span className="mt-1 block text-xs text-muted-foreground md:hidden">
+                                          Pending
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </TableCell>

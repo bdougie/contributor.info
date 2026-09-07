@@ -5,6 +5,12 @@ import { renderSettings, workspace } from './settings-test-support';
 
 vi.mock('@/services/workspace.service', () => ({ WorkspaceService: { updateWorkspace: vi.fn() } }));
 
+const navigate = vi.fn();
+vi.mock('react-router', async () => {
+  const actual = await vi.importActual<typeof import('react-router')>('react-router');
+  return { ...actual, useNavigate: () => navigate };
+});
+
 describe('Workspace settings save lifecycle', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => vi.restoreAllMocks());
@@ -37,6 +43,36 @@ describe('Workspace settings save lifecycle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByLabelText('Workspace name')).toHaveValue(updated.name);
     expect(screen.getByRole('switch', { name: 'Email' })).not.toBeChecked();
+  });
+
+  it('sends an explicit null so a cleared description is persisted', async () => {
+    vi.mocked(WorkspaceService.updateWorkspace).mockResolvedValue({
+      success: true,
+      data: { ...workspace, description: null },
+    });
+    renderSettings();
+    fireEvent.change(screen.getByLabelText(/Description/), { target: { value: '' } });
+    await act(async () => fireEvent.submit(screen.getByRole('form')));
+    expect(WorkspaceService.updateWorkspace).toHaveBeenCalledWith(
+      workspace.id,
+      'owner-one',
+      expect.objectContaining({ description: null })
+    );
+    expect(screen.getByLabelText(/Description/)).toHaveValue('');
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('moves to the new URL after a confirmed slug change so the page refetches by it', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(WorkspaceService.updateWorkspace).mockResolvedValue({
+      success: true,
+      data: { ...workspace, slug: 'new-url' },
+    });
+    renderSettings();
+    fireEvent.change(screen.getByLabelText('Workspace URL'), { target: { value: 'new-url' } });
+    await act(async () => fireEvent.submit(screen.getByRole('form')));
+    expect(navigate).toHaveBeenCalledWith('/i/new-url/settings', { replace: true });
+    expect(screen.getByLabelText('Workspace URL')).toHaveValue('new-url');
   });
 
   it('retains edits after a failed save so the user can retry or cancel', async () => {

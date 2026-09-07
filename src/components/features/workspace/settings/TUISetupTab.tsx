@@ -26,10 +26,8 @@ export function TUISetupTab() {
       ) : (
         <PermissionUpgradeCTA
           message={UPGRADE_MESSAGES.REPOSITORY_INSIGHTS_TUI}
-          variant="inline"
-          size="md"
+          variant="alert"
           icon={Terminal}
-          className="flex-col items-start gap-3 sm:flex-row sm:items-center"
         />
       )}
     </div>

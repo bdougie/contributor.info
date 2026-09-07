@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { WorkspaceSettings } from '../WorkspaceSettings';
 import type { Workspace, WorkspaceMember, WorkspaceRole } from '@/types/workspace';
@@ -57,5 +58,9 @@ export function renderSettings(role: WorkspaceRole = 'owner', value = workspace)
     updated_at: value.updated_at,
     last_active_at: null,
   };
-  return render(<WorkspaceSettings workspace={value} currentMember={member} memberCount={2} />);
+  return render(
+    <MemoryRouter initialEntries={[`/i/${value.slug}/settings`]}>
+      <WorkspaceSettings workspace={value} currentMember={member} memberCount={2} />
+    </MemoryRouter>
+  );
 }
