@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
 import { useIntersectionLoader } from '../use-intersection-loader';
 
@@ -57,7 +57,11 @@ Object.defineProperty(window, 'requestIdleCallback', {
   value: mockRequestIdleCallback,
 });
 
-global.IntersectionObserver = mockIntersectionObserver;
+vi.stubGlobal('IntersectionObserver', mockIntersectionObserver);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('useIntersectionLoader', () => {
   beforeEach(() => {

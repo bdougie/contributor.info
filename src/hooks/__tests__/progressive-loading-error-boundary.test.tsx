@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { useProgressiveRepoData } from '../use-progressive-repo-data';
@@ -9,12 +9,19 @@ vi.mock('../use-progressive-repo-data');
 vi.mock('../use-intersection-loader');
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn(() => ({
-  disconnect: vi.fn(),
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  takeRecords: vi.fn(() => []),
-})) as unknown as typeof IntersectionObserver;
+vi.stubGlobal(
+  'IntersectionObserver',
+  vi.fn(() => ({
+    disconnect: vi.fn(),
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    takeRecords: vi.fn(() => []),
+  }))
+);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 // Mock requestIdleCallback with immediate execution for testing
 Object.defineProperty(window, 'requestIdleCallback', {

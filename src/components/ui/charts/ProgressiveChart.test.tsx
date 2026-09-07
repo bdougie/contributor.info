@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { ProgressiveChart } from './ProgressiveChart';
 
 // Mock IntersectionObserver
@@ -15,7 +15,11 @@ const mockIntersectionObserver = vi.fn().mockImplementation(() => ({
   thresholds: [],
 }));
 
-global.IntersectionObserver = mockIntersectionObserver;
+vi.stubGlobal('IntersectionObserver', mockIntersectionObserver);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('ProgressiveChart', () => {
   beforeEach(() => {

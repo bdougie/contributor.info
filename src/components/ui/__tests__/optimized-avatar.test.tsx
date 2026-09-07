@@ -1,19 +1,26 @@
 import type { CSSProperties, ReactNode, Ref } from 'react';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterAll } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { OptimizedAvatar } from '../optimized-avatar';
 
 // Mock intersection observer
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  disconnect: vi.fn(),
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  root: null,
-  rootMargin: '',
-  thresholds: [],
-  takeRecords: vi.fn().mockReturnValue([]),
-}));
+vi.stubGlobal(
+  'IntersectionObserver',
+  vi.fn().mockImplementation(() => ({
+    disconnect: vi.fn(),
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    root: null,
+    rootMargin: '',
+    thresholds: [],
+    takeRecords: vi.fn().mockReturnValue([]),
+  }))
+);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 // Mock the Avatar UI components
 vi.mock('@/components/ui/avatar', () => ({
