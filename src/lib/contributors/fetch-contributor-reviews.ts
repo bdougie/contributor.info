@@ -2,6 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { getSupabase } from '@/lib/supabase-lazy';
 import {
   buildContributorReviews,
+  isOwnPullRequest,
   type ContributorReview,
   type ContributorReviewComment,
   type ContributorReviewSummary,
@@ -72,7 +73,7 @@ function chunk<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
-function toSummary(row: ReviewRow): ContributorReviewSummary | null {
+function toSummary(row: ReviewRow, reviewerLogin: string): ContributorReviewSummary | null {
   const pr = row.pull_requests;
   if (!pr || !pr.repositories) return null;
   return {
@@ -95,6 +96,7 @@ function toSummary(row: ReviewRow): ContributorReviewSummary | null {
       name: pr.repositories.name,
       full_name: pr.repositories.full_name,
     },
+    is_own_pr: isOwnPullRequest(reviewerLogin, pr.author?.username ?? null),
   };
 }
 
@@ -173,7 +175,7 @@ export async function fetchContributorReviews(
   );
 
   const summaries = reviewRows
-    .map(toSummary)
+    .map((row) => toSummary(row, contributorUsername))
     .filter((summary): summary is ContributorReviewSummary => summary !== null);
 
   const pullRequestIds = [...new Set(summaries.map((summary) => summary.pull_request.id))];

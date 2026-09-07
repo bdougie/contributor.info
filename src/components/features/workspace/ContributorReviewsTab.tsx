@@ -61,6 +61,14 @@ function ReviewRow({ review }: { review: ContributorReview }) {
             {title}
           </a>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+            <Badge
+              variant={review.is_own_pr ? 'secondary' : 'outline'}
+              className="text-[10px] h-4 px-1 font-normal"
+            >
+              {review.is_own_pr
+                ? 'Own PR'
+                : `PR by ${review.pull_request.author_login ?? 'unknown'}`}
+            </Badge>
             <span className="truncate max-w-[200px]">{review.repository.full_name}</span>
             <span>•</span>
             <span>{formatDate(review.submitted_at)}</span>
@@ -108,6 +116,8 @@ export function ContributorReviewsTab({
     if (loading) return 'Loading review history…';
     if (counts.total === 0) return 'No reviews found in this workspace';
     const parts = [`${counts.total} reviews`];
+    if (counts.othersPullRequests) parts.push(`${counts.othersPullRequests} on others' PRs`);
+    if (counts.ownPullRequests) parts.push(`${counts.ownPullRequests} on own PRs`);
     if (counts.approved) parts.push(`${counts.approved} approved`);
     if (counts.changesRequested) parts.push(`${counts.changesRequested} changes requested`);
     if (counts.inlineComments) parts.push(`${counts.inlineComments} inline comments`);

@@ -47,7 +47,14 @@ export interface ContributorReview {
   commit_id: string | null;
   pull_request: ContributorReviewPullRequest;
   repository: ContributorReviewRepository;
+  /** True when the reviewer also authored the pull request. */
+  is_own_pr: boolean;
   comments: ContributorReviewComment[];
+}
+
+/** Case-insensitive check that the reviewer is the pull request author. */
+export function isOwnPullRequest(reviewerLogin: string, prAuthorLogin: string | null): boolean {
+  return Boolean(prAuthorLogin) && reviewerLogin.toLowerCase() === prAuthorLogin!.toLowerCase();
 }
 
 /** GitHub URL for the pull request, derived when the stored html_url is empty. */
@@ -143,6 +150,10 @@ export interface ContributorReviewCounts {
   changesRequested: number;
   commented: number;
   inlineComments: number;
+  /** Reviews the contributor left on their own pull requests. */
+  ownPullRequests: number;
+  /** Reviews the contributor left on pull requests authored by others. */
+  othersPullRequests: number;
 }
 
 export function countContributorReviews(reviews: ContributorReview[]): ContributorReviewCounts {
@@ -153,8 +164,18 @@ export function countContributorReviews(reviews: ContributorReview[]): Contribut
       if (review.state === 'CHANGES_REQUESTED') counts.changesRequested += 1;
       if (review.state === 'COMMENTED') counts.commented += 1;
       counts.inlineComments += review.comments.length;
+      if (review.is_own_pr) counts.ownPullRequests += 1;
+      else counts.othersPullRequests += 1;
       return counts;
     },
-    { total: 0, approved: 0, changesRequested: 0, commented: 0, inlineComments: 0 }
+    {
+      total: 0,
+      approved: 0,
+      changesRequested: 0,
+      commented: 0,
+      inlineComments: 0,
+      ownPullRequests: 0,
+      othersPullRequests: 0,
+    }
   );
 }

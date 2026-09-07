@@ -30,6 +30,7 @@ const review: ContributorReview = {
     author_login: 'author',
   },
   repository: { owner: 'acme', name: 'widgets', full_name: 'acme/widgets' },
+  is_own_pr: false,
   comments: [
     {
       id: 'c1',
@@ -58,6 +59,7 @@ describe('transformContributorReviewsToCSV', () => {
         'PR Number': 42,
         'PR Title': 'Add widgets',
         'PR Author': 'author',
+        'Own PR': 'no',
         'PR URL': 'https://github.com/acme/widgets/pull/42',
         'Review URL': 'https://github.com/acme/widgets/pull/42#pullrequestreview-111',
         'Review State': 'CHANGES_REQUESTED',
@@ -91,6 +93,7 @@ describe('transformContributorReviewsToRecords', () => {
   it('nests inline comments with their diff context', () => {
     const [record] = transformContributorReviewsToRecords('reviewer', [review]);
     expect(record.reviewer).toBe('reviewer');
+    expect(record.is_own_pr).toBe(false);
     expect(record.repository).toBe('acme/widgets');
     expect(record.pull_request).toEqual({
       number: 42,

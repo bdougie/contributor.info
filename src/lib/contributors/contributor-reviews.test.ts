@@ -3,6 +3,7 @@ import {
   buildContributorReviews,
   countContributorReviews,
   pickReviewForComment,
+  isOwnPullRequest,
   pullRequestUrl,
   reviewUrl,
   type ContributorReviewComment,
@@ -28,6 +29,7 @@ function summary(
       author_login: 'author',
     },
     repository,
+    is_own_pr: false,
     ...overrides,
   };
 }
@@ -139,7 +141,30 @@ describe('countContributorReviews', () => {
       changesRequested: 1,
       commented: 1,
       inlineComments: 2,
+      ownPullRequests: 0,
+      othersPullRequests: 3,
     });
+  });
+
+  it('separates reviews on own pull requests from reviews on others', () => {
+    const reviews = buildContributorReviews(
+      [
+        summary({ id: 'r1', submitted_at: '2026-01-01T10:00:00Z', is_own_pr: true }),
+        summary({ id: 'r2', submitted_at: '2026-01-02T10:00:00Z' }),
+      ],
+      []
+    );
+    const counts = countContributorReviews(reviews);
+    expect(counts.ownPullRequests).toBe(1);
+    expect(counts.othersPullRequests).toBe(1);
+  });
+});
+
+describe('isOwnPullRequest', () => {
+  it('matches the reviewer to the PR author case-insensitively', () => {
+    expect(isOwnPullRequest('BDougie', 'bdougie')).toBe(true);
+    expect(isOwnPullRequest('bdougie', 'jpmcb')).toBe(false);
+    expect(isOwnPullRequest('bdougie', null)).toBe(false);
   });
 });
 

@@ -305,6 +305,7 @@ export interface ContributorReviewCSVRow {
   'PR Number': number;
   'PR Title': string;
   'PR Author': string;
+  'Own PR': 'yes' | 'no';
   'PR URL': string;
   'Review URL': string;
   'Review State': string;
@@ -329,6 +330,7 @@ export function transformContributorReviewsToCSV(
     'PR Number': review.pull_request.number,
     'PR Title': review.pull_request.title,
     'PR Author': review.pull_request.author_login ?? '',
+    'Own PR': review.is_own_pr ? 'yes' : 'no',
     'PR URL': pullRequestUrl(review),
     'Review URL': reviewUrl(review),
     'Review State': review.state,
@@ -354,6 +356,8 @@ export interface ContributorReviewRecord {
   reviewer: string;
   review_github_id: string;
   review_url: string;
+  /** True when the reviewer authored the pull request they reviewed. */
+  is_own_pr: boolean;
   state: ContributorReview['state'];
   body: string;
   submitted_at: string;
@@ -387,6 +391,7 @@ export function transformContributorReviewsToRecords(
     reviewer,
     review_github_id: review.github_id,
     review_url: reviewUrl(review),
+    is_own_pr: review.is_own_pr,
     state: review.state,
     body: review.body,
     submitted_at: review.submitted_at,
