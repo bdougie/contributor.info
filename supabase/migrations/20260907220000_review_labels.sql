@@ -140,7 +140,7 @@ BEGIN
       WHERE workspace_id = w.id AND accepted_at IS NOT NULL UNION SELECT w.owner_id) members;
     IF v_count >= v_limit THEN RAISE EXCEPTION 'Workspace member limit reached'; END IF;
     INSERT INTO workspace_members(workspace_id, user_id, role, invited_by, accepted_at)
-      VALUES(w.id, v_app, 'contributor', (SELECT id FROM app_users WHERE auth_user_id=i.created_by), now())
+      VALUES(w.id, v_app, 'viewer', (SELECT id FROM app_users WHERE auth_user_id=i.created_by), now())
       ON CONFLICT(workspace_id,user_id) DO UPDATE SET accepted_at = now();
   END IF;
   INSERT INTO review_label_enrollments(campaign_id,user_id,reviewer_github_id,reviewer_login)

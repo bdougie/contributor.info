@@ -136,7 +136,7 @@ export function createReviewLabelsHandler(db: SupabaseClient) {
         .not('accepted_at', 'is', null)
         .maybeSingle()
     );
-    if (!member || (manage && !['owner', 'maintainer', 'admin'].includes(member.role)))
+    if (!member || (manage && !['owner', 'admin'].includes(member.role)))
       throw new HttpError(403, 'Workspace permission required');
     return workspace;
   }
@@ -359,8 +359,7 @@ export function createReviewLabelsHandler(db: SupabaseClient) {
               .maybeSingle()
           );
           const canManage =
-            workspace.owner_id === actor.appId ||
-            ['owner', 'maintainer', 'admin'].includes(member?.role);
+            workspace.owner_id === actor.appId || ['owner', 'admin'].includes(member?.role);
           const campaigns = checked(
             await db
               .from('review_label_campaigns')

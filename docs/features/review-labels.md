@@ -73,7 +73,7 @@ older sample UI; it does not test durable invite tracking.
   active, on desktop and mobile, without opening a menu.
   The profile menu's **Label reviews** item, workspace menu, main navigation, and workspace settings link to
   `/review-labels?workspace=<workspace-id>`, preserving the selected workspace.
-- Owners and maintainers save a collection of explicitly selected public Paper
+- Owners and admins save a collection of explicitly selected public Paper
   Compute workspace repositories. The server records a historical cutoff at
   creation; adding other workspace repositories does not expand that collection.
 - Each invite resolves a GitHub login to its numeric ID. The sender copies
@@ -95,7 +95,7 @@ The database's `(invite_id, visit_id)` primary key makes this idempotent across
 retries. A separate browser session can count again. No IP address, fingerprint,
 or assumed recipient identity is stored in the view-event table.
 
-Owners/maintainers see **Not viewed**, **Viewed**, **Accepted**, **Expired**, or
+Owners/admins see **Not viewed**, **Viewed**, **Accepted**, **Expired**, or
 **Revoked**, plus first-view time, last-view time, browser-session count, and
 acceptance time. The Refresh action reloads these values. Preview HTTP requests
 and link-unfurl bots that do not run the UI do not count as browser views.

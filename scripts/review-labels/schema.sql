@@ -32,7 +32,7 @@ CREATE TABLE public.workspace_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id uuid REFERENCES public.workspaces(id) ON DELETE CASCADE,
   user_id uuid REFERENCES public.app_users(id),
-  role text NOT NULL CHECK (role IN ('owner','maintainer','contributor')),
+  role text NOT NULL CHECK (role IN ('owner','admin','editor','viewer')),
   invited_by uuid REFERENCES public.app_users(id),
   invited_at timestamptz DEFAULT now(),
   accepted_at timestamptz,
