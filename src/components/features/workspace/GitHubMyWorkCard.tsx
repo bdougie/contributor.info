@@ -15,6 +15,18 @@ import {
 
 type WorkFilter = GitHubWorkCategory | 'all' | 'priority';
 
+const replyKindLabels = {
+  conversation: 'Comment',
+  review: 'Review comment',
+  review_summary: 'Review summary',
+};
+const replyReasonLabels = {
+  question: 'Question',
+  request: 'Requested action',
+  changes_requested: 'Changes requested',
+  unresolved_thread: 'Unresolved feedback',
+};
+
 function matchesFilter(item: GitHubWorkItem, filter: WorkFilter): boolean {
   if (filter === 'all') return true;
   if (filter === 'priority')
@@ -229,9 +241,12 @@ export function GitHubMyWorkCard({
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                         <span className="font-medium">{reply.author}</span>
                         <span className="text-muted-foreground">
-                          {reply.kind === 'review' ? 'Review comment' : 'Comment'} -{' '}
+                          {replyKindLabels[reply.kind]} -{' '}
                           {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
                         </span>
+                        {reply.reason && (
+                          <Badge variant="secondary">{replyReasonLabels[reply.reason]}</Badge>
+                        )}
                         <span className="ml-auto font-medium text-primary">View &amp; reply</span>
                       </div>
                       <p className="mt-1 line-clamp-2 break-words text-sm text-muted-foreground">

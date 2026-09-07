@@ -28,6 +28,30 @@ describe('Workspace inbox availability', () => {
   });
 });
 describe('Account-wide work identity', () => {
+  it('keeps review summaries in the general conversation identity across overlapping workspaces', () => {
+    const reply = {
+      author: 'reviewer',
+      body: 'Please add a test',
+      url: `${item.url}#pullrequestreview-1`,
+      createdAt: item.updatedAt,
+      kind: 'review_summary' as const,
+    };
+    const summaryItem = { ...item, replies: [reply] };
+    const first = toWorkSnapshot([summaryItem, summaryItem], 'awaiting_reply');
+    expect(first).toHaveLength(1);
+    expect(first[0].subject_key).toBe('conversation:PR_123');
+    const next = toWorkSnapshot(
+      [
+        {
+          ...item,
+          replies: [{ ...reply, kind: 'conversation', url: `${item.url}#issuecomment-2` }],
+        },
+      ],
+      'awaiting_reply'
+    );
+    expect(next[0].subject_key).toBe(first[0].subject_key);
+    expect(next[0].source_version).not.toBe(first[0].source_version);
+  });
   it('does not duplicate the same item from overlapping workspaces', () => {
     expect(toWorkSnapshot([item, item], 'review_requested')).toHaveLength(1);
   });

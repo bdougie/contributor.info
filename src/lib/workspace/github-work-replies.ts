@@ -2,6 +2,7 @@ import type { GitHubWorkItem, GitHubWorkReply } from './github-my-work';
 import { fetchWithTimeout } from '@/lib/utils/abort-signal';
 import { isBot } from '@/lib/utils/bot-detection';
 import { graphqlRateLimiter } from '@/lib/rate-limiter';
+import { replySignal } from './reply-signals';
 
 interface Actor {
   login: string;
@@ -11,8 +12,17 @@ interface Actor {
 interface Comment {
   author: Actor | null;
   bodyText: string;
+  body?: string;
   url: string;
   createdAt: string;
+  kind?: GitHubWorkReply['kind'];
+  reviewState?: string;
+}
+
+interface Review extends Omit<Comment, 'createdAt'> {
+  id: string;
+  state: string;
+  submittedAt: string | null;
 }
 
 interface Connection<T> {
@@ -26,6 +36,7 @@ interface Conversation {
   author: Actor | null;
   assignees: Connection<Actor>;
   comments: Connection<Comment>;
+  reviews?: Connection<Review>;
   reviewThreads?: Connection<{
     id?: string;
     isResolved: boolean;
@@ -48,7 +59,7 @@ interface ValidReplyResponse {
   errors?: { message: string }[];
 }
 
-const commentFields = `nodes { author { login __typename } bodyText url createdAt }
+const commentFields = `nodes { author { login __typename } body bodyText url createdAt }
   pageInfo { hasPreviousPage }`;
 const conversationFields = `id state author { login }
   assignees(first: 100) { nodes { login } pageInfo { hasNextPage } }
@@ -59,6 +70,10 @@ const query = `query WorkspaceReplyQueue($ids: [ID!]!) {
     ... on Issue { ${conversationFields} }
     ... on PullRequest {
       ${conversationFields}
+      reviews(last: 50) {
+        nodes { id author { login __typename } state body bodyText url submittedAt }
+        pageInfo { hasPreviousPage }
+      }
       reviewThreads(first: 50) {
         nodes { id isResolved comments(last: 50) { ${commentFields} } }
         pageInfo { hasNextPage }
@@ -81,7 +96,7 @@ class GitHubReplyError extends Error {
   }
 }
 
-function isHuman(comment: Comment | null): comment is Comment {
+function isHuman(comment: Comment | null): comment is Comment & { author: Actor } {
   return (
     !!comment?.author && !isBot({ username: comment.author.login, type: comment.author.__typename })
   );
@@ -101,24 +116,69 @@ function pendingReply(
   kind: GitHubWorkReply['kind']
 ): ReplyDecision {
   const humans = comments.nodes.filter(isHuman);
-  const latest = humans[humans.length - 1];
-  if (!latest?.author || latest.author.login.toLowerCase() === viewer) return { uncertain: false };
   const participated = humans.some((comment) => comment.author?.login.toLowerCase() === viewer);
-  const mentions: string[] = latest.bodyText.toLowerCase().match(/@[a-z\d-]+/g) || [];
-  if (!responsible && !participated && !mentions.includes(`@${viewer}`)) {
-    // Comments before the window could show the viewer took part in this conversation.
-    return { uncertain: !!comments.pageInfo.hasPreviousPage };
+  let uncertain = false;
+  const seenAuthors = new Set<string>();
+  for (const latest of [...humans].reverse()) {
+    const author = latest.author.login.toLowerCase();
+    if (author === viewer) return { uncertain };
+    // An acknowledgment supersedes that author's request, not someone else's.
+    if (seenAuthors.has(author)) continue;
+    seenAuthors.add(author);
+    const reason = replySignal(latest.body ?? latest.bodyText, {
+      unresolvedThread: kind === 'review',
+      changesRequested: latest.reviewState === 'CHANGES_REQUESTED',
+    });
+    if (!reason) continue;
+    const mentions: string[] = latest.bodyText.toLowerCase().match(/@[a-z\d-]+/g) || [];
+    if (!responsible && !participated && !mentions.includes(`@${viewer}`)) {
+      // Comments before the window could show the viewer took part in this conversation.
+      uncertain ||= !!comments.pageInfo.hasPreviousPage;
+      continue;
+    }
+    // Only allow deep links into the item we requested, not arbitrary comment URLs.
+    if (!latest.url.startsWith(`${item.url}#`)) continue;
+    return {
+      uncertain,
+      reply: {
+        author: latest.author.login,
+        body: latest.bodyText.replace(/\s+/g, ' ').trim().slice(0, 280),
+        url: latest.url,
+        createdAt: latest.createdAt,
+        kind: latest.kind ?? kind,
+        reason,
+      },
+    };
   }
-  // Only allow deep links into the item we requested, not arbitrary comment URLs.
-  if (!latest.url.startsWith(`${item.url}#`)) return { uncertain: false };
+  return { uncertain: uncertain || !!comments.pageInfo.hasPreviousPage };
+}
+
+function generalConversation(node: Conversation): Connection<Comment> {
+  // A later review from the same reviewer supersedes their earlier summary.
+  // Inline threads retain their own resolution and reply boundaries.
+  const latestReviews = new Map<string, Review>();
+  for (const review of node.reviews?.nodes || []) {
+    if (!review?.author || !review.submittedAt || review.state === 'PENDING') continue;
+    const key = review.author.login.toLowerCase();
+    const previous = latestReviews.get(key);
+    if (!previous || Date.parse(review.submittedAt) >= Date.parse(previous.submittedAt!))
+      latestReviews.set(key, review);
+  }
+  const summaries: Comment[] = [...latestReviews.values()]
+    .filter((review) => review.state !== 'DISMISSED')
+    .map((review) => ({
+      ...review,
+      createdAt: review.submittedAt!,
+      kind: 'review_summary',
+      reviewState: review.state,
+    }));
   return {
-    uncertain: false,
-    reply: {
-      author: latest.author.login,
-      body: latest.bodyText.replace(/\s+/g, ' ').trim().slice(0, 280),
-      url: latest.url,
-      createdAt: latest.createdAt,
-      kind,
+    nodes: [...node.comments.nodes, ...summaries]
+      .filter((comment): comment is Comment => !!comment)
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt)),
+    pageInfo: {
+      hasPreviousPage:
+        node.comments.pageInfo.hasPreviousPage || node.reviews?.pageInfo.hasPreviousPage,
     },
   };
 }
@@ -213,10 +273,17 @@ export async function fetchAwaitingReplies({
         node.author?.login.toLowerCase() === viewer ||
         node.assignees.nodes.some((actor) => actor?.login.toLowerCase() === viewer);
       const replies: GitHubWorkReply[] = [];
-      const general = pendingReply(node.comments, viewer, responsible, item, 'conversation');
+      const general = pendingReply(
+        generalConversation(node),
+        viewer,
+        responsible,
+        item,
+        'conversation'
+      );
       if (general.reply) replies.push(general.reply);
       if (
         general.uncertain ||
+        node.reviews?.pageInfo.hasPreviousPage ||
         node.assignees.pageInfo.hasNextPage ||
         node.reviewThreads?.pageInfo.hasNextPage
       )

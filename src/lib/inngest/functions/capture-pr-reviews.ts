@@ -39,6 +39,17 @@ interface GitHubReviewWithUser {
   commit_id: string;
 }
 
+export async function fetchAllReviewPages<T>(
+  fetchPage: (page: number, perPage: number) => Promise<T[]>
+): Promise<T[]> {
+  const reviews: T[] = [];
+  for (let page = 1; ; page++) {
+    const batch = await fetchPage(page, 100);
+    reviews.push(...batch);
+    if (batch.length < 100) return reviews;
+  }
+}
+
 /**
  * Captures PR reviews using GitHub REST API
  *
@@ -68,7 +79,6 @@ export const capturePrReviews = inngest.createFunction(
   async ({ event, step }) => {
     const { repositoryId, prNumber, prId } = event.data;
     const syncLogger = new SyncLogger();
-    let apiCallsUsed = 0;
 
     // Step 0: Initialize sync log
     await step.run('init-sync-log', async () => {
@@ -96,6 +106,7 @@ export const capturePrReviews = inngest.createFunction(
     // Step 2: Fetch reviews from GitHub
     const reviews = await step.run('fetch-reviews', async () => {
       const octokit = await getOctokitForRepo(repositoryId);
+      let apiCallsUsed = 0;
 
       try {
         console.log(
@@ -104,18 +115,24 @@ export const capturePrReviews = inngest.createFunction(
           repository.owner,
           repository.name
         );
-        apiCallsUsed++;
-        const { data: reviewsData } = await octokit.rest.pulls.listReviews({
-          owner: repository.owner,
-          repo: repository.name,
-          pull_number: parseInt(prNumber),
+        const reviewsData = await fetchAllReviewPages(async (page, perPage) => {
+          apiCallsUsed++;
+          const { data } = await octokit.rest.pulls.listReviews({
+            owner: repository.owner,
+            repo: repository.name,
+            pull_number: parseInt(prNumber),
+            per_page: perPage,
+            page,
+          });
+          if (!Array.isArray(data)) throw new Error('GitHub returned invalid review data');
+          return data as GitHubReviewWithUser[];
         });
 
         // Process each review and ensure reviewers exist in contributors table
         const processedReviews: DatabaseReview[] = [];
         let failedContributorCreations = 0;
 
-        for (const review of reviewsData as GitHubReviewWithUser[]) {
+        for (const review of reviewsData) {
           if (!review.user) continue; // Skip reviews without user data
 
           // Find or create the reviewer in contributors table
@@ -164,28 +181,25 @@ export const capturePrReviews = inngest.createFunction(
           });
         }
 
-        console.log(
-          'Found %s reviews for PR #%s',
-          (reviewsData as GitHubReviewWithUser[]).length,
-          prNumber
-        );
+        console.log('Found %s reviews for PR #%s', reviewsData.length, prNumber);
 
         await syncLogger.update({
           github_api_calls_used: apiCallsUsed,
           metadata: {
-            reviewsFound: (reviewsData as GitHubReviewWithUser[]).length,
+            reviewsFound: reviewsData.length,
             reviewsWithUsers: processedReviews.length,
             failedContributorCreations: failedContributorCreations,
           },
         });
 
-        return { reviews: processedReviews, failedContributorCreations };
+        // Keep accounting in durable step output so subsequent Inngest replays retain it.
+        return { reviews: processedReviews, failedContributorCreations, apiCallsUsed };
       } catch (error: unknown) {
         console.error('Error fetching reviews for PR #%s:', prNumber, error);
         const apiError = error as { status?: number };
         if (apiError.status === 404) {
           console.warn('PR #%s not found, skipping reviews', prNumber);
-          return { reviews: [], failedContributorCreations: 0 };
+          return { reviews: [], failedContributorCreations: 0, apiCallsUsed };
         }
         if (apiError.status === 403) {
           throw new Error(
@@ -212,7 +226,7 @@ export const capturePrReviews = inngest.createFunction(
         await syncLogger.fail(`Failed to store reviews: ${error.message}`, {
           records_processed: reviews.reviews.length,
           records_failed: reviews.reviews.length,
-          github_api_calls_used: apiCallsUsed,
+          github_api_calls_used: reviews.apiCallsUsed,
         });
         throw new Error(`Failed to store reviews: ${error.message}`);
       }
@@ -239,7 +253,7 @@ export const capturePrReviews = inngest.createFunction(
       await syncLogger.complete({
         records_processed: storedCount,
         records_inserted: storedCount,
-        github_api_calls_used: apiCallsUsed,
+        github_api_calls_used: reviews.apiCallsUsed,
         metadata: {
           reviewsCount: storedCount,
           failedContributorCreations: reviews.failedContributorCreations,

@@ -26,22 +26,42 @@ newest conversation first within each group. **All work** includes the other cat
 ### Reply Suggestions
 
 `github-work-replies.ts` inspects open PRs/issues returned by GitHub's `involves:@me`
-search within the selected repositories. GraphQL supplies general comments and PR
-review threads, using the authenticated `viewer` for identity. A conversation is
-suggested when its last human comment is from someone else and you authored or are
-assigned to the parent, previously commented in that conversation, or are directly
-mentioned in its last human comment. Your subsequent reply clears that suggestion.
+search within the selected repositories. GraphQL supplies general comments, submitted
+PR review summaries, and inline review threads, using the authenticated `viewer` for
+identity. A suggestion needs both a connection to you (parent author/assignee,
+conversation participant, or direct mention) and a response signal:
+
+- A question or request in authored prose, excluding quoted text, code, and URLs.
+- A submitted changes-requested review, including a review without a summary body.
+- Substantive feedback in an unresolved inline thread.
+
+Acknowledgment-only comments such as "Thanks", "LGTM", or "I'll give approach a shot
+thanks" are not work. General status updates and praise without a response signal
+are excluded. The card labels the signal so users can see why an item was suggested.
+Scanning stops at your most recent human reply. The latest comment from each other
+author supersedes their own older comments, so their acknowledgment can clear their
+request but cannot hide another person's unanswered question.
 Resolved review threads and bot-only activity are excluded. Replying to one thread
 does not clear other unanswered review threads on the same PR.
 
 This is a follow-up heuristic, not GitHub unread status or a guarantee that a response
-is required. General PR/issue comments are one chronological conversation; inline
-review threads are assessed independently. Discussion threads, standalone review
-summaries, and closed work are not included in this queue. Search-index delays can
-temporarily hide recent activity.
+is required. Response detection is a conservative, English-language heuristic, not
+semantic understanding: indirect requests and other languages can be missed, and an
+unresolved thread is not proof that a reply is required. General comments and review
+summaries form one chronological conversation; inline threads are independent. Only
+the latest submitted review per reviewer participates, so an approval or dismissal
+supersedes their earlier review summary, but never resolves inline threads. Draft
+reviews are excluded. An approval containing a question can still need a response.
+Discussion threads and closed work are not included. Search-index delays can
+temporarily hide recent activity. Replies do not change GitHub's review or thread state.
+
+The notification inbox uses the same general-conversation identity for comments and
+review summaries. Inline threads retain their separate stable identities. Neither
+identity includes a workspace, preventing duplicates when repositories overlap.
 
 To bound API cost, the reply category inspects up to 100 candidate items, 50 review
-threads per PR, and the latest 50 comments per conversation, in batches of five items.
+threads per PR, the latest 50 reviews per PR, and the latest 50 comments per
+conversation, in batches of five items.
 Batches run concurrently through the shared GraphQL rate limiter, and a transient 5xx
 response is retried before the category is reported as failed. Bot detection uses the
 shared `bot-detection.ts` rules, so `-bot` logins are excluded as well as `[bot]` apps.
@@ -50,6 +70,17 @@ narrowing the repository selection reduces the candidate set. Large individual
 conversations may still exceed these limits. The other work categories paginate
 independently and remain available if reply inspection fails. Refresh and window focus
 revalidate GitHub results; this does not repair stale Supabase analytics or counts.
+
+### Durable Review Capture
+
+The separate Inngest PR-review capture job now requests all REST review pages, 100
+records per page, rather than silently storing only the first page. Every page counts
+toward its API-call accounting. A later-page failure fails the fetch step instead of
+returning partial history as complete; Inngest can retry the step. Existing review
+upserts preserve review IDs, author, state, summary body, commit, and submission time.
+This change does not backfill existing records automatically or remove the separate
+caps on other comment-capture paths. The live reply queue remains independent of
+that durable capture job.
 
 References: [GitHub issue search](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/filtering-and-searching-issues-and-pull-requests)
 and [review thread fields](https://docs.github.com/en/graphql/reference/pulls#pullrequestreviewthread).

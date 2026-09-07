@@ -1,5 +1,6 @@
 import { fetchAwaitingReplies } from './github-work-replies';
 import { fetchWithTimeout } from '@/lib/utils/abort-signal';
+import type { ReplyReason } from './reply-signals';
 
 export type GitHubWorkCategory = 'review_requested' | 'authored' | 'assigned' | 'awaiting_reply';
 
@@ -9,7 +10,8 @@ export interface GitHubWorkReply {
   body: string;
   url: string;
   createdAt: string;
-  kind: 'conversation' | 'review';
+  kind: 'conversation' | 'review' | 'review_summary';
+  reason?: ReplyReason;
 }
 
 export interface GitHubWorkItem {
