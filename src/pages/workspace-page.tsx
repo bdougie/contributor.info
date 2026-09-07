@@ -226,6 +226,21 @@ function WorkspacePage() {
     enabled: !!workspace?.id,
   });
 
+  // Stable identity for the settings tab; an inline .map() here would reset
+  // the backfill manager's selection on every page re-render.
+  const settingsRepositories = useMemo(
+    () =>
+      repositories.map((repo) => ({
+        id: repo.id,
+        owner: repo.owner,
+        name: repo.name,
+        full_name: repo.full_name,
+        stargazers_count: repo.stars,
+        forks_count: repo.forks,
+      })),
+    [repositories]
+  );
+
   // Check GitHub App installation status across all workspace repos
   const repositoryIds = useMemo(
     () => repositories.map((r) => r.id).filter(Boolean),
@@ -1890,14 +1905,7 @@ function WorkspacePage() {
                     }
                   }
                   memberCount={memberCount}
-                  repositories={repositories.map((repo) => ({
-                    id: repo.id,
-                    owner: repo.owner,
-                    name: repo.name,
-                    full_name: repo.full_name,
-                    stargazers_count: repo.stars,
-                    forks_count: repo.forks,
-                  }))}
+                  repositories={settingsRepositories}
                   onWorkspaceUpdate={handleWorkspaceUpdate}
                 />
               </div>

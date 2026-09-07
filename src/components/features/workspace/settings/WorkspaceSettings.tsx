@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Check } from '@/components/ui/icon';
+import { Trash2, Loader2 } from '@/components/ui/icon';
 import { CopyButton } from '@/components/ui/copy-button';
 import { MembersTab } from './MembersTab';
 import { WorkspaceService } from '@/services/workspace.service';
@@ -25,6 +26,7 @@ import { WorkspaceBackfillManager } from '../WorkspaceBackfillManager';
 import { SlackIntegrationCard } from './SlackIntegrationCard';
 import { TUISetupTab } from './TUISetupTab';
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
+import { SettingsDisclosure } from './SettingsDisclosure';
 
 interface Repository {
   id: string;
@@ -43,7 +45,24 @@ interface WorkspaceSettingsProps {
   onWorkspaceUpdate?: (workspace: Workspace) => void;
 }
 
-export function WorkspaceSettings({
+function getFormData(workspace: Workspace) {
+  return {
+    name: workspace.name,
+    slug: workspace.slug,
+    description: workspace.description || '',
+    visibility: workspace.visibility,
+    notifications: {
+      email: workspace.settings?.notifications?.email ?? true,
+      in_app: workspace.settings?.notifications?.in_app ?? true,
+    },
+  };
+}
+
+export function WorkspaceSettings(props: WorkspaceSettingsProps) {
+  return <WorkspaceSettingsForm key={props.workspace.id} {...props} />;
+}
+
+function WorkspaceSettingsForm({
   workspace,
   currentMember,
   memberCount,
@@ -54,18 +73,11 @@ export function WorkspaceSettings({
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const { refreshWorkspaces } = useWorkspaceContext();
+  const navigate = useNavigate();
 
-  // Form state for general settings
-  const [formData, setFormData] = useState({
-    name: workspace.name,
-    slug: workspace.slug,
-    description: workspace.description || '',
-    visibility: workspace.visibility,
-    notifications: {
-      email: workspace.settings?.notifications?.email ?? true,
-      in_app: workspace.settings?.notifications?.in_app ?? true,
-    },
-  });
+  const [formData, setFormData] = useState(() => getFormData(workspace));
+  const [savedFormData, setSavedFormData] = useState(formData);
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(savedFormData);
 
   // Get UI permissions based on role and tier
   const permissions = WorkspacePermissionService.getUIPermissions(
@@ -104,6 +116,8 @@ export function WorkspaceSettings({
       return;
     }
 
+    if (isSaving || !hasChanges) return;
+
     // Validate slug format
     const slugPattern = /^[a-z0-9-]+$/;
     if (!slugPattern.test(formData.slug)) {
@@ -116,10 +130,10 @@ export function WorkspaceSettings({
     }
 
     // Check if slug is being changed and show warning
-    if (formData.slug !== workspace.slug) {
+    if (formData.slug !== savedFormData.slug) {
       const confirmed = window.confirm(
         '⚠️ WARNING: Changing your workspace slug will break all existing external links!\n\n' +
-          `Current URL: /i/${workspace.slug}\n` +
+          `Current URL: /i/${savedFormData.slug}\n` +
           `New URL: /i/${formData.slug}\n\n` +
           'All bookmarks, shared links, and external references will stop working.\n\n' +
           'Are you sure you want to continue?'
@@ -127,7 +141,7 @@ export function WorkspaceSettings({
 
       if (!confirmed) {
         // Reset slug to original value
-        setFormData((prev) => ({ ...prev, slug: workspace.slug }));
+        setFormData((prev) => ({ ...prev, slug: savedFormData.slug }));
         return;
       }
     }
@@ -137,7 +151,7 @@ export function WorkspaceSettings({
       const response = await WorkspaceService.updateWorkspace(workspace.id, currentMember.user_id, {
         name: formData.name,
         slug: formData.slug,
-        description: formData.description || undefined,
+        description: formData.description || null,
         visibility: formData.visibility as WorkspaceVisibility,
         settings: {
           ...workspace.settings,
@@ -146,11 +160,19 @@ export function WorkspaceSettings({
       });
 
       if (response.success && response.data) {
+        const saved = getFormData(response.data);
+        setFormData(saved);
+        setSavedFormData(saved);
         toast({
           title: 'Settings Saved',
           description: 'Workspace settings have been updated successfully',
         });
         onWorkspaceUpdate?.(response.data);
+        // The page fetches by the slug in the URL; move there before the
+        // workspace list refresh retriggers that fetch with the old slug.
+        if (response.data.slug !== savedFormData.slug) {
+          navigate(`/i/${response.data.slug}/settings`, { replace: true });
+        }
         refreshWorkspaces();
       } else {
         throw new Error(response.error || 'Failed to update settings');
@@ -167,7 +189,8 @@ export function WorkspaceSettings({
     }
   };
 
-  // Memoize repositories array to prevent unnecessary re-renders
+  // Normalize optional counts once; the parent passes a memoized array so this
+  // only recomputes when the repository list actually changes.
   const memoizedRepositories = useMemo(
     () =>
       repositories.map((repo) => ({
@@ -235,220 +258,190 @@ export function WorkspaceSettings({
   };
 
   return (
-    <div className="w-full space-y-6">
-      {/* General Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>General Information</CardTitle>
-          <CardDescription>
-            Update your workspace name, description, and visibility settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="name">Workspace Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              disabled={!permissions.canEditSettings || isSaving}
-              placeholder="Enter workspace name"
-              className="mt-1"
-            />
-          </div>
+    <div className="mx-auto w-full max-w-5xl space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-semibold tracking-tight">Workspace settings</h2>
+        {!permissions.canEditSettings && (
+          <p className="text-sm text-muted-foreground">
+            Only owners and maintainers can edit settings.
+          </p>
+        )}
+      </div>
 
+      <form
+        aria-label="Workspace preferences"
+        className="overflow-hidden rounded-xl border bg-card text-card-foreground"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleSaveGeneralSettings();
+        }}
+      >
+        <section
+          aria-labelledby="general-heading"
+          className="grid gap-6 p-5 sm:p-6 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10"
+        >
           <div>
-            <Label htmlFor="slug">Workspace Slug</Label>
-            <Input
-              id="slug"
-              value={formData.slug}
-              onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
-              disabled={!permissions.canEditSettings || isSaving}
-              placeholder="workspace-url-slug"
-              className="mt-1"
-              pattern="^[a-z0-9-]+$"
-            />
-            {formData.slug !== workspace.slug && (
-              <p className="text-sm text-amber-600 dark:text-amber-500 mt-1 font-medium">
-                ⚠️ Warning: Changing the slug will break all existing links to this workspace
-              </p>
-            )}
-            <p className="text-sm text-muted-foreground mt-1">
-              URL-friendly identifier for your workspace (lowercase letters, numbers, and hyphens
-              only)
+            <h3 id="general-heading" className="font-semibold">
+              General
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your workspace identity and access.
             </p>
           </div>
-
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              disabled={!permissions.canEditSettings || isSaving}
-              placeholder="Describe your workspace..."
-              className="mt-1"
-              rows={3}
-            />
+          <div className="min-w-0 space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="name">Workspace name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                disabled={!permissions.canEditSettings || isSaving}
+                placeholder="Enter workspace name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="slug">Workspace URL</Label>
+              <div className="flex items-center rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
+                <span className="pl-3 text-sm text-muted-foreground" aria-hidden="true">
+                  /i/
+                </span>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange('slug', e.target.value.toLowerCase())}
+                  disabled={!permissions.canEditSettings || isSaving}
+                  placeholder="workspace-url-slug"
+                  pattern="[a-z0-9\-]+"
+                  required
+                  aria-describedby={
+                    formData.slug !== savedFormData.slug ? 'slug-help slug-warning' : 'slug-help'
+                  }
+                  className="min-w-0 border-0 bg-transparent pl-1 shadow-none focus-visible:ring-0"
+                />
+              </div>
+              <p id="slug-help" className="text-xs text-muted-foreground">
+                Lowercase letters, numbers, and hyphens.
+              </p>
+              {formData.slug !== savedFormData.slug && (
+                <p
+                  id="slug-warning"
+                  role="status"
+                  className="text-sm font-medium text-amber-700 dark:text-amber-400"
+                >
+                  Changing the URL will break existing links to this workspace.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">
+                Description <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                disabled={!permissions.canEditSettings || isSaving}
+                placeholder="What is this workspace for?"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visibility">Visibility</Label>
+              <Select
+                value={formData.visibility}
+                onValueChange={(value) => handleInputChange('visibility', value)}
+                disabled={!permissions.canEditSettings || isSaving}
+              >
+                <SelectTrigger id="visibility" aria-describedby="visibility-help">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                </SelectContent>
+              </Select>
+              <p id="visibility-help" className="text-xs text-muted-foreground">
+                {formData.visibility === 'public'
+                  ? 'Anyone can view this workspace.'
+                  : 'Only members can view this workspace.'}
+              </p>
+            </div>
           </div>
+        </section>
 
+        <section
+          aria-labelledby="notifications-heading"
+          className="grid gap-6 border-t p-5 sm:p-6 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10"
+        >
           <div>
-            <Label htmlFor="visibility">Visibility</Label>
-            <Select
-              value={formData.visibility}
-              onValueChange={(value) => handleInputChange('visibility', value)}
-              disabled={!permissions.canEditSettings || isSaving}
-            >
-              <SelectTrigger id="visibility" className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground mt-1">
-              {formData.visibility === 'public'
-                ? 'Anyone can view this workspace'
-                : 'Only members can view this workspace'}
+            <h3 id="notifications-heading" className="font-semibold">
+              Notifications
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">Updates about workspace activity.</p>
+          </div>
+          <div className="min-w-0 divide-y">
+            <div className="flex items-center justify-between gap-6 pb-4">
+              <div className="space-y-1">
+                <Label htmlFor="email-notifications">Email</Label>
+                <p id="email-help" className="text-sm text-muted-foreground">
+                  Receive updates in your inbox.
+                </p>
+              </div>
+              <Switch
+                id="email-notifications"
+                checked={formData.notifications.email}
+                onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
+                aria-describedby="email-help"
+                disabled={!permissions.canEditSettings || isSaving}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-6 pt-4">
+              <div className="space-y-1">
+                <Label htmlFor="in-app-notifications">In-app</Label>
+                <p id="in-app-help" className="text-sm text-muted-foreground">
+                  Show updates in contributor.info.
+                </p>
+              </div>
+              <Switch
+                id="in-app-notifications"
+                checked={formData.notifications.in_app}
+                onCheckedChange={(checked) => handleInputChange('notifications.in_app', checked)}
+                aria-describedby="in-app-help"
+                disabled={!permissions.canEditSettings || isSaving}
+              />
+            </div>
+          </div>
+        </section>
+
+        {permissions.canEditSettings && (
+          <div className="flex flex-col gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p role="status" className="text-sm text-muted-foreground">
+              {hasChanges ? 'Unsaved changes' : 'No unsaved changes'}
             </p>
-          </div>
-
-          {permissions.canEditSettings && (
-            <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
-              <Check className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Debug Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Debug Information</CardTitle>
-          <CardDescription>
-            Technical details for debugging and integration purposes
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <Label className="text-muted-foreground">Workspace ID</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="text-sm bg-muted px-2 py-1 rounded font-mono">{workspace.id}</code>
-                <CopyButton
-                  value={workspace.id}
-                  size="sm"
-                  iconClassName="h-3 w-3"
-                  successMessage="Workspace ID copied to clipboard"
-                  label="Copy Workspace ID"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-muted-foreground">Workspace Slug</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
-                  {workspace.slug}
-                </code>
-                <CopyButton
-                  value={workspace.slug}
-                  size="sm"
-                  iconClassName="h-3 w-3"
-                  successMessage="Workspace slug copied to clipboard"
-                  label="Copy Workspace Slug"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-muted-foreground">Owner ID</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <code className="text-sm bg-muted px-2 py-1 rounded font-mono text-xs">
-                  {workspace.owner_id}
-                </code>
-                <CopyButton
-                  value={workspace.owner_id}
-                  size="sm"
-                  iconClassName="h-3 w-3"
-                  successMessage="Owner ID copied to clipboard"
-                  label="Copy Owner ID"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-muted-foreground">Created</Label>
-              <p className="text-sm mt-1">
-                {new Date(workspace.created_at).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 sm:flex-none"
+                onClick={() => setFormData(savedFormData)}
+                disabled={!hasChanges || isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 sm:flex-none"
+                disabled={!hasChanges || isSaving}
+              >
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                {isSaving ? 'Saving…' : 'Save changes'}
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </form>
 
-      {/* Notification Preferences */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Notification Preferences</CardTitle>
-          <CardDescription>
-            Configure how you receive notifications for this workspace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="email-notifications">Email Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Receive email updates about workspace activity
-              </p>
-            </div>
-            <Switch
-              id="email-notifications"
-              checked={formData.notifications.email}
-              onCheckedChange={(checked) => handleInputChange('notifications.email', checked)}
-              disabled={isSaving}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="in-app-notifications">In-App Notifications</Label>
-              <p className="text-sm text-muted-foreground">
-                Show notifications within the application
-              </p>
-            </div>
-            <Switch
-              id="in-app-notifications"
-              checked={formData.notifications.in_app}
-              onCheckedChange={(checked) => handleInputChange('notifications.in_app', checked)}
-              disabled={isSaving}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Slack Integration */}
-      <SlackIntegrationCard
-        workspaceId={workspace.id}
-        canEditSettings={permissions.canEditSettings}
-      />
-
-      {/* Repository Insights TUI */}
-      <TUISetupTab />
-
-      {/* Event Data Backfill Section */}
-      {repositories.length > 0 && (
-        <WorkspaceBackfillManager workspaceId={workspace.id} repositories={memoizedRepositories} />
-      )}
-
-      {/* Team Members Section */}
       <MembersTab
         workspaceId={workspace.id}
         currentUserRole={currentMember.role}
@@ -456,28 +449,86 @@ export function WorkspaceSettings({
         memberCount={memberCount}
       />
 
-      {/* Danger Zone */}
-      {permissions.canDeleteWorkspace && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Permanent actions that cannot be undone</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
+      <SlackIntegrationCard
+        workspaceId={workspace.id}
+        canEditSettings={permissions.canEditSettings}
+      />
+
+      <section aria-labelledby="tools-heading" className="space-y-4">
+        <h3 id="tools-heading" className="font-semibold">
+          Tools & details
+        </h3>
+        <div className="divide-y rounded-xl border bg-card">
+          <SettingsDisclosure title="Repository insights TUI">
+            <TUISetupTab />
+          </SettingsDisclosure>
+          {repositories.length > 0 && (
+            <SettingsDisclosure title="Event history backfill">
+              <WorkspaceBackfillManager
+                workspaceId={workspace.id}
+                repositories={memoizedRepositories}
+              />
+            </SettingsDisclosure>
+          )}
+          <SettingsDisclosure title="Workspace details">
+            <dl className="grid min-w-0 gap-5 sm:grid-cols-2">
+              {[
+                { label: 'Workspace ID', value: workspace.id },
+                { label: 'Workspace slug', value: workspace.slug },
+                { label: 'Owner ID', value: workspace.owner_id },
+              ].map(({ label, value }) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="mt-1 flex min-w-0 items-center gap-2">
+                    <code className="min-w-0 break-all text-xs">{value}</code>
+                    <CopyButton
+                      value={value}
+                      size="sm"
+                      iconClassName="h-3 w-3"
+                      successMessage={`${label} copied to clipboard`}
+                      label={`Copy ${label}`}
+                    />
+                  </dd>
+                </div>
+              ))}
               <div>
-                <p className="font-medium">Delete Workspace</p>
-                <p className="text-sm text-muted-foreground">
-                  Permanently delete this workspace and all associated data
-                </p>
+                <dt className="text-xs text-muted-foreground">Created</dt>
+                <dd className="mt-2 text-sm">
+                  {new Date(workspace.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </dd>
               </div>
-              <Button variant="destructive" onClick={handleDeleteWorkspace} disabled={isLoading}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Workspace
-              </Button>
+            </dl>
+          </SettingsDisclosure>
+        </div>
+      </section>
+
+      {permissions.canDeleteWorkspace && (
+        <section aria-labelledby="danger-heading" className="space-y-4 border-t pt-8">
+          <h3 id="danger-heading" className="font-semibold text-destructive dark:text-red-400">
+            Danger zone
+          </h3>
+          <div className="flex flex-col gap-4 rounded-xl border border-destructive/30 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <h4 className="text-sm font-medium">Delete workspace</h4>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Permanently delete this workspace and all associated data.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+            <Button
+              variant="destructive"
+              className="shrink-0"
+              onClick={handleDeleteWorkspace}
+              disabled={isLoading}
+            >
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              {isLoading ? 'Deleting…' : 'Delete workspace'}
+            </Button>
+          </div>
+        </section>
       )}
     </div>
   );
@@ -497,7 +548,7 @@ export function WorkspaceSettingsSkeleton() {
 
       <div className="space-y-6">
         <Skeleton className="h-10 w-full" />
-        <Card>
+        <Card className="shadow-none">
           <CardHeader>
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-4 w-48 mt-2" />

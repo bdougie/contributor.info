@@ -59,6 +59,15 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
   const encryptionConfigured = isEncryptionConfigured();
 
+  useEffect(() => {
+    if (!encryptionConfigured) {
+      console.warn(
+        '%s',
+        'Slack integration disabled: VITE_SLACK_WEBHOOK_ENCRYPTION_KEY is missing or shorter than 32 characters'
+      );
+    }
+  }, [encryptionConfigured]);
+
   // Filter channels based on search query for each integration
   const getFilteredChannels = (integrationId: string): SlackChannel[] => {
     const integrationChannels = channels[integrationId] || [];
@@ -436,24 +445,21 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
   if (!encryptionConfigured) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Slack Integration</CardTitle>
-          <CardDescription>Send automated issue assignee reports to Slack channels</CardDescription>
+      <Card className="min-w-0 shadow-none">
+        <CardHeader className="p-5 sm:p-6">
+          <CardTitle>Slack</CardTitle>
+          <CardDescription>Send scheduled issue reports to your team.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
-            <p className="text-sm text-amber-900 dark:text-amber-100">
-              ⚠️ Slack integration requires encryption configuration. Please set
-              VITE_SLACK_WEBHOOK_ENCRYPTION_KEY in your environment variables.
+        <CardContent className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <p className="text-sm text-muted-foreground">
+            Slack is unavailable. Contact support to enable this integration.
+          </p>
+          {import.meta.env.DEV && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Developer note: set the Slack webhook encryption key (32+ characters) in your
+              environment. See docs/integrations/slack-assignee-reports.md.
             </p>
-            <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-              Generate a key:{' '}
-              <code className="bg-amber-100 dark:bg-amber-900 px-1 rounded">
-                openssl rand -base64 32
-              </code>
-            </p>
-          </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -465,14 +471,12 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="min-w-0 shadow-none">
+      <CardHeader className="p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Slack Integration</CardTitle>
-            <CardDescription>
-              Send automated issue assignee reports to Slack channels
-            </CardDescription>
+            <CardTitle>Slack</CardTitle>
+            <CardDescription>Send scheduled issue reports to your team.</CardDescription>
           </div>
           {!loading && (
             <Button
@@ -481,28 +485,32 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
               onClick={() => refetch()}
               title="Refresh integrations"
             >
-              🔄 Refresh
+              Refresh
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-5 pb-5 sm:px-6 sm:pb-6">
         {loading && <p className="text-sm text-muted-foreground">Loading integrations...</p>}
 
         {!loading && integrations.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-sm text-muted-foreground mb-4">
-              No Slack integrations configured yet
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {canEditSettings
+                ? 'Connect a Slack workspace to get started.'
+                : 'No Slack workspace is connected. Ask an owner or maintainer to connect one.'}
             </p>
-            <div className="flex flex-col gap-3 items-center">
-              <button
-                onClick={handleInstallSlackApp}
-                className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
-                aria-label="Add to Slack"
-              >
-                <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
-              </button>
-            </div>
+            {canEditSettings && (
+              <div className="flex flex-col gap-3 items-center">
+                <button
+                  onClick={handleInstallSlackApp}
+                  className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded bg-white p-0"
+                  aria-label="Add to Slack"
+                >
+                  <img alt="Add to Slack" height="40" width="139" src="/images/add_to_slack.svg" />
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -514,7 +522,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                 key={integration.id}
                 className="rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950/30 dark:border-green-800 p-4 space-y-3"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Badge variant="default" className="bg-green-600">
                       ✅ Installed
@@ -619,10 +627,10 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                     key={integration.id}
                     className={`rounded-lg border p-4 space-y-3 ${borderClass}`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-medium">#{integration.channel_name}</h4>
+                          <h4 className="break-all font-medium">#{integration.channel_name}</h4>
                           {isOAuth ? (
                             <Badge variant="default" className="bg-green-600">
                               ✅ OAuth App
@@ -663,6 +671,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
                       {canEditSettings && (
                         <div className="flex items-center gap-2">
                           <Switch
+                            aria-label={`Enable reports for #${integration.channel_name}`}
                             checked={integration.enabled}
                             onCheckedChange={(enabled) =>
                               handleToggleEnabled(integration.id, enabled)
@@ -685,7 +694,7 @@ export function SlackIntegrationCard({ workspaceId, canEditSettings }: SlackInte
 
                     {canEditSettings && (
                       <div className="space-y-2 pt-2">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             size="sm"

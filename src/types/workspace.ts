@@ -354,7 +354,7 @@ export interface CreateWorkspaceRequest {
 export interface UpdateWorkspaceRequest {
   name?: string;
   slug?: string;
-  description?: string;
+  description?: string | null;
   visibility?: WorkspaceVisibility;
   settings?: Partial<WorkspaceSettings>;
 }

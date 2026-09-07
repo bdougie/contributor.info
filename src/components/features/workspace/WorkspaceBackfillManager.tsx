@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -12,14 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Database,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-} from '@/components/ui/icon';
+import { CheckCircle, XCircle, Loader2, AlertCircle, RefreshCw } from '@/components/ui/icon';
 import { toast } from 'sonner';
 import { LastUpdated } from '@/components/ui/last-updated';
 
@@ -277,164 +268,129 @@ export function WorkspaceBackfillManager({
   };
 
   if (repositories.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Workspace Event Backfill
-          </CardTitle>
-          <CardDescription>
-            No repositories in workspace. Add repositories to enable backfilling.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
+    return <p className="text-sm text-muted-foreground">Add repositories to enable backfilling.</p>;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Database className="h-5 w-5" />
-          Workspace Event Backfill
-        </CardTitle>
-        <CardDescription>
-          Backfill 90 days of GitHub event data (stars, forks, activity) for workspace repositories
-          to enable accurate velocity trend metrics.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Why backfill?</strong> Star velocity metrics require 60+ days of continuous
-            event data to show meaningful trends. Currently showing 0% trends due to insufficient
-            historical data.
-          </AlertDescription>
-        </Alert>
-
-        {isBackfilling && overallProgress > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Overall Progress</span>
-              <span className="font-medium">{Math.round(overallProgress)}%</span>
-            </div>
-            <Progress value={overallProgress} className="w-full" />
+    <div className="min-w-0 space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Import up to 90 days of stars, forks, and activity to fill gaps in velocity trends.
+      </p>
+      {isBackfilling && overallProgress > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Overall Progress</span>
+            <span className="font-medium">{Math.round(overallProgress)}%</span>
           </div>
-        )}
+          <Progress value={overallProgress} className="w-full" />
+        </div>
+      )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={selectedRepos.size === repositories.length}
-              onChange={handleSelectAll}
-              className="h-4 w-4 rounded border-gray-300"
-              aria-label="Select all repositories"
-            />
-            <span className="text-sm text-muted-foreground">
-              {selectedRepos.size} of {repositories.length} selected
-            </span>
-          </div>
-
-          <Button
-            onClick={handleBackfillSelected}
-            disabled={isBackfilling || selectedRepos.size === 0}
-            size="sm"
-          >
-            {isBackfilling ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Backfilling...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Backfill Selected ({selectedRepos.size})
-              </>
-            )}
-          </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={selectedRepos.size === repositories.length}
+            onChange={handleSelectAll}
+            className="h-4 w-4 rounded border-gray-300"
+            aria-label="Select all repositories"
+          />
+          <span className="text-sm text-muted-foreground">
+            {selectedRepos.size} of {repositories.length} selected
+          </span>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12"></TableHead>
-                <TableHead>Repository</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Backfill</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {repositories.map((repo) => {
-                const status = backfillStatuses[repo.full_name] || { status: 'pending' as const };
-                return (
-                  <TableRow key={repo.full_name}>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedRepos.has(repo.full_name)}
-                        onChange={() => handleToggleRepository(repo.full_name)}
-                        disabled={isBackfilling}
-                        className="h-4 w-4 rounded border-gray-300"
-                        aria-label={`Select ${repo.full_name} for backfill`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{repo.full_name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          ⭐ {repo.stargazers_count} · 🍴 {repo.forks_count}
+        <Button
+          onClick={handleBackfillSelected}
+          disabled={isBackfilling || selectedRepos.size === 0}
+          size="sm"
+        >
+          {isBackfilling ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Backfilling...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Backfill Selected ({selectedRepos.size})
+            </>
+          )}
+        </Button>
+      </div>
+
+      <div className="min-w-0 overflow-hidden rounded-md border">
+        <Table className="min-w-[560px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12"></TableHead>
+              <TableHead>Repository</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Backfill</TableHead>
+              <TableHead className="w-24"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {repositories.map((repo) => {
+              const status = backfillStatuses[repo.full_name] || { status: 'pending' as const };
+              return (
+                <TableRow key={repo.full_name}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedRepos.has(repo.full_name)}
+                      onChange={() => handleToggleRepository(repo.full_name)}
+                      disabled={isBackfilling}
+                      className="h-4 w-4 rounded border-gray-300"
+                      aria-label={`Select ${repo.full_name} for backfill`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="max-w-xs break-words font-medium">{repo.full_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ⭐ {repo.stargazers_count} · 🍴 {repo.forks_count}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(status.status)}
+                      {getStatusBadge(status.status)}
+                      {status.error && (
+                        <span className="text-xs text-red-500 truncate max-w-xs">
+                          {status.error}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {status.lastBackfillDate ? (
+                      <LastUpdated
+                        timestamp={status.lastBackfillDate}
+                        label=""
+                        size="sm"
+                        showIcon={false}
+                        includeStructuredData={false}
+                      />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Never</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {status.status === 'processing' && status.progress !== undefined && (
                       <div className="flex items-center gap-2">
-                        {getStatusIcon(status.status)}
-                        {getStatusBadge(status.status)}
-                        {status.error && (
-                          <span className="text-xs text-red-500 truncate max-w-xs">
-                            {status.error}
-                          </span>
-                        )}
+                        <Progress value={status.progress} className="w-16" />
+                        <span className="text-xs">{status.progress}%</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {status.lastBackfillDate ? (
-                        <LastUpdated
-                          timestamp={status.lastBackfillDate}
-                          label=""
-                          size="sm"
-                          showIcon={false}
-                          includeStructuredData={false}
-                        />
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Never</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {status.status === 'processing' && status.progress !== undefined && (
-                        <div className="flex items-center gap-2">
-                          <Progress value={status.progress} className="w-16" />
-                          <span className="text-xs">{status.progress}%</span>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          This will fetch and store WatchEvent, ForkEvent, and other activity events from the last
-          90 days (within GitHub API limits) to enable meaningful velocity trend comparisons.
-        </p>
-      </CardContent>
-    </Card>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 }
