@@ -11,6 +11,7 @@ bundle-splitting experiments live in
 
 ## Optimization Guides
 
+- [Progressive Loading on the Repository Page](./progressive-loading.md) - How `/:owner/:repo` paints: edge SSR shell, hydration-aware Suspense, cache-seeded hooks, idle-deferred background work. Start here.
 - [Performance Best Practices](./performance-best-practices.md) - Rules of thumb for new code
 - [Performance Checklist](./performance-checklist.md) - Checklist to run before shipping a feature
 - [Code Splitting Patterns](./code-splitting-patterns.md) - Route and vendor chunking patterns used in `vite.config.ts`
