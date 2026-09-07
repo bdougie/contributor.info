@@ -27,6 +27,20 @@ beforeEach(() => {
       disconnect() {}
     }
   );
+  // Radix Select positions its menu with floating-ui, which subscribes to
+  // IntersectionObserver whenever one exists globally. Other test files leak
+  // half-reset mocks onto `global`, so pin an inert implementation here.
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    }
+  );
 });
 afterEach(() => {
   cleanup();
