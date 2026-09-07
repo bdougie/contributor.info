@@ -46,7 +46,7 @@ export function toWorkSnapshot(
     } else {
       for (const reply of item.replies || []) {
         const key =
-          reply.kind === 'conversation'
+          reply.kind !== 'review'
             ? `conversation:${item.nodeId || item.id}`
             : `thread:${reply.threadId || reply.url.split('#')[1]}`;
         unique.set(key, {

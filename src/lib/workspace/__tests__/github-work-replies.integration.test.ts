@@ -22,6 +22,7 @@ const item: GitHubWorkItem = {
 const comment = (login = 'reviewer', bodyText = 'Can you add a test?', id = 1) => ({
   author: { login, __typename: 'User' },
   bodyText,
+  body: bodyText,
   url: `${item.url}#discussion_r${id}`,
   createdAt: `2026-09-0${id}T00:00:00Z`,
 });
@@ -29,12 +30,26 @@ const comments = (nodes: ReturnType<typeof comment>[] = []) => ({
   nodes,
   pageInfo: { hasPreviousPage: false },
 });
+const review = (
+  state = 'CHANGES_REQUESTED',
+  bodyText = 'Add coverage',
+  id = 1,
+  login = 'reviewer'
+) => ({
+  id: `REVIEW_${id}`,
+  author: { login, __typename: 'User' },
+  state,
+  bodyText,
+  url: `${item.url}#pullrequestreview-${id}`,
+  submittedAt: `2026-09-0${id}T00:00:00Z` as string | null,
+});
 const conversation = () => ({
   id: item.nodeId,
   state: 'OPEN',
   author: { login: 'bdougie' },
   assignees: { nodes: [] as { login: string }[], pageInfo: { hasNextPage: false } },
   comments: comments(),
+  reviews: { nodes: [] as ReturnType<typeof review>[], pageInfo: { hasPreviousPage: false } },
   reviewThreads: {
     nodes: [{ isResolved: false, comments: comments([comment()]) }],
     pageInfo: { hasNextPage: false },
@@ -57,6 +72,117 @@ const options = () => ({
 afterEach(() => vi.unstubAllGlobals());
 
 describe('GitHub comments awaiting response', () => {
+  it('captures submitted review summaries and exposes the response signal', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.reviews.nodes = [review()];
+    const fetchMock = mockResponse(node);
+    const result = await fetchAwaitingReplies(options());
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).query).toContain('reviews(last: 50)');
+    expect(result.items[0].replies).toMatchObject([
+      { kind: 'review_summary', reason: 'changes_requested', body: 'Add coverage' },
+    ]);
+  });
+
+  it('suppresses acknowledgments but keeps an earlier unanswered question', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.comments = comments([comment('reviewer', 'Thanks!')]);
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+    node.comments = comments([comment(), comment('someone-else', 'Thanks!', 2)]);
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items[0].replies?.[0].body).toBe(
+      'Can you add a test?'
+    );
+  });
+
+  it('lets an author acknowledge their own earlier request without reviving it', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes[0].comments = comments([
+      comment(),
+      comment('reviewer', 'All set, thanks!', 2),
+    ]);
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+    node.reviewThreads.nodes = [];
+    node.reviews.nodes = [review()];
+    node.comments = comments([comment('reviewer', 'Thanks!', 2)]);
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+  });
+
+  it('uses markdown to ignore quoted questions rather than the flattened preview', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.comments.nodes = [
+      { ...comment('reviewer', 'Can you fix it? Done!'), body: '> Can you fix it?\nDone!' },
+    ];
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+  });
+
+  it.each(['APPROVED', 'DISMISSED', 'PENDING'])(
+    'does not resurrect a superseded summary after %s',
+    async (state) => {
+      const node = conversation();
+      node.reviewThreads.nodes = [];
+      node.reviews.nodes =
+        state === 'PENDING' ? [review(state)] : [review(), review(state, 'LGTM', 2)];
+      mockResponse(node);
+      expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+    }
+  );
+
+  it('does not let an unsubmitted review supersede published feedback', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.reviews.nodes = [review(), { ...review('PENDING', '', 2), submittedAt: null }];
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items[0].replies?.[0].reason).toBe(
+      'changes_requested'
+    );
+  });
+
+  it('includes a question in an approval but excludes bot review summaries', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.reviews.nodes = [review('APPROVED', 'Could you document this?', 1)];
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items[0].replies?.[0].reason).toBe('question');
+    node.reviews.nodes = [review('CHANGES_REQUESTED', 'Please fix it', 1, 'ci[bot]')];
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items).toEqual([]);
+  });
+
+  it('clears a review summary after a general reply without clearing inline threads', async () => {
+    const node = conversation();
+    node.reviews.nodes = [review()];
+    node.comments = comments([comment('bdougie', 'Added coverage', 2)]);
+    mockResponse(node);
+    const result = await fetchAwaitingReplies(options());
+    expect(result.items[0].replies).toHaveLength(1);
+    expect(result.items[0].replies?.[0].kind).toBe('review');
+  });
+
+  it('does not let someone else approving clear another reviewer or thread', async () => {
+    const node = conversation();
+    node.reviews.nodes = [review(), review('APPROVED', '', 2, 'other-reviewer')];
+    mockResponse(node);
+    expect((await fetchAwaitingReplies(options())).items[0].replies).toHaveLength(2);
+  });
+
+  it('marks truncated review summaries incomplete so missing work is not resolved', async () => {
+    const node = conversation();
+    node.reviewThreads.nodes = [];
+    node.reviews.pageInfo.hasPreviousPage = true;
+    mockResponse(node);
+    expect(await fetchAwaitingReplies(options())).toMatchObject({
+      incomplete: true,
+      incompleteRepositories: [item.repository],
+    });
+  });
+
   it('loads review comments with the existing session and returns a safe preview', async () => {
     const fetchMock = mockResponse();
     const result = await fetchAwaitingReplies(options());

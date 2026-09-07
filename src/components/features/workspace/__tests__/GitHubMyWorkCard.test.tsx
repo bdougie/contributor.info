@@ -58,6 +58,32 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('GitHub My Work', () => {
+  it('labels review summaries and the reason they need attention', () => {
+    const url = `${items[1].url}#pullrequestreview-123`;
+    mocks.work.mockReturnValue({
+      ...state(),
+      items: [
+        {
+          ...items[1],
+          categories: ['awaiting_reply'],
+          replies: [
+            {
+              author: 'reviewer',
+              body: 'Add coverage',
+              url,
+              createdAt: items[1].updatedAt,
+              kind: 'review_summary',
+              reason: 'changes_requested',
+            },
+          ],
+        },
+      ],
+    });
+    renderCard();
+    expect(screen.getByText(/Review summary -/)).toBeInTheDocument();
+    expect(screen.getByText('Changes requested')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Add coverage/ })).toHaveAttribute('href', url);
+  });
   it('defaults to Priority with awaiting replies before newer review requests', () => {
     mocks.work.mockReturnValue({
       ...state(),

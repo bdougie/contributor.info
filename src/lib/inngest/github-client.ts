@@ -103,9 +103,19 @@ export function getOctokit(tokenOverride?: string) {
           );
           return { data };
         },
-        listReviews: async (params: { owner: string; repo: string; pull_number: number }) => {
+        listReviews: async (params: {
+          owner: string;
+          repo: string;
+          pull_number: number;
+          per_page?: number;
+          page?: number;
+        }) => {
+          const query = new URLSearchParams({
+            per_page: String(params.per_page ?? 100),
+            page: String(params.page ?? 1),
+          });
           const data = await makeGitHubRequest(
-            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/reviews`,
+            `/repos/${params.owner}/${params.repo}/pulls/${params.pull_number}/reviews?${query}`,
             tokenOverride
           );
           return { data };
