@@ -137,6 +137,10 @@ const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
 const WorkspacesPage = lazy(() => import('@/pages/workspaces-page'));
 const DemoWorkspacePage = lazy(() => import('@/pages/demo-workspace-page'));
+const ReviewLabelsPage = lazy(() => import('@/pages/review-labels-page'));
+const ReviewLabelsPrototypePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/review-labels-prototype-page'))
+  : null;
 
 // Admin components
 const AdminMenu = lazy(() =>
@@ -222,6 +226,7 @@ function isRepoRoute(): boolean {
     '/terms',
     '/billing',
     '/invitation',
+    '/review-labels',
     '/signup',
     '/spam',
   ];
@@ -506,6 +511,14 @@ function App() {
                         <Route index element={<Home />} />
                         {/* Invitation acceptance route - must come before workspace routes to avoid conflicts */}
                         <Route path="/invitation/:token" element={<InvitationAcceptancePage />} />
+                        <Route path="/review-labels" element={<ReviewLabelsPage />} />
+                        <Route path="/review-labels/:token/invite" element={<ReviewLabelsPage />} />
+                        {ReviewLabelsPrototypePage && (
+                          <Route
+                            path="/review-labels/prototype"
+                            element={<ReviewLabelsPrototypePage />}
+                          />
+                        )}
                         {/* Workspace routes - protected by feature flag */}
                         {/* Workspaces list page */}
                         <Route path="/workspaces" element={<WorkspacesPage />} />

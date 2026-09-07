@@ -43,12 +43,27 @@ export default function Layout() {
   const [commandPalettePreloaded, setCommandPalettePreloaded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { workspaces, switchWorkspace, isLoading: workspacesLoading } = useWorkspaceContext();
+  const {
+    activeWorkspace,
+    workspaces,
+    switchWorkspace,
+    isLoading: workspacesLoading,
+  } = useWorkspaceContext();
   // Simplified check - just use the working context instead of a separate broken hook
   const needsOnboarding = workspaces.length === 0;
   const onboardingLoading = workspacesLoading;
   const hasTrackedCTA = useRef(false);
   const isMobile = useIsMobile();
+  const labelReviewsLink = activeWorkspace ? (
+    <Button variant="outline" size="sm" asChild>
+      <Link
+        to={`/review-labels?workspace=${activeWorkspace.id}`}
+        aria-current={location.pathname === '/review-labels' ? 'page' : undefined}
+      >
+        Label reviews
+      </Link>
+    </Button>
+  ) : null;
 
   // PLG Tracking: First page view tracking
   const { trackFirstPageView } = useAnalytics();
@@ -191,6 +206,20 @@ export default function Layout() {
                   >
                     Home
                   </NavLink>
+                  {isLoggedIn && (
+                    <NavLink
+                      onClick={() => {
+                        navigate(
+                          activeWorkspace
+                            ? `/review-labels?workspace=${activeWorkspace.id}`
+                            : '/review-labels'
+                        );
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      Review labels
+                    </NavLink>
+                  )}
                   <NavLink
                     onClick={() => {
                       navigate('/i/demo');
@@ -360,9 +389,13 @@ export default function Layout() {
                 )}
               </>
             )}
+            {labelReviewsLink && <div className="hidden lg:block">{labelReviewsLink}</div>}
             <AuthButton />
           </div>
         </div>
+        {labelReviewsLink && (
+          <div className="container flex justify-end px-4 pb-3 lg:hidden">{labelReviewsLink}</div>
+        )}
       </header>
 
       <main

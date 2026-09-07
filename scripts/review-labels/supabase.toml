@@ -1,0 +1,43 @@
+# Independent local project; never linked to a hosted Supabase database.
+project_id = "contributor-review-labels-qa"
+
+[api]
+enabled = true
+port = 54421
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54422
+shadow_port = 54420
+major_version = 17
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+
+[local_smtp]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:5175"
+additional_redirect_urls = ["http://localhost:5175/**"]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+
+[analytics]
+enabled = false

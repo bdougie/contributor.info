@@ -4,6 +4,7 @@ This directory contains Product Requirements Documents (PRDs) and execution plan
 
 ## Contents
 
+- [2026-09-07-review-labeler.md](./2026-09-07-review-labeler.md) - Personal review-labeling queues, team invitations, consent, JSONL export, and Paper Compute repository rollout
 - [prd-private-repo-opt-in.md](./prd-private-repo-opt-in.md) - Opt-in flow for tracking private repositories
 - [2026-07-13-org-import-workspace-design.md](./2026-07-13-org-import-workspace-design.md) - Design for importing a GitHub org's repositories into a workspace
 

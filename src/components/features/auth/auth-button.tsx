@@ -20,7 +20,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import { trackEvent, identifyUser } from '@/lib/posthog-lazy';
 import { markAuthRedirectStart, getAuthRedirectDuration } from '@/lib/plg-tracking-utils';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -31,7 +32,9 @@ import { useIsMobile } from '@/lib/utils/mobile-detection';
 import type { User } from '@supabase/supabase-js';
 
 export function AuthButton() {
+  const localQA = import.meta.env.DEV && import.meta.env.VITE_REVIEW_LABEL_QA === 'true';
   const navigate = useNavigate();
+  const { activeWorkspace } = useWorkspaceContext();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -229,6 +232,13 @@ export function AuthButton() {
   }, []);
 
   const handleLogin = async () => {
+    if (localQA) {
+      if (!window.location.pathname.startsWith('/review-labels')) {
+        navigate('/review-labels');
+      }
+      document.getElementById('review-label-qa-account')?.focus();
+      return;
+    }
     try {
       setError(null);
 
@@ -243,10 +253,11 @@ export function AuthButton() {
       markAuthRedirectStart();
 
       // Store current path so the auth hook redirects back here after OAuth
-      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      const returnPath = window.location.pathname + window.location.search;
+      localStorage.setItem('redirectAfterLogin', returnPath);
 
       // Get the correct redirect URL for the current environment
-      const redirectTo = window.location.origin + window.location.pathname;
+      const redirectTo = window.location.origin + returnPath;
 
       const supabase = await getSupabase();
       const { error: signInError } = await supabase.auth.signInWithOAuth({
@@ -308,9 +319,11 @@ export function AuthButton() {
           </span>
         )}
         <Button variant="outline" onClick={handleLogin}>
-          <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />
-          <span className="hidden sm:inline">Login with GitHub</span>
-          <span className="sm:hidden">Login</span>
+          {!localQA && <GithubIcon className="mr-2 h-4 w-4 sm:hidden" />}
+          <span className="hidden sm:inline">
+            {localQA ? 'Choose QA account' : 'Login with GitHub'}
+          </span>
+          <span className="sm:hidden">{localQA ? 'QA account' : 'Login'}</span>
         </Button>
       </div>
     );
@@ -319,7 +332,7 @@ export function AuthButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="Account menu">
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.user_metadata.avatar_url} alt={user.user_metadata.user_name} />
             <AvatarFallback>{user.user_metadata.user_name?.charAt(0)}</AvatarFallback>
@@ -336,6 +349,18 @@ export function AuthButton() {
               </Badge>
             )}
           </div>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link
+            to={
+              activeWorkspace ? `/review-labels?workspace=${activeWorkspace.id}` : '/review-labels'
+            }
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Label reviews
+          </Link>
         </DropdownMenuItem>
 
         {isAdmin && (

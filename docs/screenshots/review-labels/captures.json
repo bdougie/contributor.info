@@ -1,0 +1,58 @@
+{
+  "capturedAt": "2026-09-07T22:54:28.825Z",
+  "desktopViewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "mobileViewport": {
+    "width": 390,
+    "height": 844
+  },
+  "data": "Synthetic PR fixtures. QA uses real local Auth, API, and database; prototype interactions are simulated.",
+  "captures": [
+    {
+      "file": "01-prototype-invitation.png",
+      "caption": "Prototype: a personal workspace invitation introduces the selected repositories and optional labeling.",
+      "source": "prototype"
+    },
+    {
+      "file": "02-prototype-human-queue.png",
+      "caption": "Prototype: Human reviews surfaces teammate comments and the reviewer’s own comments on eligible PRs.",
+      "source": "prototype"
+    },
+    {
+      "file": "08-prototype-mobile-review.png",
+      "caption": "Prototype on mobile: the source hunk, verbatim human comment, and Good/Bad/Skip actions remain readable.",
+      "source": "prototype"
+    },
+    {
+      "file": "03-qa-invitation.png",
+      "caption": "QA: the invited account can join the workspace from a personal URL ending in /invite; joining alone does not grant training consent.",
+      "source": "qa",
+      "viewport": {
+        "width": 1440,
+        "height": 720
+      }
+    },
+    {
+      "file": "04-qa-human-review.png",
+      "caption": "QA: a teammate’s verbatim comment is anchored to its source hunk, with Good/Bad/Skip and a clear consent notice.",
+      "source": "qa"
+    },
+    {
+      "file": "05-qa-bot-pushback.png",
+      "caption": "QA: a Greptile comment is shown with the original hunk, a disagreeing reply, resolution, and later approval so the reviewer can judge the flag.",
+      "source": "qa"
+    },
+    {
+      "file": "06-qa-missed.png",
+      "caption": "QA: an optional one-line missed issue is attached to a selected PR hunk.",
+      "source": "qa"
+    },
+    {
+      "file": "07-qa-invite-tracking.png",
+      "caption": "QA: Matt’s invitation is accepted while John’s has only been viewed; first/last view, session counts, and acceptance timestamps stay distinct.",
+      "source": "qa"
+    }
+  ]
+}

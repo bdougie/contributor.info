@@ -25,6 +25,7 @@ function isTestMode(): boolean {
  * Dedicated login page that handles authentication and redirects
  */
 export default function LoginPage() {
+  const localQA = import.meta.env.DEV && import.meta.env.VITE_REVIEW_LABEL_QA === 'true';
   const { login, isLoggedIn } = useGitHubAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -147,8 +148,8 @@ export default function LoginPage() {
           ) : (
             // Production mode: GitHub OAuth
             <Button onClick={handleLogin} size="lg">
-              <GithubIcon className="mr-2 h-4 w-4" />
-              Login with GitHub
+              {!localQA && <GithubIcon className="mr-2 h-4 w-4" />}
+              {localQA ? 'Choose QA account' : 'Login with GitHub'}
             </Button>
           )}
 

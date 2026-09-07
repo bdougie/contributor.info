@@ -8,6 +8,7 @@
  */
 
 import { env } from './env';
+import { redactReviewInviteTokens } from './review-labels-privacy';
 
 type SentryLevel = 'fatal' | 'error' | 'warning' | 'log' | 'info' | 'debug';
 
@@ -97,11 +98,12 @@ export async function lazyInitSentry(): Promise<SentryApi | null> {
           ],
           // Minimal processing to avoid blocking
           beforeSend(event) {
+            if (window.location.pathname.startsWith('/review-labels')) return null;
             // Quick filter for extensions
             if (event.request?.url?.includes('extension://')) {
               return null;
             }
-            return event;
+            return redactReviewInviteTokens(event);
           },
         });
 
