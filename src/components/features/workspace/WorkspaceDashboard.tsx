@@ -3,6 +3,7 @@ import { MetricCard } from './MetricCard';
 import { MyWorkCard, type MyWorkItem, type MyWorkStats } from './MyWorkCard';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
+import { TIME_RANGE_LABELS } from '@/lib/utils/time-range';
 import { Star, GitPullRequest, Users, AlertCircle, UserPlus } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { LearnMoreLink } from '@/components/ui/learn-more-link';
@@ -82,13 +83,14 @@ export interface WorkspaceDashboardProps {
   >;
 }
 
-const timeRangeLabels: Record<TimeRange, string> = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  '1y': 'Last year',
-  all: 'All time',
-};
+/**
+ * Totals are current snapshots; only the trend badges are scoped to the selected range.
+ * "Last 30 days" becomes "vs previous 30 days"; "All time" has no earlier window to compare.
+ */
+function getTrendLabel(timeRange: TimeRange): string {
+  if (timeRange === 'all') return 'vs previous period';
+  return `vs previous ${TIME_RANGE_LABELS[timeRange].replace(/^Last /, '')}`;
+}
 
 export function WorkspaceDashboard({
   metrics,
@@ -126,7 +128,8 @@ export function WorkspaceDashboard({
     new Set(repositories.filter((r) => r.is_pinned).map((r) => r.id))
   );
 
-  const trendLabel = 'vs previous period';
+  const trendLabel = getTrendLabel(timeRange);
+  const hasConfidence = typeof metrics.contributorConfidence === 'number';
 
   const handlePinToggle = (repo: Repository) => {
     setPinnedRepos((prev) => {
@@ -159,8 +162,8 @@ export function WorkspaceDashboard({
       <section aria-label="Workspace metrics" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="text-sm font-semibold">At a glance</h2>
-            <p className="text-xs text-muted-foreground">{timeRangeLabels[timeRange]}</p>
+            <p className="text-sm font-semibold">At a glance</p>
+            <p className="text-xs text-muted-foreground">Current totals · trends {trendLabel}</p>
           </div>
           <LearnMoreLink
             href="https://docs.contributor.info/workspaces/overview"
@@ -240,37 +243,32 @@ export function WorkspaceDashboard({
             loading={loading}
           />
 
-          <MetricCard
-            title="Contributor Confidence"
-            subtitle={
-              metrics.contributorConfidence == null
-                ? 'No confidence data available yet'
-                : 'How approachable your projects are · Workspace average'
-            }
-            layout="inline"
-            className="col-span-full"
-            value={metrics.contributorConfidence ?? '—'}
-            description="How approachable your projects are"
-            icon={<UserPlus className="h-4 w-4" />}
-            trend={
-              metrics.confidenceTrend !== undefined
-                ? {
-                    value: metrics.confidenceTrend,
-                    label: trendLabel,
-                  }
-                : undefined
-            }
-            format={(val) => {
-              if (typeof val === 'string') return val;
-              return `${val}%`;
-            }}
-            color={(() => {
-              if (metrics.confidenceTrendDirection === 'improving') return 'green';
-              if (metrics.confidenceTrendDirection === 'declining') return 'orange';
-              return 'blue';
-            })()}
-            loading={loading}
-          />
+          {hasConfidence && (
+            <MetricCard
+              title="Contributor Confidence"
+              subtitle="Workspace average"
+              layout="inline"
+              className="col-span-full"
+              value={metrics.contributorConfidence ?? 0}
+              description="How approachable your projects are"
+              icon={<UserPlus className="h-4 w-4" />}
+              trend={
+                metrics.confidenceTrend !== undefined
+                  ? {
+                      value: metrics.confidenceTrend,
+                      label: trendLabel,
+                    }
+                  : undefined
+              }
+              format="percentage"
+              color={(() => {
+                if (metrics.confidenceTrendDirection === 'improving') return 'green';
+                if (metrics.confidenceTrendDirection === 'declining') return 'orange';
+                return 'blue';
+              })()}
+              loading={loading}
+            />
+          )}
         </div>
       </section>
 
@@ -318,11 +316,18 @@ export function WorkspaceDashboard({
 }
 
 // Loading skeleton component
-export function WorkspaceDashboardSkeleton({ className }: { className?: string }) {
+export function WorkspaceDashboardSkeleton({
+  className,
+  timeRange,
+}: {
+  className?: string;
+  timeRange?: TimeRange;
+}) {
   return (
     <WorkspaceDashboard
       workspaceId=""
       workspaceName="Loading..."
+      timeRange={timeRange}
       metrics={{
         totalStars: 0,
         totalPRs: 0,

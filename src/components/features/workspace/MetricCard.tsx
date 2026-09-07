@@ -21,6 +21,50 @@ export interface MetricCardProps {
   layout?: 'default' | 'inline';
 }
 
+type TrendDirection = 'up' | 'down' | 'flat';
+
+interface TrendPresentation {
+  Icon: typeof TrendingUp;
+  className: string;
+  srText: string;
+  text: string;
+}
+
+const trendStyles: Record<TrendDirection, Omit<TrendPresentation, 'text'>> = {
+  up: {
+    Icon: TrendingUp,
+    className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    srText: 'Up ',
+  },
+  down: {
+    Icon: TrendingDown,
+    className: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
+    srText: 'Down ',
+  },
+  flat: { Icon: Minus, className: 'bg-muted text-muted-foreground', srText: '' },
+};
+
+// Fixed locale keeps server and client output identical and avoids hydration mismatches.
+const fractionalTrendFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const wholeTrendFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+/**
+ * Derive icon, colour, and text for a trend from a single direction decision, so a value that
+ * rounds to 0% is reported as "No change" rather than an up or down badge reading "0%".
+ */
+function describeTrend(value: number): TrendPresentation {
+  const magnitude = Math.abs(value);
+  const formatted = (magnitude < 1 ? fractionalTrendFormatter : wholeTrendFormatter).format(
+    magnitude
+  );
+  let direction: TrendDirection = 'flat';
+  if (formatted !== '0') {
+    direction = value > 0 ? 'up' : 'down';
+  }
+  const text = direction === 'flat' ? 'No change' : `${formatted}%`;
+  return { ...trendStyles[direction], text };
+}
+
 const colorMap = {
   blue: 'text-blue-600 dark:text-blue-400',
   green: 'text-emerald-600 dark:text-emerald-400',
@@ -70,33 +114,17 @@ export function MetricCard({
     }
   };
 
-  const getTrendIcon = () => {
-    if (!trend) return null;
-
-    if (trend.value > 0) {
-      return <TrendingUp className="h-3 w-3" />;
-    } else if (trend.value < 0) {
-      return <TrendingDown className="h-3 w-3" />;
-    } else {
-      return <Minus className="h-3 w-3" />;
-    }
-  };
-
-  const getTrendColor = () => {
-    if (!trend) return '';
-
-    if (trend.value > 0) {
-      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
-    } else if (trend.value < 0) {
-      return 'bg-rose-500/10 text-rose-700 dark:text-rose-400';
-    } else {
-      return 'bg-muted text-muted-foreground';
-    }
-  };
+  const trendPresentation = trend ? describeTrend(trend.value) : null;
+  const TrendIcon = trendPresentation?.Icon;
 
   if (loading) {
     return (
-      <Card className={cardClassName} aria-busy="true" aria-label={`Loading ${title}`}>
+      <Card
+        className={cardClassName}
+        role="status"
+        aria-busy="true"
+        aria-label={title ? `Loading ${title}` : 'Loading metric'}
+      >
         <div className={cn('space-y-3', inline && 'flex-1')}>
           <Skeleton className="h-5 w-32 max-w-full" />
           {inline && <Skeleton className="h-4 w-64 max-w-full" />}
@@ -148,23 +176,21 @@ export function MetricCard({
           </div>
           {!inline && subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
         </div>
-        {trend && (
+        {trend && trendPresentation && TrendIcon && (
           <div
             className={cn('flex flex-wrap items-center gap-x-2 gap-y-1', inline ? 'mt-1' : 'mt-3')}
           >
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums',
-                getTrendColor()
+                trendPresentation.className
               )}
             >
-              {getTrendIcon()}
-              {trend.value !== 0 && (
-                <span className="sr-only">{trend.value > 0 ? 'Up ' : 'Down '}</span>
+              <TrendIcon className="h-3 w-3" />
+              {trendPresentation.srText && (
+                <span className="sr-only">{trendPresentation.srText}</span>
               )}
-              {trend.value === 0
-                ? 'No change'
-                : `${Math.abs(trend.value).toLocaleString(undefined, { maximumFractionDigits: Math.abs(trend.value) < 1 ? 2 : 0 })}%`}
+              {trendPresentation.text}
             </span>
             {trend.label && <span className="text-xs text-muted-foreground">{trend.label}</span>}
           </div>

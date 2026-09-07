@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Badge } from '@/components/ui/badge';
 import { Lock, Calendar } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
+import { TIME_RANGE_LABELS } from '@/lib/utils/time-range';
 
 export type TimeRange = '7d' | '30d' | '90d' | '1y' | 'all';
 
@@ -25,13 +26,7 @@ export interface TimeRangeSelectorProps {
   'data-testid'?: string;
 }
 
-const timeRangeLabels: Record<TimeRange, string> = {
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  '1y': 'Last year',
-  all: 'All time',
-};
+const timeRangeLabels = TIME_RANGE_LABELS;
 
 const timeRangeTiers: Record<TimeRange, 'free' | 'pro' | 'enterprise'> = {
   '7d': 'free',

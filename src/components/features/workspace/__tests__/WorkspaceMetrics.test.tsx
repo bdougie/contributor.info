@@ -1,8 +1,11 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { WorkspaceDashboard } from '../WorkspaceDashboard';
-import { MetricCard } from '../MetricCard';
+import {
+  WorkspaceDashboard,
+  WorkspaceDashboardSkeleton,
+  type WorkspaceMetrics,
+} from '../WorkspaceDashboard';
 import type { TimeRange } from '../TimeRangeSelector';
 
 vi.mock('../MyWorkCard', () => ({ MyWorkCard: () => null }));
@@ -13,7 +16,20 @@ vi.mock('@/hooks/use-analytics', () => ({
 
 afterEach(cleanup);
 
-function renderDashboard(timeRange: TimeRange = '30d', loading = false) {
+const baseMetrics: WorkspaceMetrics = {
+  totalStars: 581,
+  totalPRs: 29,
+  totalIssues: 45,
+  totalContributors: 10,
+  totalCommits: 0,
+  starsTrend: 0,
+  prsTrend: -61,
+  issuesTrend: 4400,
+  contributorsTrend: 0,
+  commitsTrend: 0,
+};
+
+function renderDashboard(timeRange: TimeRange = '30d', metrics: Partial<WorkspaceMetrics> = {}) {
   return render(
     <TooltipProvider>
       <WorkspaceDashboard
@@ -21,20 +37,8 @@ function renderDashboard(timeRange: TimeRange = '30d', loading = false) {
         workspaceName="Paper Compute"
         repositories={[]}
         trendData={{ labels: [], datasets: [] }}
-        metrics={{
-          totalStars: 581,
-          totalPRs: 29,
-          totalIssues: 45,
-          totalContributors: 10,
-          totalCommits: 0,
-          starsTrend: 0,
-          prsTrend: -61,
-          issuesTrend: 4400,
-          contributorsTrend: 0,
-          commitsTrend: 0,
-        }}
+        metrics={{ ...baseMetrics, ...metrics }}
         timeRange={timeRange}
-        loading={loading}
       />
     </TooltipProvider>
   );
@@ -42,20 +46,21 @@ function renderDashboard(timeRange: TimeRange = '30d', loading = false) {
 
 describe('Workspace metrics presentation', () => {
   it.each<[TimeRange, string]>([
-    ['7d', 'Last 7 days'],
-    ['30d', 'Last 30 days'],
-    ['90d', 'Last 90 days'],
-    ['1y', 'Last year'],
-    ['all', 'All time'],
-  ])('labels the selected %s range', (range, label) => {
+    ['7d', 'vs previous 7 days'],
+    ['30d', 'vs previous 30 days'],
+    ['1y', 'vs previous year'],
+    ['all', 'vs previous period'],
+  ])('scopes only the trend badges to the %s range', (range, label) => {
     renderDashboard(range);
     expect(screen.getByRole('region', { name: 'Workspace metrics' })).toBeInTheDocument();
-    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(`Current totals · trends ${label}`)).toBeInTheDocument();
+    expect(screen.getAllByText(label)).toHaveLength(4);
+    expect(screen.queryByRole('heading', { level: 2 })).not.toBeInTheDocument();
   });
 
   it('keeps metric values, trend directions, and help controls accessible', () => {
     renderDashboard();
-    for (const value of ['581.0', '29', '45', '10']) {
+    for (const value of ['581.0', '29', '45', '10', '61%', '4,400%']) {
       expect(screen.getByText(value)).toBeInTheDocument();
     }
     expect(screen.getAllByText('No change')).toHaveLength(2);
@@ -71,32 +76,21 @@ describe('Workspace metrics presentation', () => {
     );
   });
 
-  it('explains unavailable confidence and gives it a full-width row', () => {
+  it('only shows Contributor Confidence once data exists, as a full-width row', () => {
     renderDashboard();
-    expect(screen.getByText('No confidence data available yet')).toBeInTheDocument();
+    expect(screen.queryByText('Contributor Confidence')).not.toBeInTheDocument();
+    cleanup();
+    renderDashboard('30d', { contributorConfidence: 42, confidenceTrend: 0.25 });
     expect(screen.getByText('Contributor Confidence').closest('.col-span-full')).not.toBeNull();
-  });
-
-  it('exposes five loading cards without displaying stale values', () => {
-    const { container } = renderDashboard('30d', true);
-    expect(container.querySelectorAll('[aria-busy="true"]')).toHaveLength(5);
-    expect(screen.getByLabelText('Loading Contributor Confidence')).toHaveClass('col-span-full');
-    expect(screen.queryByText('581.0')).not.toBeInTheDocument();
-  });
-
-  it('supports inline confidence values and small fractional trends', () => {
-    render(
-      <MetricCard
-        layout="inline"
-        title="Contributor Confidence"
-        subtitle="Workspace average"
-        value={42}
-        format="percentage"
-        trend={{ value: 0.25, label: 'vs previous period' }}
-      />
-    );
     expect(screen.getByText('42%')).toBeInTheDocument();
     expect(screen.getByText('0.25%')).toBeInTheDocument();
-    expect(screen.getByText('Workspace average')).toBeInTheDocument();
+  });
+
+  it('skeleton announces labeled loading cards for the selected range', () => {
+    render(<WorkspaceDashboardSkeleton timeRange="90d" />);
+    expect(screen.getAllByRole('status', { busy: true })).toHaveLength(4);
+    expect(screen.getByRole('status', { name: 'Loading Open PRs' })).toBeInTheDocument();
+    expect(screen.getByText('Current totals · trends vs previous 90 days')).toBeInTheDocument();
+    expect(screen.queryByText('581.0')).not.toBeInTheDocument();
   });
 });
