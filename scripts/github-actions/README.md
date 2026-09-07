@@ -2,7 +2,25 @@
 
 Scripts run by the GitHub Actions workflows in `.github/workflows/`, plus two repo-maintenance tools.
 
-> **Known breakage (2026-09):** `progressive-backfill.js`, `recover-stuck-chunks.js`, `report-failure.js`, and `capture-pr-details-graphql.js` import `commander`, which is not a declared dependency. The `progressive-backfill.yml` and `chunk-recovery.yml` workflows have failed on `ERR_MODULE_NOT_FOUND` since early 2026 and GitHub has disabled them for inactivity. Add `commander` to `devDependencies` (or switch to `node:util` `parseArgs`) and re-enable the workflows. Tracked in `tasks/docs-audit-2026-09-06.md`.
+> **Known breakage (2026-09):** `progressive-backfill.js`, `recover-stuck-chunks.js`, and `report-failure.js` import `commander`; it is now a declared devDependency, but the `progressive-backfill.yml` and `chunk-recovery.yml` workflows were disabled by GitHub for inactivity and need re-enabling. Tracked in `tasks/docs-audit-2026-09-06.md`.
+>
+> `capture-pr-details-graphql.js` was repaired on 2026-09-07 to match the current GraphQL client and schema (see below). Its workflow runs it with plain `node`, but the script imports a TypeScript module, so run it with `npx tsx` until the workflow is updated.
+
+## Capturing reviews for a repository right now
+
+Production review capture is broken: the `inngest-prod` edge function writes reviews to a `pr_reviews` table that does not exist, and its repository sync never fans out per-PR detail jobs. Until that is fixed, this script is the working path. It reads the same GraphQL query the Inngest job uses and writes to `pull_requests`, `reviews`, and `comments` with the same column mapping.
+
+```bash
+export VITE_SUPABASE_URL=...        # from .env.local
+export SUPABASE_SERVICE_KEY=...     # service role key, never commit it
+export GITHUB_TOKEN=...
+npx tsx scripts/github-actions/capture-pr-details-graphql.js \
+  --repository-id <repositories.id> \
+  --repository-name owner/name \
+  --pr-numbers 1,2,3
+```
+
+Bot authors are skipped because GitHub returns no numeric id for them. Inline review comments are nested under each review in the response and are stored as `review_comment` rows; `in_reply_to_id` is resolved to the parent row's UUID and left null when the parent has not been captured yet.
 
 ## Table of Contents
 
