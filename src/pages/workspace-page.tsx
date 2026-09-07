@@ -1637,7 +1637,7 @@ function WorkspacePage() {
       {/* Tab Navigation */}
       <div className="container max-w-7xl mx-auto px-6 mt-6">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <WorkspaceTabNavigation />
+          <WorkspaceTabNavigation value={activeTab} onValueChange={handleTabChange} />
 
           {/* Modals - Available on all tabs */}
           <WorkspaceModals
