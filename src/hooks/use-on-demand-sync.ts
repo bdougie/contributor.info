@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
+import { getSyncRowError, isSyncStalled, SYNC_STALL_TIMEOUT_MS } from '@/lib/sync-status';
 
 interface OnDemandSyncOptions {
   owner: string;
@@ -8,10 +9,11 @@ interface OnDemandSyncOptions {
   autoTriggerOnEmpty?: boolean;
 }
 
-interface SyncStatus {
+export interface SyncStatus {
   isTriggering: boolean;
   isInProgress: boolean;
   isComplete: boolean;
+  isStalled: boolean;
   error: string | null;
   lastSyncAt: string | null;
   eventsProcessed: number | null;
@@ -27,6 +29,7 @@ export function useOnDemandSync({
     isTriggering: false,
     isInProgress: false,
     isComplete: false,
+    isStalled: false,
     error: null,
     lastSyncAt: null,
     eventsProcessed: null,
@@ -36,6 +39,10 @@ export function useOnDemandSync({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const syncTriggeredRef = useRef(false);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollDeadline = useRef(0);
+  const repositoryKey = `${owner}/${repo}`;
+  const activeRepository = useRef(repositoryKey);
+  activeRepository.current = repositoryKey;
 
   // Check if repository has existing data
   const checkForExistingData = useCallback(async () => {
@@ -57,10 +64,11 @@ export function useOnDemandSync({
         .select('id')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
+        .abortSignal(AbortSignal.timeout(15000))
         .limit(1);
 
       if (rolesError) {
-        return;
+        throw rolesError;
       }
 
       // Check sync status
@@ -69,28 +77,33 @@ export function useOnDemandSync({
         .select('*')
         .eq('repository_owner', owner)
         .eq('repository_name', repo)
+        .abortSignal(AbortSignal.timeout(15000))
         .maybeSingle();
 
       if (syncError && syncError.code !== 'PGRST116') {
-        return;
+        throw syncError;
       }
+
+      if (activeRepository.current !== repositoryKey) return;
 
       const hasExistingData = roles && roles.length > 0;
       setHasData(hasExistingData);
 
       // Update sync status if we have sync data
       if (syncData) {
+        const stalled = isSyncStalled(syncData.sync_status, syncData.updated_at);
         setSyncStatus((prev) => ({
           ...prev,
-          isInProgress: syncData.sync_status === 'in_progress',
+          isInProgress: syncData.sync_status === 'in_progress' && !stalled,
           isComplete: syncData.sync_status === 'completed',
-          error: syncData.error_message,
+          isStalled: stalled,
+          error: getSyncRowError(syncData),
           lastSyncAt: syncData.last_sync_at,
           eventsProcessed: syncData.events_processed,
         }));
 
         // Start polling if sync is in progress
-        if (syncData.sync_status === 'in_progress') {
+        if (syncData.sync_status === 'in_progress' && !stalled) {
           startPolling();
         }
       }
@@ -106,7 +119,12 @@ export function useOnDemandSync({
         triggerSync();
       }
     } catch {
-      // Silently handle data check errors
+      if (activeRepository.current !== repositoryKey) return;
+      setSyncStatus((prev) => ({
+        ...prev,
+        isInProgress: false,
+        error: 'We could not check for repository updates. Please try again later.',
+      }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo, enabled, autoTriggerOnEmpty]);
@@ -122,6 +140,8 @@ export function useOnDemandSync({
       setSyncStatus((prev) => ({
         ...prev,
         isTriggering: true,
+        isStalled: false,
+        isComplete: false,
         error: null,
       }));
 
@@ -130,6 +150,8 @@ export function useOnDemandSync({
       const {
         data: { session },
       } = await supabaseTrigger.auth.getSession();
+      if (activeRepository.current !== repositoryKey) return;
+      if (!session) throw new Error('Sign in with GitHub to refresh repository data.');
       const userToken = session?.provider_token;
 
       // Trigger sync for repository
@@ -147,18 +169,23 @@ export function useOnDemandSync({
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(120000),
         }
       );
 
       const result = await response.json();
+      if (activeRepository.current !== repositoryKey) return;
 
       // Process response
 
-      if (!response.ok) {
+      if (
+        !response.ok ||
+        result.results?.some((entry: { status: string }) => entry.status === 'error')
+      ) {
         throw new Error(result.error || `HTTP ${response.status}`);
       }
 
@@ -174,6 +201,7 @@ export function useOnDemandSync({
 
       return result;
     } catch (error) {
+      if (activeRepository.current !== repositoryKey) return;
       const errorMessage = error instanceof Error ? error.message : 'Sync failed';
 
       setSyncStatus((prev) => ({
@@ -193,8 +221,16 @@ export function useOnDemandSync({
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
+    pollDeadline.current = Date.now() + SYNC_STALL_TIMEOUT_MS;
 
     pollIntervalRef.current = setInterval(async () => {
+      if (activeRepository.current !== repositoryKey) return;
+      if (Date.now() >= pollDeadline.current) {
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+        setSyncStatus((prev) => ({ ...prev, isInProgress: false, isStalled: true }));
+        return;
+      }
       try {
         const supabasePoll = await getSupabase();
         const { data: syncData, error: _error } = await supabasePoll
@@ -202,24 +238,33 @@ export function useOnDemandSync({
           .select('*')
           .eq('repository_owner', owner)
           .eq('repository_name', repo)
+          .abortSignal(AbortSignal.timeout(15000))
           .maybeSingle();
 
         if (_error) {
-          return;
+          throw _error;
         }
 
+        if (activeRepository.current !== repositoryKey) return;
+
         if (syncData) {
+          const stalled = isSyncStalled(syncData.sync_status, syncData.updated_at);
           setSyncStatus((prev) => ({
             ...prev,
-            isInProgress: syncData.sync_status === 'in_progress',
+            isInProgress: syncData.sync_status === 'in_progress' && !stalled,
             isComplete: syncData.sync_status === 'completed',
-            error: syncData.error_message,
+            isStalled: stalled,
+            error: getSyncRowError(syncData),
             lastSyncAt: syncData.last_sync_at,
             eventsProcessed: syncData.events_processed,
           }));
 
           // Stop polling if sync is complete or failed
-          if (syncData.sync_status === 'completed' || syncData.sync_status === 'failed') {
+          if (
+            stalled ||
+            syncData.sync_status === 'completed' ||
+            syncData.sync_status === 'failed'
+          ) {
             if (pollIntervalRef.current) {
               clearInterval(pollIntervalRef.current);
               pollIntervalRef.current = null;
@@ -234,10 +279,17 @@ export function useOnDemandSync({
           }
         }
       } catch {
-        // Silently handle polling errors
+        if (activeRepository.current !== repositoryKey) return;
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+        setSyncStatus((prev) => ({
+          ...prev,
+          isInProgress: false,
+          error: 'We could not check for repository updates. Please try again later.',
+        }));
       }
     }, 10000); // Poll every 10 seconds (reduced frequency)
-  }, [owner, repo, checkForExistingData]);
+  }, [owner, repo, repositoryKey, checkForExistingData]);
 
   // Stop polling when component unmounts
   useEffect(() => {
@@ -250,7 +302,19 @@ export function useOnDemandSync({
 
   // Check for existing data when params change
   useEffect(() => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = null;
     syncTriggeredRef.current = false; // Reset trigger flag for new repo
+    setHasData(null);
+    setSyncStatus({
+      isTriggering: false,
+      isInProgress: false,
+      isComplete: false,
+      isStalled: false,
+      error: null,
+      lastSyncAt: null,
+      eventsProcessed: null,
+    });
     checkForExistingData();
   }, [checkForExistingData]);
 

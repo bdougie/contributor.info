@@ -1,5 +1,4 @@
-import { useState, memo, useMemo, useCallback } from 'react';
-import { Link } from 'react-router';
+import { useState, memo, useMemo, useEffect } from 'react';
 import {
   UserPlus,
   RefreshCw,
@@ -7,11 +6,19 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  AlertTriangle,
+  Clock,
 } from '@/components/ui/icon';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
+import type { SyncStatus } from '@/hooks/use-on-demand-sync';
+import { LastUpdated } from '@/components/ui/last-updated';
+import {
+  getConfidenceDisplayState,
+  hasConfidenceScore,
+  type ConfidenceDisplayState,
+} from '@/lib/insights/confidence-display-state';
 import { ConfidenceBreakdownTooltip } from './confidence-breakdown-tooltip';
 import { ContributorConfidenceLearnMore } from './contributor-confidence-learn-more';
 import { ConfidenceSkeleton } from './confidence-skeleton';
@@ -76,8 +83,10 @@ export interface ContributorConfidenceCardProps {
   loading?: boolean;
   error?: string | null;
   className?: string;
-  owner?: string;
-  repo?: string;
+  calculatedAt?: string | null;
+  /** Age after which the score is flagged as stale. Defaults to the in-app cache lifetime. */
+  staleAfterMs?: number;
+  syncStatus?: SyncStatus;
   onRefresh?: () => void;
   breakdown?: {
     starForkConfidence: number;
@@ -152,8 +161,9 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   loading = false,
   error = null,
   className,
-  owner,
-  repo,
+  calculatedAt,
+  staleAfterMs,
+  syncStatus,
   onRefresh,
   breakdown,
   trend,
@@ -161,20 +171,20 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   // Local state for Learn More modal
   const [showLearnMore, setShowLearnMore] = useState(false);
 
-  // On-demand sync hook
-  const { hasData, syncStatus, triggerSync } = useOnDemandSync({
-    owner: owner || '',
-    repo: repo || '',
-    enabled: !!(owner && repo),
-    autoTriggerOnEmpty: false, // Don't auto-trigger, let user decide
-  });
-
-  const handleRefresh = useCallback(() => {
-    if (onRefresh) {
-      onRefresh();
-    }
-    triggerSync();
-  }, [onRefresh, triggerSync]);
+  const [, updateClock] = useState(0);
+  const now = Date.now();
+  useEffect(() => {
+    const timer = setInterval(() => updateClock((tick) => tick + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const hasScore = hasConfidenceScore(confidenceScore);
+  const displayState = getConfidenceDisplayState(
+    { score: confidenceScore, calculatedAt, staleAfterMs, loading, error, syncStatus },
+    now
+  );
+  const busy = displayState === 'loading' || displayState === 'refreshing';
+  const showInterpretation = displayState === 'ready';
+  const scoreTitle = hasScore ? 'Last known score' : 'Score unavailable';
 
   // Move useMemo to top level to ensure it's called on every render
   const confidence = useMemo(() => getConfidenceLevel(confidenceScore ?? 0), [confidenceScore]);
@@ -207,103 +217,47 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
         return '';
     }
   }, [trend]);
-  // Show skeleton loading state when calculating or when sync is in progress
-  if (loading || syncStatus.isTriggering || syncStatus.isInProgress) {
-    const message =
-      syncStatus.isTriggering || syncStatus.isInProgress ? 'Syncing data...' : 'Calculating...';
-    return <ConfidenceSkeleton className={className} message={message} />;
-  }
-
-  if (
-    error ||
-    (confidenceScore === null && !loading && !syncStatus.isTriggering && !syncStatus.isInProgress)
-  ) {
+  if (displayState === 'loading') {
     return (
-      <Card className={cn('w-full overflow-hidden', className)}>
-        <CardContent className="p-4 flex flex-col gap-4">
-          <div className="flex items-center gap-2 w-full">
-            <div className="flex items-center gap-2 py-1 flex-1">
-              <UserPlus className="w-[18px] h-[18px]" />
-              <div className="font-semibold text-foreground text-sm whitespace-nowrap">
-                Contributor Confidence
-              </div>
-              <button
-                onClick={() => setShowLearnMore(true)}
-                className="ml-auto font-medium text-opensauced-orange text-xs whitespace-nowrap hover:underline hidden sm:block"
-              >
-                Learn More
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full">
-            <div className="relative w-[98px] h-[52px]">
-              <div className="relative h-[98px] mb-[46px]">
-                <div className="absolute w-[98px] h-[98px] top-0 left-0">
-                  <div className="relative h-[49px]">
-                    {/* Background semicircle */}
-                    <svg
-                      width="98"
-                      height="49"
-                      viewBox="0 0 98 49"
-                      className="absolute top-0 left-0"
-                    >
-                      <path
-                        d="M98 49C98 36.0044 92.8375 23.5411 83.6482 14.3518C74.459 5.16249 61.9956 9.81141e-07 49 0C36.0044 -9.81141e-07 23.5411 5.16248 14.3518 14.3518C5.16249 23.541 1.96228e-06 36.0044 0 49H7.84C7.84 38.0837 12.1765 27.6145 19.8955 19.8955C27.6145 12.1765 38.0837 7.84 49 7.84C59.9163 7.84 70.3855 12.1765 78.1045 19.8955C85.8235 27.6145 90.16 38.0837 90.16 49H98Z"
-                        className="fill-muted"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div className="absolute w-14 top-7 left-[21px] font-normal text-muted-foreground text-[28px] text-center leading-5">
-                  <span className="font-bold tracking-[-0.05px]">--</span>
-                  <span className="font-bold text-xs tracking-[-0.01px]">%</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col items-center sm:items-start gap-1 flex-1 text-center sm:text-left">
-              <div className="font-semibold text-muted-foreground text-xs leading-4">
-                Data not available
-              </div>
-              <div className="text-sm text-muted-foreground leading-relaxed">{error}</div>
-            </div>
-          </div>
-
-          {/* Upgrade CTA - always visible when no data */}
-          {hasData === false && !syncStatus.error && (
-            <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                Upgrade to see contributor confidence metrics for this repository.
-              </p>
-              <Button
-                asChild
-                variant="default"
-                size="sm"
-                className="flex items-center gap-1 h-7 px-2 text-xs"
-              >
-                <Link to="/billing">Upgrade and find out</Link>
-              </Button>
-            </div>
-          )}
-
-          {/* Sync error state - always visible */}
-          {syncStatus.error && (
-            <div className="flex flex-col items-center sm:items-start gap-2 pt-2 mt-2 border-t w-full">
-              <p className="text-xs text-red-500 hidden sm:block">{syncStatus.error}</p>
-              <Button
-                onClick={triggerSync}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 h-7 px-2 text-xs"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Retry Analysis
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ConfidenceSkeleton
+        className={className}
+        message={
+          syncStatus?.isInProgress || syncStatus?.isTriggering
+            ? 'Updating confidence…'
+            : 'Calculating…'
+        }
+      />
     );
   }
+
+  const notices: Partial<Record<ConfidenceDisplayState, { title: string; message: string }>> = {
+    stale: {
+      title: 'Confidence data may be outdated',
+      message: syncStatus?.isStalled
+        ? 'The last update did not finish. This score may not reflect recent activity.'
+        : 'Recent activity may be missing from this score. Check again for an update.',
+    },
+    error: {
+      title: hasScore ? 'Could not update confidence' : 'Confidence is unavailable',
+      message: error || 'We could not update this repository’s confidence. Please try again later.',
+    },
+    unavailable: {
+      title: 'Confidence is not available yet',
+      message: 'There is not enough data to show a reliable score. Please check again later.',
+    },
+    unknown: {
+      title: 'Update time unavailable',
+      message:
+        'We could not verify when this score was calculated. It may not reflect recent activity.',
+    },
+    refreshing: {
+      title: 'Updating confidence…',
+      message: 'Showing the last known score while we check for an update.',
+    },
+  };
+  const notice = notices[displayState];
+  const validTimestamp =
+    calculatedAt && Number.isFinite(Date.parse(calculatedAt)) && Date.parse(calculatedAt) <= now;
 
   return (
     <Card className={cn('w-full overflow-hidden', className)}>
@@ -333,16 +287,15 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                 Learn More
               </button>
               <Button
-                onClick={handleRefresh}
+                onClick={onRefresh}
                 variant="ghost"
                 size="sm"
-                disabled={syncStatus.isTriggering || syncStatus.isInProgress || loading}
+                disabled={busy || !onRefresh}
                 className="h-8 w-8 p-0"
-                title="Refresh data"
+                title="Check for updated confidence"
+                aria-label="Check for updated confidence"
               >
-                <RefreshCw
-                  className={`h-4 w-4 ${syncStatus.isTriggering || syncStatus.isInProgress || loading ? 'animate-spin' : ''}`}
-                />
+                <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>
@@ -363,7 +316,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
 
                   {/* Progress overlay */}
                   <svg width="98" height="49" viewBox="0 0 98 49" className="absolute top-0 left-0">
-                    <SemicircleProgress value={confidenceScore ?? 0} />
+                    {hasScore && <SemicircleProgress value={confidenceScore} />}
                   </svg>
                 </div>
               </div>
@@ -371,7 +324,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
               <ConfidenceBreakdownTooltip breakdown={breakdown}>
                 <div className="absolute w-14 top-7 left-[21px] font-normal text-foreground text-[28px] text-center leading-5 cursor-help">
                   <span className="font-bold tracking-[-0.05px]">
-                    {Math.round(confidenceScore ?? 0)}
+                    {hasScore ? Math.round(confidenceScore) : '--'}
                   </span>
                   <span className="font-bold text-xs tracking-[-0.01px]">%</span>
                 </div>
@@ -382,9 +335,9 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
           <div className="flex flex-col items-center sm:items-start gap-1 flex-1 text-center sm:text-left">
             <div className="flex items-center gap-2">
               <div className="font-semibold text-muted-foreground text-xs leading-4 whitespace-nowrap">
-                {confidence.title}
+                {showInterpretation ? confidence.title : scoreTitle}
               </div>
-              {trend && trend.hasSufficientData && TrendIcon && (
+              {showInterpretation && trend && trend.hasSufficientData && TrendIcon && (
                 <div
                   className={`flex items-center gap-1 ${trendColor}`}
                   title={`${getTrendPrefix(trend.direction)}${Math.abs(trend.changePercent).toFixed(1)}% from previous period`}
@@ -397,9 +350,19 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
                 </div>
               )}
             </div>
-            <div className="text-sm text-muted-foreground leading-relaxed">
-              {confidence.description}
-            </div>
+            {showInterpretation && (
+              <div className="text-sm text-muted-foreground leading-relaxed">
+                {confidence.description}
+              </div>
+            )}
+            {validTimestamp && (
+              <LastUpdated
+                timestamp={calculatedAt}
+                label="Last calculated"
+                includeStructuredData={false}
+                className="mt-1"
+              />
+            )}
             <LearnMoreLink
               href="https://docs.contributor.info/features/contributor-confidence"
               feature="contributor_confidence"
@@ -408,6 +371,37 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
             />
           </div>
         </div>
+        {notice && (
+          <div
+            role="status"
+            className={cn(
+              'flex items-start gap-2 rounded-md border p-3 text-sm',
+              busy
+                ? 'border-border bg-muted/40 text-muted-foreground'
+                : 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100'
+            )}
+          >
+            {busy ? (
+              <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
+            <div className="min-w-0 space-y-1">
+              <p className="font-medium">{notice.title}</p>
+              <p className="text-xs leading-relaxed">{notice.message}</p>
+              {!busy && onRefresh && (
+                <Button
+                  onClick={onRefresh}
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 h-7 text-xs"
+                >
+                  Check again
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
 
       {/* Learn More Modal */}
