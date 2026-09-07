@@ -6,12 +6,16 @@
 import { getSupabase } from '@/lib/supabase-lazy';
 import { toDateOnlyString, toUTCTimestamp } from '../lib/utils/date-formatting';
 import { TIME_PERIODS, timeHelpers } from '@/lib/constants/time-constants';
-import {
-  validateEventPayload,
-  getSchemaForEventType,
-  extractAvatarUrl,
-  extractUserLogin,
-} from '@/lib/event-validation';
+
+// Payload validation lives behind a dynamic import: `event-validation` carries the
+// zod schemas, and this service is on the workspace page's static import graph.
+// Loading it inside the fetch keeps zod off the dashboard's critical path.
+type EventValidationModule = typeof import('@/lib/event-validation');
+let eventValidationPromise: Promise<EventValidationModule> | null = null;
+function loadEventValidation(): Promise<EventValidationModule> {
+  eventValidationPromise ??= import('@/lib/event-validation');
+  return eventValidationPromise;
+}
 
 // Types for event-based metrics
 export interface EventMetrics {
@@ -247,6 +251,9 @@ class WorkspaceEventsService {
       const { data: events, error } = await query;
 
       if (error) throw error;
+
+      const { validateEventPayload, getSchemaForEventType, extractAvatarUrl, extractUserLogin } =
+        await loadEventValidation();
 
       // Validate and enrich events
       const validatedEvents = (events || []).map((event) => {

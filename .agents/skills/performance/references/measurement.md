@@ -111,6 +111,21 @@ Make the output directory a single variable that the bundler config and this scr
 
 Comment the table on the PR with an idempotent marker (`<!-- bundle-size -->`) so reruns update one comment.
 
+## Chunk-graph gate
+
+Size caps miss the more common regression: a route chunk that starts statically importing a vendor chunk it never uses, because a shared helper got hoisted there. Assert the graph, not just the sizes. Read each built chunk, collect its `import ... from "./x"` targets, and fail on a deny-list:
+
+```js
+const DENY = [
+  { chunk: 'index-',          mustNotImport: ['vendor-ai-sdk', 'vendor-recharts', 'vendor-zod'] },
+  { chunk: 'workspace-page-', mustNotImport: ['vendor-ai-sdk', 'vendor-recharts', 'vendor-zod'] },
+];
+for (const c of chunks) for (const rule of DENY) if (c.file.startsWith(rule.chunk))
+  for (const v of rule.mustNotImport) if (c.imports.some((i) => i.startsWith(v))) fail(`${c.file} imports ${v}`);
+```
+
+contributor.info's version is `scripts/performance/check-chunk-graph.mjs` (size table, per-chunk cap, deny-list, `--summary` for the job summary). Run it in the same job as the build so the table is never empty.
+
 ## Slow-network testing
 
 Keep a script that runs the app under DevTools-style throttling for Slow 3G / Fast 3G / 2G and records time to first meaningful content per route. The 2G number is where serial fetch waterfalls become visible: 15 sequential requests at 2s RTT is 30s of nothing. Use it when adding any fetch to a route's initial path.

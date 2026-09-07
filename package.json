@@ -13,6 +13,7 @@
     "dev:inngest": "npx inngest-cli@latest dev -u http://127.0.0.1:8888/.netlify/functions/inngest-local",
     "build": "npm run verify:csp && vite build && cp public/_headers dist/_headers && cp CHANGELOG.md dist/CHANGELOG.md",
     "build:analyze": "ANALYZE=true npm run build",
+    "build:check-chunks": "node scripts/performance/check-chunk-graph.mjs",
     "generate-sitemap": "node scripts/sitemap/generate-sitemap.js",
     "typecheck": "tsc -b --noEmit",
     "typecheck:functions": "tsc --project tsconfig.functions.json --noEmit",

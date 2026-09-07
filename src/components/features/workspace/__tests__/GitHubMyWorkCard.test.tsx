@@ -1,10 +1,41 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubMyWorkCard } from '../GitHubMyWorkCard';
 import type { GitHubWorkItem } from '@/lib/workspace/github-my-work';
 
 const mocks = vi.hoisted(() => ({ work: vi.fn(), refresh: vi.fn() }));
 vi.mock('@/hooks/use-github-workspace-work', () => ({ useGitHubWorkspaceWork: mocks.work }));
+// The card gates its GitHub searches on viewport proximity or browser idle. Both are
+// captured here so tests can trigger either one synchronously.
+let intersect: IntersectionObserverCallback | undefined;
+let idle: IdleRequestCallback | undefined;
+vi.stubGlobal(
+  'IntersectionObserver',
+  vi.fn((callback: IntersectionObserverCallback) => {
+    intersect = callback;
+    return { observe: vi.fn(), disconnect: vi.fn(), unobserve: vi.fn(), takeRecords: vi.fn() };
+  })
+);
+vi.stubGlobal(
+  'requestIdleCallback',
+  vi.fn((callback: IdleRequestCallback) => {
+    idle = callback;
+    return 1;
+  })
+);
+vi.stubGlobal('cancelIdleCallback', vi.fn());
+afterAll(() => vi.unstubAllGlobals());
+const triggerIntersection = () =>
+  act(() => {
+    intersect?.(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver
+    );
+  });
+const triggerIdle = () =>
+  act(() => {
+    idle?.({ didTimeout: false, timeRemaining: () => 50 });
+  });
 vi.mock('@/components/ui/organization-avatar', () => ({
   OrganizationAvatar: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));
@@ -53,11 +84,41 @@ const renderCard = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  intersect = undefined;
+  idle = undefined;
   mocks.work.mockReturnValue(state());
 });
 afterEach(cleanup);
 
 describe('GitHub My Work', () => {
+  it('holds the GitHub searches in a loading state until the card is near the viewport', () => {
+    mocks.work.mockReturnValue({ ...state(), items: [], loading: true });
+    renderCard();
+    expect(mocks.work).toHaveBeenLastCalledWith('workspace', expect.any(Array), {
+      enabled: false,
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Loading current work from GitHub');
+    expect(vi.mocked(IntersectionObserver)).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ rootMargin: '200px' })
+    );
+    triggerIntersection();
+    expect(mocks.work).toHaveBeenLastCalledWith('workspace', expect.any(Array), {
+      enabled: true,
+    });
+  });
+
+  it('starts the GitHub searches on browser idle for readers who never scroll', () => {
+    renderCard();
+    expect(mocks.work).toHaveBeenLastCalledWith('workspace', expect.any(Array), {
+      enabled: false,
+    });
+    triggerIdle();
+    expect(mocks.work).toHaveBeenLastCalledWith('workspace', expect.any(Array), {
+      enabled: true,
+    });
+  });
+
   it('labels review summaries and the reason they need attention', () => {
     const url = `${items[1].url}#pullrequestreview-123`;
     mocks.work.mockReturnValue({

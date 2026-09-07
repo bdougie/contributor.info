@@ -6,12 +6,14 @@ bundle-splitting experiments live in
 
 ## Monitoring
 
+Lighthouse CI (`.lighthouserc.json`) audits `/`, `/workspaces`, `/i/demo`, and `/continuedev/continue` on every PR that touches `src/**`. `npm run build:check-chunks` enforces per-chunk size and the route-to-vendor deny-list after a build.
+
 - [PostHog Web Vitals](./posthog-web-vitals.md) - How Core Web Vitals are captured and batched to PostHog
 - [Per-Route p75 LCP Dashboard](./per-route-lcp-dashboard.md) - Building the per-route LCP dashboard from the `web_vitals_batch` event
 
 ## Optimization Guides
 
-- [Progressive Loading on the Repository Page](./progressive-loading.md) - How `/:owner/:repo` paints: edge SSR shell, hydration-aware Suspense, cache-seeded hooks, idle-deferred background work. Start here.
+- [Progressive Loading](./progressive-loading.md) - How `/:owner/:repo` and `/i/:workspaceId` paint: edge SSR shell, hydration-aware Suspense, cache-seeded hooks, idle-deferred background work. Start here.
 - [Performance Best Practices](./performance-best-practices.md) - Rules of thumb for new code
 - [Performance Checklist](./performance-checklist.md) - Checklist to run before shipping a feature
 - [Code Splitting Patterns](./code-splitting-patterns.md) - Route and vendor chunking patterns used in `vite.config.ts`

@@ -48,6 +48,7 @@ export interface WorkspacePreviewRepository {
   owner: string;
   description?: string;
   language?: string;
+  stargazers_count?: number;
   activity_score: number; // Recent activity indicator (commits, PRs, issues in last 30 days)
   last_activity: string; // ISO date string of last activity
   avatar_url?: string;
@@ -59,6 +60,8 @@ export interface WorkspacePreviewData {
   name: string;
   slug: string;
   description?: string;
+  /** Workspace plan tier (for example `free` or `pro`). */
+  tier?: string | null;
   owner: {
     id: string;
     avatar_url?: string;

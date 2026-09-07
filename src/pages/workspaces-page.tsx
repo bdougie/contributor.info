@@ -7,15 +7,18 @@
  * This component hydrates the SSR-rendered content from ssr-workspaces edge function.
  */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { getLoginRoute } from '@/lib/auth/login-redirect';
 import { getSupabase } from '@/lib/supabase-lazy';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Folder, Users, GitFork, Star } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import { getAppUserId } from '@/lib/auth-helpers';
+import { useCachedAuth } from '@/hooks/use-cached-auth';
+import { useUserWorkspaces, workspaceKeys } from '@/hooks/use-user-workspaces';
+import type { WorkspacePreviewData } from '@/components/features/workspace/WorkspacePreviewCard';
 import {
   getSSRDataForRoute,
   isSSRDataStale,
@@ -37,13 +40,73 @@ interface WorkspacePreview {
     name: string;
     owner: string;
     language: string | null;
-    stargazer_count: number;
+    stargazers_count: number;
   }>;
 }
 
 interface DemoStats {
   totalWorkspaces: number;
   totalRepositories: number;
+}
+
+interface WorkspacesSSRSeed {
+  data: WorkspacesPageData;
+  /** Whether the edge render is recent enough to stand in until the client query resolves. */
+  fresh: boolean;
+}
+
+/**
+ * Read the edge-rendered payload once, before it is cleared. Staleness has to be
+ * measured here: `clearSSRData` removes the timestamp `isSSRDataStale` reads.
+ */
+function readSSRSeed(): WorkspacesSSRSeed | null {
+  const data = getSSRDataForRoute<WorkspacesPageData>('workspaces');
+  if (!data) return null;
+  return { data, fresh: !isSSRDataStale(60) };
+}
+
+function seedWorkspacePreviews(seed: WorkspacesSSRSeed | null): WorkspacePreview[] {
+  return (seed?.data.workspaces ?? []).map((ws) => ({
+    ...ws,
+    // The edge render does not carry the plan; the client query fills it in.
+    tier: 'free',
+    repositories: ws.repositories.map(({ stargazer_count, ...repo }) => ({
+      ...repo,
+      stargazers_count: stargazer_count,
+    })),
+  }));
+}
+
+function toWorkspacePreview(ws: WorkspacePreviewData): WorkspacePreview {
+  return {
+    id: ws.id,
+    name: ws.name,
+    slug: ws.slug,
+    description: ws.description ?? null,
+    tier: ws.tier ?? 'free',
+    repository_count: ws.repository_count,
+    member_count: ws.member_count,
+    repositories: ws.repositories.map((repo) => ({
+      id: repo.id,
+      full_name: repo.full_name,
+      name: repo.name,
+      owner: repo.owner,
+      language: repo.language ?? null,
+      stargazers_count: repo.stargazers_count ?? 0,
+    })),
+  };
+}
+
+async function fetchDemoStats(): Promise<DemoStats> {
+  const supabase = await getSupabase();
+  const [workspacesResult, reposResult] = await Promise.all([
+    supabase.from('workspaces').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    supabase.from('workspace_repositories').select('id', { count: 'exact', head: true }),
+  ]);
+  return {
+    totalWorkspaces: workspacesResult.count || 0,
+    totalRepositories: reposResult.count || 0,
+  };
 }
 
 function formatNumber(num: number): string {
@@ -326,189 +389,58 @@ function WorkspacesSkeleton() {
 }
 
 export default function WorkspacesPage() {
-  // Get SSR data if available (prevents flash during hydration)
-  const ssrData = useMemo(() => getSSRDataForRoute<WorkspacesPageData>('workspaces'), []);
+  // The SSR seed keeps the edge-rendered list on screen through hydration and until
+  // the client query resolves, so nothing flashes to a skeleton.
+  const [seed] = useState(readSSRSeed);
+  useEffect(() => {
+    if (seed) clearSSRData();
+  }, [seed]);
 
-  // Initialize state from SSR data to prevent hydration flash
-  const [loading, setLoading] = useState(!ssrData);
-  const [isAuthenticated, setIsAuthenticated] = useState(ssrData?.authenticated ?? false);
-  const [workspaces, setWorkspaces] = useState<WorkspacePreview[]>(
-    ssrData?.workspaces?.map((w) => ({
-      ...w,
-      tier: 'free', // Default tier, will be updated on client
-    })) ?? []
-  );
-  const [stats, setStats] = useState<DemoStats>(
-    ssrData?.stats ?? { totalWorkspaces: 0, totalRepositories: 0 }
-  );
+  // Both hooks read the shared React Query cache synchronously. `WorkspaceProvider`
+  // already resolved the user's workspaces for every route, so a warm navigation
+  // here renders the final list on the first frame with no extra requests.
+  const { isAuthenticated, isLoading: authLoading } = useCachedAuth();
+  const {
+    workspaces: userWorkspaces,
+    loading: workspacesLoading,
+    error: workspacesError,
+  } = useUserWorkspaces();
+  const authenticated = authLoading ? (seed?.data.authenticated ?? false) : isAuthenticated;
 
   useEffect(() => {
-    // Clear SSR data after initial render to prevent memory leaks
-    const hasSSRData = !!ssrData;
-    if (hasSSRData) {
-      clearSSRData();
+    if (workspacesError) {
+      logger.error('Error fetching workspaces: %s', workspacesError.message);
     }
+  }, [workspacesError]);
 
-    async function loadData() {
-      // Skip fetch if SSR data is fresh (not stale)
-      if (hasSSRData && !isSSRDataStale(60)) {
-        logger.debug('[workspaces-page] Using fresh SSR data, skipping fetch');
-        setLoading(false);
-        return;
-      }
+  const seededStats = seed?.data.stats;
+  const { data: stats } = useQuery({
+    queryKey: workspaceKeys.demoStats(),
+    queryFn: fetchDemoStats,
+    enabled: !authLoading && !isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+    // A fresh edge render is the answer; a stale one is shown while the counts refresh.
+    initialData: seed?.fresh ? seededStats : undefined,
+    placeholderData: seededStats,
+  });
 
-      try {
-        const supabase = await getSupabase();
+  const workspaces = useMemo(
+    () =>
+      workspacesLoading && !workspacesError
+        ? seedWorkspacePreviews(seed)
+        : userWorkspaces.map(toWorkspacePreview),
+    [seed, userWorkspaces, workspacesLoading, workspacesError]
+  );
 
-        // Check authentication status
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        setIsAuthenticated(!!user);
-
-        if (user) {
-          // Authenticated - fetch user's workspaces
-          const appUserId = await getAppUserId();
-          if (!appUserId) {
-            setLoading(false);
-            return;
-          }
-
-          // Fetch workspaces the user is a member of
-          const { data: memberWorkspaces, error: memberError } = await supabase
-            .from('workspace_members')
-            .select(
-              `
-              workspace_id,
-              workspaces!inner(
-                id,
-                name,
-                slug,
-                description,
-                tier,
-                owner_id,
-                created_at,
-                is_active
-              )
-            `
-            )
-            .eq('user_id', appUserId);
-
-          if (memberError) {
-            logger.error('Error fetching workspaces: %o', memberError);
-            setLoading(false);
-            return;
-          }
-
-          // Transform and fetch additional data for each workspace
-          const workspacePreviews: WorkspacePreview[] = [];
-
-          for (const member of memberWorkspaces || []) {
-            // Supabase returns joined data - extract the workspace object
-            const wsData = member.workspaces;
-            if (!wsData || typeof wsData !== 'object') continue;
-
-            const ws = wsData as unknown as {
-              id: string;
-              name: string;
-              slug: string;
-              description: string | null;
-              tier: string;
-              owner_id: string;
-              created_at: string;
-              is_active: boolean;
-            };
-
-            if (!ws.is_active) continue;
-
-            // Get repository count
-            const { count: repoCount } = await supabase
-              .from('workspace_repositories')
-              .select('id', { count: 'exact', head: true })
-              .eq('workspace_id', ws.id);
-
-            // Get member count
-            const { count: memberCount } = await supabase
-              .from('workspace_members')
-              .select('id', { count: 'exact', head: true })
-              .eq('workspace_id', ws.id);
-
-            // Get top 3 repositories for preview
-            const { data: repos } = await supabase
-              .from('workspace_repositories')
-              .select(
-                `
-                repositories(
-                  id,
-                  full_name,
-                  name,
-                  owner,
-                  language,
-                  stargazer_count
-                )
-              `
-              )
-              .eq('workspace_id', ws.id)
-              .limit(3);
-
-            const repositories = (repos || [])
-              .filter((r) => r.repositories && typeof r.repositories === 'object')
-              .map((r) => {
-                const repoData = r.repositories as unknown as {
-                  id: string;
-                  full_name: string;
-                  name: string;
-                  owner: string;
-                  language: string | null;
-                  stargazer_count: number;
-                };
-                return repoData;
-              });
-
-            workspacePreviews.push({
-              id: ws.id,
-              name: ws.name,
-              slug: ws.slug,
-              description: ws.description,
-              tier: ws.tier,
-              repository_count: repoCount || 0,
-              member_count: memberCount || 0,
-              repositories,
-            });
-          }
-
-          setWorkspaces(workspacePreviews);
-        } else {
-          // Unauthenticated - fetch demo stats
-          const [workspacesResult, reposResult] = await Promise.all([
-            supabase
-              .from('workspaces')
-              .select('id', { count: 'exact', head: true })
-              .eq('is_active', true),
-            supabase.from('workspace_repositories').select('id', { count: 'exact', head: true }),
-          ]);
-
-          setStats({
-            totalWorkspaces: workspacesResult.count || 0,
-            totalRepositories: reposResult.count || 0,
-          });
-        }
-      } catch (error) {
-        logger.error('Error loading workspaces page: %o', error);
-      } finally {
-        setLoading(false);
-      }
+  if (authenticated) {
+    if (workspacesLoading && !seed) {
+      return <WorkspacesSkeleton />;
     }
-
-    loadData();
-  }, [ssrData]);
-
-  if (loading) {
-    return <WorkspacesSkeleton />;
+    return <AuthenticatedWorkspaces workspaces={workspaces} />;
   }
 
-  if (isAuthenticated) {
-    return <AuthenticatedWorkspaces workspaces={workspaces} />;
+  if (!stats) {
+    return <WorkspacesSkeleton />;
   }
 
   return <UnauthenticatedWorkspaces stats={stats} />;

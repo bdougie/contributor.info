@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type { CreateWorkspaceRequest } from '@/types/workspace';
 
 /** Accept exact repository names and GitHub repository URLs, not arbitrary URLs. */
@@ -25,11 +24,42 @@ export function getWorkspaceCreationRoute(repository?: string): string {
   return name ? `/workspaces/new?${new URLSearchParams({ repository: name })}` : '/workspaces/new';
 }
 
-const draftSchema = z.object({
-  name: z.string().max(50),
-  description: z.string().max(500).optional(),
-  visibility: z.enum(['public', 'private']),
-});
+// Hand-written instead of a zod schema: this module is imported by the
+// workspace page, and zod is ~30KB gzipped that the dashboard does not need.
+const DRAFT_NAME_MAX = 50;
+const DRAFT_DESCRIPTION_MAX = 500;
+const DRAFT_VISIBILITIES = ['public', 'private'] as const;
+
+type DraftVisibility = (typeof DRAFT_VISIBILITIES)[number];
+
+interface WorkspaceDraft {
+  name: string;
+  description?: string;
+  visibility: DraftVisibility;
+}
+
+function isDraftVisibility(value: string): value is DraftVisibility {
+  return (DRAFT_VISIBILITIES as readonly string[]).includes(value);
+}
+
+/**
+ * Validate an untrusted value against the draft shape. Returns a fresh object
+ * containing only the known keys (unknown keys are dropped, like a strict
+ * schema parse), or null when any field is missing or out of range.
+ */
+function parseDraft(value: unknown): WorkspaceDraft | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const record = value as Record<string, unknown>;
+  const { name, description, visibility } = record;
+  if (typeof name !== 'string' || name.length > DRAFT_NAME_MAX) return null;
+  if (typeof visibility !== 'string' || !isDraftVisibility(visibility)) return null;
+  if (description !== undefined) {
+    if (typeof description !== 'string' || description.length > DRAFT_DESCRIPTION_MAX) return null;
+  }
+  const draft: WorkspaceDraft = { name, visibility };
+  if (description !== undefined) draft.description = description;
+  return draft;
+}
 
 function draftKey(repository: string | null): string {
   return `workspace-create-draft:${repository?.toLowerCase() || 'new'}`;
@@ -37,10 +67,8 @@ function draftKey(repository: string | null): string {
 
 export function readWorkspaceDraft(repository: string | null): Partial<CreateWorkspaceRequest> {
   try {
-    const result = draftSchema.safeParse(
-      JSON.parse(sessionStorage.getItem(draftKey(repository)) || 'null')
-    );
-    return result.success ? result.data : {};
+    const draft = parseDraft(JSON.parse(sessionStorage.getItem(draftKey(repository)) || 'null'));
+    return draft ?? {};
   } catch {
     return {};
   }
@@ -51,7 +79,9 @@ export function saveWorkspaceDraft(
   draft: CreateWorkspaceRequest
 ): boolean {
   try {
-    sessionStorage.setItem(draftKey(repository), JSON.stringify(draftSchema.parse(draft)));
+    const parsed = parseDraft(draft);
+    if (!parsed) return false;
+    sessionStorage.setItem(draftKey(repository), JSON.stringify(parsed));
     return true;
   } catch {
     return false;

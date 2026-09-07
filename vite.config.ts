@@ -182,6 +182,18 @@ export default defineConfig(() => ({
             // AI SDK must also be checked BEFORE react: @ai-sdk/react contains 'react/'
             // and would otherwise land in vendor-react-core, statically dragging the
             // whole vendor-ai-sdk chunk into the initial page load.
+            // zod must be pinned to its own chunk BEFORE the AI SDK test. Without
+            // this Rollup hoists zod into vendor-ai-sdk (the AI SDK is its largest
+            // importer), and every module that uses zod (the Inngest client, form
+            // validation) then drags the whole ~200KB AI SDK chunk into its route.
+            if (id.includes('/node_modules/zod/')) {
+              return 'vendor-zod';
+            }
+            // Same reason: @opentelemetry/api is shared by the Inngest SDK and the AI
+            // SDK and would otherwise be hoisted into vendor-ai-sdk.
+            if (id.includes('@opentelemetry/')) {
+              return 'vendor-otel';
+            }
             if (id.includes('@ai-sdk') || id.includes('/node_modules/ai/')) {
               return 'vendor-ai-sdk';
             }

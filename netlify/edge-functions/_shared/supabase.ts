@@ -432,6 +432,9 @@ export async function fetchDemoWorkspaceStats(): Promise<{
 /**
  * Workspace detail data for SSR
  */
+/** Upper bound on repositories inlined into the SSR payload. */
+const SSR_REPOSITORY_LIMIT = 100;
+
 export interface WorkspaceDetailData {
   id: string;
   name: string;
@@ -440,10 +443,23 @@ export interface WorkspaceDetailData {
   tier: string;
   owner_id: string;
   created_at: string;
+  updated_at: string;
+  last_activity_at: string | null;
   visibility: 'public' | 'private';
+  is_active: boolean;
+  max_repositories: number;
+  current_repository_count: number;
+  data_retention_days: number;
+  settings: Record<string, unknown>;
   repository_count: number;
   member_count: number;
   contributor_count: number;
+  /**
+   * Every repository in the workspace (capped at SSR_REPOSITORY_LIMIT), with the
+   * columns the client dashboard renders. The HTML preview shows the first six;
+   * the full list is inlined so hydration can render the dashboard without a
+   * round trip.
+   */
   repositories: Array<{
     id: string;
     full_name: string;
@@ -452,6 +468,10 @@ export interface WorkspaceDetailData {
     description: string | null;
     language: string | null;
     stargazers_count: number;
+    forks_count: number;
+    open_issues_count: number;
+    avatar_url: string | null;
+    is_pinned: boolean;
   }>;
   owner: {
     id: string;
@@ -468,6 +488,8 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
   const supabase = getSupabaseClient();
 
   // First fetch the workspace
+  // Select the full row: the client seeds its `Workspace` state from this
+  // payload, so every column the dashboard reads must be present.
   const { data: workspace, error: wsError } = await supabase
     .from('workspaces')
     .select(
@@ -479,8 +501,14 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
       tier,
       owner_id,
       created_at,
+      updated_at,
+      last_activity_at,
       visibility,
-      is_active
+      is_active,
+      max_repositories,
+      current_repository_count,
+      data_retention_days,
+      settings
     `
     )
     .eq('slug', slug)
@@ -504,11 +532,12 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
       .from('workspace_members')
       .select('id', { count: 'exact', head: true })
       .eq('workspace_id', workspace.id),
-    // Top repositories (limit 6 for preview)
+    // All repositories (the HTML preview shows six; hydration uses the full list)
     supabase
       .from('workspace_repositories')
       .select(
         `
+          is_pinned,
           repositories(
             id,
             full_name,
@@ -516,12 +545,16 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
             owner,
             description,
             language,
-            stargazers_count
+            stargazers_count,
+            forks_count,
+            open_issues_count,
+            avatar_url
           )
         `
       )
       .eq('workspace_id', workspace.id)
-      .limit(6),
+      .order('is_pinned', { ascending: false })
+      .limit(SSR_REPOSITORY_LIMIT),
     // Owner info
     supabase
       .from('app_users')
@@ -554,8 +587,16 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
         description: string | null;
         language: string | null;
         stargazers_count: number;
+        forks_count: number | null;
+        open_issues_count: number | null;
+        avatar_url: string | null;
       };
-      return repo;
+      return {
+        ...repo,
+        forks_count: repo.forks_count ?? 0,
+        open_issues_count: repo.open_issues_count ?? 0,
+        is_pinned: Boolean((r as { is_pinned?: boolean }).is_pinned),
+      };
     });
 
   return {
@@ -566,8 +607,15 @@ export async function fetchWorkspaceBySlug(slug: string): Promise<WorkspaceDetai
     tier: workspace.tier,
     owner_id: workspace.owner_id,
     created_at: workspace.created_at,
+    updated_at: workspace.updated_at ?? workspace.created_at,
+    last_activity_at: workspace.last_activity_at ?? null,
     visibility:
       ((workspace as { visibility?: string }).visibility as 'public' | 'private') || 'private',
+    is_active: workspace.is_active ?? true,
+    max_repositories: workspace.max_repositories ?? 0,
+    current_repository_count: workspace.current_repository_count ?? repoCountResult.count ?? 0,
+    data_retention_days: workspace.data_retention_days ?? 30,
+    settings: (workspace.settings as Record<string, unknown> | null) ?? {},
     repository_count: repoCountResult.count || 0,
     member_count: memberCountResult.count || 0,
     contributor_count: contributorCount,

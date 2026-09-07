@@ -13,6 +13,9 @@ import { isHydrationComplete, isSSRPage } from '@/lib/ssr-hydration';
 import { Layout, Home } from '@/components/common/layout';
 // Eagerly load repo skeleton to prevent layout mismatch during lazy loading
 import { RepoViewSkeleton } from '@/components/skeletons/layouts/repo-view-skeleton';
+// Eagerly load workspace skeleton so SPA navigation into /i/* paints the dashboard shape
+// before the workspace-page chunk arrives (see docs in workspace-skeleton.tsx)
+import { WorkspaceSkeleton } from '@/components/skeletons/layouts/workspace-skeleton';
 // SVGSpriteInliner must be eagerly loaded (not lazy) as it's needed immediately
 // to inline SVG sprites for the entire app (rendered early in the component tree)
 import { SVGSpriteInliner } from '@/components/ui/svg-sprite-loader';
@@ -134,11 +137,6 @@ const WorkspacePage = lazy(() => import('@/pages/workspace-page'));
 const WorkspaceNewPage = lazy(() => import('@/pages/workspace-new-page'));
 const WorkspacesPage = lazy(() => import('@/pages/workspaces-page'));
 const DemoWorkspacePage = lazy(() => import('@/pages/demo-workspace-page'));
-const WorkspaceRoutesWrapper = lazy(() =>
-  import('@/components/features/workspace/WorkspaceRoutesWrapper').then((m) => ({
-    default: m.WorkspaceRoutesWrapper,
-  }))
-);
 
 // Admin components
 const AdminMenu = lazy(() =>
@@ -236,6 +234,22 @@ function isRepoRoute(): boolean {
 }
 
 /**
+ * Check if the current URL is a workspace route (/i/:slug, /workspaces, /workspaces/:slug).
+ *
+ * `/workspaces/new` is excluded on purpose: it is a narrow (max-w-2xl) create form, and its
+ * SSR shell in `netlify/edge-functions/ssr-workspace-new.ts` renders that form directly.
+ * The workspace dashboard skeleton is 7xl wide with a tab row and metric grid, so for
+ * `/workspaces/new` the generic centered skeleton is the closer match and causes less shift.
+ */
+function isWorkspaceRoute(): boolean {
+  const path = window.location.pathname;
+  if (path === '/workspaces/new' || path.startsWith('/workspaces/new/')) {
+    return false;
+  }
+  return path.startsWith('/i/') || path.startsWith('/workspaces');
+}
+
+/**
  * Hydration-aware loading fallback
  *
  * During SSR hydration: Returns null to preserve SSR content (prevents flash)
@@ -271,6 +285,27 @@ const PageSkeleton = () => {
         <main className="flex-1 bg-muted/50 dark:bg-black focus:outline-none">
           <div className="container px-4 py-6">
             <RepoViewSkeleton />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // For workspace routes, show the workspace-specific skeleton (header, tab row, metric grid)
+  // MUST match Layout component's structure exactly for zero CLS
+  if (isWorkspaceRoute()) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="border-b">
+          <div className="flex h-16 items-center px-4 max-w-7xl mx-auto">
+            <div className="text-xl font-bold">contributor.info</div>
+            <div className="ml-auto h-9 w-20 bg-muted animate-pulse rounded-md" />
+          </div>
+        </header>
+        {/* Match Layout's main structure exactly */}
+        <main className="flex-1 bg-muted/50 dark:bg-black focus:outline-none">
+          <div className="container px-4 py-6">
+            <WorkspaceSkeleton />
           </div>
         </main>
       </div>
@@ -477,48 +512,16 @@ function App() {
                         {/* Dynamic configuration to support both /i/ and /workspaces/ paths */}
                         {['/i', '/workspaces'].map((basePath) => (
                           <React.Fragment key={basePath}>
-                            <Route
-                              path={`${basePath}/demo`}
-                              element={
-                                <WorkspaceRoutesWrapper>
-                                  <DemoWorkspacePage />
-                                </WorkspaceRoutesWrapper>
-                              }
-                            />
-                            <Route
-                              path={`${basePath}/demo/:tab`}
-                              element={
-                                <WorkspaceRoutesWrapper>
-                                  <DemoWorkspacePage />
-                                </WorkspaceRoutesWrapper>
-                              }
-                            />
-                            <Route
-                              path={`${basePath}/:workspaceId`}
-                              element={
-                                <WorkspaceRoutesWrapper>
-                                  <WorkspacePage />
-                                </WorkspaceRoutesWrapper>
-                              }
-                            />
+                            <Route path={`${basePath}/demo`} element={<DemoWorkspacePage />} />
+                            <Route path={`${basePath}/demo/:tab`} element={<DemoWorkspacePage />} />
+                            <Route path={`${basePath}/:workspaceId`} element={<WorkspacePage />} />
                             <Route
                               path={`${basePath}/:workspaceId/:tab`}
-                              element={
-                                <WorkspaceRoutesWrapper>
-                                  <WorkspacePage />
-                                </WorkspaceRoutesWrapper>
-                              }
+                              element={<WorkspacePage />}
                             />
                           </React.Fragment>
                         ))}
-                        <Route
-                          path="/workspaces/new"
-                          element={
-                            <WorkspaceRoutesWrapper>
-                              <WorkspaceNewPage />
-                            </WorkspaceRoutesWrapper>
-                          }
-                        />
+                        <Route path="/workspaces/new" element={<WorkspaceNewPage />} />
                         {/* Redirect common typos: singular to plural */}
                         <Route
                           path="/workspace/new"

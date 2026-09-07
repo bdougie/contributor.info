@@ -10,12 +10,28 @@ import {
   type GitHubWorkCategory,
 } from '@/lib/workspace/github-my-work';
 
-export function useGitHubWorkspaceWork(workspaceId: string, repositories: string[]) {
+export interface UseGitHubWorkspaceWorkOptions {
+  /**
+   * Gates the GitHub Search requests. The overview card passes `false` until it is
+   * near the viewport or the browser is idle so the four searches stay off the
+   * critical path of the workspace's first paint.
+   * @default true
+   */
+  enabled?: boolean;
+}
+
+export function useGitHubWorkspaceWork(
+  workspaceId: string,
+  repositories: string[],
+  { enabled = true }: UseGitHubWorkspaceWorkOptions = {}
+) {
   const { user, loading: authLoading } = useCurrentUser();
   const scope = [...new Set(repositories)].sort();
   const categories = Object.keys(workCategoryLabels) as GitHubWorkCategory[];
-  // The shared client keeps focus and reconnect refetching wired up; the ephemeral
-  // meta and zero gcTime keep personal work out of the persisted offline cache.
+  // The shared client keeps focus and reconnect refetching wired up. The ephemeral
+  // meta keeps personal work out of the persisted offline cache, while a gcTime equal
+  // to staleTime lets a tab switch and back within a minute reuse the in-memory
+  // results instead of hitting GitHub Search again.
   const results = useQueries({
     queries: categories.map((category) => ({
       queryKey: ['github-work', user?.id, user?.last_sign_in_at, workspaceId, scope, category],
@@ -34,9 +50,9 @@ export function useGitHubWorkspaceWork(workspaceId: string, repositories: string
         });
       },
       meta: EPHEMERAL_QUERY_META,
-      enabled: !authLoading && !!user && !!workspaceId && scope.length > 0,
+      enabled: enabled && !authLoading && !!user && !!workspaceId && scope.length > 0,
       staleTime: 60_000,
-      gcTime: 0,
+      gcTime: 60_000,
       retry: false,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
@@ -44,13 +60,16 @@ export function useGitHubWorkspaceWork(workspaceId: string, repositories: string
   });
 
   const items = user ? mergeGitHubWork(results.flatMap((result) => result.data?.items || [])) : [];
+  // A query that is only waiting for the caller's gate still has nothing to show, so
+  // it reports as loading rather than as an empty result.
+  const waitingForGate = !enabled && !!user && results.some((result) => result.isPending);
   const unavailableRepositories = [
     ...new Set(results.flatMap((result) => result.data?.unavailableRepositories || [])),
   ].sort();
   return {
     items,
     signedIn: !!user,
-    loading: authLoading || results.some((result) => result.isLoading),
+    loading: authLoading || waitingForGate || results.some((result) => result.isLoading),
     refreshing: results.some((result) => result.isFetching),
     errors: results.flatMap((result, index) =>
       result.error ? [`${workCategoryLabels[categories[index]]}: ${result.error.message}`] : []

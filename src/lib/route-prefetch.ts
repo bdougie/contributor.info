@@ -168,10 +168,24 @@ export const usePrefetchOnIntent = (route: string) => {
 };
 
 /**
- * Prefetch critical routes after initial page load
- * These are the most likely navigation targets
+ * Routes whose users are unlikely to navigate to the site-wide "critical" pages next.
+ * On these routes the idle prefetch is skipped entirely: under CPU throttling "idle" can
+ * arrive before LCP, and `/feed` transitively downloads the repo-page data layer.
  */
-export const prefetchCriticalRoutes = () => {
+const isPrefetchExcludedPath = (pathname: string): boolean =>
+  pathname.startsWith('/i/') || pathname.startsWith('/workspaces');
+
+/**
+ * Prefetch critical routes after initial page load
+ * These are the most likely navigation targets from the landing and repo pages.
+ *
+ * @param pathname - The current `location.pathname`; workspace routes prefetch nothing.
+ */
+export const prefetchCriticalRoutes = (pathname: string) => {
+  if (isPrefetchExcludedPath(pathname)) {
+    return;
+  }
+
   // Wait for main thread to be idle
   const criticalRoutes = ['/changelog', '/docs', '/feed'];
 

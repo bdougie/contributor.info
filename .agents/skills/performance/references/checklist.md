@@ -25,6 +25,7 @@ Every item here can be checked by a command, a lint rule, or a CI job. If you wa
 - [ ] `npm run build` prints no new chunk in the preload set.
 - [ ] No chunk grew past the CI gate (`MAX_KB`). The bundle-size step in CI ran and printed a non-empty table.
 - [ ] Any new dependency whose name contains `react` has an explicit `manualChunks` line above the React test, or is dynamic-imported.
+- [ ] The chunk-graph gate passes (`npm run build:check-chunks` or the repo's equivalent): no route chunk statically imports a deny-listed vendor chunk.
 - [ ] `ANALYZE=true npm run build` shows the new dependency in the chunk you intended.
 
 ## Verify

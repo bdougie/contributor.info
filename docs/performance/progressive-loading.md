@@ -150,6 +150,24 @@ These exist in the tree and read like the loading mechanism, but the repo page d
 - `src/components/ui/charts/lazy-chart-wrapper.tsx` and `src/hooks/use-intersection-loader.ts`: no consumers.
 - `src/components/common/optimized-image.tsx`: parallel to `src/components/ui/optimized-image.tsx`, which is the one everything imports.
 
+## Workspace detail page (`/i/:workspaceId`)
+
+The same layers, applied on 2026-09-07 (`tasks/workspace-performance-audit-2026-09-07.md`). Where the workspace page differs from the repo page:
+
+- **SSR payload is the full row.** `netlify/edge-functions/_shared/supabase.ts` `fetchWorkspaceBySlug` selects every `workspaces` column plus up to 100 repositories with the fields `RepositoryList` renders, and inlines them as `window.__SSR_DATA__` under the fixed route key `workspace-detail`. The HTML preview still shows six repositories.
+- **The client looks the payload up by key, not pathname.** `useSSRData(maxAge, routeKey)` in `src/hooks/use-ssr-data.ts`; `useWorkspaceDetailSSRData` passes `'workspace-detail'` and accepts payloads up to an hour old (the edge's stale-while-revalidate window). Before this the lookup compared `/i/<slug>` against `workspace-detail` and never matched.
+- **State is seeded in initializers.** `seedFromSSR` (`src/lib/workspace/workspace-ssr-seed.ts`) builds `workspace`, `repositories`, `metrics`, and `memberCount`; `loading` starts `false` when a seed exists, and `fetchWorkspace` only flips it to `true` before the first successful render (`hasRenderedWorkspaceRef`). Refetches refresh in place.
+- **Phase A is two waves, not eight round trips.** `fetchWorkspaceCore` runs `auth.getUser`, `getAppUserId`, and the workspace row in one `Promise.all`, then member row, app user, member count, and the repository list (ordered by pin, `.limit(100)`) in a second.
+- **Open counts come from one RPC.** `count_workspace_open_items(uuid[])` (migration `20260907191704`) returns per-repo open PRs and issues plus the distinct PR-author count. The previous three queries fetched up to 2500 id rows and undercounted anything past 1000.
+- **Metric skeletons debounce on refetch only.** First load holds the skeleton until Phase B resolves; later refetches keep the existing numbers unless loading outlasts 800ms.
+- **Enrichment runs on idle.** Phase C (events per repo, bios, GitHub profiles, LLM) is scheduled with `runWhenIdle` and skipped on slow connections.
+- **`GitHubMyWorkCard` waits for the viewport or idle** before its four GitHub Search calls, and keeps results for 60s across tab switches (`src/hooks/use-github-workspace-work.ts`).
+- **Nothing heavy is static.** `WorkspaceService`, `AddRepositoryModal`, and the event-payload zod schemas load on demand; `zod` and `@opentelemetry/api` have their own chunks so they are no longer hoisted into `vendor-ai-sdk`. `scripts/performance/check-chunk-graph.mjs` fails CI if `workspace-page-*` ever imports `vendor-zod`, `vendor-ai-sdk`, or a chart vendor again.
+- **Route skeleton.** `WorkspaceSkeleton` (`src/components/skeletons/layouts/workspace-skeleton.tsx`) is eagerly imported and used by `PageSkeleton` for `/i/*` and `/workspaces*`, so SPA navigation paints the header, tab row, and metric grid at the right heights.
+- **Lighthouse CI audits `/i/demo`** (warn level) so the workspace page has a lab number.
+
+The `/workspaces` list reads `useUserWorkspaces()` from the React Query cache that `WorkspaceContext` already filled, instead of its own per-workspace query loop.
+
 ## Adding something to the repo page
 
 Ask, in order:
