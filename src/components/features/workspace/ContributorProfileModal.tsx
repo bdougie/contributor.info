@@ -52,6 +52,7 @@ import type { ContributorGroup } from './ContributorsTable';
 import type { ContributorNote } from './ContributorNotesDialog';
 import type { WorkspaceRole, WorkspaceTier } from '@/types/workspace';
 import { ContributorInsights } from './enrichment/ContributorInsights';
+import { ContributorReviewsTab } from './ContributorReviewsTab';
 import { AIFeatureErrorBoundary } from '@/components/error-boundaries/ai-feature-error-boundary';
 
 export interface Activity {
@@ -540,10 +541,11 @@ export function ContributorProfileModal({
 
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="insights">AI Insights</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews</TabsTrigger>
               <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
               <TabsTrigger value="stats">Statistics</TabsTrigger>
             </TabsList>
@@ -819,6 +821,14 @@ export function ContributorProfileModal({
                   </ScrollArea>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="reviews" className="mt-4">
+              <ContributorReviewsTab
+                contributorUsername={contributor?.username}
+                workspaceId={workspaceId}
+                active={open && activeTab === 'reviews'}
+              />
             </TabsContent>
 
             <TabsContent value="notes" className="mt-4">
