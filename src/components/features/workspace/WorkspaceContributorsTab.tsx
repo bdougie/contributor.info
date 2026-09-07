@@ -651,7 +651,7 @@ export function WorkspaceContributorsTab({
 
   if (error && !profileRoute.username) {
     return (
-      <div className="container max-w-7xl mx-auto">
+      <div className="w-full min-w-0">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Contributors</CardTitle>
@@ -665,7 +665,7 @@ export function WorkspaceContributorsTab({
   }
 
   return (
-    <div className="container max-w-7xl mx-auto">
+    <div className="w-full min-w-0">
       {showAddContributors ? (
         <Card>
           <CardHeader>
@@ -845,8 +845,8 @@ export function WorkspaceContributorsTab({
 
           <Card>
             <CardHeader>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
                   <CardTitle>
                     {selectedFilterGroup
                       ? `${groups.find((g) => g.id === selectedFilterGroup)?.name || 'Group'} Contributors`
@@ -861,7 +861,7 @@ export function WorkspaceContributorsTab({
                     Open a profile to explore contributions, reviews, and AI insights.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex shrink-0 items-center gap-2 flex-wrap">
                   <div className="flex items-center rounded-lg border bg-muted/50 p-1">
                     <Button
                       variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -888,6 +888,8 @@ export function WorkspaceContributorsTab({
                   </div>
                   <Button
                     onClick={() => setShowGroupManager(true)}
+                    aria-label="Manage Groups"
+                    title="Manage Groups"
                     size="sm"
                     variant="outline"
                     className="min-h-[36px] px-3"
@@ -897,6 +899,8 @@ export function WorkspaceContributorsTab({
                   </Button>
                   <Button
                     onClick={handleExport}
+                    aria-label="Export CSV"
+                    title="Export CSV"
                     size="sm"
                     variant="outline"
                     className="min-h-[36px] px-3"
@@ -905,9 +909,15 @@ export function WorkspaceContributorsTab({
                     <Download className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Export CSV</span>
                   </Button>
-                  <Button onClick={handleAddContributor} size="sm" className="min-h-[36px] px-3">
-                    <Plus className="h-4 w-4 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Add Contributors</span>
+                  <Button
+                    onClick={handleAddContributor}
+                    size="sm"
+                    className="min-h-9 min-w-9 px-2 xl:px-3"
+                    aria-label="Add Contributors"
+                    title="Add Contributors"
+                  >
+                    <Plus className="h-4 w-4 xl:mr-1.5" aria-hidden="true" />
+                    <span className="hidden xl:inline">Add Contributors</span>
                   </Button>
                 </div>
               </div>

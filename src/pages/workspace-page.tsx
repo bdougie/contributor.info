@@ -106,7 +106,7 @@ import {
 
 // Tab loading skeleton for lazy-loaded tabs
 const TabSkeleton = () => (
-  <div className="container max-w-7xl mx-auto space-y-4">
+  <div className="min-w-0 space-y-4">
     <div className="h-8 w-48 bg-muted animate-pulse rounded" />
     <div className="border rounded-lg p-6 space-y-4">
       <div className="h-6 w-3/4 bg-muted animate-pulse rounded" />
@@ -1670,7 +1670,7 @@ function WorkspacePage() {
           />
 
           <TabsContent value="overview" className="mt-6 space-y-4">
-            <div className="container max-w-7xl mx-auto">
+            <div className="w-full min-w-0">
               <WorkspaceDashboard
                 workspaceId={workspace.id}
                 workspaceName=""
@@ -1722,7 +1722,7 @@ function WorkspacePage() {
 
           <TabsContent value="prs" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspacePRsTab
                   repositories={repositories}
                   selectedRepositories={selectedRepositories}
@@ -1740,7 +1740,7 @@ function WorkspacePage() {
 
           <TabsContent value="issues" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceIssuesTab
                   repositories={repositories}
                   selectedRepositories={selectedRepositories}
@@ -1758,7 +1758,7 @@ function WorkspacePage() {
 
           <TabsContent value="discussions" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceDiscussionsTable
                   repositories={repositories.map((r) => ({
                     id: r.id,
@@ -1780,7 +1780,7 @@ function WorkspacePage() {
 
           <TabsContent value="spam" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceSpamTab
                   repositories={repositories}
                   selectedRepositories={selectedRepositories}
@@ -1793,7 +1793,7 @@ function WorkspacePage() {
 
           <TabsContent value="contributors" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceContributorsTab
                   repositories={repositories}
                   selectedRepositories={selectedRepositories}
@@ -1810,7 +1810,7 @@ function WorkspacePage() {
 
           {/* Analytics tab content disabled - will be implemented in issue #598
           <TabsContent value="analytics" className="mt-6">
-            <div className="container max-w-7xl mx-auto">
+            <div className="w-full min-w-0">
               <AnalyticsDashboard
                 data={generateAnalyticsData()}
                 repositories={repositories.map((repo) => ({
@@ -1851,7 +1851,7 @@ function WorkspacePage() {
 
           <TabsContent value="activity" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceActivityTab
                   workspace={workspace}
                   prData={fullPRData}
@@ -1871,7 +1871,7 @@ function WorkspacePage() {
 
           <TabsContent value="settings" className="mt-6">
             <Suspense fallback={<TabSkeleton />}>
-              <div className="container max-w-7xl mx-auto">
+              <div className="w-full min-w-0">
                 <WorkspaceSettingsComponent
                   workspace={workspace}
                   currentMember={

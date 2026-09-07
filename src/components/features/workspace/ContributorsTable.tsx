@@ -344,7 +344,7 @@ export function ContributorsTable({
         cell: ({ row }) => {
           const stats = row.original.contributions;
           return (
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex w-max items-center gap-3 text-sm">
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-1">
                   <GitPullRequest className="h-4 w-4 text-muted-foreground" />
@@ -622,7 +622,10 @@ export function ContributorsTable({
 
       {/* Table */}
       <div className="rounded-md border overflow-x-auto">
-        <table className="w-full" aria-label="Workspace contributors with activity statistics">
+        <table
+          className="w-full table-auto"
+          aria-label="Workspace contributors with activity statistics"
+        >
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
@@ -675,7 +678,7 @@ export function ContributorsTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-2 py-4">
+      <div className="flex flex-col gap-3 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div
           className="flex-1 text-sm text-muted-foreground"
           role="status"
@@ -685,7 +688,7 @@ export function ContributorsTable({
           Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length}{' '}
           {table.getFilteredRowModel().rows.length === 1 ? 'contributor' : 'contributors'}
         </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:gap-6 lg:gap-8">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Page</p>
             <p className="text-sm font-medium">
@@ -699,9 +702,10 @@ export function ContributorsTable({
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               aria-label="Go to previous page"
+              className="min-h-9 min-w-9"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
             </Button>
             <Button
               variant="outline"
@@ -709,8 +713,9 @@ export function ContributorsTable({
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               aria-label="Go to next page"
+              className="min-h-9 min-w-9"
             >
-              Next
+              <span className="hidden sm:inline">Next</span>
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
