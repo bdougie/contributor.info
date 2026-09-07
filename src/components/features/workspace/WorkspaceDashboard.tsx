@@ -3,6 +3,7 @@ import { MetricCard } from './MetricCard';
 import { MyWorkCard, type MyWorkItem, type MyWorkStats } from './MyWorkCard';
 import { RepositoryList, type Repository } from './RepositoryList';
 import { TimeRange } from './TimeRangeSelector';
+import { TIME_RANGE_LABELS } from '@/lib/utils/time-range';
 import { Star, GitPullRequest, Users, AlertCircle, UserPlus } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { LearnMoreLink } from '@/components/ui/learn-more-link';
@@ -82,14 +83,14 @@ export interface WorkspaceDashboardProps {
   >;
 }
 
-// Time range labels for trend comparison
-const timeRangeComparisonLabels: Record<TimeRange, string> = {
-  '7d': 'vs previous',
-  '30d': 'vs previous',
-  '90d': 'vs previous',
-  '1y': 'vs previous',
-  all: 'vs previous',
-};
+/**
+ * Totals are current snapshots; only the trend badges are scoped to the selected range.
+ * "Last 30 days" becomes "vs previous 30 days"; "All time" has no earlier window to compare.
+ */
+function getTrendLabel(timeRange: TimeRange): string {
+  if (timeRange === 'all') return 'vs previous period';
+  return `vs previous ${TIME_RANGE_LABELS[timeRange].replace(/^Last /, '')}`;
+}
 
 export function WorkspaceDashboard({
   metrics,
@@ -127,8 +128,8 @@ export function WorkspaceDashboard({
     new Set(repositories.filter((r) => r.is_pinned).map((r) => r.id))
   );
 
-  // Get the trend comparison label based on selected time range
-  const trendLabel = timeRangeComparisonLabels[timeRange];
+  const trendLabel = getTrendLabel(timeRange);
+  const hasConfidence = typeof metrics.contributorConfidence === 'number';
 
   const handlePinToggle = (repo: Repository) => {
     setPinnedRepos((prev) => {
@@ -158,112 +159,118 @@ export function WorkspaceDashboard({
 
   return (
     <div className={cn('space-y-6', className)} data-testid="workspace-dashboard">
-      {/* Header with docs link */}
-      <div className="flex justify-end">
-        <LearnMoreLink
-          href="https://docs.contributor.info/workspaces/overview"
-          feature="workspaces"
-          source="workspace_dashboard"
-        />
-      </div>
-      {/* Metrics Grid */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <MetricCard
-          title="Star Velocity"
-          subtitle="Stars per day"
-          value={
-            // Show placeholder if velocity is not valid (0, undefined, or too large)
-            metrics.totalStars > 0 && metrics.totalStars < 1000 ? metrics.totalStars : '—'
-          }
-          description="Daily star growth rate"
-          icon={<Star className="h-4 w-4" />}
-          trend={{
-            value: metrics.starsTrend,
-            label: trendLabel,
-          }}
-          format={(val) => {
-            if (typeof val === 'string') return val;
-            // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
-            if (val < 1) {
-              return val.toFixed(3);
+      <section aria-label="Workspace metrics" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <p className="text-sm font-semibold">At a glance</p>
+            <p className="text-xs text-muted-foreground">Current totals · trends {trendLabel}</p>
+          </div>
+          <LearnMoreLink
+            href="https://docs.contributor.info/workspaces/overview"
+            feature="workspaces"
+            source="workspace_dashboard"
+          />
+        </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            title="Star Velocity"
+            subtitle="stars / day"
+            value={
+              // Show placeholder if velocity is not valid (0, undefined, or too large)
+              metrics.totalStars > 0 && metrics.totalStars < 1000 ? metrics.totalStars : '—'
             }
-            return val.toFixed(1);
-          }}
-          color="yellow"
-          loading={loading}
-        />
+            description="Daily star growth rate"
+            icon={<Star className="h-4 w-4" />}
+            trend={{
+              value: metrics.starsTrend,
+              label: trendLabel,
+            }}
+            format={(val) => {
+              if (typeof val === 'string') return val;
+              // Avoid ternary - Rollup 4.45.0 bug (see docs/architecture/state-machine-patterns.md)
+              if (val < 1) {
+                return val.toFixed(3);
+              }
+              return val.toFixed(1);
+            }}
+            color="yellow"
+            loading={loading}
+          />
 
-        <MetricCard
-          title="Open PRs"
-          subtitle="Last 30 days"
-          value={metrics.totalPRs}
-          description="Active development and contributions"
-          icon={<GitPullRequest className="h-4 w-4" />}
-          trend={{
-            value: metrics.prsTrend,
-            label: trendLabel,
-          }}
-          format="number"
-          color="green"
-          loading={loading}
-        />
+          <MetricCard
+            title="Open PRs"
+            subtitle="pull requests"
+            value={metrics.totalPRs}
+            description="Active development and contributions"
+            icon={<GitPullRequest className="h-4 w-4" />}
+            trend={{
+              value: metrics.prsTrend,
+              label: trendLabel,
+            }}
+            format="number"
+            color="green"
+            loading={loading}
+          />
 
-        <MetricCard
-          title="Open Issues"
-          subtitle="Last 30 days"
-          value={metrics.totalIssues || 0}
-          description="Tasks and feature requests"
-          icon={<AlertCircle className="h-4 w-4" />}
-          trend={{
-            value: metrics.issuesTrend || 0,
-            label: trendLabel,
-          }}
-          format="number"
-          color="orange"
-          loading={loading}
-        />
+          <MetricCard
+            title="Open Issues"
+            subtitle="issues"
+            value={metrics.totalIssues || 0}
+            description="Tasks and feature requests"
+            icon={<AlertCircle className="h-4 w-4" />}
+            trend={{
+              value: metrics.issuesTrend || 0,
+              label: trendLabel,
+            }}
+            format="number"
+            color="orange"
+            loading={loading}
+          />
 
-        <MetricCard
-          title="Contributors"
-          subtitle="Unique contributors"
-          value={metrics.totalContributors}
-          description="Community engagement level"
-          icon={<Users className="h-4 w-4" />}
-          trend={{
-            value: metrics.contributorsTrend,
-            label: trendLabel,
-          }}
-          format="number"
-          color="blue"
-          loading={loading}
-        />
+          <MetricCard
+            title="Contributors"
+            subtitle="unique people"
+            value={metrics.totalContributors}
+            description="Community engagement level"
+            icon={<Users className="h-4 w-4" />}
+            trend={{
+              value: metrics.contributorsTrend,
+              label: trendLabel,
+            }}
+            format="number"
+            color="blue"
+            loading={loading}
+          />
 
-        <MetricCard
-          title="Contributor Confidence"
-          subtitle="Workspace average"
-          value={metrics.contributorConfidence ?? '—'}
-          description="How approachable your projects are"
-          icon={<UserPlus className="h-4 w-4" />}
-          trend={
-            metrics.confidenceTrend !== undefined
-              ? {
-                  value: metrics.confidenceTrend,
-                  label: trendLabel,
-                }
-              : undefined
-          }
-          format={(val) => {
-            if (typeof val === 'string') return val;
-            return `${val}%`;
-          }}
-          color={(() => {
-            if (metrics.confidenceTrendDirection === 'improving') return 'green';
-            if (metrics.confidenceTrendDirection === 'declining') return 'orange';
-            return 'blue';
-          })()}
-          loading={loading}
-        />
-      </div>
+          {hasConfidence && (
+            <MetricCard
+              title="Contributor Confidence"
+              subtitle="Workspace average"
+              layout="inline"
+              className="col-span-full"
+              value={metrics.contributorConfidence ?? 0}
+              description="How approachable your projects are"
+              icon={<UserPlus className="h-4 w-4" />}
+              trend={
+                metrics.confidenceTrend !== undefined
+                  ? {
+                      value: metrics.confidenceTrend,
+                      label: trendLabel,
+                    }
+                  : undefined
+              }
+              format="percentage"
+              color={(() => {
+                if (metrics.confidenceTrendDirection === 'improving') return 'green';
+                if (metrics.confidenceTrendDirection === 'declining') return 'orange';
+                return 'blue';
+              })()}
+              loading={loading}
+            />
+          )}
+        </div>
+      </section>
 
       {/* My Work Section - Always show to display loading/empty states */}
       {myWorkContent ?? (
@@ -309,11 +316,18 @@ export function WorkspaceDashboard({
 }
 
 // Loading skeleton component
-export function WorkspaceDashboardSkeleton({ className }: { className?: string }) {
+export function WorkspaceDashboardSkeleton({
+  className,
+  timeRange,
+}: {
+  className?: string;
+  timeRange?: TimeRange;
+}) {
   return (
     <WorkspaceDashboard
       workspaceId=""
       workspaceName="Loading..."
+      timeRange={timeRange}
       metrics={{
         totalStars: 0,
         totalPRs: 0,

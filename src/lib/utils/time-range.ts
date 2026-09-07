@@ -12,6 +12,15 @@ export const TIME_RANGE_DAYS = {
 
 export type TimeRange = keyof typeof TIME_RANGE_DAYS;
 
+/** Human-readable labels shared by the range selector and any copy that names the range. */
+export const TIME_RANGE_LABELS: Record<TimeRange, string> = {
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+  '1y': 'Last year',
+  all: 'All time',
+};
+
 /**
  * Calculate start date for a given time range
  */

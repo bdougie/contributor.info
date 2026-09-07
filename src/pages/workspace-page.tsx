@@ -1240,7 +1240,7 @@ function WorkspacePage() {
   if (loading) {
     return (
       <div className="container max-w-7xl mx-auto p-6">
-        <WorkspaceDashboardSkeleton />
+        <WorkspaceDashboardSkeleton timeRange={timeRange} />
       </div>
     );
   }
