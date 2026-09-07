@@ -42,7 +42,8 @@ async function main() {
         console.log(`\n🔄 Processing PR #${prNumber}...`);
 
         // Fetch comprehensive PR data using GraphQL
-        const prData = await client.getPullRequestDetails(owner, repo, prNumber);
+        const result = await client.getPRDetails(owner, repo, prNumber);
+        const prData = result?.pullRequest;
 
         if (!prData) {
           console.error(`❌ No data returned for PR #${prNumber}`);
@@ -51,7 +52,7 @@ async function main() {
         }
 
         // Store PR data
-        await storePullRequestData(options.repositoryId, prData);
+        await storePullRequestData(options.repositoryId, options.repositoryName, prData);
 
         successCount++;
         console.log(`✅ Successfully captured PR #${prNumber}`);
@@ -84,9 +85,12 @@ async function main() {
     console.error('❌ Fatal error:', error);
     process.exit(1);
   }
+
+  // The Supabase client keeps a connection alive, so exit explicitly once done.
+  process.exit(0);
 }
 
-async function storePullRequestData(repositoryId, prData) {
+async function storePullRequestData(repositoryId, repositoryFullName, prData) {
   // Ensure author exists
   const authorId = await ensureContributorExists(prData.author);
 
@@ -94,6 +98,7 @@ async function storePullRequestData(repositoryId, prData) {
   const { error: prError } = await supabase.from('pull_requests').upsert(
     {
       repository_id: repositoryId,
+      repository_full_name: repositoryFullName,
       github_id: prData.databaseId.toString(),
       number: prData.number,
       title: prData.title,
@@ -135,44 +140,41 @@ async function storePullRequestData(repositoryId, prData) {
     throw new Error('Failed to retrieve PR record after insert');
   }
 
-  // Store reviews
-  if (prData.reviews && prData.reviews.nodes) {
-    for (const review of prData.reviews.nodes) {
-      await storeReview(prRecord.id, review);
+  // Store reviews and the inline comments nested under each review
+  for (const review of prData.reviews?.nodes ?? []) {
+    await storeReview(repositoryId, prRecord.id, review);
+    for (const comment of review.comments?.nodes ?? []) {
+      await storeComment(repositoryId, prRecord.id, comment, 'review_comment');
     }
   }
 
-  // Store comments
-  if (prData.comments && prData.comments.nodes) {
-    for (const comment of prData.comments.nodes) {
-      await storeComment(prRecord.id, comment, 'issue');
-    }
-  }
-
-  // Store review comments (inline PR comments)
-  if (prData.reviewComments && prData.reviewComments.nodes) {
-    for (const comment of prData.reviewComments.nodes) {
-      await storeComment(prRecord.id, comment, 'review');
-    }
+  // Store general PR conversation comments
+  for (const comment of prData.comments?.nodes ?? []) {
+    await storeComment(repositoryId, prRecord.id, comment, 'issue_comment');
   }
 }
 
+/**
+ * Returns the contributors.id for a GraphQL author, or null when GitHub gave
+ * no numeric id (bots and deleted users). Conflicts on github_id, the same
+ * key the Inngest capture job uses, so bots never collide with each other.
+ */
 async function ensureContributorExists(author) {
-  if (!author?.login) {
-    throw new Error('Author login is required');
+  if (!author?.login || !author?.databaseId) {
+    return null;
   }
 
   const { data, error } = await supabase
     .from('contributors')
     .upsert(
       {
-        github_id: author.databaseId?.toString() || author.id?.toString() || '0',
+        github_id: author.databaseId,
         username: author.login,
         avatar_url: author.avatarUrl || null,
-        is_bot: author.__typename === 'Bot' || false,
+        is_bot: author.__typename === 'Bot' || author.login.endsWith('[bot]'),
       },
       {
-        onConflict: 'username',
+        onConflict: 'github_id',
         ignoreDuplicates: false,
       }
     )
@@ -186,49 +188,101 @@ async function ensureContributorExists(author) {
   return data.id;
 }
 
-async function storeReview(prId, review) {
-  try {
-    const authorId = await ensureContributorExists(review.author);
+const REVIEW_STATES = new Set([
+  'PENDING',
+  'APPROVED',
+  'CHANGES_REQUESTED',
+  'COMMENTED',
+  'DISMISSED',
+]);
 
-    await supabase.from('reviews').upsert(
-      {
-        pull_request_id: prId,
-        github_id: review.databaseId?.toString() || review.id,
-        author_id: authorId,
-        state: review.state,
-        body: review.body,
-        submitted_at: review.submittedAt || review.createdAt,
-        commit_id: review.commit?.oid,
-      },
-      {
-        onConflict: 'github_id',
-      }
+function normalizeReviewState(state) {
+  const normalized = String(state || '').toUpperCase();
+  return REVIEW_STATES.has(normalized) ? normalized : 'COMMENTED';
+}
+
+async function storeReview(repositoryId, prId, review) {
+  const authorId = await ensureContributorExists(review.author);
+  if (!authorId || !review.databaseId) {
+    console.warn(
+      `Skipping review on PR ${prId}: no author id (${review.author?.login ?? 'unknown'})`
     );
-  } catch (error) {
-    console.warn(`Failed to store review ${review.id}:`, error.message);
+    return;
+  }
+
+  const { error } = await supabase.from('reviews').upsert(
+    {
+      repository_id: repositoryId,
+      pull_request_id: prId,
+      github_id: review.databaseId,
+      author_id: authorId,
+      reviewer_id: authorId,
+      state: normalizeReviewState(review.state),
+      body: review.body || '',
+      submitted_at: review.submittedAt,
+      commit_id: review.commit?.oid,
+    },
+    {
+      onConflict: 'github_id',
+    }
+  );
+
+  if (error) {
+    console.warn(`Failed to store review ${review.databaseId}: ${error.message}`);
   }
 }
 
-async function storeComment(prId, comment, commentType) {
-  try {
-    const commenterId = await ensureContributorExists(comment.author);
+/**
+ * comments.in_reply_to_id is a UUID foreign key to comments.id, so a GitHub
+ * reply id has to be resolved to the stored parent row. Returns null when the
+ * parent has not been captured, which keeps the insert valid.
+ */
+async function resolveParentCommentId(parentGithubId) {
+  if (!parentGithubId) return null;
+  const { data } = await supabase
+    .from('comments')
+    .select('id')
+    .eq('github_id', parentGithubId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
 
-    await supabase.from('comments').upsert(
-      {
-        pull_request_id: prId,
-        github_id: comment.databaseId?.toString() || comment.id,
-        commenter_id: commenterId,
-        body: comment.body,
-        created_at: comment.createdAt,
-        updated_at: comment.updatedAt,
-        comment_type: commentType,
-      },
-      {
-        onConflict: 'github_id',
-      }
+async function storeComment(repositoryId, prId, comment, commentType) {
+  const commenterId = await ensureContributorExists(comment.author);
+  if (!commenterId || !comment.databaseId) {
+    console.warn(
+      `Skipping ${commentType} on PR ${prId}: no author id (${comment.author?.login ?? 'unknown'})`
     );
-  } catch (error) {
-    console.warn(`Failed to store ${commentType} comment ${comment.id}:`, error.message);
+    return;
+  }
+
+  const row = {
+    repository_id: repositoryId,
+    pull_request_id: prId,
+    github_id: comment.databaseId,
+    commenter_id: commenterId,
+    body: comment.body || '',
+    created_at: comment.createdAt,
+    updated_at: comment.updatedAt,
+    comment_type: commentType,
+  };
+
+  if (commentType === 'review_comment') {
+    Object.assign(row, {
+      path: comment.path,
+      position: comment.position,
+      original_position: comment.originalPosition ?? null,
+      diff_hunk: comment.diffHunk,
+      commit_id: comment.commit?.oid,
+      original_commit_id: comment.originalCommit?.oid,
+      in_reply_to_id: await resolveParentCommentId(comment.replyTo?.databaseId),
+    });
+  }
+
+  const { error } = await supabase.from('comments').upsert(row, { onConflict: 'github_id' });
+
+  if (error) {
+    console.warn(`Failed to store ${commentType} ${comment.databaseId}: ${error.message}`);
   }
 }
 

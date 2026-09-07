@@ -328,6 +328,173 @@ async function ensureContributor(
   return newContributor.id;
 }
 
+// ---------------------------------------------------------------------------
+// Review and comment persistence
+//
+// Every writer of `reviews` and `comments` (this edge function, the Netlify
+// Inngest jobs, scripts/github-actions/capture-pr-details-graphql.js, and
+// gh-datapipe) must agree on one column mapping, or the product reads a
+// different shape depending on which pipeline captured a row.
+//
+//   reviews:  github_id = numeric GitHub review id, pull_request_id,
+//             repository_id, author_id AND reviewer_id (same contributor),
+//             state uppercased, body, submitted_at, commit_id
+//   comments: github_id = numeric GitHub comment id, pull_request_id,
+//             repository_id, commenter_id, body, created_at, updated_at,
+//             comment_type 'issue_comment' | 'review_comment', and for
+//             review comments path, position, original_position, diff_hunk,
+//             commit_id, original_commit_id, in_reply_to_id (parent row UUID)
+// ---------------------------------------------------------------------------
+
+const REVIEW_STATES = new Set(['PENDING', 'APPROVED', 'CHANGES_REQUESTED', 'COMMENTED', 'DISMISSED']);
+
+function normalizeReviewState(state: unknown): string {
+  const normalized = String(state ?? '').toUpperCase();
+  return REVIEW_STATES.has(normalized) ? normalized : 'COMMENTED';
+}
+
+/** Resolves repositories.id and pull_requests.id for a PR number. */
+async function findPullRequest(
+  supabase: any,
+  repositoryId: string,
+  prNumber: number,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('pull_requests')
+    .select('id')
+    .eq('repository_id', repositoryId)
+    .eq('number', prNumber)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+/** Resolves owner/name from either event shape the product sends. */
+async function resolveRepository(
+  supabase: any,
+  data: { owner?: string; repo?: string; repositoryId?: string },
+): Promise<{ id: string; owner: string; name: string }> {
+  if (data.repositoryId) {
+    const { data: row } = await supabase
+      .from('repositories')
+      .select('id, owner, name')
+      .eq('id', data.repositoryId)
+      .maybeSingle();
+    if (!row) throw new NonRetriableError(`Repository not found: ${data.repositoryId}`);
+    return row;
+  }
+  if (data.owner && data.repo) {
+    const { data: row } = await supabase
+      .from('repositories')
+      .select('id, owner, name')
+      .eq('full_name', `${data.owner}/${data.repo}`)
+      .maybeSingle();
+    if (!row) throw new NonRetriableError(`Repository not found: ${data.owner}/${data.repo}`);
+    return row;
+  }
+  throw new NonRetriableError('Missing required parameters: repositoryId, or owner and repo');
+}
+
+interface ReviewRow {
+  githubId: number;
+  contributorId: string;
+  state: string;
+  body: string | null;
+  submittedAt: string | null;
+  commitId: string | null;
+}
+
+async function upsertReview(
+  supabase: any,
+  repositoryId: string,
+  pullRequestId: string,
+  review: ReviewRow,
+): Promise<boolean> {
+  if (!review.submittedAt) return false; // pending/draft review
+  const { error } = await supabase.from('reviews').upsert(
+    {
+      github_id: review.githubId,
+      pull_request_id: pullRequestId,
+      repository_id: repositoryId,
+      author_id: review.contributorId,
+      reviewer_id: review.contributorId,
+      state: normalizeReviewState(review.state),
+      body: review.body ?? '',
+      submitted_at: review.submittedAt,
+      commit_id: review.commitId,
+    },
+    { onConflict: 'github_id' },
+  );
+  if (error) {
+    console.error(`Failed to store review ${review.githubId}:`, error.message);
+    return false;
+  }
+  return true;
+}
+
+interface CommentRow {
+  githubId: number;
+  contributorId: string;
+  body: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  type: 'issue_comment' | 'review_comment';
+  path?: string | null;
+  position?: number | null;
+  originalPosition?: number | null;
+  diffHunk?: string | null;
+  commitId?: string | null;
+  originalCommitId?: string | null;
+  replyToGithubId?: number | null;
+}
+
+async function upsertComment(
+  supabase: any,
+  repositoryId: string,
+  pullRequestId: string,
+  comment: CommentRow,
+): Promise<boolean> {
+  const row: Record<string, unknown> = {
+    github_id: comment.githubId,
+    pull_request_id: pullRequestId,
+    repository_id: repositoryId,
+    commenter_id: comment.contributorId,
+    body: comment.body ?? '',
+    created_at: comment.createdAt,
+    updated_at: comment.updatedAt ?? comment.createdAt,
+    comment_type: comment.type,
+  };
+
+  if (comment.type === 'review_comment') {
+    // in_reply_to_id is a UUID foreign key to comments.id, so a GitHub reply
+    // id must be resolved to the stored parent; null when not captured yet.
+    let parentId: string | null = null;
+    if (comment.replyToGithubId) {
+      const { data: parent } = await supabase
+        .from('comments')
+        .select('id')
+        .eq('github_id', comment.replyToGithubId)
+        .maybeSingle();
+      parentId = parent?.id ?? null;
+    }
+    Object.assign(row, {
+      path: comment.path ?? null,
+      position: comment.position ?? null,
+      original_position: comment.originalPosition ?? null,
+      diff_hunk: comment.diffHunk ?? null,
+      commit_id: comment.commitId ?? null,
+      original_commit_id: comment.originalCommitId ?? null,
+      in_reply_to_id: parentId,
+    });
+  }
+
+  const { error } = await supabase.from('comments').upsert(row, { onConflict: 'github_id' });
+  if (error) {
+    console.error(`Failed to store ${comment.type} ${comment.githubId}:`, error.message);
+    return false;
+  }
+  return true;
+}
+
 // 1. capture-pr-details - REST API version
 const capturePrDetails = inngest.createFunction(
   {
@@ -427,24 +594,30 @@ const capturePrDetailsGraphQL = inngest.createFunction(
     id: 'capture-pr-details-graphql',
     name: 'Capture PR Details (GraphQL)',
     retries: 2,
+    concurrency: { limit: 5, key: 'event.data.repositoryId' },
   },
   { event: 'capture/pr.details.graphql' },
   async ({ event, step }) => {
-    const { owner, repo, pr_number, github_token } = event.data;
-
-    // Validate required parameters
-    if (!owner || !repo) {
-      throw new NonRetriableError(`Missing required parameters: owner=${owner}, repo=${repo}`);
-    }
-    if (!pr_number) {
+    // Accepts both { owner, repo, pr_number } and { repositoryId, prNumber }.
+    const { github_token } = event.data;
+    const prNumber = Number(event.data.pr_number ?? event.data.prNumber);
+    if (!prNumber) {
       throw new NonRetriableError('Missing required parameter: pr_number');
     }
+
+    const repository = await step.run('resolve-repository', async () => {
+      return await resolveRepository(getSupabaseClient(), event.data);
+    });
+    const owner = repository.owner;
+    const repo = repository.name;
 
     const prData = await step.run('fetch-pr-graphql', async () => {
       const query = `
         query($owner: String!, $repo: String!, $number: Int!) {
           repository(owner: $owner, name: $repo) {
             pullRequest(number: $number) {
+              id
+              databaseId
               number
               title
               body
@@ -457,30 +630,58 @@ const capturePrDetailsGraphQL = inngest.createFunction(
               additions
               deletions
               changedFiles
+              baseRefName
+              headRefName
+              commits { totalCount }
               author {
                 login
                 avatarUrl
+                ... on User { databaseId }
               }
               reviews(first: 100) {
                 nodes {
-                  id
+                  databaseId
                   state
                   body
                   submittedAt
                   author {
                     login
                     avatarUrl
+                    ... on User { databaseId }
+                  }
+                  commit { oid }
+                  comments(first: 50) {
+                    nodes {
+                      databaseId
+                      body
+                      createdAt
+                      updatedAt
+                      position
+                      originalPosition
+                      diffHunk
+                      path
+                      author {
+                        login
+                        avatarUrl
+                        ... on User { databaseId }
+                      }
+                      replyTo { databaseId }
+                      commit { oid }
+                      originalCommit { oid }
+                    }
                   }
                 }
               }
               comments(first: 100) {
                 nodes {
-                  id
+                  databaseId
                   body
                   createdAt
+                  updatedAt
                   author {
                     login
                     avatarUrl
+                    ... on User { databaseId }
                   }
                 }
               }
@@ -489,47 +690,40 @@ const capturePrDetailsGraphQL = inngest.createFunction(
         }
       `;
 
-      const data = await githubGraphQL(query, { owner, repo, number: pr_number }, github_token);
-      return data.repository.pullRequest;
+      const data = await githubGraphQL(query, { owner, repo, number: prNumber }, github_token);
+      const pullRequest = data?.repository?.pullRequest;
+      if (!pullRequest) {
+        throw new NonRetriableError(`PR #${prNumber} not found in ${owner}/${repo}`);
+      }
+      return pullRequest;
     });
 
-    await step.run('store-comprehensive-pr-data', async () => {
+    const stored = await step.run('store-comprehensive-pr-data', async () => {
       const supabase = getSupabaseClient();
+      const repositoryId = repository.id;
 
-      // Ensure author exists
-      const authorId = await ensureContributor(
-        supabase,
-        prData.author.login,
-        prData.author.avatarUrl,
-        prData.author.databaseId,
-      );
+      const authorId = prData.author?.databaseId
+        ? await ensureContributor(
+          supabase,
+          prData.author.login,
+          prData.author.avatarUrl,
+          prData.author.databaseId,
+        )
+        : null;
 
-      // Get or create repository
-      const { data: repoData } = await supabase
-        .from('repositories')
-        .select('id')
-        .eq('full_name', `${owner}/${repo}`)
-        .single();
-
-      const repositoryId = repoData?.id || (await supabase
-        .from('repositories')
-        .insert({ full_name: `${owner}/${repo}`, owner, name: repo })
-        .select('id')
-        .single()).data.id;
-
-      // Store PR with correct field names
-      await supabase.from('pull_requests').upsert({
+      const { error: prError } = await supabase.from('pull_requests').upsert({
         number: prData.number,
         github_id: prData.databaseId?.toString() || prData.id,
         repository_id: repositoryId,
         repository_full_name: `${owner}/${repo}`,
         title: prData.title,
         body: prData.body,
-        state: prData.state,
+        state: String(prData.state ?? '').toLowerCase(),
         author_id: authorId,
         additions: prData.additions || 0,
         deletions: prData.deletions || 0,
         changed_files: prData.changedFiles || 0,
+        commits: prData.commits?.totalCount || 0,
         created_at: prData.createdAt,
         updated_at: prData.updatedAt,
         closed_at: prData.closedAt,
@@ -541,50 +735,106 @@ const capturePrDetailsGraphQL = inngest.createFunction(
       }, {
         onConflict: 'github_id',
       });
+      if (prError) {
+        throw new Error(`Failed to store PR #${prData.number}: ${prError.message}`);
+      }
 
-      // Store reviews
-      for (const review of prData.reviews.nodes) {
-        if (review.author) {
-          const reviewerId = await ensureContributor(
+      const pullRequestId = await findPullRequest(supabase, repositoryId, prData.number);
+      if (!pullRequestId) {
+        throw new Error(`PR #${prData.number} missing after upsert`);
+      }
+
+      let reviewsStored = 0;
+      let commentsStored = 0;
+
+      for (const review of prData.reviews?.nodes ?? []) {
+        const reviewerId = review.author?.databaseId
+          ? await ensureContributor(
             supabase,
             review.author.login,
             review.author.avatarUrl,
-          );
+            review.author.databaseId,
+          )
+          : null;
+        if (!reviewerId || !review.databaseId) continue; // bots and deleted users
 
-          await supabase.from('pr_reviews').upsert({
-            github_id: review.id,
-            pr_number: prData.number,
-            repository_id: repositoryId,
-            reviewer_id: reviewerId,
+        if (
+          await upsertReview(supabase, repositoryId, pullRequestId, {
+            githubId: review.databaseId,
+            contributorId: reviewerId,
             state: review.state,
             body: review.body,
-            submitted_at: review.submittedAt,
-          });
+            submittedAt: review.submittedAt,
+            commitId: review.commit?.oid ?? null,
+          })
+        ) {
+          reviewsStored++;
+        }
+
+        for (const comment of review.comments?.nodes ?? []) {
+          const commenterId = comment.author?.databaseId
+            ? await ensureContributor(
+              supabase,
+              comment.author.login,
+              comment.author.avatarUrl,
+              comment.author.databaseId,
+            )
+            : null;
+          if (!commenterId || !comment.databaseId) continue;
+          if (
+            await upsertComment(supabase, repositoryId, pullRequestId, {
+              githubId: comment.databaseId,
+              contributorId: commenterId,
+              body: comment.body,
+              createdAt: comment.createdAt,
+              updatedAt: comment.updatedAt,
+              type: 'review_comment',
+              path: comment.path,
+              position: comment.position,
+              originalPosition: comment.originalPosition,
+              diffHunk: comment.diffHunk,
+              commitId: comment.commit?.oid,
+              originalCommitId: comment.originalCommit?.oid,
+              replyToGithubId: comment.replyTo?.databaseId ?? null,
+            })
+          ) {
+            commentsStored++;
+          }
         }
       }
 
-      // Store comments
-      for (const comment of prData.comments.nodes) {
-        if (comment.author) {
-          const commenterId = await ensureContributor(
+      for (const comment of prData.comments?.nodes ?? []) {
+        const commenterId = comment.author?.databaseId
+          ? await ensureContributor(
             supabase,
             comment.author.login,
             comment.author.avatarUrl,
-          );
-
-          await supabase.from('pr_comments').upsert({
-            github_id: comment.id,
-            pr_number: prData.number,
-            repository_id: repositoryId,
-            commenter_id: commenterId,
+            comment.author.databaseId,
+          )
+          : null;
+        if (!commenterId || !comment.databaseId) continue;
+        if (
+          await upsertComment(supabase, repositoryId, pullRequestId, {
+            githubId: comment.databaseId,
+            contributorId: commenterId,
             body: comment.body,
-            created_at: comment.createdAt,
-          });
+            createdAt: comment.createdAt,
+            updatedAt: comment.updatedAt,
+            type: 'issue_comment',
+          })
+        ) {
+          commentsStored++;
         }
       }
+
+      return { reviewsStored, commentsStored };
     });
 
-    return { pr_number: prData.number, status: 'captured_with_reviews_and_comments' };
+    return {
+      pr_number: prData.number,
+      status: 'captured_with_reviews_and_comments',
+      ...stored,
+    };
   },
 );
 
@@ -594,59 +844,72 @@ const capturePrReviews = inngest.createFunction(
     id: 'capture-pr-reviews',
     name: 'Capture PR Reviews',
     retries: 2,
+    concurrency: { limit: 5, key: 'event.data.repositoryId' },
   },
   { event: 'capture/pr.reviews' },
   async ({ event, step }) => {
-    const { owner, repo, pr_number, github_token } = event.data;
+    // Accepts both { owner, repo, pr_number } and { repositoryId, prNumber }.
+    const { github_token } = event.data;
+    const prNumber = Number(event.data.pr_number ?? event.data.prNumber);
+    if (!prNumber) {
+      throw new NonRetriableError('Missing required parameter: pr_number');
+    }
 
-    const reviews = await step.run('fetch-reviews', async () => {
-      const data = await githubRequest(
-        `/repos/${owner}/${repo}/pulls/${pr_number}/reviews`,
-        github_token,
-      );
-      return data;
+    const repository = await step.run('resolve-repository', async () => {
+      return await resolveRepository(getSupabaseClient(), event.data);
     });
 
-    await step.run('store-reviews', async () => {
+    const reviews = await step.run('fetch-reviews', async () => {
+      // Walk every page; GitHub caps a page at 100 and defaults to 30.
+      const all: any[] = [];
+      for (let page = 1; page <= 100; page++) {
+        const batch = await githubRequest(
+          `/repos/${repository.owner}/${repository.name}/pulls/${prNumber}/reviews?per_page=100&page=${page}`,
+          github_token,
+        );
+        if (!Array.isArray(batch) || batch.length === 0) break;
+        all.push(...batch);
+        if (batch.length < 100) break;
+      }
+      return all;
+    });
+
+    const stored = await step.run('store-reviews', async () => {
       const supabase = getSupabaseClient();
-
-      // Get repository ID
-      const { data: repoData } = await supabase
-        .from('repositories')
-        .select('id')
-        .eq('full_name', `${owner}/${repo}`)
-        .single();
-
-      if (!repoData) {
-        throw new NonRetriableError(`Repository not found: ${owner}/${repo}`);
+      const pullRequestId = await findPullRequest(supabase, repository.id, prNumber);
+      if (!pullRequestId) {
+        throw new NonRetriableError(
+          `PR #${prNumber} not captured yet for ${repository.owner}/${repository.name}; run repository sync first`,
+        );
       }
 
+      let count = 0;
       for (const review of reviews) {
+        if (!review.user?.id) continue;
         const reviewerId = await ensureContributor(
           supabase,
           review.user.login,
           review.user.avatar_url,
+          review.user.id,
         );
-
-        const { error } = await supabase
-          .from('pr_reviews')
-          .upsert({
-            github_id: review.id,
-            pr_number,
-            repository_id: repoData.id,
-            reviewer_id: reviewerId,
+        if (!reviewerId) continue;
+        if (
+          await upsertReview(supabase, repository.id, pullRequestId, {
+            githubId: review.id,
+            contributorId: reviewerId,
             state: review.state,
             body: review.body,
-            submitted_at: review.submitted_at,
-          });
-
-        if (error) {
-          console.error('Failed to store review:', error);
+            submittedAt: review.submitted_at,
+            commitId: review.commit_id ?? null,
+          })
+        ) {
+          count++;
         }
       }
+      return count;
     });
 
-    return { pr_number, reviews_count: reviews.length };
+    return { pr_number: prNumber, reviews_count: reviews.length, reviews_stored: stored };
   },
 );
 
@@ -699,33 +962,43 @@ const capturePrComments = inngest.createFunction(
 
     await step.run('store-comments', async () => {
       const supabase = getSupabaseClient();
-      const allComments = [...reviewComments, ...issueComments];
+      const pullRequestId = prId || (await findPullRequest(supabase, repositoryId, Number(pr_number)));
+      if (!pullRequestId) {
+        throw new NonRetriableError(`PR #${pr_number} not captured yet for ${owner}/${repo}`);
+      }
 
-      for (const comment of allComments) {
+      const store = async (comment: any, type: 'issue_comment' | 'review_comment') => {
+        if (!comment.user?.id) return; // GitHub Apps and bots carry no numeric id
         const authorId = await ensureContributor(
           supabase,
           comment.user.login,
           comment.user.avatar_url,
           comment.user.id,
         );
-        if (!authorId) continue; // Skip if no github_id (GitHub Apps/bots)
+        if (!authorId) return;
+        await upsertComment(supabase, repositoryId, pullRequestId, {
+          githubId: comment.id,
+          contributorId: authorId,
+          body: comment.body,
+          createdAt: comment.created_at,
+          updatedAt: comment.updated_at,
+          type,
+          path: comment.path,
+          position: comment.position,
+          originalPosition: comment.original_position,
+          diffHunk: comment.diff_hunk,
+          commitId: comment.commit_id,
+          originalCommitId: comment.original_commit_id,
+          replyToGithubId: comment.in_reply_to_id ?? null,
+        });
+      };
 
-        const { error } = await supabase
-          .from('pr_comments')
-          .upsert({
-            github_id: comment.id,
-            pr_number,
-            repository_id: repositoryId,
-            commenter_id: authorId,
-            body: comment.body,
-            created_at: comment.created_at,
-            updated_at: comment.updated_at,
-          });
-
-        if (error) {
-          console.error('Failed to store comment:', error);
-        }
-      }
+      // Parents before replies so in_reply_to_id resolves in one pass.
+      const orderedReviewComments = [...reviewComments].sort(
+        (a: any, b: any) => (a.in_reply_to_id ? 1 : 0) - (b.in_reply_to_id ? 1 : 0),
+      );
+      for (const comment of orderedReviewComments) await store(comment, 'review_comment');
+      for (const comment of issueComments) await store(comment, 'issue_comment');
     });
 
     return {
@@ -1321,6 +1594,53 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
       console.log(`[DEBUG] Finished storing PRs: ${successCount} successful, ${errorCount} errors`);
     });
 
+    // Step 3b: Decide which PRs need reviews and comments captured.
+    // Mirrors the Netlify job: open PRs, PRs updated in the last 7 days, and
+    // PRs with no captured reviews or comments, capped per sync run.
+    const detailJobs = await step.run('prepare-detail-jobs', async () => {
+      const MAX_DETAIL_JOBS = 50;
+      const supabase = getSupabaseClient();
+      const recentCutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const jobs: Array<{ name: string; data: Record<string, unknown> }> = [];
+
+      for (const pr of prs) {
+        if (jobs.length >= MAX_DETAIL_JOBS) break;
+        const pullRequestId = await findPullRequest(supabase, repositoryId, pr.number);
+        if (!pullRequestId) continue;
+
+        const isOpen = pr.state === 'OPEN';
+        const isRecent = new Date(pr.updatedAt || 0).getTime() > recentCutoff;
+        let needsData = isOpen || isRecent;
+        if (!needsData) {
+          const [{ count: reviewCount }, { count: commentCount }] = await Promise.all([
+            supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('pull_request_id', pullRequestId),
+            supabase.from('comments').select('*', { count: 'exact', head: true }).eq('pull_request_id', pullRequestId),
+          ]);
+          needsData = (reviewCount || 0) === 0 && (commentCount || 0) === 0;
+        }
+        if (!needsData) continue;
+
+        jobs.push({
+          name: 'capture/pr.details.graphql',
+          data: {
+            repositoryId,
+            owner: repository.owner,
+            repo: repository.name,
+            pr_number: pr.number,
+            prNumber: String(pr.number),
+            prId: pullRequestId,
+            priority: event.data.priority ?? 'medium',
+          },
+        });
+      }
+      console.log(`[DEBUG] Queuing ${jobs.length} PR detail jobs for ${repository.owner}/${repository.name}`);
+      return jobs;
+    });
+
+    if (detailJobs.length > 0) {
+      await step.sendEvent('queue-pr-detail-jobs', detailJobs);
+    }
+
     // Step 4: Update repository sync timestamp
     await step.run('update-sync-timestamp', async () => {
       const supabase = getSupabaseClient();
@@ -1340,6 +1660,7 @@ const captureRepositorySyncGraphQL = inngest.createFunction(
       repository: `${repository.owner}/${repository.name}`,
       method: 'graphql',
       prsFound: prs.length,
+      detailJobsQueued: detailJobs.length,
       status: 'synced',
     };
   },
@@ -1385,15 +1706,13 @@ const updatePrActivity = inngest.createFunction(
       // Count reviews and comments
       const [{ count: reviewCount }, { count: commentCount }] = await Promise.all([
         supabase
-          .from('pr_reviews')
+          .from('reviews')
           .select('*', { count: 'exact', head: true })
-          .eq('pr_number', pr_number)
-          .eq('repository_id', repoData.id),
+          .eq('pull_request_id', pr.id),
         supabase
-          .from('pr_comments')
+          .from('comments')
           .select('*', { count: 'exact', head: true })
-          .eq('pr_number', pr_number)
-          .eq('repository_id', repoData.id),
+          .eq('pull_request_id', pr.id),
       ]);
 
       // Calculate activity score

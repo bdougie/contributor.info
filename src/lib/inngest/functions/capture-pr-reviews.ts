@@ -173,6 +173,7 @@ export const capturePrReviews = inngest.createFunction(
             pull_request_id: prId,
             repository_id: repositoryId,
             author_id: reviewerId,
+            reviewer_id: reviewerId,
             state: normalizeReviewState(review.state),
             body: review.body || '',
             submitted_at: review.submitted_at,

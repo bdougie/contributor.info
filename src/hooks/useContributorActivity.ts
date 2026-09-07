@@ -320,7 +320,7 @@ export function useContributorActivity({
               )
             `
               )
-              .eq('reviewer_id', contributorId)
+              .eq('author_id', contributorId)
               .in('pull_requests.repository_id', repoIds)
               .order('submitted_at', { ascending: false })
               .range(0, fetchLimit - 1),

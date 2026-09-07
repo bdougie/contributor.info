@@ -537,7 +537,7 @@ function WorkspaceSettingsForm({
 // Loading skeleton for settings
 export function WorkspaceSettingsSkeleton() {
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    <div className="w-full min-w-0">
       <div className="flex items-center justify-between mb-6">
         <div>
           <Skeleton className="h-8 w-48" />

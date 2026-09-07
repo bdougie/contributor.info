@@ -222,6 +222,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^3.1.1",
     "@vitest/ui": "^3.2.4",
+    "commander": "^13.1.0",
     "concurrently": "^9.1.2",
     "dotenv": "^16.6.1",
     "eslint": "^9.11.1",

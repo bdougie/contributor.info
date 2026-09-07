@@ -7,16 +7,21 @@ import type { Contributor } from '@/components/features/workspace/ContributorsLi
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
+import {
+  pullRequestUrl,
+  reviewUrl,
+  type ContributorReview,
+} from '@/lib/contributors/contributor-reviews';
 
 // ============================================
 // Shared Download Helper
 // ============================================
 
 /**
- * Downloads CSV content as a file
+ * Downloads text content as a file
  */
-function downloadCSV(csvContent: string, filename: string): void {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+function downloadTextFile(content: string, filename: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
 
@@ -27,6 +32,13 @@ function downloadCSV(csvContent: string, filename: string): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Downloads CSV content as a file
+ */
+function downloadCSV(csvContent: string, filename: string): void {
+  downloadTextFile(csvContent, filename, 'text/csv;charset=utf-8;');
 }
 
 // ============================================
@@ -73,11 +85,12 @@ export function exportContributorsToCSV(
  */
 export function generateExportFilename(
   prefix: string,
-  entityType: 'issues' | 'pull-requests' | 'discussions' | 'contributors'
+  entityType: 'issues' | 'pull-requests' | 'discussions' | 'contributors' | 'reviews',
+  extension: 'csv' | 'jsonl' = 'csv'
 ): string {
   const sanitizedPrefix = prefix.replace(/[^a-z0-9]/gi, '-').toLowerCase();
   const date = new Date().toISOString().split('T')[0];
-  return `${sanitizedPrefix}_${entityType}_${date}.csv`;
+  return `${sanitizedPrefix}_${entityType}_${date}.${extension}`;
 }
 
 // ============================================
@@ -280,4 +293,190 @@ export function exportSpammersToCSV(
   const csvData = transformSpammersToCSV(spammers);
   const csv = unparse(csvData);
   downloadCSV(csv, filename);
+}
+
+// ============================================
+// Contributor Reviews Export
+// ============================================
+
+export interface ContributorReviewCSVRow {
+  Reviewer: string;
+  Repository: string;
+  'PR Number': number;
+  'PR Title': string;
+  'PR Author': string;
+  'Own PR': 'yes' | 'no';
+  'PR URL': string;
+  'Review URL': string;
+  'Review State': string;
+  'Submitted At': string;
+  Commit: string;
+  'Review Body': string;
+  'Inline Comments': number;
+  'Review GitHub ID': string;
+}
+
+/**
+ * Flattens one row per review. Inline comments are counted here and kept in
+ * full only in the JSONL export.
+ */
+export function transformContributorReviewsToCSV(
+  reviewer: string,
+  reviews: ContributorReview[]
+): ContributorReviewCSVRow[] {
+  return reviews.map((review) => ({
+    Reviewer: reviewer,
+    Repository: review.repository.full_name,
+    'PR Number': review.pull_request.number,
+    'PR Title': review.pull_request.title,
+    'PR Author': review.pull_request.author_login ?? '',
+    'Own PR': review.is_own_pr ? 'yes' : 'no',
+    'PR URL': pullRequestUrl(review),
+    'Review URL': reviewUrl(review),
+    'Review State': review.state,
+    'Submitted At': review.submitted_at,
+    Commit: review.commit_id ?? '',
+    'Review Body': review.body,
+    'Inline Comments': review.comments.length,
+    'Review GitHub ID': review.github_id,
+  }));
+}
+
+export function exportContributorReviewsToCSV(
+  reviewer: string,
+  reviews: ContributorReview[],
+  filename = generateExportFilename(reviewer, 'reviews')
+): void {
+  const csv = unparse(transformContributorReviewsToCSV(reviewer, reviews));
+  downloadCSV(csv, filename);
+}
+
+/** One JSONL record per review, with inline comments nested. */
+export interface ContributorReviewRecord {
+  reviewer: string;
+  review_github_id: string;
+  review_url: string;
+  /** True when the reviewer authored the pull request they reviewed. */
+  is_own_pr: boolean;
+  state: ContributorReview['state'];
+  body: string;
+  submitted_at: string;
+  commit_id: string | null;
+  repository: string;
+  pull_request: {
+    number: number;
+    title: string;
+    url: string;
+    state: string;
+    author: string | null;
+  };
+  comments: Array<{
+    github_id: string;
+    path: string | null;
+    position: number | null;
+    original_position: number | null;
+    commit_id: string | null;
+    in_reply_to_id: string | null;
+    diff_hunk: string | null;
+    body: string;
+    created_at: string;
+  }>;
+}
+
+export function transformContributorReviewsToRecords(
+  reviewer: string,
+  reviews: ContributorReview[]
+): ContributorReviewRecord[] {
+  return reviews.map((review) => ({
+    reviewer,
+    review_github_id: review.github_id,
+    review_url: reviewUrl(review),
+    is_own_pr: review.is_own_pr,
+    state: review.state,
+    body: review.body,
+    submitted_at: review.submitted_at,
+    commit_id: review.commit_id,
+    repository: review.repository.full_name,
+    pull_request: {
+      number: review.pull_request.number,
+      title: review.pull_request.title,
+      url: pullRequestUrl(review),
+      state: review.pull_request.state,
+      author: review.pull_request.author_login,
+    },
+    comments: review.comments.map((comment) => ({
+      github_id: comment.github_id,
+      path: comment.path,
+      position: comment.position,
+      original_position: comment.original_position,
+      commit_id: comment.commit_id,
+      in_reply_to_id: comment.in_reply_to_id,
+      diff_hunk: comment.diff_hunk,
+      body: comment.body,
+      created_at: comment.created_at,
+    })),
+  }));
+}
+
+/**
+ * Serializes reviews as newline-delimited JSON, the shape labeling tools read.
+ */
+export function serializeContributorReviewsToJSONL(
+  reviewer: string,
+  reviews: ContributorReview[]
+): string {
+  return transformContributorReviewsToRecords(reviewer, reviews)
+    .map((record) => JSON.stringify(record))
+    .join('\n');
+}
+
+export function exportContributorReviewsToJSONL(
+  reviewer: string,
+  reviews: ContributorReview[],
+  filename = generateExportFilename(reviewer, 'reviews', 'jsonl')
+): void {
+  const jsonl = serializeContributorReviewsToJSONL(reviewer, reviews);
+  downloadTextFile(jsonl, filename, 'application/x-ndjson;charset=utf-8;');
+}
+
+// ============================================
+// Review Corpus Export (several reviewers at once)
+// ============================================
+
+export interface ReviewerReviews {
+  reviewer: string;
+  reviews: ContributorReview[];
+}
+
+/** Flattens every reviewer's history into one CSV, reviewer column first. */
+export function transformReviewCorpusToCSV(entries: ReviewerReviews[]): ContributorReviewCSVRow[] {
+  return entries.flatMap((entry) =>
+    transformContributorReviewsToCSV(entry.reviewer, entry.reviews)
+  );
+}
+
+export function exportReviewCorpusToCSV(
+  entries: ReviewerReviews[],
+  filename = generateExportFilename('review-corpus', 'reviews')
+): void {
+  downloadCSV(unparse(transformReviewCorpusToCSV(entries)), filename);
+}
+
+/** One JSONL record per review across every reviewer, in the given order. */
+export function serializeReviewCorpusToJSONL(entries: ReviewerReviews[]): string {
+  return entries
+    .map((entry) => serializeContributorReviewsToJSONL(entry.reviewer, entry.reviews))
+    .filter((chunk) => chunk.length > 0)
+    .join('\n');
+}
+
+export function exportReviewCorpusToJSONL(
+  entries: ReviewerReviews[],
+  filename = generateExportFilename('review-corpus', 'reviews', 'jsonl')
+): void {
+  downloadTextFile(
+    serializeReviewCorpusToJSONL(entries),
+    filename,
+    'application/x-ndjson;charset=utf-8;'
+  );
 }

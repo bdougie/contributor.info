@@ -251,7 +251,7 @@ export function WorkspaceIssuesTab({
   // Only a failed load of saved issues replaces the tab; refresh failures keep the controls.
   if (error) {
     return (
-      <div className="container max-w-7xl mx-auto p-6">
+      <div className="w-full min-w-0">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Issues</CardTitle>
