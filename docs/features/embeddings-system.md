@@ -79,7 +79,7 @@ LIMIT 200;
 
 ```bash
 export SUPABASE_SERVICE_ROLE_KEY='your-key'
-./scripts/check-embeddings-status.sh
+./scripts/embeddings/check-embeddings-status.sh
 ```
 
 Shows:
@@ -90,7 +90,7 @@ Shows:
 
 ```bash
 export SUPABASE_SERVICE_ROLE_KEY='your-key'
-./scripts/watch-embeddings-progress.sh
+./scripts/embeddings/watch-embeddings-progress.sh
 ```
 
 Real-time dashboard showing:

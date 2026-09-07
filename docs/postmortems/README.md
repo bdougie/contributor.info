@@ -4,37 +4,33 @@ This folder contains detailed postmortem analyses of production incidents, outag
 
 ## Contents
 
-### 2025 Incidents
+Files are named `YYYY-MM[-DD]-slug.md`. Two older files without a date prefix are kept under their original names.
 
-#### January 2025
-- **[2025-01-09-inngest-step-isolation-bug.md](./2025-01-09-inngest-step-isolation-bug.md)** - 13+ hour complete failure of embeddings generation due to missing OpenAI API key in production
-- **[2025-01-type-checking-gaps.md](./2025-01-type-checking-gaps.md)** - Type checking issues discovered in production
+### 2025
 
-#### October 2025
-- **[2025-10-09-bot-contributor-sync-failures.md](./2025-10-09-bot-contributor-sync-failures.md)** - Bot contributor synchronization failures
-- **[2025-10-09-embeddings-complete-resolution.md](./2025-10-09-embeddings-complete-resolution.md)** - Complete resolution of embeddings system issues
-- **[2025-10-09-inngest-sync-field-name-fixes.md](./2025-10-09-inngest-sync-field-name-fixes.md)** - Field name mismatches in Inngest sync
-- **[2025-10-09-missing-pr-issue-embeddings.md](./2025-10-09-missing-pr-issue-embeddings.md)** - Missing embeddings for PRs and issues
-- **[2025-10-10-respond-tracking-table-mismatch.md](./2025-10-10-respond-tracking-table-mismatch.md)** - Database table mismatch in respond tracking
-- **[2025-10-11-inngest-event-data-structure-mismatch.md](./2025-10-11-inngest-event-data-structure-mismatch.md)** - Event data structure inconsistencies
-- **[2025-10-23-subscription-activation-failures.md](./2025-10-23-subscription-activation-failures.md)** - Subscription system activation issues
+- [2025-01-12-auth-database-error-resolution.md](./2025-01-12-auth-database-error-resolution.md) - "Database error saving new user" on GitHub sign-up; resolved by removing the `auth.users` trigger
+- [2025-01-12-github-auth-database-error-fix.md](./2025-01-12-github-auth-database-error-fix.md) - Earlier investigation of the same sign-up failure
+- [2025-01-type-checking-gaps.md](./2025-01-type-checking-gaps.md) - Type checking gaps in edge functions
+- [2025-06-22-production-deployment.md](./2025-06-22-production-deployment.md) - White screen and module loading failures after a production deploy
+- [2025-06-data-consistency-fix.md](./2025-06-data-consistency-fix.md) - Contributor role and bot classification consistency fix
+- [2025-08-21-bundle-splitting-attempt.md](./2025-08-21-bundle-splitting-attempt.md) - React initialization failures when splitting vendor bundles
+- [2025-09-27-missing-commits-table.md](./2025-09-27-missing-commits-table.md) - Missing database table for commits
+- [2025-09-28-repository-tracking-failure.md](./2025-09-28-repository-tracking-failure.md) - Repository tracking system failures
+- [2025-09-contributor-rankings-failure.md](./2025-09-contributor-rankings-failure.md) - Contributor rankings calculation failures
+- [2025-09-workspace-data-display-rls-fix.md](./2025-09-workspace-data-display-rls-fix.md) - RLS policy preventing workspace data display
+- [2025-10-08-inngest-embeddings-signature-failures.md](./2025-10-08-inngest-embeddings-signature-failures.md) - Embeddings scripts failing with missing Inngest signature
+- [2025-10-09-bot-contributor-sync-failures.md](./2025-10-09-bot-contributor-sync-failures.md) - Bot contributor synchronization failures
+- [2025-10-09-embeddings-complete-resolution.md](./2025-10-09-embeddings-complete-resolution.md) - Full resolution of the October embeddings outage (missing OpenAI key, upsert syntax, step isolation)
+- [2025-10-09-inngest-sync-field-name-fixes.md](./2025-10-09-inngest-sync-field-name-fixes.md) - Field name mismatches in Inngest sync
+- [2025-10-09-missing-pr-issue-embeddings.md](./2025-10-09-missing-pr-issue-embeddings.md) - Missing embeddings for PRs and issues
+- [2025-10-10-respond-tracking-table-mismatch.md](./2025-10-10-respond-tracking-table-mismatch.md) - Database table mismatch in respond tracking
+- [2025-10-11-inngest-event-data-structure-mismatch.md](./2025-10-11-inngest-event-data-structure-mismatch.md) - Event data structure inconsistencies
+- [2025-10-23-subscription-activation-failures.md](./2025-10-23-subscription-activation-failures.md) - Subscription activation failures
+- [lcp-improvements-dec-2025.md](./lcp-improvements-dec-2025.md) - December 2025 LCP improvement work and what regressed
 
-#### September 2025
-- **[2025-09-27-missing-commits-table.md](./2025-09-27-missing-commits-table.md)** - Missing database table for commits
-- **[2025-09-28-repository-tracking-failure.md](./2025-09-28-repository-tracking-failure.md)** - Repository tracking system failures
-- **[2025-09-contributor-rankings-failure.md](./2025-09-contributor-rankings-failure.md)** - Contributor rankings calculation failures
-- **[2025-09-workspace-data-display-rls-fix.md](./2025-09-workspace-data-display-rls-fix.md)** - RLS policy preventing workspace data display
-- **[406-error-resolution.md](./406-error-resolution.md)** - HTTP 406 error resolution
+### Undated
 
-### Legacy Incidents
-- **[auth-database-error-resolution.md](./auth-database-error-resolution.md)** - Authentication database error fixes
-- **[data-consistency-audit-report.md](./data-consistency-audit-report.md)** - System-wide data consistency audit
-- **[data-consistency-fix-summary.md](./data-consistency-fix-summary.md)** - Data consistency issue resolutions
-- **[fix-auth-error-implementation.md](./fix-auth-error-implementation.md)** - Authentication error fix implementation
-- **[github-sync-debug-summary.md](./github-sync-debug-summary.md)** - GitHub sync debugging summary
-- **[mobile-fixes-summary.md](./mobile-fixes-summary.md)** - Mobile platform bug fixes
-- **[production-deployment-2025-06-22.md](./production-deployment-2025-06-22.md)** - Production deployment issues
-- **[storybook-test-fix.md](./storybook-test-fix.md)** - Storybook testing issues
+- [406-error-resolution.md](./406-error-resolution.md) - HTTP 406 errors from `.single()` on empty results; referenced by the ESLint config
 
 ## Purpose
 

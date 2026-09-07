@@ -201,4 +201,4 @@ Located in `netlify/functions/__tests__/`
 - [Architecture](../architecture/) - System architecture
 - [Integrations](../integrations/) - Third-party integrations
 - [Guides](../guides/) - How-to guides
-- [Deployment](../deployment/) - Deployment procedures
+- [Deployment](../infrastructure/) - Deployment procedures

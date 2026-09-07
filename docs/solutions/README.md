@@ -6,8 +6,6 @@ This folder contains documentation for solutions to specific technical problems 
 
 ### Configuration and Environment
 
-- **[embeddings-openai-key-fix.md](./embeddings-openai-key-fix.md)** - Solution for embeddings generation failures due to missing OpenAI API key in Supabase Edge Functions environment
-- **[embeddings-silent-failure-investigation.md](./embeddings-silent-failure-investigation.md)** - Investigation into silent embeddings generation failures
 
 ### Edge Functions and Inngest
 
@@ -63,7 +61,6 @@ Each solution document should include:
 
 ### OpenAI Embeddings
 - Requires `OPENAI_API_KEY` in Supabase secrets
-- Test with: `node scripts/test-openai-key.js`
 - Set with: `supabase secrets set OPENAI_API_KEY="$OPENAI_API_KEY"`
 
 ### Inngest Step Isolation

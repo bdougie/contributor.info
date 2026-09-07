@@ -405,7 +405,6 @@ The `users` view only exposes non-sensitive user fields:
 
 ## Related Documentation
 
-- [Workspace Migrations Status](../supabase/workspace-migrations-status.md)
 - [Migration Guide: Workspace User Relations](../migrations/2025-10-workspace-user-relations-fix.md)
 - [Workspace Service Implementation](../../src/services/workspace.service.ts)
 - [RLS Policy Quick Reference](./rls-policy-quick-reference.md)

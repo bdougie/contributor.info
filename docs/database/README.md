@@ -6,7 +6,7 @@ This folder contains documentation for database schema, queries, performance opt
 
 ### RLS Performance and Optimization
 
-- **[rls-optimization-summary.md](./rls-optimization-summary.md)** - Summary of RLS policy optimization efforts and results
+- **[rls-optimization-summary.md](./rls-performance-optimization.md)** - Summary of RLS policy optimization efforts and results
 - **[rls-performance-optimization.md](./rls-performance-optimization.md)** - Detailed RLS performance optimization techniques and implementations
 - **[rls-policy-consolidation-lessons.md](./rls-policy-consolidation-lessons.md)** - Lessons learned from consolidating RLS policies
 - **[rls-policy-quick-reference.md](./rls-policy-quick-reference.md)** - Quick reference guide for RLS policy patterns and best practices
@@ -73,7 +73,7 @@ RLS health is monitored by:
 
 ## Related Documentation
 
-- [Supabase Implementation Guide](../supabase/implementation-guide.md) - Complete Supabase setup
+- [Supabase Implementation Guide](../setup/database-migrations.md) - Complete Supabase setup
 - [Database Optimizations](../database-optimizations/) - Database performance improvements
 - [Migrations](../migrations/) - Schema migration documentation
 - [Architecture](../architecture/) - System architecture patterns

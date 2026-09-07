@@ -13,7 +13,7 @@ Edge Functions in Supabase require proper environment variables to integrate wit
 A script is provided to automatically set the required secrets:
 
 ```bash
-./scripts/set-edge-function-secrets.sh
+./scripts/setup/set-edge-function-secrets.sh
 ```
 
 This script:

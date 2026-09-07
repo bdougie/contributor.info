@@ -324,5 +324,5 @@ npm run storybook
 
 - [Similarity Detection](./similarity-detection.md) - How semantic search works
 - [Workspace Documentation](./workspace-data-fetching.md) - Workspace data architecture
-- [Database Schema](../database-schema.md) - Complete database structure
+- [Database Schema](../database/) - Complete database structure
 - [Inngest Integration](../data-fetching/inngest-integration.md) - Background job processing

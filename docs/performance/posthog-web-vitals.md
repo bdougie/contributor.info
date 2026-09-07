@@ -173,7 +173,7 @@ The application has migrated from PageSpeed Insights API to PostHog for Web Vita
 
 For production LCP monitoring and alerting configuration:
 
-📊 **[PostHog LCP Monitoring Setup Guide](./posthog-lcp-monitoring-setup.md)**
+📊 **[PostHog LCP Monitoring Setup Guide](./per-route-lcp-dashboard.md)**
 
 Includes:
 - Complete dashboard setup for Core Web Vitals
@@ -182,7 +182,7 @@ Includes:
 - Good LCP rate monitoring (<75%)
 - Integration with Slack and Sentry
 
-✅ **[LCP Monitoring Checklist](./lcp-monitoring-checklist.md)**
+✅ **[LCP Monitoring Checklist](./per-route-lcp-dashboard.md)**
 
 Quick reference for:
 - Daily/weekly monitoring tasks
@@ -199,8 +199,8 @@ Quick reference for:
 
 Potential improvements for the PostHog integration:
 
-1. ✅ **Custom Dashboards**: See [LCP Monitoring Setup](./posthog-lcp-monitoring-setup.md)
-2. ✅ **Alerting**: See [LCP Monitoring Setup](./posthog-lcp-monitoring-setup.md)
+1. ✅ **Custom Dashboards**: See [LCP Monitoring Setup](./per-route-lcp-dashboard.md)
+2. ✅ **Alerting**: See [LCP Monitoring Setup](./per-route-lcp-dashboard.md)
 3. **Segmentation**: Track metrics by user segments (authenticated vs. anonymous)
 4. **A/B Testing**: Use PostHog feature flags for performance experiments
 5. **Session Replay**: Selectively enable for debugging (with user consent)

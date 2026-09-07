@@ -76,7 +76,7 @@ This project follows an **invisible, Netflix-like user experience**:
 - TypeScript with proper interfaces/types — no `any` or `unknown` as lazy fixes
 - ES modules only — no `require()` calls
 - Vitest for testing — never jest
-- Bulletproof testing practices: `/docs/testing/BULLETPROOF_TESTING_GUIDELINES.md`
+- Bulletproof testing practices: `/docs/testing/bulletproof-testing-guidelines.md`
 - Match the existing design language for all components
 - Use `console.log('%s', owner)` not template literals for logging (security)
 

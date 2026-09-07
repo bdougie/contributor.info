@@ -2,7 +2,7 @@
 
 /**
  * Manually trigger the embeddings computation function via Inngest API
- * Usage: node scripts/trigger-embeddings.mjs
+ * Usage: node scripts/embeddings/trigger-embeddings.mjs
  */
 
 const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;

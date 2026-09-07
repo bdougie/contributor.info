@@ -58,8 +58,7 @@ export async function fetchAllReviewPages<T>(
  * 2. Performance is acceptable with current rate limits
  * 3. REST provides more predictable response structure for reviews
  *
- * For GraphQL implementation details, see the hybrid client at:
- * scripts/progressive-capture/lib/hybrid-github-client.js
+ * For GraphQL implementation details, see src/lib/inngest/graphql-client.ts
  */
 export const capturePrReviews = inngest.createFunction(
   {

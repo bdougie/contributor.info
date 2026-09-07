@@ -293,7 +293,6 @@ interface RepositoryBackfillStatus {
 ## Related Documentation
 
 - [Workspace Priority System](./workspace-priority-system.md) - Workspace data sync priorities
-- [Progressive Backfill Implementation](./progressive-backfill-implementation.md) - Automatic backfill system
 - [Smart Data Fetching](./smart-data-fetching.md) - Overall data fetching architecture
 - [Manual Repository Tracking](./manual-repository-tracking.md) - Manual sync feature
 - [GitHub Actions Workflows](./github-actions-workflows.md) - Background processing

@@ -1,186 +1,61 @@
 # Data Fetching Documentation
 
-This directory contains comprehensive documentation for the Smart Data Fetching system in contributor.info.
+How contributor.info pulls GitHub data into Supabase: the database-first strategy,
+Inngest background jobs, GitHub Actions for large backfills, and the throttling
+and monitoring around them. Repository tracking is manual and user-initiated
+(see AGENTS.md); nothing here auto-discovers repositories.
 
-## Overview
+## Architecture
 
-The Smart Data Fetching system is a sophisticated data pipeline that ensures all GitHub repositories are accessible and usable, regardless of their size. It implements intelligent fetching strategies, progressive loading, and robust error handling.
+- [Smart Data Fetching Architecture](./smart-data-fetching.md) - Overall design of the fetching pipeline
+- [Database-First Smart Fetching](./database-first-smart-fetching.md) - Query cached data first, fetch from GitHub in the background
+- [System Diagram](./system-diagram.md) - Component and data flow diagram
+- [GitHub API Strategy](./api-strategy.md) - When the code uses GraphQL versus REST
+- [Size Classification](./size-classification.md) - Repository size tiers that drive fetch strategy
+- [Hybrid Rollout Configuration](./hybrid-rollout-configuration.md) - Routing between Inngest and GitHub Actions
 
-## Documentation Structure
+## Repository Tracking
 
-### 🤖 [Bot Detection System](./bot-detection.md) **NEW - Jan 2025**
-Centralized bot detection for accurate contributor metrics:
-- Unified detection logic across all components
-- Priority-based detection (GitHub API type > username patterns)
-- Edge Function support for Supabase runtime
-- Database integration for historical tracking
+- [Manual Repository Tracking System](./manual-repository-tracking.md) - The "Track This Repository" flow
+- [Repository Tracking Guide](./repository-tracking-guide.md) - Operator guide for tracking and untracking
+- [On-Demand GitHub Sync](./on-demand-sync-guide.md) - User-triggered syncs
 
-### 🚀 [Hybrid Job Processing](../infrastructure/hybrid-job-processing.md) **NEW - Jan 2025**
-Revolutionary hybrid approach solving 60% timeout failures:
-- Intelligent job routing between Netlify (10s) and Supabase Edge Functions (150s)
-- Background job tracking with comprehensive monitoring
-- Automatic retries with exponential backoff
-- Near-zero failure rate for long-running jobs
+## Background Jobs
 
-### 🔄 [Webhook Hybrid Routing](../infrastructure/webhook-hybrid-routing.md) **NEW - Jan 2025**
-Smart webhook handling for high-volume events:
-- Prevents timeouts for repositories in 100+ workspaces
-- Intelligent routing based on affected workspace count
-- Seamless integration with existing webhook infrastructure
+- [Inngest Queue Integration](./inngest-integration.md) - Event names, functions, and job flow
+- [Inngest Client-Safe Event Sending](./inngest-client-safe.md) - Sending events from the browser without exposing keys
+- [Inngest Function Timeout Optimizations](./inngest-timeout-optimizations.md) - Keeping functions inside runtime limits
+- [Inngest Troubleshooting](./inngest-troubleshooting.md) - Common failures and how to debug them
+- [GitHub Actions Workflows](./github-actions-workflows.md) - Workflows used for large historical backfills
+- [Queue Management](./queue-management.md) - The progressive capture job queue
+- [Webhook Priority System](./webhook-priority-system.md) - Prioritizing webhook-driven updates
+- [Workspace Priority System](./workspace-priority-system.md) - Prioritizing repositories that belong to workspaces
 
-### 🎯 [Implementation Status](./implementation-status.md) **NEW**
-Complete project status summary showing all 6 phases completed, success metrics achieved, and future opportunities.
+## Throttling and Rate Limits
 
-### 🔧 [Hybrid Rollout Configuration](./hybrid-rollout-configuration.md) **NEW**
-Complete guide to the hybrid data fetching rollout system:
-- Current 25% rollout status and configuration
-- Managing rollout with console commands
-- Routing logic between Inngest and GitHub Actions
-- Monitoring and scaling procedures
+- [Smart Throttling System](./smart-throttling-system.md) - Per-repository sync throttling
+- [Rate Limiting Fixes](./rate-limiting-fixes.md) - Concurrency and throttle settings currently in code
 
-### 🐛 [Inngest Troubleshooting](./inngest-troubleshooting.md) **NEW**
-Comprehensive troubleshooting guide for Inngest issues:
-- Common problems and solutions
-- Debugging tools and scripts
-- Local vs production configuration
-- Emergency procedures
+## Specific Data Types
 
-### 🔒 [Inngest Client-Safe Event Sending](./inngest-client-safe.md) **NEW**
-Guide to the client-safe wrapper for Inngest events:
-- Browser-safe event sending without exposing keys
-- Unified API for client and server contexts
-- Migration guide from direct inngest.send() usage
-- Security benefits and implementation details
+- [Commit Data Capture](./commit-data-capture.md) - Capturing commits and file changes
+- [Discussion Background Sync](./discussion-background-sync.md) - Syncing GitHub Discussions
+- [Bot Detection](./bot-detection.md) - Centralized bot detection used across contributor metrics
+- [Workspace Issue Sync Architecture](./workspace-issue-sync-architecture.md) - Issue sync for workspace repositories
+- [OpenAI Token Tracker](./token-tracker.md) - Token accounting for LLM calls
 
-### 📋 [Rollout Quick Reference](./rollout-quick-reference.md) **NEW**
-Quick command reference for rollout management:
-- Console commands cheat sheet
-- Test commands and monitoring
-- Emergency procedures
-- Key metrics and targets
+## Backfills
 
-### 📋 [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
-Executive summary of the Smart Data Fetching implementation, covering both Phase 3 (Smart Data Fetching Logic) and Phase 4 (Background Capture Optimization).
+- [Manual Backfill Service Setup](./manual-backfill-setup.md) - The manual backfill Netlify function
+- [Workspace Manual Backfill](./workspace-manual-backfill.md) - Backfilling a whole workspace
 
-### ⚙️ [GitHub Actions Workflows](./github-actions-workflows.md) **NEW**
-User-friendly guide to the automated workflows:
-- Sync Contributor Stats - Monthly rankings data collection
-- Update PR Activity - Recent activity processing
-- Manual trigger instructions
-- Monitoring and troubleshooting
+## Operations
 
-### 🔄 [Progressive Backfill Implementation](./progressive-backfill-implementation.md) **NEW**
-Technical guide to the progressive backfill system:
-- Chunked processing for large repositories (25-50 PRs per chunk)
-- Automatic progress tracking and resumability
-- Rate limit management and dynamic chunk sizing
-- Error handling with GitHub issue creation
-
-### 🏗️ [Architecture Guide](./smart-data-fetching.md)
-Complete technical architecture including:
-- Repository size classification system
-- Fetch strategy engine
-- Progressive data loading
-- Hybrid API strategy (GraphQL/REST)
-- Performance optimizations
-
-### 🎯 [Database-First Smart Fetching](./database-first-smart-fetching.md) **NEW**
-Comprehensive guide to the enhanced data fetching system:
-- Smart database-first approach eliminates timeouts
-- Automatic new repository detection and setup
-- Enhanced user notifications and status communication
-- DataStateIndicator component usage
-- Error handling and resilience patterns
-
-### 🚦 [Queue Management](./queue-management.md)
-Deep dive into the queue management system:
-- Queue prioritization algorithm
-- Job lifecycle and status tracking
-- Auto-retry mechanisms
-- Processor selection logic
-- Database schema
-
-### 📊 [Monitoring Guide](./monitoring-capture-health.md)
-Operational guide for monitoring system health:
-- Using the Capture Health Monitor dashboard
-- Understanding metrics and indicators
-- Troubleshooting common issues
-- Performance optimization tips
-
-### 🔧 [Data Analysis Scripts](./data-analysis-scripts.md) **NEW**
-Scripts for testing and improving review/comment data capture:
-- Test review/comment data presence (`test-review-sync.mjs`)
-- Backfill missing data for existing repositories (`backfill-reviews-comments.mjs`)
-- When and how to use each script
-- Troubleshooting data capture issues
-
-## Quick Links
-
-### For Developers
-- [Repository Size Classification](./smart-data-fetching.md#repository-size-classification)
-- [Fetch Strategies](./smart-data-fetching.md#fetch-strategy-engine)
-- [Queue Priority Scoring](./queue-management.md#priority-scoring-algorithm)
-- [API Integration](./queue-management.md#api-integration)
-- [Progressive Backfill System](./progressive-backfill-implementation.md)
-- [GitHub Actions Migration](../implementations/github-actions-migration-summary.md)
-
-### For Operators
-- [Dashboard Access](./monitoring-capture-health.md#accessing-the-monitor)
-- [Health Indicators](./monitoring-capture-health.md#health-indicators)
-- [Troubleshooting](./monitoring-capture-health.md#troubleshooting-steps)
-- [Alert Configuration](./monitoring-capture-health.md#alerting-and-notifications)
-
-## Key Features
-
-### 🎯 Smart Repository Classification
-- Automatic size detection (Small/Medium/Large/XL)
-- Activity-based metrics
-- Priority assignment
-
-### ⚡ Optimized Fetching
-- Size-appropriate strategies
-- Progressive data loading
-- No blocking or "protected" repositories
-
-### 🔄 Robust Queue Management
-- Priority-based processing
-- Automatic retry with backoff
-- Load balancing between processors
-
-### 📈 Comprehensive Monitoring
-- Real-time dashboard (`/dev/capture-monitor`)
-- Performance metrics
-- Health indicators
-- Alert system
-
-## System Metrics
-
-### Performance Targets
-- Initial data load: <3 seconds for all repositories
-- Background capture success rate: >85% (95% with retries)
-- Queue processing: High priority within 10 minutes
-- Long-running job completion: 100% success with 150s timeout
-
-### Current Statistics (Updated Jan 2025)
-- ✅ 100% repository accessibility (all phases complete)
-- ✅ 90% reduction in resource exhaustion errors
-- ✅ 85%+ background capture success rate (95% with retries)
-- ✅ All 6 implementation phases completed January 2025
-- ✅ Enhanced review/comment capture (up to 50 PRs per sync, previously 10)
-- ✅ **60% reduction in Inngest timeout failures** through hybrid routing
-- ✅ **Near-zero failure rate** for long-running jobs with Supabase Edge Functions
-- ✅ **100+ workspace support** for GitHub webhook processing without timeouts
-
-## Getting Started
-
-1. **For Project Overview**: Start with [Implementation Status](./implementation-status.md) 
-2. **For New Contributors**: Review the [Phase 3 & 4 Summary](./PHASE3-PHASE4-SUMMARY.md)
-3. **For Implementation Details**: Study the [Architecture Guide](./smart-data-fetching.md)
-4. **For Operations**: Check the [Monitoring Guide](./monitoring-capture-health.md)
+- [Monitoring Capture Health](./monitoring-capture-health.md) - Health checks and dashboards
+- [Data Analysis Scripts](./data-analysis-scripts.md) - Scripts for inspecting captured data
 
 ## Related Documentation
 
-- [Progressive Capture System](/docs/progressive-capture/)
-- [API Documentation](/docs/api/)
-- [Database Schema](/supabase/migrations/)
-- [User Experience Guidelines](/docs/user-experience/)
+- [Infrastructure](../infrastructure/) - Inngest on Supabase, Netlify functions, Fly.io webhooks
+- [Edge Functions](../edge-functions/) - Supabase edge function guides
+- [Postmortems](../postmortems/) - Incident history, including several sync failures

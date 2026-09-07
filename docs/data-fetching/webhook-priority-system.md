@@ -335,7 +335,6 @@ ORDER BY hour DESC;
 - [Manual Repository Tracking](./manual-repository-tracking.md)
 - [Fly.io Webhook Migration](../infrastructure/fly-webhook-migration.md)
 - [GitHub App Setup](../github-app/README.md)
-- [Progressive Capture](../../scripts/progressive-capture/README.md)
 
 ---
 

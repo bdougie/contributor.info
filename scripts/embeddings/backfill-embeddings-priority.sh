@@ -11,11 +11,11 @@
 # 3. Recently updated items
 #
 # Usage:
-#   ./scripts/backfill-embeddings-priority.sh [iterations] [delay_seconds]
+#   ./scripts/embeddings/backfill-embeddings-priority.sh [iterations] [delay_seconds]
 #
 # Examples:
-#   ./scripts/backfill-embeddings-priority.sh 50 30   # Run 50 times, 30s delay
-#   ./scripts/backfill-embeddings-priority.sh         # Default: 100 times, 15s delay
+#   ./scripts/embeddings/backfill-embeddings-priority.sh 50 30   # Run 50 times, 30s delay
+#   ./scripts/embeddings/backfill-embeddings-priority.sh         # Default: 100 times, 15s delay
 #
 ###############################################################################
 

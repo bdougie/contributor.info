@@ -70,7 +70,7 @@ The embedding **generation process** is not running for PRs and issues. The sche
 ## Related Background Jobs
 
 Active background processes detected:
-- `./scripts/auto-process-embeddings.sh` (multiple instances running)
+- `./scripts/embeddings/backfill-embeddings-priority.sh` (multiple instances running)
 - `supabase functions deploy compute-embeddings` (deployment in progress)
 
 These may be related to the fix attempts.
@@ -103,7 +103,7 @@ Changed from `items_needing_embeddings` to `items_needing_embeddings_priority` v
 - Priority logic: Issues (3) > PRs/Discussions (2)
 
 ### 3. Created Backfill Script
-**Script**: `scripts/backfill-embeddings-priority.sh`
+**Script**: `scripts/embeddings/backfill-embeddings-priority.sh`
 
 Features:
 - Configurable iterations and delay (default: 100 runs, 15s delay)
@@ -113,8 +113,8 @@ Features:
 
 Usage:
 ```bash
-./scripts/backfill-embeddings-priority.sh 50 30   # 50 iterations, 30s delay
-./scripts/backfill-embeddings-priority.sh         # Default: 100 iterations
+./scripts/embeddings/backfill-embeddings-priority.sh 50 30   # 50 iterations, 30s delay
+./scripts/embeddings/backfill-embeddings-priority.sh         # Default: 100 iterations
 ```
 
 ### 4. Data Type Fixes
@@ -125,7 +125,7 @@ Fixed compatibility issues:
 ## Next Steps
 
 1. **Deploy Updated Function**: The compute-embeddings function needs to be redeployed with the priority view changes
-2. **Run Backfill**: Execute `./scripts/backfill-embeddings-priority.sh` to process existing items
+2. **Run Backfill**: Execute `./scripts/embeddings/backfill-embeddings-priority.sh` to process existing items
 3. **Monitor Progress**: Check embedding coverage with:
    ```sql
    SELECT

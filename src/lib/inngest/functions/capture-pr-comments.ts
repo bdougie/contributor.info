@@ -50,8 +50,7 @@ interface GitHubIssueComment {
  * 3. Comment threading is simpler to handle with REST responses
  * 4. Current performance meets our requirements
  *
- * For GraphQL implementation details, see the hybrid client at:
- * scripts/progressive-capture/lib/hybrid-github-client.js
+ * For GraphQL implementation details, see src/lib/inngest/graphql-client.ts
  */
 export const capturePrComments = inngest.createFunction(
   {

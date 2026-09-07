@@ -13,8 +13,6 @@ Debugging documentation helps developers:
 ## Documentation Index
 
 ### 🔧 System Integration Debugging
-- **[GitHub Actions & Inngest Issues](./github-actions-inngest-issues.md)** - Debugging workflow and background job integration problems
-- **[406 Error and Sync Issues](./406-error-and-sync-issues.md)** - Fixing Supabase 406 errors and repository sync problems
 - **[Supabase .single() vs .maybeSingle()](./supabase-single-vs-maybeSingle.md)** - Common 406 error cause and how to properly use Supabase query methods
 
 ### 🧪 Test Debugging & Optimization
@@ -387,8 +385,7 @@ npm run analyze:bundle
 ## Related Documentation
 
 - [Troubleshooting Guide](../troubleshooting/) - Issue resolution procedures
-- [Postmortem Reports](../postmortem/) - Historical debugging insights
-- [Monitoring Setup](../implementations/sentry-monitoring-setup.md) - Error tracking configuration
+- [Postmortem Reports](../postmortems/) - Historical debugging insights
 
 ---
 

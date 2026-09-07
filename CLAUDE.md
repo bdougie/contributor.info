@@ -23,7 +23,7 @@ Checks TypeScript types and builds the production bundle.
 - `console.log(\`${owner}\`)` is a security vulnerability. Use `console.log('%s', owner)`
 - use the supabase mcp server for migrations
 - use bulletproof testing practices, e2e tests only when necessary
-- check `/docs/testing/BULLETPROOF_TESTING_GUIDELINES.md` before fixing tests
+- check `/docs/testing/bulletproof-testing-guidelines.md` before fixing tests
 - if you touch the file, make it better - don't just disable the linter
 - after visual changes always look for opportunity to improve performance
 - no premature optimizations without testing

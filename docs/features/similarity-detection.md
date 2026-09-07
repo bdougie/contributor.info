@@ -156,7 +156,7 @@ For organizations, you can extend the workflow to search across multiple reposit
 - name: Check similarity across org
   run: |
     for repo in repo1 repo2 repo3; do
-      npx tsx scripts/actions-similarity.ts \
+      npx tsx scripts/github-actions/actions-similarity.ts \
         --owner myorg \
         --repo $repo \
         --item-number ${{ github.event.issue.number }}
@@ -228,7 +228,7 @@ The similarity check produces a JSON file (`similarity-results.json`):
 ### Adding New Features
 
 1. Fork the repository
-2. Modify `scripts/actions-similarity.ts`
+2. Modify `scripts/github-actions/actions-similarity.ts`
 3. Update the workflow file
 4. Test with sample data
 5. Submit a pull request
@@ -240,7 +240,7 @@ The similarity check produces a JSON file (`similarity-results.json`):
 npm install
 
 # Run similarity check locally
-GITHUB_TOKEN=your_token npx tsx scripts/actions-similarity.ts \
+GITHUB_TOKEN=your_token npx tsx scripts/github-actions/actions-similarity.ts \
   --owner octocat \
   --repo hello-world \
   --max-items 50 \

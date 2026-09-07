@@ -1565,7 +1565,7 @@ private targetSamplesPerRole = 200; // Lower from 400
 **Diagnosis**:
 ```bash
 # Monitor memory usage
-node --expose-gc --max-old-space-size=4096 scripts/run-maintainer-eval.ts
+node --expose-gc --max-old-space-size=4096 scripts/utilities/run-maintainer-eval.ts
 ```
 
 **Solutions**:

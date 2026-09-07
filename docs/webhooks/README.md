@@ -6,7 +6,6 @@ This folder contains documentation for webhook systems, integrations, and improv
 
 ### System Improvements
 
-- **[improvements-sept-2025.md](./improvements-sept-2025.md)** - September 2025 webhook system improvements addressing security, reliability, and code quality concerns
 
 ## Purpose
 

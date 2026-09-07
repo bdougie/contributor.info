@@ -4,15 +4,8 @@ This directory contains Product Requirements Documents (PRDs) and execution plan
 
 ## Contents
 
-### Active PRDs
-- **[prd-social-card-speed-optimization.md](./prd-social-card-speed-optimization.md)** - Social card generation performance improvements
-- **[prd-user-docs-images.md](./prd-user-docs-images.md)** - User documentation with integrated images
-- **[prd-mobile-distribution-charts.md](./prd-mobile-distribution-charts.md)** - Mobile optimization for distribution charts
-- **[prd-workspaces.md](./prd-workspaces.md)** - Workspace functionality implementation
-
-### Execution Plans
-- **[documentation-images-execution-plan.md](./documentation-images-execution-plan.md)** - Implementation plan for documentation images
-- **[chart-migration-sub-issues.md](./chart-migration-sub-issues.md)** - Chart migration technical requirements
+- [prd-private-repo-opt-in.md](./prd-private-repo-opt-in.md) - Opt-in flow for tracking private repositories
+- [2026-07-13-org-import-workspace-design.md](./2026-07-13-org-import-workspace-design.md) - Design for importing a GitHub org's repositories into a workspace
 
 ## PRD Guidelines
 

@@ -41,7 +41,7 @@ The following features continue to use REST API by design:
 
 ### HybridGitHubClient Features
 
-Our `HybridGitHubClient` (`scripts/progressive-capture/lib/hybrid-github-client.js`) provides:
+Our GraphQL client (`src/lib/inngest/graphql-client.ts`) provides:
 
 1. **Automatic API Selection**
    - Defaults to GraphQL for supported operations

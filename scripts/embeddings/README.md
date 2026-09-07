@@ -24,7 +24,7 @@ The embeddings system generates 384-dimension vectors for semantic similarity se
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Inngest compute-embeddings Function                         │
-│ - Triggered: Manual events or 15min cron                    │
+│ - Triggered: Manual events or 6-hour cron                   │
 │ - Concurrency: 2 jobs per repository                        │
 │ - Throttle: 5 jobs per minute                               │
 │ - Batch processing: 20 items per API call                   │
@@ -70,13 +70,13 @@ Main backfill script for processing workspace embeddings in batches.
 ```bash
 # Fast backfill (5s delay, 100 iterations)
 export INNGEST_PRODUCTION_EVENT_KEY='your-key'
-./scripts/backfill-embeddings-priority.sh 100 5
+./scripts/embeddings/backfill-embeddings-priority.sh 100 5
 
 # Slow backfill (15s delay, 50 iterations)
-./scripts/backfill-embeddings-priority.sh 50 15
+./scripts/embeddings/backfill-embeddings-priority.sh 50 15
 
 # Default (100 iterations, 15s delay)
-./scripts/backfill-embeddings-priority.sh
+./scripts/embeddings/backfill-embeddings-priority.sh
 ```
 
 **Parameters**:
@@ -100,19 +100,34 @@ Low-level script to trigger a single embeddings job via Inngest API.
 **Usage**:
 ```bash
 export INNGEST_PRODUCTION_EVENT_KEY='your-key'
-node scripts/trigger-embeddings.mjs
+node scripts/embeddings/trigger-embeddings.mjs
 ```
 
 **Environment Variables**:
 - `INNGEST_PRODUCTION_EVENT_KEY` (required) - Inngest API key
 - `INNGEST_EVENT_KEY` (alternative) - Fallback key name
 
-### 3. check-embeddings-status.sh
+### 3. trigger-pr-embeddings.mjs
+Same as `trigger-embeddings.mjs` but restricts the job to pull requests.
+
+```bash
+export INNGEST_PRODUCTION_EVENT_KEY='your-key'
+node scripts/embeddings/trigger-pr-embeddings.mjs
+```
+
+### 4. watch-embeddings-progress.sh
+Live terminal view of the backlog while a backfill runs.
+
+```bash
+./scripts/embeddings/watch-embeddings-progress.sh
+```
+
+### 5. check-embeddings-status.sh
 Check current embedding coverage for workspace items.
 
 **Usage**:
 ```bash
-./scripts/check-embeddings-status.sh
+./scripts/embeddings/check-embeddings-status.sh
 ```
 
 **Output**:
@@ -168,7 +183,7 @@ Located in: `src/lib/inngest/functions/compute-embeddings.ts`
 
 **Triggers**:
 - Event: `embeddings/compute.requested`
-- Cron: `*/15 * * * *` (every 15 minutes)
+- Cron: `0 */6 * * *` (every 6 hours)
 
 **Processing**:
 1. Query `items_needing_embeddings_priority` view
@@ -261,7 +276,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-key
 **Solution**: Export the production key
 ```bash
 export INNGEST_PRODUCTION_EVENT_KEY='your-key'
-./scripts/backfill-embeddings-priority.sh
+./scripts/embeddings/backfill-embeddings-priority.sh
 ```
 
 ### Issue: Backfill stops early

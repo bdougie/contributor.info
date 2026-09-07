@@ -137,7 +137,7 @@ You can still use `console.log` directly in:
 Use the provided migration script to bulk-replace console.logs:
 
 ```bash
-bash scripts/replace-console-logs.sh
+bash scripts/utilities/replace-console-logs.sh
 ```
 
 This script will:

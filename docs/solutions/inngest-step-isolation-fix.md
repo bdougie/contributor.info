@@ -175,6 +175,6 @@ This pattern affects:
 - Multi-stage workflows
 
 ## References
-- [Postmortem: Inngest Step Isolation Bug](../postmortems/2025-01-09-inngest-step-isolation-bug.md)
+- [Postmortem: Inngest Step Isolation Bug](../postmortems/2025-10-09-embeddings-complete-resolution.md)
 - [Inngest Step Documentation](https://www.inngest.com/docs/functions/steps)
 - Fixed in: `supabase/functions/inngest-prod/index.ts` (computeEmbeddings function)

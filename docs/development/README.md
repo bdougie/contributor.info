@@ -6,8 +6,7 @@ Documentation for development tools, patterns, and testing approaches used in th
 
 ### Testing & Mocking
 - **[mocks-readme.md](./mocks-readme.md)** - Documentation for test mocks and isolation
-- **[mock-isolation-solution.md](./mock-isolation-solution.md)** - Solution for mock isolation issues
-- **[progressive-loading-msw-removed.md](./progressive-loading-msw-removed.md)** - Removed MSW progressive loading implementation
+- **[mock-isolation-solution.md](../mock-isolation-fix.md)** - Solution for mock isolation issues
 
 ### Development Tools
 - **[hooks.md](./hooks.md)** - React hooks documentation and patterns

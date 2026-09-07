@@ -1,387 +1,43 @@
 # Testing Tools
 
-Comprehensive testing utilities for validating system functionality, API integrations, and feature implementations.
-
-## 🧪 Overview
-
-Testing tools cover:
-- API authentication and integration testing
-- Queue system validation
-- Feature functionality verification
-- Visual and interaction testing
-
-## 🔬 Scripts
-
-### Authentication & API
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `test-github-app-status.js` | Test GitHub App installation status | App installation |
-| `test-github-auth.mjs` | Test GitHub API authentication | Auth issues |
-| `test-api-fallback-prevention.mjs` | Verify efficient API usage | Performance testing |
-
-### Queue System (Inngest)
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `test-queue-endpoint.js` | Test local queue-event endpoint | Local development |
-| `test-supabase-queue.js` | Test Supabase Edge Function queue | Production testing |
-| `test-inngest.js` | Test Inngest queue functionality | Queue issues |
-| `test-inngest-direct.mjs` | Direct event sending tests | Event debugging |
-| `test-production-inngest.js` | Production queue validation | Pre-deployment |
-| `test-event-flow.js` | End-to-end event flow | Integration testing |
-
-### Data Sync Testing
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `test-new-repo-tracking.mjs` | Test repository onboarding | New repo setup |
-| `test-review-sync.mjs` | Validate review syncing | Review data issues |
-| `test-repository-issues.mjs` | Test repository issue capture | After Inngest fixes |
-| `test-pr-comments.mjs` | Test PR comment capture | After Inngest fixes |
-| `test-sync-logger.js` | Test logging functionality | Debug logging |
-| `test-sync-logging.mjs` | Sync operation logging | Troubleshooting |
-| `test-update-activity.mjs` | PR activity updates | Activity tracking |
-
-### UI & Visual Testing
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `test-social-cards.js` | Social card generation | Card issues |
-| `test-social-card-speed.js` | Social card performance testing | Speed optimization |
-| `test-dub-api-direct.js` | dub.co link shortening testing | URL shortening issues |
-| `test-social-elements.html` | Interactive browser test suite | Manual validation |
-| `test-visual-regression.sh` | Visual regression testing | Before release |
-| `test-visual-workflow.sh` | Visual testing workflow | CI/CD |
-
-### Environment & Utility Testing
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `test-ci-environment.js` | CI environment validation | CI/CD setup |
-| `test-console-warn.js` | Console warning detection | Debug output issues |
-| `test-last-updated-logic.js` | Timestamp calculation testing | Date logic validation |
-| `test-sanitize.js` | HTML sanitization testing | Security validation |
-| `test-work-inbox-migration.sh` | Workspace inbox RLS and state transitions in a disposable local PostgreSQL (needs `initdb`, `pg_ctl`, `psql`) | Changing inbox migrations |
-
-## 💡 Usage Examples
-
-### API Testing Suite
-```bash
-# Test GitHub authentication
-node scripts/testing-tools/test-github-auth.mjs
-
-# Verify API efficiency
-node scripts/testing-tools/test-api-fallback-prevention.mjs --verbose
-
-# Full API test suite
-npm run test:api
-```
-
-### Queue System Testing
-```bash
-# Test local queue endpoint (requires .env file)
-source .env && node scripts/testing-tools/test-queue-endpoint.js
-
-# Test Supabase queue endpoint (requires .env file)
-source .env && node scripts/testing-tools/test-supabase-queue.js
-
-# Test local Inngest
-node scripts/testing-tools/test-inngest.js
-
-# Test production queue
-INNGEST_ENV=production node scripts/testing-tools/test-production-inngest.js
-
-# Test specific event
-node scripts/testing-tools/test-inngest-direct.mjs --event "capture/repository.sync"
-```
-
-### Data Sync Testing
-```bash
-# Test new repository tracking
-node scripts/testing-tools/test-new-repo-tracking.mjs --repo "facebook/react"
-
-# Test repository issue capture (requires repository UUID)
-node scripts/testing-tools/test-repository-issues.mjs "550e8400-e29b-41d4-a716-446655440000"
-
-# Test PR comment capture (requires repository UUID, PR number, and PR ID)
-node scripts/testing-tools/test-pr-comments.mjs "550e8400-e29b-41d4-a716-446655440000" "123" "PR_kwDOAbc123"
-
-# Test review sync
-node scripts/testing-tools/test-review-sync.mjs --pr 12345
-
-# Test activity updates
-node scripts/testing-tools/test-update-activity.mjs --days 7
-```
-
-### Visual Testing
-```bash
-# Run visual regression tests
-./scripts/testing-tools/test-visual-regression.sh
-
-# Test social cards
-node scripts/testing-tools/test-social-cards.js --all
-
-# Test social card speed performance
-node scripts/testing-tools/test-social-card-speed.js
-
-# Test dub.co integration
-VITE_DUB_CO_KEY="your_key" node scripts/testing-tools/test-dub-api-direct.js
-
-# Interactive browser testing
-npm run dev
-# Then open: http://localhost:5174/test-social-elements.html
-```
-
-### Utility & Security Testing
-```bash
-# Test console warnings in components
-node scripts/testing-tools/test-console-warn.js
-
-# Test timestamp logic
-node scripts/testing-tools/test-last-updated-logic.js
-
-# Test HTML sanitization for XSS prevention
-node scripts/testing-tools/test-sanitize.js
-
-# Validate CI environment
-node scripts/testing-tools/test-ci-environment.js
-```
-
-## 🔍 Finding Test Data IDs
-
-### Repository UUID
-Query your Supabase database to find a repository's UUID:
-
-```sql
--- Find by owner/name
-SELECT id, owner, name
-FROM repositories
-WHERE owner = 'facebook' AND name = 'react';
-
--- Find by full name
-SELECT id, owner, name
-FROM repositories
-WHERE owner || '/' || name = 'facebook/react';
-
--- List all repositories
-SELECT id, owner, name
-FROM repositories
-ORDER BY created_at DESC
-LIMIT 10;
-```
-
-### PR Number
-The PR number is the integer in the GitHub PR URL:
-- URL: `https://github.com/facebook/react/pull/12345`
-- PR Number: `12345`
-
-### PR ID (GraphQL Node ID)
-Query your database to find the PR's GraphQL node ID:
-
-```sql
--- Find PR ID by repository and number
-SELECT id, number, title
-FROM pull_requests
-WHERE repository_id = '550e8400-e29b-41d4-a716-446655440000'
-  AND number = 12345;
-```
-
-Alternatively, use the GitHub GraphQL API:
-```graphql
-query {
-  repository(owner: "facebook", name: "react") {
-    pullRequest(number: 12345) {
-      id
-    }
-  }
-}
-```
-
-## 🎯 Test Scenarios
-
-### Authentication Tests
-```javascript
-{
-  scenarios: [
-    "Valid token authentication",
-    "Expired token handling",
-    "Rate limit behavior",
-    "Scope verification",
-    "Error recovery"
-  ]
-}
-```
-
-### Queue Tests
-```javascript
-{
-  events: [
-    "capture/repository.sync",
-    "capture/pr.details",
-    "process/embeddings.generate",
-    "notify/webhook.send"
-  ],
-  validations: [
-    "Event delivery",
-    "Retry logic",
-    "Error handling",
-    "Concurrency limits"
-  ]
-}
-```
-
-### Visual Tests
-```javascript
-{
-  components: [
-    "ContributorCard",
-    "RepositoryStats",
-    "PRTimeline",
-    "Dashboard"
-  ],
-  viewports: [
-    { width: 375, height: 667 },  // Mobile
-    { width: 768, height: 1024 }, // Tablet
-    { width: 1920, height: 1080 } // Desktop
-  ]
-}
-```
-
-## ✅ Test Results
-
-### Result Format
-```javascript
-{
-  suite: "API Authentication",
-  passed: 18,
-  failed: 2,
-  duration: "2.3s",
-  failures: [{
-    test: "Rate limit recovery",
-    error: "Timeout waiting for rate limit reset",
-    suggestion: "Increase timeout or mock rate limit"
-  }]
-}
-```
-
-### Success Criteria
-- **Unit Tests**: 100% pass rate
-- **Integration Tests**: >95% pass rate
-- **Visual Tests**: No unintended changes
-- **Performance**: Within benchmarks
-
-## 🔄 Continuous Testing
-
-### Pre-commit Hooks
-```bash
-# .git/hooks/pre-commit
-npm run test:api
-npm run test:visual-quick
-```
-
-### CI Pipeline
-```yaml
-- name: Run Test Suite
-  run: |
-    npm run test:auth
-    npm run test:sync
-    npm run test:visual
-```
-
-### Scheduled Tests
-```bash
-# Daily comprehensive test
-0 2 * * * npm run test:comprehensive
-
-# Hourly health check
-0 * * * * npm run test:health
-```
-
-## 🐛 Test Debugging
-
-### Debug Mode
-```bash
-# Enable debug output
-DEBUG=test:* node scripts/testing-tools/test-inngest.js
-
-# Verbose logging
-node scripts/testing-tools/test-github-auth.mjs --verbose --log-level debug
-```
-
-### Test Isolation
-```bash
-# Run single test
-node scripts/testing-tools/test-review-sync.mjs --only "creates review"
-
-# Skip flaky tests
-node scripts/testing-tools/test-event-flow.js --skip-flaky
-```
-
-## 📊 Test Coverage
-
-### Coverage Reports
-```bash
-# Generate coverage report
-npm run test:coverage
-
-# View coverage
-open coverage/index.html
-```
-
-### Coverage Targets
-- **Statements**: >80%
-- **Branches**: >75%
-- **Functions**: >80%
-- **Lines**: >80%
-
-## 🔧 Test Configuration
-
-### Test Environment
-```javascript
-// config/test.js
-export default {
-  github: {
-    token: process.env.TEST_GITHUB_TOKEN,
-    repo: "test-org/test-repo"
-  },
-  timeouts: {
-    api: 5000,
-    visual: 30000,
-    queue: 10000
-  },
-  retries: 3
-}
-```
-
-### Mock Data
-```javascript
-// Use consistent test data
-import { mockPR, mockRepo, mockUser } from './fixtures'
-```
-
-## 🚨 Common Test Issues
-
-### "Authentication failed"
-- Check TEST_GITHUB_TOKEN
-- Verify token scopes
-- Check rate limits
-
-### "Visual regression detected"
-- Review screenshots
-- Update baselines if intended
-- Check responsive breakpoints
-
-### "Queue timeout"
-- Increase timeout values
-- Check Inngest connection
-- Verify event schemas
-
-## 📚 Best Practices
-
-1. **Isolation**: Tests should not depend on external state
-2. **Deterministic**: Same input = same output
-3. **Fast**: Keep tests under 5 seconds
-4. **Clear**: Descriptive test names and errors
-5. **Maintained**: Update tests with code changes
-
-## 🔗 Related Tools
-
-- **Vitest**: Unit testing framework
-- **Playwright**: Visual testing
-- **GitHub Actions**: CI/CD integration
+Manual smoke tests and probes for external integrations. These are not part of `npm test`; each is run by hand against a local or production environment. Credentials come from `.env`, never from arguments.
+
+## Inngest and queue
+
+| Script | Purpose |
+|--------|---------|
+| `test-inngest.js` | Smoke test against the local Inngest dev server |
+| `test-production-inngest.js` | Send the three production test events before a deploy |
+| `test-supabase-queue.js` | Exercise the Supabase `queue-event` edge function |
+| `test-pr-comments.mjs` | Emit `capture/pr.comments` for one PR and watch it land |
+| `test-repository-issues-with-verification.mjs` | Emit `capture/repository.issues` and verify the rows written |
+| `test-review-sync.mjs` | Check that a PR has reviews and comments in the database |
+| `test-backfill-endpoints.js` | End-to-end test of the manual backfill Netlify endpoints (`[base-url]` argument, defaults to localhost) |
+| `test-idempotency.js` | Send duplicate events and confirm only one is processed |
+
+## Auth and third parties
+
+| Script | Purpose |
+|--------|---------|
+| `test-github-auth.mjs` | Verify the GitHub token in `.env` can reach the API |
+| `test-dub-api-direct.js` | Call the dub.co API directly to validate URL shortening |
+
+## Social cards
+
+| Script | Entry point | Purpose |
+|--------|-------------|---------|
+| `test-social-cards.js` | `npm run test-social-cards` | Render and validate social cards with Playwright |
+| `test-social-card-speed.js` | manual | Measure delivery time from the Fly.io social-cards service |
+| `social-elements-testing.md` | doc | How to test social card and dub.co behavior together |
+
+## CI
+
+| Script | Entry point | Purpose |
+|--------|-------------|---------|
+| `test-ci-environment.js` | `npm run test:ci-env` | Run the unit tests with CI-like environment variables |
+| `test-work-inbox-migration.sh` | manual | Exercise work-inbox RLS and state transitions in a disposable PostgreSQL |
+
+## Related
+
+- [docs/testing/](../../docs/testing/) - Testing philosophy and guidelines
+- [scripts/load-testing/](../load-testing/) - k6 load tests

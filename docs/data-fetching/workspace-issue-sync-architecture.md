@@ -481,4 +481,3 @@ console.log('[WorkspaceIssuesTab] Data freshness: N minutes old');
 - [GitHub REST API - Issues](https://docs.github.com/en/rest/issues/issues)
 - [Database-First Smart Fetching](./database-first-smart-fetching.md)
 - [Workspace Priority System](./workspace-priority-system.md)
-- [Progressive Data Capture](./progressive-data-capture-implementation.md)

@@ -52,7 +52,7 @@ jobs:
       - name: Update tracked repositories list
         run: |
           echo "📊 Updating tracked repositories list..."
-          node scripts/update-tracked-repos.js
+          node scripts/data-sync/update-tracked-repos.js
 
           # Check if files changed
           if git diff --quiet tracked-repositories.txt tracked-repositories.json tracked-repositories-stats.json 2>/dev/null; then

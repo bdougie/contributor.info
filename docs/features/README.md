@@ -17,13 +17,10 @@ Features documentation helps developers:
 - **[Issue Context Command](./issue-context-command.md)** - Automated issue context generation
 - **[Similarity Detection](./similarity-detection.md)** - Semantic similarity analysis for issues and PRs
   - [Technical Architecture](./similarity-architecture.md) - Deep dive into embeddings and algorithms
-  - [Setup Guide](./similarity-setup.md) - Configuration and customization options
 
 ### 🔄 Data Synchronization
 - **[Progressive Backfill](./progressive-backfill.md)** - Sync large repositories without rate limits
 - **[Backfill Enhancements](./backfill-enhancements.md)** - Atomic chunks, GraphQL limits, auto-recovery
-- **[Bulk Backfill Implementation](./bulk-backfill-implementation.md)** - UI-driven bulk repository backfill system
-- **[Bulk Backfill Smart Fetch](./bulk-backfill-smart-fetch.md)** - Smart fetching strategy for bulk operations
 
 ### 📧 Email & Communications
 - **[Email System Overview](./email-system.md)** - Complete email infrastructure documentation
@@ -57,7 +54,7 @@ Features documentation helps developers:
 - **Purpose**: Identify duplicate and related issues/PRs using semantic similarity
 - **Components**: MiniLM embeddings (384-dim), cosine similarity, GitHub Actions integration
 - **Data Sources**: Issue/PR titles and descriptions, vector embeddings
-- **Key Files**: `scripts/actions-similarity.ts`, `src/lib/similarity/`, `.github/workflows/similarity-check.yml`
+- **Key Files**: `scripts/github-actions/actions-similarity.ts`, `src/lib/similarity/`, `.github/workflows/similarity-check.yml`
 
 #### Reviewer Suggestions
 - **Purpose**: AI-powered code reviewer recommendations

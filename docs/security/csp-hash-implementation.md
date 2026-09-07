@@ -11,9 +11,9 @@ This document describes the implementation of CSP script hashing to remove the `
 - **Purpose**: Allow only the specific theme detection script to run inline while blocking all other inline scripts
 
 ### 2. Hash Calculation Script
-- **File Created**: `scripts/calculate-csp-hash.js`
+- **File Created**: `scripts/utilities/calculate-csp-hash.js`
 - **Purpose**: Calculate SHA-256 hash for the theme detection script
-- **Usage**: Run `node scripts/calculate-csp-hash.js` to generate the hash
+- **Usage**: Run `node scripts/utilities/calculate-csp-hash.js` to generate the hash
 
 ## How It Works
 
@@ -35,10 +35,10 @@ The browser:
 If the theme detection script needs to be modified:
 
 1. Update the script in `index.html`
-2. Update the script content in `scripts/calculate-csp-hash.js` to match EXACTLY (including all whitespace)
+2. Update the script content in `scripts/utilities/calculate-csp-hash.js` to match EXACTLY (including all whitespace)
 3. Run the hash calculation script:
    ```bash
-   node scripts/calculate-csp-hash.js
+   node scripts/utilities/calculate-csp-hash.js
    ```
 4. Update the hash in `public/_headers` with the new value
 5. Test the application to ensure no CSP violations

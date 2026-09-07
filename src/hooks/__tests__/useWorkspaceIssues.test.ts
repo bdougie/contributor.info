@@ -147,7 +147,7 @@ describe('useWorkspaceIssues', () => {
     // SKIPPED: This test asserts synchronous behavior but getSupabase() is async.
     // The .in() call happens after the Promise resolves, not synchronously.
     // Testing implementation details (Supabase query chain) is discouraged per
-    // docs/testing/BULLETPROOF_TESTING_GUIDELINES.md - prefer e2e tests for behavior.
+    // docs/testing/bulletproof-testing-guidelines.md - prefer e2e tests for behavior.
     //
     // The actual filtering behavior is verified via:
     // 1. The fetchFromDatabase function queries with .in('repository_id', repoIds)
@@ -186,7 +186,7 @@ describe('useWorkspaceIssues', () => {
   it.skip('should trigger background sync when data is stale', () => {
     // This test requires async behavior which is forbidden by bulletproof testing guidelines
     // The actual background sync behavior is tested via e2e tests to avoid test hangs
-    // See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md
+    // See docs/testing/bulletproof-testing-guidelines.md
     //
     // Key behavior to verify in e2e:
     // 1. Cached data displays immediately (within 500ms)

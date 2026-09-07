@@ -110,7 +110,7 @@ For urgent operational issues:
 
 ## Related Documentation
 
-- [Deployment](../deployment/) - Deployment guides
+- [Deployment](../infrastructure/) - Deployment guides
 - [Infrastructure](../infrastructure/) - Infrastructure setup
 - [Monitoring](../testing/performance-monitoring.md) - Performance monitoring
 - [Troubleshooting](../troubleshooting/) - Issue debugging

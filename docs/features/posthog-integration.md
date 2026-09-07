@@ -162,16 +162,16 @@ POSTHOG_PERSONAL_API_KEY=phx_YOUR_PERSONAL_API_KEY
 3. **Create Cohorts**
    ```bash
    # Create all standard cohorts
-   node scripts/create-posthog-cohorts-simple.js
+   node scripts/posthog/create-posthog-cohorts.js
    
    # Create internal team cohort
-   node scripts/create-internal-users-cohort.js
+   node scripts/posthog/create-internal-users-cohort.js
    ```
 
 4. **Create Feature Flags**
    ```bash
    # Create workspace feature flag
-   node scripts/create-workspace-feature-flag.js
+   node scripts/posthog/create-workspace-feature-flag.js
    ```
 
 ## Management Scripts
@@ -180,13 +180,13 @@ POSTHOG_PERSONAL_API_KEY=phx_YOUR_PERSONAL_API_KEY
 
 #### Simple Property-Based Cohorts
 ```bash
-node scripts/create-posthog-cohorts-simple.js
+node scripts/posthog/create-posthog-cohorts.js
 ```
 Creates cohorts based on user properties like `has_workspace`, `tracked_repos_count`.
 
 #### Internal Team Cohort
 ```bash
-node scripts/create-internal-users-cohort.js
+node scripts/posthog/create-internal-users-cohort.js
 ```
 Manages the Internal Team cohort for testing and development.
 
@@ -201,7 +201,7 @@ const INTERNAL_USERS = [
 
 #### Feature Flags
 ```bash
-node scripts/create-workspace-feature-flag.js
+node scripts/posthog/create-workspace-feature-flag.js
 ```
 Creates or updates feature flags with cohort targeting.
 

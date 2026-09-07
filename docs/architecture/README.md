@@ -23,7 +23,6 @@ This folder contains architectural documentation for the contributor.info applic
 
 ### Utilities
 
-- **[utility-functions-reference.md](./utility-functions-reference.md)** - Common utility functions and helpers
 
 ## Purpose
 

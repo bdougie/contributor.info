@@ -177,7 +177,7 @@ GITHUB_WEBHOOK_SECRET=your-webhook-secret
 ## Security Resources
 
 ### Internal Resources
-- [Postmortem Documentation](../postmortem/) - Security incident reports
+- [Postmortem Documentation](../postmortems/) - Security incident reports
 - [Troubleshooting Guide](../troubleshooting/) - Security issue debugging
 - [Implementation Guides](../implementations/) - Security feature implementations
 

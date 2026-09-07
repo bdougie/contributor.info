@@ -237,39 +237,15 @@ After deployment, update your GitHub App settings:
 3. Ensure private key hasn't expired
 4. Verify installation ID is valid
 
-### Environment Variable Size Limit (4KB Error)
+### Private Key Formats
 
-If you encounter "Your environment variables exceed the 4KB limit" error:
+The app accepts the private key in any of these environment variables, checked in this order (see `app/config/app.ts`):
 
-**Option 1: Use the simplified base64 format (Recommended)**
-
-1. Prepare your private key:
+1. `GITHUB_APP_PRIVATE_KEY_ENCODED` - the full PEM file, base64 encoded. Generate it with:
    ```bash
-   ./scripts/prepare-private-key.sh ~/Downloads/contributor-info.*.pem
+   base64 -i ~/Downloads/contributor-info.*.pem | tr -d '\n'
    ```
+2. `GITHUB_APP_PRIVATE_KEY_BASE64` - the PEM body only, headers stripped, on one line.
+3. `GITHUB_APP_PRIVATE_KEY` - the raw PEM with real newlines.
 
-2. Add to Netlify environment variables:
-   - Key: `GITHUB_APP_PRIVATE_KEY_BASE64`
-   - Value: (the output from the script - single line without headers)
-
-3. Verify by visiting `/api/github/webhook-test` - you should see:
-   ```json
-   "hasPrivateKeyBase64": true
-   ```
-
-**Option 2: Use Netlify Blobs (Advanced)**
-
-Note: Netlify Blobs requires additional configuration and may not work in all deployment contexts.
-
-1. Add an admin key to your Netlify environment variables:
-   - Add `ADMIN_KEY` with a secure random value
-
-2. Deploy your site with the new functions
-
-3. Upload your private key to Netlify Blobs:
-   ```bash
-   export ADMIN_KEY=your-admin-key-value
-   ./scripts/upload-private-key.sh ~/Downloads/contributor-info.*.pem
-   ```
-
-The simplified base64 format (Option 1) is recommended as it works reliably across all Netlify deployments.
+Use the encoded form on hosts that reject multi-line values or cap variable size. The Fly.io webhooks server (`webhooks-server/`) reads `CONTRIBUTOR_APP_KEY` or `GITHUB_APP_PRIVATE_KEY`; set it with `fly secrets set`.

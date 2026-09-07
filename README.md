@@ -98,7 +98,7 @@ npm run test:ui   # Open Vitest UI
 **Testing Resources:**
 - [Testing Strategy & Philosophy](./docs/testing/README.md)
 - [Test Isolation Solution](./docs/test-isolation-solution.md) - How we fixed hanging tests
-- [Mock Isolation Fix](./docs/MOCK_ISOLATION_FIX.md) - Technical details of the fix
+- [Mock Isolation Fix](./docs/mock-isolation-fix.md) - Technical details of the fix
 - [E2E Testing Guide](./docs/testing/e2e-minimal-testing-philosophy.md)
 - [Performance Monitoring](./docs/testing/performance-monitoring.md)
 - [Release Process](./docs/testing/release-process.md)
@@ -186,7 +186,7 @@ The application uses an intelligent hybrid routing system to handle repository s
 - GitHub Actions (CI/CD)
 
 **Infrastructure**
-- Performance Monitoring ([see guide](./docs/dev/performance-monitoring.md))
+- Performance Monitoring ([see guide](./docs/testing/performance-monitoring.md))
 - Edge Functions
 - CDN Analytics
 
