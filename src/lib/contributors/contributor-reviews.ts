@@ -50,6 +50,23 @@ export interface ContributorReview {
   comments: ContributorReviewComment[];
 }
 
+/** GitHub URL for the pull request, derived when the stored html_url is empty. */
+export function pullRequestUrl(
+  review: Pick<ContributorReview, 'pull_request' | 'repository'>
+): string {
+  return (
+    review.pull_request.html_url ||
+    `https://github.com/${review.repository.full_name}/pull/${review.pull_request.number}`
+  );
+}
+
+/** GitHub URL that opens the pull request scrolled to this review. */
+export function reviewUrl(
+  review: Pick<ContributorReview, 'pull_request' | 'repository' | 'github_id'>
+): string {
+  return `${pullRequestUrl(review)}#pullrequestreview-${review.github_id}`;
+}
+
 /** A review summary before its inline comments are attached. */
 export type ContributorReviewSummary = Omit<ContributorReview, 'comments'>;
 

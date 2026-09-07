@@ -7,7 +7,11 @@ import type { Contributor } from '@/components/features/workspace/ContributorsLi
 import type { Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
 import type { PullRequest } from '@/components/features/workspace/WorkspacePullRequestsTable';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
-import type { ContributorReview } from '@/lib/contributors/contributor-reviews';
+import {
+  pullRequestUrl,
+  reviewUrl,
+  type ContributorReview,
+} from '@/lib/contributors/contributor-reviews';
 
 // ============================================
 // Shared Download Helper
@@ -302,6 +306,7 @@ export interface ContributorReviewCSVRow {
   'PR Title': string;
   'PR Author': string;
   'PR URL': string;
+  'Review URL': string;
   'Review State': string;
   'Submitted At': string;
   Commit: string;
@@ -324,7 +329,8 @@ export function transformContributorReviewsToCSV(
     'PR Number': review.pull_request.number,
     'PR Title': review.pull_request.title,
     'PR Author': review.pull_request.author_login ?? '',
-    'PR URL': review.pull_request.html_url ?? '',
+    'PR URL': pullRequestUrl(review),
+    'Review URL': reviewUrl(review),
     'Review State': review.state,
     'Submitted At': review.submitted_at,
     Commit: review.commit_id ?? '',
@@ -347,6 +353,7 @@ export function exportContributorReviewsToCSV(
 export interface ContributorReviewRecord {
   reviewer: string;
   review_github_id: string;
+  review_url: string;
   state: ContributorReview['state'];
   body: string;
   submitted_at: string;
@@ -355,7 +362,7 @@ export interface ContributorReviewRecord {
   pull_request: {
     number: number;
     title: string;
-    url: string | null;
+    url: string;
     state: string;
     author: string | null;
   };
@@ -379,6 +386,7 @@ export function transformContributorReviewsToRecords(
   return reviews.map((review) => ({
     reviewer,
     review_github_id: review.github_id,
+    review_url: reviewUrl(review),
     state: review.state,
     body: review.body,
     submitted_at: review.submitted_at,
@@ -387,7 +395,7 @@ export function transformContributorReviewsToRecords(
     pull_request: {
       number: review.pull_request.number,
       title: review.pull_request.title,
-      url: review.pull_request.html_url,
+      url: pullRequestUrl(review),
       state: review.pull_request.state,
       author: review.pull_request.author_login,
     },

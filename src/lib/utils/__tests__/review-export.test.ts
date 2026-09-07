@@ -59,6 +59,7 @@ describe('transformContributorReviewsToCSV', () => {
         'PR Title': 'Add widgets',
         'PR Author': 'author',
         'PR URL': 'https://github.com/acme/widgets/pull/42',
+        'Review URL': 'https://github.com/acme/widgets/pull/42#pullrequestreview-111',
         'Review State': 'CHANGES_REQUESTED',
         'Submitted At': '2026-01-03T10:00:00Z',
         Commit: 'abc123',
@@ -69,7 +70,7 @@ describe('transformContributorReviewsToCSV', () => {
     ]);
   });
 
-  it('writes empty strings for missing optional fields', () => {
+  it('derives the PR link when html_url is missing and blanks other optionals', () => {
     const rows = transformContributorReviewsToCSV('reviewer', [
       {
         ...review,
@@ -77,7 +78,10 @@ describe('transformContributorReviewsToCSV', () => {
         pull_request: { ...review.pull_request, html_url: null, author_login: null },
       },
     ]);
-    expect(rows[0]['PR URL']).toBe('');
+    expect(rows[0]['PR URL']).toBe('https://github.com/acme/widgets/pull/42');
+    expect(rows[0]['Review URL']).toBe(
+      'https://github.com/acme/widgets/pull/42#pullrequestreview-111'
+    );
     expect(rows[0]['PR Author']).toBe('');
     expect(rows[0].Commit).toBe('');
   });

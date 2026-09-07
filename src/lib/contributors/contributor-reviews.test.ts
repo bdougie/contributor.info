@@ -3,6 +3,8 @@ import {
   buildContributorReviews,
   countContributorReviews,
   pickReviewForComment,
+  pullRequestUrl,
+  reviewUrl,
   type ContributorReviewComment,
   type ContributorReviewSummary,
 } from './contributor-reviews';
@@ -138,5 +140,29 @@ describe('countContributorReviews', () => {
       commented: 1,
       inlineComments: 2,
     });
+  });
+});
+
+describe('review links', () => {
+  it('derives the PR link from repository and number when html_url is empty', () => {
+    const review = summary({
+      id: 'r1',
+      submitted_at: '2026-01-01T10:00:00Z',
+      pull_request: {
+        id: 'pr-1',
+        number: 42,
+        title: 'x',
+        html_url: null,
+        state: 'open',
+        author_login: null,
+      },
+    });
+    expect(pullRequestUrl(review)).toBe('https://github.com/acme/widgets/pull/42');
+    expect(reviewUrl(review)).toBe('https://github.com/acme/widgets/pull/42#pullrequestreview-r1');
+  });
+
+  it('prefers the stored html_url when present', () => {
+    const review = summary({ id: 'r1', submitted_at: '2026-01-01T10:00:00Z' });
+    expect(reviewUrl(review)).toBe('https://github.com/acme/widgets/pull/1#pullrequestreview-r1');
   });
 });

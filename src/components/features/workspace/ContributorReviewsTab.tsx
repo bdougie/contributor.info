@@ -8,7 +8,11 @@ import {
   exportContributorReviewsToCSV,
   exportContributorReviewsToJSONL,
 } from '@/lib/utils/csv-export';
-import type { ContributorReview, ReviewState } from '@/lib/contributors/contributor-reviews';
+import {
+  reviewUrl,
+  type ContributorReview,
+  type ReviewState,
+} from '@/lib/contributors/contributor-reviews';
 import { cn } from '@/lib/utils';
 
 export interface ContributorReviewsTabProps {
@@ -48,18 +52,14 @@ function ReviewRow({ review }: { review: ContributorReview }) {
     <div className="p-3 rounded-lg hover:bg-muted/50 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          {review.pull_request.html_url ? (
-            <a
-              href={review.pull_request.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium hover:underline line-clamp-2 text-sm block"
-            >
-              {title}
-            </a>
-          ) : (
-            <span className="font-medium line-clamp-2 text-sm block">{title}</span>
-          )}
+          <a
+            href={reviewUrl(review)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium hover:underline line-clamp-2 text-sm block"
+          >
+            {title}
+          </a>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
             <span className="truncate max-w-[200px]">{review.repository.full_name}</span>
             <span>•</span>
