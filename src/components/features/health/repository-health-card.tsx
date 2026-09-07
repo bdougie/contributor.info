@@ -21,6 +21,15 @@ import {
 } from '@/lib/insights/health-metrics';
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 import { LearnMoreLink } from '@/components/ui/learn-more-link';
+import { hasConfidenceScore } from '@/lib/insights/confidence-display-state';
+
+interface ConfidenceSnapshot {
+  key: string;
+  score: number;
+  calculatedAt: string | null;
+  breakdown?: ConfidenceBreakdown['breakdown'];
+  trend?: ConfidenceTrendData;
+}
 
 export function RepositoryHealthCard() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>();
@@ -31,19 +40,26 @@ export function RepositoryHealthCard() {
   const [localIncludeBots, setLocalIncludeBots] = useState(includeBots);
   const functionTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // State for contributor confidence calculation
-  const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
-  const [confidenceLoading, setConfidenceLoading] = useState(false);
+  const confidenceKey = `${owner}/${repo}:${timeRange}`;
+  const [confidenceSnapshot, setConfidenceSnapshot] = useState<ConfidenceSnapshot | null>(null);
+  const confidence = confidenceSnapshot?.key === confidenceKey ? confidenceSnapshot : null;
+  const [confidenceLoading, setConfidenceLoading] = useState(true);
   const [confidenceError, setConfidenceError] = useState<string | null>(null);
-  const [confidenceBreakdown, setConfidenceBreakdown] = useState<
-    ConfidenceBreakdown['breakdown'] | undefined
-  >(undefined);
-  const [confidenceTrend, setConfidenceTrend] = useState<ConfidenceTrendData | undefined>(
-    undefined
-  );
+  const confidenceRequest = useRef(0);
+  const wasSyncing = useRef(false);
+  const confidenceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const invalidateConfidenceRequest = useCallback(() => {
+    confidenceRequest.current++;
+    if (confidenceTimeout.current) clearTimeout(confidenceTimeout.current);
+  }, []);
 
-  // Sync status for confidence calculation
-  const { syncStatus: confidenceSyncStatus } = useOnDemandSync({
+  // Share one sync subscription with the card so it cannot disagree with its parent.
+  const {
+    syncStatus: confidenceSyncStatus,
+    triggerSync,
+    isAuthenticated,
+    refetch,
+  } = useOnDemandSync({
     owner: owner || '',
     repo: repo || '',
     enabled: !!(owner && repo),
@@ -60,8 +76,16 @@ export function RepositoryHealthCard() {
     async (forceRecalculate: boolean = false) => {
       if (!owner || !repo) return;
 
+      const requestId = ++confidenceRequest.current;
+      if (confidenceTimeout.current) clearTimeout(confidenceTimeout.current);
       setConfidenceLoading(true);
       setConfidenceError(null);
+      confidenceTimeout.current = setTimeout(() => {
+        if (requestId !== confidenceRequest.current) return;
+        confidenceRequest.current++;
+        setConfidenceLoading(false);
+        setConfidenceError('Loading confidence took too long. Please try again later.');
+      }, 15000);
 
       try {
         // Import supabase here to avoid circular dependencies
@@ -72,6 +96,7 @@ export function RepositoryHealthCard() {
           .rpc('get_repository_confidence_summary_simple')
           .eq('repository_owner', owner)
           .eq('repository_name', repo)
+          .abortSignal(AbortSignal.timeout(15000))
           .maybeSingle();
 
         if (error) throw error;
@@ -79,21 +104,29 @@ export function RepositoryHealthCard() {
         interface ConfidenceData {
           avg_confidence_score: number | null;
           contributor_count: number;
+          last_analysis: string | null;
         }
 
         const typedData = data as ConfidenceData | null;
         if (typedData && typedData.avg_confidence_score !== null) {
-          setConfidenceScore(Number(typedData.avg_confidence_score));
-          // Create a basic breakdown for tooltip compatibility
-          setConfidenceBreakdown({
-            starForkConfidence: Number(typedData.avg_confidence_score) * 0.35,
-            engagementConfidence: Number(typedData.avg_confidence_score) * 0.25,
-            retentionConfidence: Number(typedData.avg_confidence_score) * 0.25,
-            qualityConfidence: Number(typedData.avg_confidence_score) * 0.15,
-            totalStargazers: 0,
-            totalForkers: 0,
-            contributorCount: typedData.contributor_count || 0,
-            conversionRate: Number(typedData.avg_confidence_score),
+          const score = Number(typedData.avg_confidence_score);
+          if (!hasConfidenceScore(score)) throw new Error('Invalid confidence score');
+          if (requestId !== confidenceRequest.current) return;
+          setConfidenceSnapshot({
+            key: confidenceKey,
+            score,
+            calculatedAt: typedData.last_analysis,
+            // Preserve the current breakdown until the scoring algorithm is unified.
+            breakdown: {
+              starForkConfidence: Number(typedData.avg_confidence_score) * 0.35,
+              engagementConfidence: Number(typedData.avg_confidence_score) * 0.25,
+              retentionConfidence: Number(typedData.avg_confidence_score) * 0.25,
+              qualityConfidence: Number(typedData.avg_confidence_score) * 0.15,
+              totalStargazers: 0,
+              totalForkers: 0,
+              contributorCount: typedData.contributor_count || 0,
+              conversionRate: Number(typedData.avg_confidence_score),
+            },
           });
         } else {
           // Fallback to the original algorithm if no data in the new system
@@ -106,47 +139,64 @@ export function RepositoryHealthCard() {
             true, // returnBreakdown
             true, // saveToHistory
             true // returnTrend
-          )) as ConfidenceBreakdownWithTrend;
+          )) as ConfidenceBreakdownWithTrend | number;
 
-          setConfidenceScore(result.score);
-          setConfidenceBreakdown(result.breakdown);
-          setConfidenceTrend(result.trend);
+          const score = typeof result === 'number' ? result : result.score;
+          if (!hasConfidenceScore(score)) throw new Error('Invalid confidence score');
+          if (requestId !== confidenceRequest.current) return;
+          setConfidenceSnapshot({
+            key: confidenceKey,
+            score,
+            calculatedAt: typeof result === 'number' ? null : result.calculatedAt.toISOString(),
+            breakdown: typeof result === 'number' ? undefined : result.breakdown,
+            trend: typeof result === 'number' ? undefined : result.trend,
+          });
         }
       } catch (error) {
-        console.error('Failed to calculate contributor confidence:', error);
+        if (requestId !== confidenceRequest.current) return;
+        console.error('Failed to calculate contributor confidence: %s', error);
         setConfidenceError(
-          'Repository data not available. This repository may need to be synced first.'
+          'We could not load confidence for this repository. Please try again later.'
         );
-        setConfidenceScore(null);
-        setConfidenceBreakdown(undefined);
       } finally {
-        setConfidenceLoading(false);
+        if (requestId === confidenceRequest.current) {
+          if (confidenceTimeout.current) clearTimeout(confidenceTimeout.current);
+          setConfidenceLoading(false);
+        }
       }
     },
-    [owner, repo, timeRange]
+    [owner, repo, timeRange, confidenceKey]
   );
 
-  // Calculate confidence when component mounts or params change
   useEffect(() => {
     calculateConfidence();
-  }, [owner, repo, timeRange, calculateConfidence]);
+    return invalidateConfidenceRequest;
+  }, [calculateConfidence, invalidateConfidenceRequest]);
 
-  // Reset confidence score when sync starts, recalculate when sync completes
+  // Keep the last known score visible throughout a refresh.
   useEffect(() => {
-    if (confidenceSyncStatus.isTriggering || confidenceSyncStatus.isInProgress) {
-      // Clear the score to show skeleton while syncing
-      setConfidenceScore(null);
-      setConfidenceError(null);
-    } else if (confidenceSyncStatus.isComplete) {
-      // Recalculate confidence after sync completes
-      calculateConfidence();
-    }
+    const finished = wasSyncing.current && confidenceSyncStatus.isComplete;
+    wasSyncing.current = confidenceSyncStatus.isTriggering || confidenceSyncStatus.isInProgress;
+    if (finished) calculateConfidence(true);
   }, [
     calculateConfidence,
+    confidenceSyncStatus.isComplete,
     confidenceSyncStatus.isTriggering,
     confidenceSyncStatus.isInProgress,
-    confidenceSyncStatus.isComplete,
   ]);
+
+  const refreshConfidence = useCallback(async () => {
+    setConfidenceError(null);
+    if (!isAuthenticated) {
+      await Promise.all([calculateConfidence(true), refetch()]);
+      return;
+    }
+    try {
+      await triggerSync();
+    } catch {
+      setConfidenceError('We could not update confidence. Please try again later.');
+    }
+  }, [isAuthenticated, calculateConfidence, refetch, triggerSync]);
 
   const botCount = stats.pullRequests.filter(
     (pr) => detectBot({ githubUser: pr.user }).isBot
@@ -224,19 +274,15 @@ export function RepositoryHealthCard() {
             <div className="space-y-6">
               {/* Contributor Confidence - Top */}
               <ContributorConfidenceCard
-                confidenceScore={confidenceScore}
-                loading={
-                  confidenceLoading ||
-                  confidenceSyncStatus.isTriggering ||
-                  confidenceSyncStatus.isInProgress
-                }
+                confidenceScore={confidence?.score ?? null}
+                calculatedAt={confidence?.calculatedAt}
+                syncStatus={confidenceSyncStatus}
+                loading={confidenceLoading}
                 error={confidenceError}
                 className="w-full"
-                owner={owner}
-                repo={repo}
-                breakdown={confidenceBreakdown}
-                trend={confidenceTrend}
-                onRefresh={() => calculateConfidence(true)}
+                breakdown={confidence?.breakdown}
+                trend={confidence?.trend}
+                onRefresh={refreshConfidence}
               />
 
               {/* Health Factors - Middle */}
