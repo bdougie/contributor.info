@@ -43,6 +43,8 @@ import {
   Minus,
   Plus,
   Trash2,
+  Download,
+  Loader2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
@@ -79,6 +81,8 @@ export interface ContributorsTableProps {
   onContributorClick?: (contributor: Contributor) => void;
   onAddToGroup?: (contributorId: string) => void;
   onBulkAddToGroups?: (contributorIds: string[], groupIds: string[]) => void;
+  /** Export review history for the selected contributors in the given format. */
+  onExportReviews?: (contributorIds: string[], format: 'jsonl' | 'csv') => Promise<void>;
   onAddNote?: (contributorId: string) => void;
   onRemoveContributor?: (contributorId: string) => void;
   showHeader?: boolean;
@@ -118,6 +122,7 @@ export function ContributorsTable({
   onContributorClick,
   onAddToGroup,
   onBulkAddToGroups,
+  onExportReviews,
   onAddNote,
   onRemoveContributor,
   showHeader = true,
@@ -173,6 +178,18 @@ export function ContributorsTable({
     },
     [selectedContributors, setSelectedContributors]
   );
+
+  const [exportingReviews, setExportingReviews] = useState(false);
+
+  const handleExportReviews = async (format: 'jsonl' | 'csv') => {
+    if (selectedContributors.size === 0 || !onExportReviews) return;
+    setExportingReviews(true);
+    try {
+      await onExportReviews(Array.from(selectedContributors), format);
+    } finally {
+      setExportingReviews(false);
+    }
+  };
 
   const handleBulkAddToGroup = async (groupId: string) => {
     if (selectedContributors.size === 0 || !onBulkAddToGroups) return;
@@ -243,8 +260,9 @@ export function ContributorsTable({
             >
               <button
                 onClick={() => onContributorClick?.(contributor)}
-                className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                className="group flex min-h-11 items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`View profile for ${contributor.username}`}
+                data-contributor-profile={contributor.username}
               >
                 <img
                   src={contributor.avatar_url}
@@ -252,18 +270,19 @@ export function ContributorsTable({
                   className="h-8 w-8 rounded-full"
                 />
                 <div className="space-y-1">
-                  <p className="font-medium">@{contributor.username}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {contributorGroupsList.length > 0 ? (
-                      contributorGroupsList.map((group) => (
+                  <p className="font-medium group-hover:underline">@{contributor.username}</p>
+                  <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                    View profile <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                  {contributorGroupsList.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {contributorGroupsList.map((group) => (
                         <Badge key={group.id} variant="secondary" className="text-xs">
                           {group.name}
                         </Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground">No groups</span>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             </ContributorHoverCard>
@@ -325,7 +344,7 @@ export function ContributorsTable({
         cell: ({ row }) => {
           const stats = row.original.contributions;
           return (
-            <div className="flex items-center gap-3 text-sm">
+            <div className="flex w-max items-center gap-3 text-sm">
               <Tooltip>
                 <TooltipTrigger className="flex items-center gap-1">
                   <GitPullRequest className="h-4 w-4 text-muted-foreground" />
@@ -572,6 +591,28 @@ export function ContributorsTable({
                 </DropdownMenu>
               );
             })()}
+            {onExportReviews && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={exportingReviews}>
+                    {exportingReviews ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Export Reviews
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportReviews('jsonl')}>
+                    JSONL (with inline comments)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportReviews('csv')}>
+                    CSV (one row per review)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button size="sm" variant="ghost" onClick={() => setSelectedContributors(new Set())}>
               Clear Selection
             </Button>
@@ -581,7 +622,10 @@ export function ContributorsTable({
 
       {/* Table */}
       <div className="rounded-md border overflow-x-auto">
-        <table className="w-full" aria-label="Workspace contributors with activity statistics">
+        <table
+          className="w-full table-auto"
+          aria-label="Workspace contributors with activity statistics"
+        >
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b">
@@ -634,7 +678,7 @@ export function ContributorsTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-2 py-4">
+      <div className="flex flex-col gap-3 px-2 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div
           className="flex-1 text-sm text-muted-foreground"
           role="status"
@@ -644,7 +688,7 @@ export function ContributorsTable({
           Showing {table.getRowModel().rows.length} of {table.getFilteredRowModel().rows.length}{' '}
           {table.getFilteredRowModel().rows.length === 1 ? 'contributor' : 'contributors'}
         </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:gap-6 lg:gap-8">
           <div className="flex items-center space-x-2">
             <p className="text-sm font-medium">Page</p>
             <p className="text-sm font-medium">
@@ -658,9 +702,10 @@ export function ContributorsTable({
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               aria-label="Go to previous page"
+              className="min-h-9 min-w-9"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Previous
+              <span className="hidden sm:inline">Previous</span>
             </Button>
             <Button
               variant="outline"
@@ -668,8 +713,9 @@ export function ContributorsTable({
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               aria-label="Go to next page"
+              className="min-h-9 min-w-9"
             >
-              Next
+              <span className="hidden sm:inline">Next</span>
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>

@@ -336,6 +336,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
           state: string;
           body: string;
           author_id: string;
+          reviewer_id: string;
           submitted_at: string;
           commit_id?: string;
         }> = [];
@@ -349,6 +350,7 @@ export const capturePrDetailsGraphQL = inngest.createFunction(
               state: normalizeReviewState(review.state),
               body: review.body,
               author_id: reviewAuthorId,
+              reviewer_id: reviewAuthorId,
               submitted_at: review.submittedAt,
               commit_id: review.commit?.oid,
             });
