@@ -213,6 +213,7 @@ async function storeReview(repositoryId, prId, review) {
       pull_request_id: prId,
       github_id: review.databaseId,
       author_id: authorId,
+      reviewer_id: authorId,
       state: normalizeReviewState(review.state),
       body: review.body || '',
       submitted_at: review.submittedAt,
