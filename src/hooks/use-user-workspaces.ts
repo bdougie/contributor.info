@@ -53,6 +53,10 @@ export interface UseUserWorkspacesReturn {
   refetch: () => Promise<void>;
 }
 
+// Keep the context stable before authentication/query data is available. A fresh empty
+// array would change syncWithUrl and refetch the workspace on every profile navigation.
+const EMPTY_WORKSPACES: WorkspacePreviewData[] = [];
+
 /**
  * Fetch workspaces for a given app user ID
  */
@@ -267,7 +271,7 @@ export function useUserWorkspaces(): UseUserWorkspacesReturn {
   const { appUserId, isLoading: authLoading, user } = useAppUserId();
 
   const {
-    data: workspaces = [],
+    data: workspaces = EMPTY_WORKSPACES,
     isLoading: workspacesLoading,
     error,
     refetch,

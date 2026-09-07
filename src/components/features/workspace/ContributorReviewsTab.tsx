@@ -252,7 +252,7 @@ export function ContributorReviewsTab({
                 </SelectContent>
               </Select>
             )}
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex min-h-8 items-center gap-2">
               <Switch
                 id="reviews-feedback-only"
                 checked={filters.feedbackOnly}

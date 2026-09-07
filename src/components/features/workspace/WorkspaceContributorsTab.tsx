@@ -2,9 +2,10 @@
  * Contributors tab component for workspace page
  */
 
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { useContributorProfileRoute } from '@/hooks/use-contributor-profile-route';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
 import {
   exportContributorsToCSV,
@@ -130,7 +131,8 @@ export function WorkspaceContributorsTab({
   // CRM State
   const [showGroupManager, setShowGroupManager] = useState(false);
   const [showNotesDialog, setShowNotesDialog] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const profileRoute = useContributorProfileRoute();
+  const profileTriggerRef = useRef<HTMLElement | null>(null);
   const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
   const [selectedContributorsForGroups, setSelectedContributorsForGroups] = useState<Set<string>>(
     new Set()
@@ -161,8 +163,34 @@ export function WorkspaceContributorsTab({
     return map;
   }, [groupMembers]);
 
+  const {
+    contributors,
+    allAvailableContributors,
+    workspaceContributorIds,
+    loading,
+    error,
+    totalCount,
+    hasMore,
+    addContributorsToWorkspace,
+    removeContributorFromWorkspace,
+  } = useWorkspaceContributors({
+    workspaceId: workspaceId,
+    repositories,
+    selectedRepositories,
+    searchQuery: showAddContributors ? debouncedSearchQuery : '',
+    page: showAddContributors ? page : 0,
+    pageSize: showAddContributors ? pageSize : 1000,
+  });
+
+  const profileContributor = profileRoute.username
+    ? [...contributors, ...allAvailableContributors].find(
+        (contributor) => contributor.username.toLowerCase() === profileRoute.username?.toLowerCase()
+      ) || null
+    : null;
+  const noteContributor = profileRoute.username ? profileContributor : selectedContributor;
+
   const transformedNotes = useMemo(() => {
-    const contributorUsername = selectedContributor?.username;
+    const contributorUsername = noteContributor?.username;
     if (!contributorUsername) return [];
 
     return notes
@@ -190,26 +218,7 @@ export function WorkspaceContributorsTab({
           },
         };
       });
-  }, [notes, selectedContributor?.username]);
-
-  const {
-    contributors,
-    allAvailableContributors,
-    workspaceContributorIds,
-    loading,
-    error,
-    totalCount,
-    hasMore,
-    addContributorsToWorkspace,
-    removeContributorFromWorkspace,
-  } = useWorkspaceContributors({
-    workspaceId: workspaceId,
-    repositories,
-    selectedRepositories,
-    searchQuery: showAddContributors ? debouncedSearchQuery : '',
-    page: showAddContributors ? page : 0,
-    pageSize: showAddContributors ? pageSize : 1000,
-  });
+  }, [notes, noteContributor?.username]);
 
   const contributorGroups = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -229,8 +238,10 @@ export function WorkspaceContributorsTab({
   }, [contributorGroupsByUsername, contributors]);
 
   const handleContributorClick = (contributor: Contributor) => {
+    profileTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelectedContributor(contributor);
-    setShowProfileModal(true);
+    profileRoute.openProfile(contributor.username);
   };
 
   const handleTrackContributor = (contributorId: string) => {
@@ -638,7 +649,7 @@ export function WorkspaceContributorsTab({
     return contributors.filter((contributor) => usernamesInGroup.has(contributor.username));
   }, [contributors, selectedFilterGroup, groupMembers]);
 
-  if (error) {
+  if (error && !profileRoute.username) {
     return (
       <div className="container max-w-7xl mx-auto">
         <Card className="border-destructive">
@@ -797,38 +808,40 @@ export function WorkspaceContributorsTab({
         </Card>
       ) : (
         <div className="space-y-6">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground">Groups:</span>
-            {groups.map((group) => {
-              const count = groupMembers.filter((m) => m.group_id === group.id).length;
-              const isSelected = selectedFilterGroup === group.id;
+          {groups.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground">Groups:</span>
+              {groups.map((group) => {
+                const count = groupMembers.filter((m) => m.group_id === group.id).length;
+                const isSelected = selectedFilterGroup === group.id;
 
-              return (
+                return (
+                  <Button
+                    key={group.id}
+                    variant={isSelected ? 'default' : 'secondary'}
+                    size="sm"
+                    onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
+                    className="h-7"
+                  >
+                    {group.name}
+                    <Badge variant="outline" className="ml-1.5 px-1 h-4 text-xs">
+                      {count}
+                    </Badge>
+                  </Button>
+                );
+              })}
+              {selectedFilterGroup && (
                 <Button
-                  key={group.id}
-                  variant={isSelected ? 'default' : 'secondary'}
+                  variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedFilterGroup(isSelected ? null : group.id)}
-                  className="h-7"
+                  onClick={() => setSelectedFilterGroup(null)}
+                  className="h-7 text-xs"
                 >
-                  {group.name}
-                  <Badge variant="outline" className="ml-1.5 px-1 h-4 text-xs">
-                    {count}
-                  </Badge>
+                  Clear filter
                 </Button>
-              );
-            })}
-            {selectedFilterGroup && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedFilterGroup(null)}
-                className="h-7 text-xs"
-              >
-                Clear filter
-              </Button>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <Card>
             <CardHeader>
@@ -844,6 +857,9 @@ export function WorkspaceContributorsTab({
                     {filteredContributors.length === 1 ? 'contributor' : 'contributors'}
                     {selectedFilterGroup && ` • ${contributors.length} total`}
                   </p>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                    Open a profile to explore contributions, reviews, and AI insights.
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center rounded-lg border bg-muted/50 p-1">
@@ -853,6 +869,8 @@ export function WorkspaceContributorsTab({
                       onClick={() => setViewMode('grid')}
                       className="px-3 min-h-[36px] min-w-[36px]"
                       title="Grid view"
+                      aria-label="Grid view"
+                      aria-pressed={viewMode === 'grid'}
                     >
                       <Package className="h-4 w-4" />
                     </Button>
@@ -862,6 +880,8 @@ export function WorkspaceContributorsTab({
                       onClick={() => setViewMode('list')}
                       className="px-3 min-h-[36px] min-w-[36px]"
                       title="Table view"
+                      aria-label="Table view"
+                      aria-pressed={viewMode === 'list'}
                     >
                       <Menu className="h-4 w-4" />
                     </Button>
@@ -974,25 +994,47 @@ export function WorkspaceContributorsTab({
         </Suspense>
       )}
 
-      {showProfileModal && (
+      {profileRoute.username && (
         <Suspense fallback={<ModalFallback />}>
           <ContributorProfileModal
-            open={showProfileModal}
-            onOpenChange={setShowProfileModal}
-            contributor={selectedContributor}
+            key={profileRoute.username}
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) profileRoute.closeProfile();
+            }}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              if (showGroupManager || showNotesDialog) return;
+              // Table cells can remount when their column callbacks change. Find the
+              // current trigger when the element captured on open is no longer attached.
+              const trigger = profileTriggerRef.current?.isConnected
+                ? profileTriggerRef.current
+                : document.querySelector<HTMLElement>(
+                    `[data-contributor-profile="${CSS.escape(profileRoute.username || '')}"]`
+                  );
+              trigger?.focus();
+            }}
+            contributor={profileContributor}
+            contributorUsername={profileRoute.username}
+            loading={loading}
+            error={error}
+            activeTab={profileRoute.activeTab}
+            onTabChange={profileRoute.setActiveTab}
             groups={groups}
-            contributorGroups={contributorGroups.get(selectedContributor?.id || '') || []}
+            contributorGroups={contributorGroups.get(profileContributor?.id || '') || []}
             notes={transformedNotes}
             workspaceId={workspaceId}
             onManageGroups={() => {
-              setShowProfileModal(false);
-              if (selectedContributor) {
-                setSelectedContributorsForGroups(new Set([selectedContributor.id]));
+              setSelectedContributor(profileContributor);
+              profileRoute.closeProfile();
+              if (profileContributor) {
+                setSelectedContributorsForGroups(new Set([profileContributor.id]));
               }
               setShowGroupManager(true);
             }}
             onAddNote={() => {
-              setShowProfileModal(false);
+              setSelectedContributor(profileContributor);
+              profileRoute.closeProfile();
               setShowNotesDialog(true);
             }}
             userRole={userRole}

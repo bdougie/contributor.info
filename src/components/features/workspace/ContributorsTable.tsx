@@ -260,8 +260,9 @@ export function ContributorsTable({
             >
               <button
                 onClick={() => onContributorClick?.(contributor)}
-                className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity"
+                className="group flex min-h-11 items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`View profile for ${contributor.username}`}
+                data-contributor-profile={contributor.username}
               >
                 <img
                   src={contributor.avatar_url}
@@ -269,18 +270,19 @@ export function ContributorsTable({
                   className="h-8 w-8 rounded-full"
                 />
                 <div className="space-y-1">
-                  <p className="font-medium">@{contributor.username}</p>
-                  <div className="flex flex-wrap gap-1">
-                    {contributorGroupsList.length > 0 ? (
-                      contributorGroupsList.map((group) => (
+                  <p className="font-medium group-hover:underline">@{contributor.username}</p>
+                  <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                    View profile <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                  {contributorGroupsList.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {contributorGroupsList.map((group) => (
                         <Badge key={group.id} variant="secondary" className="text-xs">
                           {group.name}
                         </Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-muted-foreground">No groups</span>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             </ContributorHoverCard>

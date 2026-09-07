@@ -279,7 +279,8 @@ export function WindowVirtualizedGrid<T>({
                 left: 0,
                 width: '100%',
                 height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
+                // Virtual row offsets include the grid's position within the page.
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
                 display: 'grid',
                 gridTemplateColumns: gridTemplate,
                 gap: gap ? `${gap}px` : undefined,

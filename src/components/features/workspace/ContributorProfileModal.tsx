@@ -1,5 +1,16 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import {
+  isContributorProfileTab,
+  type ContributorProfileTab,
+} from '@/hooks/use-contributor-profile-route';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -31,6 +42,8 @@ import {
   Check,
   X,
   RefreshCw,
+  Link2,
+  ExternalLink,
 } from '@/components/ui/icon';
 import { GroupManagementCTA } from '@/components/ui/permission-upgrade-cta';
 import { useWorkspacePermissions } from '@/hooks/useWorkspacePermissions';
@@ -69,6 +82,12 @@ export interface ContributorProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contributor: Contributor | null;
+  contributorUsername?: string;
+  loading?: boolean;
+  error?: string | null;
+  activeTab: ContributorProfileTab;
+  onTabChange: (tab: ContributorProfileTab) => void;
+  onCloseAutoFocus?: (event: Event) => void;
   groups: ContributorGroup[];
   contributorGroups: string[]; // groupIds for this contributor
   notes: ContributorNote[];
@@ -225,6 +244,12 @@ export function ContributorProfileModal({
   open,
   onOpenChange,
   contributor,
+  contributorUsername,
+  loading = false,
+  error,
+  activeTab,
+  onTabChange,
+  onCloseAutoFocus,
   groups,
   contributorGroups,
   notes,
@@ -235,7 +260,6 @@ export function ContributorProfileModal({
   workspaceTier,
   isLoggedIn = false,
 }: ContributorProfileModalProps) {
-  const [activeTab, setActiveTab] = useState('overview');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { login } = useAuth();
   const [profileData, setProfileData] = useState<{
@@ -412,7 +436,41 @@ export function ContributorProfileModal({
     fetchProfileData();
   }, [fetchProfileData]);
 
-  if (!contributor) return null;
+  if (!contributor) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
+          <DialogHeader>
+            <DialogTitle>{loading ? 'Loading profile' : 'Profile unavailable'}</DialogTitle>
+            <DialogDescription>
+              {loading
+                ? `Finding @${contributorUsername} in this workspace…`
+                : error || `@${contributorUsername} isn’t available in the selected repositories.`}
+            </DialogDescription>
+          </DialogHeader>
+          {loading ? (
+            <div role="status" className="flex items-center gap-2 py-6 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+              Loading contributor details…
+            </div>
+          ) : (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Back to contributors
+            </Button>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const copyProfileLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Profile link copied');
+    } catch {
+      toast.error('Could not copy the link. You can copy it from the address bar.');
+    }
+  };
 
   const trend = contributor.stats.contribution_trend;
   let TrendIcon = Minus;
@@ -443,9 +501,16 @@ export function ContributorProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[100vw] max-h-[100vh] md:max-w-3xl md:max-h-[80vh] md:rounded-lg rounded-none flex flex-col p-0">
-        <div className="flex-shrink-0 p-6 pb-0">
-          <DialogHeader>
+      <DialogContent
+        onCloseAutoFocus={onCloseAutoFocus}
+        className="max-w-[100vw] h-[100dvh] max-h-[100dvh] md:h-auto md:max-w-3xl md:max-h-[90dvh] rounded-none md:rounded-lg flex flex-col gap-0 p-0 overflow-hidden"
+      >
+        <div className="flex-shrink-0 border-b p-4 pr-12 sm:p-6 sm:pr-12">
+          <DialogHeader className="text-left">
+            <DialogDescription className="sr-only">
+              Contributor profile for @{contributor.username}. Explore contributions, reviews, and
+              AI insights.
+            </DialogDescription>
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <img
@@ -474,27 +539,25 @@ export function ContributorProfileModal({
                         <Plus className="h-3 w-3 mr-1" />
                         Add to Group
                       </Button>
-                    ) : (
-                      <GroupManagementCTA
-                        message={permissions.getGroupAssignmentMessage()}
-                        variant="inline"
-                        size="sm"
-                        showAction={false}
-                      />
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    window.open(`https://github.com/${contributor.username}`, '_blank')
-                  }
-                  className="flex-1 min-w-[120px] sm:flex-none"
-                >
-                  GitHub Profile
+                <Button variant="outline" size="sm" onClick={copyProfileLink} className="min-h-9">
+                  <Link2 className="h-4 w-4 mr-2" aria-hidden="true" />
+                  Copy link
+                </Button>
+                <Button variant="ghost" size="sm" asChild className="min-h-9">
+                  <a
+                    href={`https://github.com/${contributor.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    GitHub
+                    <ExternalLink className="h-3.5 w-3.5 ml-2" aria-hidden="true" />
+                    <span className="sr-only"> (opens in a new tab)</span>
+                  </a>
                 </Button>
                 {contributor.linkedin_url && canSafelyOpenUrl(contributor.linkedin_url) && (
                   <Button
@@ -539,9 +602,18 @@ export function ContributorProfileModal({
           </DialogHeader>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid w-full grid-cols-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 sm:px-6 sm:pb-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(tab) => {
+              if (isContributorProfileTab(tab)) onTabChange(tab);
+            }}
+            className="mt-4"
+          >
+            <TabsList
+              aria-label="Contributor profile sections"
+              className="sticky top-0 z-10 grid h-auto w-full grid-cols-3 sm:grid-cols-6 gap-1 [&>button]:min-h-10 [&>button]:px-2"
+            >
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="insights">AI Insights</TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -551,62 +623,6 @@ export function ContributorProfileModal({
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4 mt-4">
-              {/* Bio Section */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Profile Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {loadingProfile ? (
-                    <div className="space-y-2">
-                      <div className="h-4 w-full bg-muted animate-pulse rounded" />
-                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-                    </div>
-                  ) : (
-                    <>
-                      {(profileData?.bio || contributor.bio) && (
-                        <p className="text-sm">{profileData?.bio || contributor.bio}</p>
-                      )}
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        {(profileData?.company || contributor.company) && (
-                          <div className="flex items-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {profileData?.company || contributor.company}
-                          </div>
-                        )}
-                        {(profileData?.location || contributor.location) && (
-                          <div className="flex items-center gap-1">
-                            <Globe className="h-4 w-4" />
-                            {profileData?.location || contributor.location}
-                          </div>
-                        )}
-                        {profileData?.websiteUrl && (
-                          <div className="flex items-center gap-1">
-                            <Globe className="h-4 w-4" />
-                            <a
-                              href={
-                                profileData.websiteUrl.startsWith('http')
-                                  ? profileData.websiteUrl
-                                  : `https://${profileData.websiteUrl}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="hover:underline"
-                            >
-                              {profileData.websiteUrl.replace(/^https?:\/\//, '')}
-                            </a>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          Last active {getRelativeTime(contributor.stats.last_active)}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
               {/* Quick Stats */}
               <Card>
                 <CardHeader className="pb-3">
@@ -686,6 +702,62 @@ export function ContributorProfileModal({
                     </span>
                     <span className="text-sm text-muted-foreground">vs. previous period</span>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Bio Section */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Profile Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {loadingProfile ? (
+                    <div className="space-y-2">
+                      <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
+                    </div>
+                  ) : (
+                    <>
+                      {(profileData?.bio || contributor.bio) && (
+                        <p className="text-sm">{profileData?.bio || contributor.bio}</p>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        {(profileData?.company || contributor.company) && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {profileData?.company || contributor.company}
+                          </div>
+                        )}
+                        {(profileData?.location || contributor.location) && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-4 w-4" />
+                            {profileData?.location || contributor.location}
+                          </div>
+                        )}
+                        {profileData?.websiteUrl && (
+                          <div className="flex items-center gap-1">
+                            <Globe className="h-4 w-4" />
+                            <a
+                              href={
+                                profileData.websiteUrl.startsWith('http')
+                                  ? profileData.websiteUrl
+                                  : `https://${profileData.websiteUrl}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline"
+                            >
+                              {profileData.websiteUrl.replace(/^https?:\/\//, '')}
+                            </a>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Last active {getRelativeTime(contributor.stats.last_active)}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 

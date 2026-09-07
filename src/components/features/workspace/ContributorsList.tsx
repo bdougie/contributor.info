@@ -16,6 +16,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  ChevronRight,
 } from '@/components/ui/icon';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -100,14 +101,11 @@ const ContributorCard = memo(function ContributorCard({
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <button
-              onClick={onAddToGroup || onClick}
-              className="hover:opacity-80 transition-opacity"
-              aria-label={
-                onAddToGroup
-                  ? `Add ${contributor.username} to group`
-                  : `View ${contributor.username} profile`
-              }
-              title={onAddToGroup ? 'Add to group' : 'View profile'}
+              onClick={onClick}
+              className="rounded-full hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`View ${contributor.username} profile`}
+              data-contributor-profile={contributor.username}
+              title="View profile"
             >
               <OptimizedAvatar
                 src={contributor.avatar_url}
@@ -118,11 +116,14 @@ const ContributorCard = memo(function ContributorCard({
             </button>
             <button
               onClick={onClick}
-              className="text-left hover:opacity-80 transition-opacity"
-              aria-label={`View ${contributor.username} details`}
+              className="min-h-11 rounded-md text-left hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`View ${contributor.username} profile`}
             >
               <p className="font-semibold">{contributor.name || contributor.username}</p>
               <p className="text-sm text-muted-foreground">@{contributor.username}</p>
+              <span className="flex items-center gap-1 text-xs font-medium text-primary mt-1">
+                View profile <ChevronRight className="h-3 w-3" aria-hidden="true" />
+              </span>
             </button>
           </div>
           <Tooltip>
@@ -186,9 +187,20 @@ const ContributorCard = memo(function ContributorCard({
             </span>
             <span className="text-xs text-muted-foreground">this month</span>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {contributor.stats.repositories_contributed} repos
-          </Badge>
+          {onAddToGroup ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onAddToGroup}
+              aria-label={`Add ${contributor.username} to group`}
+            >
+              Add to group
+            </Button>
+          ) : (
+            <Badge variant="secondary" className="text-xs">
+              {contributor.stats.repositories_contributed} repos
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -394,7 +406,7 @@ export function ContributorsList({
           onTrack={() => onTrackContributor?.(contributor.id)}
           onUntrack={() => onUntrackContributor?.(contributor.id)}
           onClick={() => onContributorClick?.(contributor)}
-          onAddToGroup={() => onAddToGroup?.(contributor.id)}
+          onAddToGroup={onAddToGroup ? () => onAddToGroup(contributor.id) : undefined}
         />
       );
     },
