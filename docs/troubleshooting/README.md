@@ -13,7 +13,6 @@ Troubleshooting documentation helps developers:
 ## Documentation Index
 
 ### 🔧 Build & Deployment Issues
-- **[GitHub Actions Errors](./github-actions-errors.md)** - Workflow failures and debugging
 - **[Backfill Issues](./backfill-issues.md)** - Progressive backfill troubleshooting
 
 ## Quick Troubleshooting Checklist
@@ -131,8 +130,8 @@ curl -H "Authorization: token $VITE_GITHUB_TOKEN" \
 - **Symptoms**: Feed "Reviewed" and "Commented" toggles show no results
 - **Causes**: Limited data capture in older syncs (only first 10 PRs were processed)
 - **Solutions**:
-  - Use `scripts/backfill-reviews-comments.mjs` to capture missing data
-  - Test data presence with `scripts/test-review-sync.mjs`
+  - Use `scripts/data-sync/backfill-reviews-comments.mjs` to capture missing data
+  - Test data presence with `scripts/testing-tools/test-review-sync.mjs`
   - New repository syncs now capture up to 50 PRs per sync
 
 #### Data Consistency Issues
@@ -199,13 +198,13 @@ curl -I -H "Authorization: token $GITHUB_TOKEN" \
 ### Data Analysis Scripts
 ```bash
 # Test review/comment data presence for a repository
-node scripts/test-review-sync.mjs owner repo
+node scripts/testing-tools/test-review-sync.mjs owner repo
 
 # Backfill missing reviews/comments for existing PRs
-node scripts/backfill-reviews-comments.mjs owner repo [limit]
+node scripts/data-sync/backfill-reviews-comments.mjs owner repo [limit]
 
 # Example: Backfill data for continuedev/continue, checking 100 most recent PRs
-node scripts/backfill-reviews-comments.mjs continuedev continue 100
+node scripts/data-sync/backfill-reviews-comments.mjs continuedev continue 100
 ```
 
 **When to use these scripts**:
@@ -288,7 +287,7 @@ app.get('/health', async (req, res) => {
 
 ## Related Documentation
 
-- [Postmortem Reports](../postmortem/) - Historical incident analysis
+- [Postmortem Reports](../postmortems/) - Historical incident analysis
 - [Security Guidelines](../security/) - Security-related troubleshooting
 - [Setup Documentation](../setup/) - Environment configuration issues
 - [Implementation Guides](../implementations/) - Feature-specific debugging

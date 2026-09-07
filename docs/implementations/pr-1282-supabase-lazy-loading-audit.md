@@ -77,7 +77,7 @@ This approach:
   - Auth logic runs asynchronously after paint
 
 ### Theoretical Comparison
-Based on [bundle-optimization-2025.md](../performance/bundle-optimization-2025.md):
+Based on [bundle-optimization-2025.md](../postmortems/2025-08-21-bundle-splitting-attempt.md):
 
 | Metric | Target | Before PR #1282 | After PR #1282 (Est.) |
 |--------|--------|-----------------|----------------------|
@@ -222,8 +222,8 @@ npm run test:e2e
 
 - **PR:** https://github.com/bdougie/contributor.info/pull/1282
 - **Related Issue:** #1278 (Defer Supabase client initialization)
-- **Bundle Optimization Docs:** [bundle-optimization-2025.md](../performance/bundle-optimization-2025.md)
-- **Safe LCP Strategies:** [safe-fcp-lcp-optimizations.md](../performance/safe-fcp-lcp-optimizations.md)
+- **Bundle Optimization Docs:** [bundle-optimization-2025.md](../postmortems/2025-08-21-bundle-splitting-attempt.md)
+- **Safe LCP Strategies:** [safe-fcp-lcp-optimizations.md](../postmortems/2025-08-21-bundle-splitting-attempt.md)
 - **Performance Monitoring Workflow:** `.github/workflows/performance-monitoring.yml`
 
 ## Audit Metadata

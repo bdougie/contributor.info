@@ -6,7 +6,6 @@ This folder documents major data and schema migrations that affect system behavi
 
 ### System Migrations
 
-- **[2025-08-smart-throttling.md](./2025-08-smart-throttling.md)** - Implementation of smart throttling system with data completeness detection and context-aware cooldown periods to improve first-visit user experience
 - **[2025-10-workspace-user-relations-fix.md](./2025-10-workspace-user-relations-fix.md)** - Fix for workspace user relations data model
 
 ## Purpose

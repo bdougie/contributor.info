@@ -19,7 +19,7 @@ The `x-inngest-signature` header is missing from requests, which means:
 
 Run the verification script:
 ```bash
-./scripts/verify-inngest-keys.sh
+./scripts/debugging/verify-inngest-keys.sh
 ```
 
 This will check that your local `.env` has properly formatted keys (production keys, not test keys).
@@ -77,7 +77,7 @@ supabase functions deploy inngest-prod
 
 Run the test script to verify:
 ```bash
-./scripts/test-inngest-auth.sh
+./scripts/debugging/test-inngest-auth.sh
 ```
 
 You should see:
@@ -171,4 +171,4 @@ After fixing, verify:
 1. Keys are stored in password manager
 2. Supabase secrets are backed up
 3. Inngest app is synced and healthy
-4. Test script passes: `./scripts/test-inngest-auth.sh`
+4. Test script passes: `./scripts/debugging/test-inngest-auth.sh`

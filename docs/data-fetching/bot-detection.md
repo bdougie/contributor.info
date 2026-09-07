@@ -143,5 +143,4 @@ Potential enhancements to consider:
 ## Related Documentation
 
 - [Manual Repository Tracking](./manual-repository-tracking.md) - How repositories are tracked
-- [Progressive Data Capture](./progressive-data-capture-implementation.md) - Data fetching strategy
-- [Database Schema](../database-schema.md) - Contributors table structure
+- [Database Schema](../database/) - Contributors table structure

@@ -155,7 +155,7 @@ Our current `style-src` directive includes:
 ## Related Files
 
 - `public/_headers` - CSP policy configuration
-- `scripts/verify-csp-hash.js` - CSP hash verification script
+- `scripts/utilities/verify-csp-hash.js` - CSP hash verification script
 - `index.html` - Contains theme detection script with its own hash
 
 ## Troubleshooting
@@ -237,5 +237,4 @@ Our current `style-src` directive includes:
 - Main PR: [#1245](https://github.com/bdougie/contributor.info/pull/1245)
 
 **Related Docs:**
-- [Trending 502 Fix](./trending-502-error-and-sentry.md)
 - [CSP Documentation](../infrastructure/content-security-policy.md)

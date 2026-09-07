@@ -315,7 +315,7 @@ Event data structure doesn't match function expectations. The function requires 
 node scripts/test-inngest-events.js
 
 # Test production events
-node scripts/test-production-inngest.js
+node scripts/testing-tools/test-production-inngest.js
 ```
 
 ### 2. Diagnostic Scripts
@@ -325,7 +325,7 @@ node scripts/test-production-inngest.js
 node scripts/diagnose-inngest.js
 
 # Check registration
-node scripts/check-inngest-registration.js
+node scripts/debugging/validate-inngest.mjs
 ```
 
 ### 3. Browser Console

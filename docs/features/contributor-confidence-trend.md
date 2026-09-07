@@ -340,4 +340,4 @@ const trendData = await calculateConfidenceTrendData(
 
 - [Contributor Confidence Feature](./contributor-confidence.md)
 - [Confidence History Service](../architecture/confidence-history-architecture.md)
-- [Database Schema](../database-schema.md)
+- [Database Schema](../database/)

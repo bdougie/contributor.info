@@ -27,7 +27,7 @@ The action analyzes PR code changes to determine if documentation is needed:
 - **New React components** → Suggests user docs in `docs/features/` or `mintlify-docs/`
 - **New React hooks** → Suggests developer docs in `docs/development/hooks.md`
 - **New services/APIs** → Suggests architecture docs in `docs/architecture/`
-- **Database migrations** → Suggests schema docs in `docs/database/` and `docs/setup/DATABASE_MIGRATIONS.md`
+- **Database migrations** → Suggests schema docs in `docs/database/` and `docs/setup/database-migrations.md`
 
 **Skips Check If:**
 - PR already contains `.md` files
@@ -204,8 +204,8 @@ This PR introduces a new feature with significant code changes. Consider adding 
 - Add user documentation in `docs/features/` or `mintlify-docs/` explaining how to use the new UI components
 - Document the new React hooks in `docs/development/hooks.md` with usage examples
 - Add architecture documentation in `docs/architecture/` explaining how the new service works and integrates with existing systems
-- Document database changes in `docs/database/` or update `docs/database-schema.md`
-- If migrations affect data structure, add migration notes in `docs/setup/DATABASE_MIGRATIONS.md`
+- Document database changes in `docs/database/`
+- If migrations affect data structure, add migration notes in `docs/setup/database-migrations.md`
 
 ---
 

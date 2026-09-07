@@ -122,4 +122,360 @@ const dataRetentionPolicies = {
   
   // Deleted user data
   deletedUsers: {
-    immediateRemoval: ['profile', 'preferences', 'private_data'],\n    logRetention: '30 days', // For abuse prevention\n    backupRetention: '90 days' // For recovery purposes\n  }\n};\n```\n\n#### GitHub Data\n```typescript\nconst githubDataRetention = {\n  // Public contribution data\n  contributions: {\n    retention: 'indefinite', // Historical significance\n    anonymization: '5 years', // Remove personal identifiers\n    aggregation: 'immediate' // Convert to anonymous statistics\n  },\n  \n  // Repository data\n  repositories: {\n    retention: 'while_public', // Sync with GitHub public status\n    cleanup: 'monthly', // Remove deleted repositories\n    archival: '1 year' // After repository deletion\n  },\n  \n  // Cached API data\n  apiCache: {\n    retention: '24 hours', // Reduce API calls\n    maxAge: '7 days', // Never older than 7 days\n    cleanup: 'hourly' // Regular cleanup\n  }\n};\n```\n\n### Data Lifecycle Management\n```typescript\n// Automated data lifecycle management\nconst dataLifecycleManager = {\n  // Daily cleanup tasks\n  dailyCleanup: async () => {\n    // Remove expired cache data\n    await cleanupExpiredCache();\n    \n    // Process deletion requests\n    await processPendingDeletions();\n    \n    // Update retention status\n    await updateRetentionStatus();\n  },\n  \n  // Weekly archival tasks\n  weeklyArchival: async () => {\n    // Archive old activity data\n    await archiveOldActivityData();\n    \n    // Clean up inactive user data\n    await cleanupInactiveUsers();\n    \n    // Generate retention reports\n    await generateRetentionReports();\n  },\n  \n  // Monthly compliance tasks\n  monthlyCompliance: async () => {\n    // Review data retention compliance\n    await reviewRetentionCompliance();\n    \n    // Process user rights requests\n    await processUserRightsRequests();\n    \n    // Update privacy documentation\n    await updatePrivacyDocumentation();\n  }\n};\n```\n\n## User Rights Implementation\n\n### Data Access Requests\n```typescript\n// Data access request handler\nconst handleDataAccessRequest = async (userId: string) => {\n  const userData = {\n    // Profile information\n    profile: await getUserProfile(userId),\n    \n    // Account settings\n    settings: await getUserSettings(userId),\n    \n    // Activity history\n    activity: await getUserActivity(userId),\n    \n    // Stored searches\n    searches: await getUserSearches(userId),\n    \n    // Data processing logs\n    processing: await getProcessingLogs(userId)\n  };\n  \n  // Generate privacy-compliant export\n  const exportData = {\n    ...userData,\n    exportDate: new Date().toISOString(),\n    dataController: 'contributor.info',\n    retentionPolicies: dataRetentionPolicies,\n    rightsInformation: getUserRightsInformation()\n  };\n  \n  // Log the access request\n  await logPrivacyRequest({\n    userId,\n    type: 'data_access',\n    timestamp: new Date(),\n    status: 'completed'\n  });\n  \n  return exportData;\n};\n```\n\n### Data Deletion Requests\n```typescript\n// Data deletion request handler\nconst handleDataDeletionRequest = async (userId: string) => {\n  // Validate deletion request\n  const user = await getUser(userId);\n  if (!user) {\n    throw new Error('User not found');\n  }\n  \n  // Mark user for deletion\n  await markUserForDeletion(userId, {\n    requestDate: new Date(),\n    scheduledDeletion: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days\n    reason: 'user_request'\n  });\n  \n  // Begin deletion process\n  const deletionTasks = [\n    // Immediate: Remove personal data\n    deletePersonalData(userId),\n    \n    // Immediate: Anonymize contributions\n    anonymizeContributions(userId),\n    \n    // Delayed: Remove from backups\n    scheduleBackupCleanup(userId, 90), // 90 days\n    \n    // Immediate: Revoke API access\n    revokeApiAccess(userId)\n  ];\n  \n  await Promise.all(deletionTasks);\n  \n  // Log the deletion request\n  await logPrivacyRequest({\n    userId,\n    type: 'data_deletion',\n    timestamp: new Date(),\n    status: 'processing',\n    scheduledCompletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)\n  });\n  \n  return {\n    status: 'deletion_scheduled',\n    completionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),\n    immediateActions: ['personal_data_removed', 'contributions_anonymized'],\n    pendingActions: ['backup_cleanup', 'log_cleanup']\n  };\n};\n```\n\n### Data Portability\n```typescript\n// Data portability handler\nconst handleDataPortabilityRequest = async (userId: string, format: 'json' | 'csv' | 'xml' = 'json') => {\n  // Collect portable data\n  const portableData = {\n    // User-generated content\n    searches: await getUserSearches(userId),\n    preferences: await getUserPreferences(userId),\n    bookmarks: await getUserBookmarks(userId),\n    \n    // Activity data\n    viewHistory: await getUserViewHistory(userId),\n    interactions: await getUserInteractions(userId)\n  };\n  \n  // Format data according to request\n  let formattedData;\n  switch (format) {\n    case 'csv':\n      formattedData = convertToCSV(portableData);\n      break;\n    case 'xml':\n      formattedData = convertToXML(portableData);\n      break;\n    default:\n      formattedData = JSON.stringify(portableData, null, 2);\n  }\n  \n  // Log portability request\n  await logPrivacyRequest({\n    userId,\n    type: 'data_portability',\n    format,\n    timestamp: new Date(),\n    status: 'completed'\n  });\n  \n  return {\n    data: formattedData,\n    format,\n    generatedAt: new Date().toISOString(),\n    dataController: 'contributor.info'\n  };\n};\n```\n\n## Privacy-Preserving Features\n\n### Anonymous Analytics\n```typescript\n// Privacy-preserving analytics\nconst trackAnonymousEvent = (event: string, properties: Record<string, any>) => {\n  // Remove personally identifiable information\n  const anonymizedProperties = {\n    ...properties,\n    // Hash IP address\n    ip_hash: hashIP(getClientIP()),\n    // Remove user ID\n    user_id: undefined,\n    // Generalize timestamps\n    timestamp: Math.floor(Date.now() / (1000 * 60 * 60)) * (1000 * 60 * 60), // Hour precision\n    // Add privacy indicators\n    privacy_mode: true,\n    data_minimized: true\n  };\n  \n  // Send to analytics with privacy headers\n  analytics.track(event, anonymizedProperties, {\n    context: {\n      library: {\n        name: 'contributor.info-privacy',\n        version: '1.0.0'\n      },\n      privacy: {\n        anonymized: true,\n        gdpr_compliant: true,\n        retention_period: '2 years'\n      }\n    }\n  });\n};\n```\n\n### Data Minimization\n```typescript\n// Data minimization utilities\nconst minimizeUserData = (userData: any) => {\n  return {\n    // Keep only essential fields\n    id: userData.id,\n    username: userData.username, // Public GitHub username\n    avatar_url: userData.avatar_url, // Public GitHub avatar\n    \n    // Remove unnecessary fields\n    email: undefined, // Not needed for core functionality\n    full_name: undefined, // Use username instead\n    location: undefined, // Not used in application\n    \n    // Anonymize sensitive fields\n    last_login: userData.last_login ? 'recent' : 'not_recent',\n    ip_address: userData.ip_address ? hashIP(userData.ip_address) : undefined\n  };\n};\n```\n\n## Compliance Monitoring\n\n### GDPR Compliance\n```typescript\n// GDPR compliance checker\nconst checkGDPRCompliance = async () => {\n  const compliance = {\n    // Article 5: Principles of processing personal data\n    dataMinimization: await checkDataMinimization(),\n    purposeLimitation: await checkPurposeLimitation(),\n    accuracyRequirement: await checkDataAccuracy(),\n    storageLimitation: await checkStorageLimitation(),\n    \n    // Article 25: Data protection by design and by default\n    privacyByDesign: await checkPrivacyByDesign(),\n    defaultSettings: await checkDefaultPrivacySettings(),\n    \n    // Chapter 3: Rights of the data subject\n    userRights: await checkUserRightsImplementation(),\n    consentManagement: await checkConsentManagement(),\n    \n    // Article 32: Security of processing\n    technicalSafeguards: await checkTechnicalSafeguards(),\n    organizationalMeasures: await checkOrganizationalMeasures()\n  };\n  \n  // Generate compliance report\n  const report = {\n    timestamp: new Date().toISOString(),\n    overallCompliance: calculateOverallCompliance(compliance),\n    details: compliance,\n    recommendations: generateComplianceRecommendations(compliance)\n  };\n  \n  return report;\n};\n```\n\n### Privacy Impact Assessment\n```typescript\n// Privacy impact assessment for new features\nconst conductPrivacyImpactAssessment = (feature: FeatureSpec) => {\n  const assessment = {\n    // Data collection analysis\n    dataTypes: analyzeDataTypes(feature),\n    collectionMethods: analyzeCollectionMethods(feature),\n    dataVolume: estimateDataVolume(feature),\n    \n    // Processing analysis\n    processingPurposes: identifyProcessingPurposes(feature),\n    legalBasis: determineLegalBasis(feature),\n    dataSharing: analyzeDataSharing(feature),\n    \n    // Risk assessment\n    privacyRisks: identifyPrivacyRisks(feature),\n    riskMitigation: proposeMitigationMeasures(feature),\n    residualRisk: calculateResidualRisk(feature),\n    \n    // Compliance check\n    gdprCompliance: checkFeatureGDPRCompliance(feature),\n    ccpaCompliance: checkFeatureCCPACompliance(feature),\n    \n    // Recommendations\n    recommendations: generatePrivacyRecommendations(feature)\n  };\n  \n  return assessment;\n};\n```\n\n## Related Documentation\n\n- [Security Documentation](../security/) - Security measures protecting user data\n- [Data Retention Policy](./data-retention-policy.md) - Detailed retention procedures\n- [User Experience Guidelines](../user-experience/) - Privacy-friendly UX patterns\n- [Legal Compliance](../setup/) - Legal and regulatory compliance procedures\n\n---\n\n**Privacy Philosophy**: Privacy is a fundamental human right. We collect only what we need, protect what we have, and delete what we don't need.
+    immediateRemoval: ['profile', 'preferences', 'private_data'],
+    logRetention: '30 days', // For abuse prevention
+    backupRetention: '90 days' // For recovery purposes
+  }
+};
+```
+
+#### GitHub Data
+```typescript
+const githubDataRetention = {
+  // Public contribution data
+  contributions: {
+    retention: 'indefinite', // Historical significance
+    anonymization: '5 years', // Remove personal identifiers
+    aggregation: 'immediate' // Convert to anonymous statistics
+  },
+  
+  // Repository data
+  repositories: {
+    retention: 'while_public', // Sync with GitHub public status
+    cleanup: 'monthly', // Remove deleted repositories
+    archival: '1 year' // After repository deletion
+  },
+  
+  // Cached API data
+  apiCache: {
+    retention: '24 hours', // Reduce API calls
+    maxAge: '7 days', // Never older than 7 days
+    cleanup: 'hourly' // Regular cleanup
+  }
+};
+```
+
+### Data Lifecycle Management
+```typescript
+// Automated data lifecycle management
+const dataLifecycleManager = {
+  // Daily cleanup tasks
+  dailyCleanup: async () => {
+    // Remove expired cache data
+    await cleanupExpiredCache();
+    
+    // Process deletion requests
+    await processPendingDeletions();
+    
+    // Update retention status
+    await updateRetentionStatus();
+  },
+  
+  // Weekly archival tasks
+  weeklyArchival: async () => {
+    // Archive old activity data
+    await archiveOldActivityData();
+    
+    // Clean up inactive user data
+    await cleanupInactiveUsers();
+    
+    // Generate retention reports
+    await generateRetentionReports();
+  },
+  
+  // Monthly compliance tasks
+  monthlyCompliance: async () => {
+    // Review data retention compliance
+    await reviewRetentionCompliance();
+    
+    // Process user rights requests
+    await processUserRightsRequests();
+    
+    // Update privacy documentation
+    await updatePrivacyDocumentation();
+  }
+};
+```
+
+## User Rights Implementation
+
+### Data Access Requests
+```typescript
+// Data access request handler
+const handleDataAccessRequest = async (userId: string) => {
+  const userData = {
+    // Profile information
+    profile: await getUserProfile(userId),
+    
+    // Account settings
+    settings: await getUserSettings(userId),
+    
+    // Activity history
+    activity: await getUserActivity(userId),
+    
+    // Stored searches
+    searches: await getUserSearches(userId),
+    
+    // Data processing logs
+    processing: await getProcessingLogs(userId)
+  };
+  
+  // Generate privacy-compliant export
+  const exportData = {
+    ...userData,
+    exportDate: new Date().toISOString(),
+    dataController: 'contributor.info',
+    retentionPolicies: dataRetentionPolicies,
+    rightsInformation: getUserRightsInformation()
+  };
+  
+  // Log the access request
+  await logPrivacyRequest({
+    userId,
+    type: 'data_access',
+    timestamp: new Date(),
+    status: 'completed'
+  });
+  
+  return exportData;
+};
+```
+
+### Data Deletion Requests
+```typescript
+// Data deletion request handler
+const handleDataDeletionRequest = async (userId: string) => {
+  // Validate deletion request
+  const user = await getUser(userId);
+  if (!user) {
+    throw new Error('User not found');
+  }
+  
+  // Mark user for deletion
+  await markUserForDeletion(userId, {
+    requestDate: new Date(),
+    scheduledDeletion: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    reason: 'user_request'
+  });
+  
+  // Begin deletion process
+  const deletionTasks = [
+    // Immediate: Remove personal data
+    deletePersonalData(userId),
+    
+    // Immediate: Anonymize contributions
+    anonymizeContributions(userId),
+    
+    // Delayed: Remove from backups
+    scheduleBackupCleanup(userId, 90), // 90 days
+    
+    // Immediate: Revoke API access
+    revokeApiAccess(userId)
+  ];
+  
+  await Promise.all(deletionTasks);
+  
+  // Log the deletion request
+  await logPrivacyRequest({
+    userId,
+    type: 'data_deletion',
+    timestamp: new Date(),
+    status: 'processing',
+    scheduledCompletion: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+  });
+  
+  return {
+    status: 'deletion_scheduled',
+    completionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    immediateActions: ['personal_data_removed', 'contributions_anonymized'],
+    pendingActions: ['backup_cleanup', 'log_cleanup']
+  };
+};
+```
+
+### Data Portability
+```typescript
+// Data portability handler
+const handleDataPortabilityRequest = async (userId: string, format: 'json' | 'csv' | 'xml' = 'json') => {
+  // Collect portable data
+  const portableData = {
+    // User-generated content
+    searches: await getUserSearches(userId),
+    preferences: await getUserPreferences(userId),
+    bookmarks: await getUserBookmarks(userId),
+    
+    // Activity data
+    viewHistory: await getUserViewHistory(userId),
+    interactions: await getUserInteractions(userId)
+  };
+  
+  // Format data according to request
+  let formattedData;
+  switch (format) {
+    case 'csv':
+      formattedData = convertToCSV(portableData);
+      break;
+    case 'xml':
+      formattedData = convertToXML(portableData);
+      break;
+    default:
+      formattedData = JSON.stringify(portableData, null, 2);
+  }
+  
+  // Log portability request
+  await logPrivacyRequest({
+    userId,
+    type: 'data_portability',
+    format,
+    timestamp: new Date(),
+    status: 'completed'
+  });
+  
+  return {
+    data: formattedData,
+    format,
+    generatedAt: new Date().toISOString(),
+    dataController: 'contributor.info'
+  };
+};
+```
+
+## Privacy-Preserving Features
+
+### Anonymous Analytics
+```typescript
+// Privacy-preserving analytics
+const trackAnonymousEvent = (event: string, properties: Record<string, any>) => {
+  // Remove personally identifiable information
+  const anonymizedProperties = {
+    ...properties,
+    // Hash IP address
+    ip_hash: hashIP(getClientIP()),
+    // Remove user ID
+    user_id: undefined,
+    // Generalize timestamps
+    timestamp: Math.floor(Date.now() / (1000 * 60 * 60)) * (1000 * 60 * 60), // Hour precision
+    // Add privacy indicators
+    privacy_mode: true,
+    data_minimized: true
+  };
+  
+  // Send to analytics with privacy headers
+  analytics.track(event, anonymizedProperties, {
+    context: {
+      library: {
+        name: 'contributor.info-privacy',
+        version: '1.0.0'
+      },
+      privacy: {
+        anonymized: true,
+        gdpr_compliant: true,
+        retention_period: '2 years'
+      }
+    }
+  });
+};
+```
+
+### Data Minimization
+```typescript
+// Data minimization utilities
+const minimizeUserData = (userData: any) => {
+  return {
+    // Keep only essential fields
+    id: userData.id,
+    username: userData.username, // Public GitHub username
+    avatar_url: userData.avatar_url, // Public GitHub avatar
+    
+    // Remove unnecessary fields
+    email: undefined, // Not needed for core functionality
+    full_name: undefined, // Use username instead
+    location: undefined, // Not used in application
+    
+    // Anonymize sensitive fields
+    last_login: userData.last_login ? 'recent' : 'not_recent',
+    ip_address: userData.ip_address ? hashIP(userData.ip_address) : undefined
+  };
+};
+```
+
+## Compliance Monitoring
+
+### GDPR Compliance
+```typescript
+// GDPR compliance checker
+const checkGDPRCompliance = async () => {
+  const compliance = {
+    // Article 5: Principles of processing personal data
+    dataMinimization: await checkDataMinimization(),
+    purposeLimitation: await checkPurposeLimitation(),
+    accuracyRequirement: await checkDataAccuracy(),
+    storageLimitation: await checkStorageLimitation(),
+    
+    // Article 25: Data protection by design and by default
+    privacyByDesign: await checkPrivacyByDesign(),
+    defaultSettings: await checkDefaultPrivacySettings(),
+    
+    // Chapter 3: Rights of the data subject
+    userRights: await checkUserRightsImplementation(),
+    consentManagement: await checkConsentManagement(),
+    
+    // Article 32: Security of processing
+    technicalSafeguards: await checkTechnicalSafeguards(),
+    organizationalMeasures: await checkOrganizationalMeasures()
+  };
+  
+  // Generate compliance report
+  const report = {
+    timestamp: new Date().toISOString(),
+    overallCompliance: calculateOverallCompliance(compliance),
+    details: compliance,
+    recommendations: generateComplianceRecommendations(compliance)
+  };
+  
+  return report;
+};
+```
+
+### Privacy Impact Assessment
+```typescript
+// Privacy impact assessment for new features
+const conductPrivacyImpactAssessment = (feature: FeatureSpec) => {
+  const assessment = {
+    // Data collection analysis
+    dataTypes: analyzeDataTypes(feature),
+    collectionMethods: analyzeCollectionMethods(feature),
+    dataVolume: estimateDataVolume(feature),
+    
+    // Processing analysis
+    processingPurposes: identifyProcessingPurposes(feature),
+    legalBasis: determineLegalBasis(feature),
+    dataSharing: analyzeDataSharing(feature),
+    
+    // Risk assessment
+    privacyRisks: identifyPrivacyRisks(feature),
+    riskMitigation: proposeMitigationMeasures(feature),
+    residualRisk: calculateResidualRisk(feature),
+    
+    // Compliance check
+    gdprCompliance: checkFeatureGDPRCompliance(feature),
+    ccpaCompliance: checkFeatureCCPACompliance(feature),
+    
+    // Recommendations
+    recommendations: generatePrivacyRecommendations(feature)
+  };
+  
+  return assessment;
+};
+```
+
+## Related Documentation
+
+- [Security Documentation](../security/) - Security measures protecting user data
+- [Data Retention Policy](./data-retention-policy.md) - Detailed retention procedures
+- [User Experience Guidelines](../user-experience/) - Privacy-friendly UX patterns
+- [Legal Compliance](../setup/) - Legal and regulatory compliance procedures
+
+---
+
+**Privacy Philosophy**: Privacy is a fundamental human right. We collect only what we need, protect what we have, and delete what we don't need.

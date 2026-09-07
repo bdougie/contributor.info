@@ -303,9 +303,9 @@ jobs:
       - name: Run Web Vitals tests
         run: |
           # Check if the comparison script exists
-          if [ -f "scripts/compare-web-vitals.js" ]; then
+          if [ -f "scripts/performance/compare-web-vitals.js" ]; then
             echo "Running Web Vitals comparison..."
-            node scripts/compare-web-vitals.js || true
+            node scripts/performance/compare-web-vitals.js || true
           else
             echo "Web Vitals comparison script not found, skipping..."
           fi

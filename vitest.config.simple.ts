@@ -12,7 +12,7 @@ import { resolve } from 'path';
  * - Maximum 5 second timeout per test
  * - Complete isolation between tests
  *
- * See: docs/testing/BULLETPROOF_TESTING_GUIDELINES.md
+ * See: docs/testing/bulletproof-testing-guidelines.md
  */
 export default defineConfig({
   plugins: [react()],

@@ -16,7 +16,6 @@ User Experience documentation helps developers:
 - **[Implementation Checklist](./implementation-checklist.md)** - UX implementation validation checklist with enhanced patterns
 - **[Feature Template](./feature-template.md)** - Standardized UX pattern template
 - **[Invisible Data Loading](./invisible-data-loading.md)** - Netflix-like background data loading UX (Updated)
-- **[New Repository Discovery](./new-repository-discovery.md)** - User experience guide for automatic repository setup **NEW**
 
 ### 📊 UX Analysis & Reports
 - **[UX Summary](./SUMMARY.md)** - User experience analysis and improvements summary
@@ -274,4 +273,316 @@ const AccessibleChart = ({ data, title, description }) => {
 ```
 
 ### Interactive Data Exploration
-```typescript\nconst InteractiveContributorList = ({ contributors }) => {\n  const [filters, setFilters] = useState({ search: '', sortBy: 'contributions' });\n  const [selectedContributor, setSelectedContributor] = useState(null);\n  \n  const filteredContributors = useMemo(() => {\n    return contributors\n      .filter(c => c.username.toLowerCase().includes(filters.search.toLowerCase()))\n      .sort((a, b) => b[filters.sortBy] - a[filters.sortBy]);\n  }, [contributors, filters]);\n  \n  return (\n    <div className=\"contributor-explorer\">\n      <div className=\"filters\">\n        <SearchInput \n          value={filters.search}\n          onChange={(search) => setFilters(f => ({ ...f, search }))}\n          placeholder=\"Search contributors...\"\n        />\n        <SortSelect\n          value={filters.sortBy}\n          onChange={(sortBy) => setFilters(f => ({ ...f, sortBy }))}\n          options={[\n            { value: 'contributions', label: 'Contributions' },\n            { value: 'recent_activity', label: 'Recent Activity' }\n          ]}\n        />\n      </div>\n      \n      <div className=\"contributor-grid\">\n        {filteredContributors.map(contributor => (\n          <ContributorCard\n            key={contributor.id}\n            contributor={contributor}\n            selected={selectedContributor?.id === contributor.id}\n            onClick={() => setSelectedContributor(contributor)}\n          />\n        ))}\n      </div>\n      \n      {selectedContributor && (\n        <ContributorDetailModal\n          contributor={selectedContributor}\n          onClose={() => setSelectedContributor(null)}\n        />\n      )}\n    </div>\n  );\n};\n```\n\n## Performance UX Optimization\n\n### Virtualization for Large Lists\n```typescript\nimport { FixedSizeList as List } from 'react-window';\n\nconst VirtualizedContributorList = ({ contributors }) => {\n  const itemHeight = 80;\n  const containerHeight = 400;\n  \n  const Row = ({ index, style }) => (\n    <div style={style}>\n      <ContributorCard contributor={contributors[index]} />\n    </div>\n  );\n  \n  return (\n    <List\n      height={containerHeight}\n      itemCount={contributors.length}\n      itemSize={itemHeight}\n      itemData={contributors}\n    >\n      {Row}\n    </List>\n  );\n};\n```\n\n### Image Optimization\n```typescript\nconst OptimizedAvatar = ({ src, alt, size = 48 }) => {\n  const [loaded, setLoaded] = useState(false);\n  const [error, setError] = useState(false);\n  \n  return (\n    <div className=\"avatar-container\" style={{ width: size, height: size }}>\n      {!loaded && !error && (\n        <div className=\"avatar-skeleton animate-pulse bg-gray-200\" />\n      )}\n      \n      <img\n        src={`${src}&s=${size * 2}`} // 2x for high DPI\n        alt={alt}\n        width={size}\n        height={size}\n        loading=\"lazy\"\n        onLoad={() => setLoaded(true)}\n        onError={() => setError(true)}\n        className={cn(\n          'avatar',\n          loaded ? 'opacity-100' : 'opacity-0',\n          'transition-opacity duration-200'\n        )}\n      />\n      \n      {error && (\n        <div className=\"avatar-fallback\">\n          {alt?.[0]?.toUpperCase() || '?'}\n        </div>\n      )}\n    </div>\n  );\n};\n```\n\n## Notification System\n\n### Subtle Notification Pattern\n```typescript\nconst NotificationSystem = () => {\n  const { notifications, removeNotification } = useNotifications();\n  \n  return (\n    <div className=\"notification-container fixed top-4 right-4 z-50\">\n      <AnimatePresence>\n        {notifications.map(notification => (\n          <motion.div\n            key={notification.id}\n            initial={{ opacity: 0, y: -50 }}\n            animate={{ opacity: 1, y: 0 }}\n            exit={{ opacity: 0, y: -50 }}\n            className={cn(\n              'notification',\n              `notification-${notification.type}`,\n              'mb-2 p-3 rounded-lg shadow-lg'\n            )}\n          >\n            <div className=\"notification-content\">\n              {notification.icon && (\n                <notification.icon className=\"w-5 h-5 mr-2\" />\n              )}\n              <span>{notification.message}</span>\n            </div>\n            \n            {notification.action && (\n              <button\n                onClick={notification.action.onClick}\n                className=\"notification-action\"\n              >\n                {notification.action.label}\n              </button>\n            )}\n            \n            <button\n              onClick={() => removeNotification(notification.id)}\n              className=\"notification-close\"\n              aria-label=\"Close notification\"\n            >\n              ×\n            </button>\n          </motion.div>\n        ))}\n      </AnimatePresence>\n    </div>\n  );\n};\n```\n\n## Mobile UX Considerations\n\n### Touch-Friendly Interactions\n```css\n/* Minimum touch target size */\n.touch-target {\n  min-height: 44px;\n  min-width: 44px;\n}\n\n/* Touch feedback */\n.interactive:active {\n  transform: scale(0.98);\n  opacity: 0.8;\n}\n\n/* Prevent zoom on inputs */\ninput, select, textarea {\n  font-size: 16px; /* Prevents zoom on iOS */\n}\n```\n\n### Mobile Navigation Pattern\n```typescript\nconst MobileNavigation = () => {\n  const [isOpen, setIsOpen] = useState(false);\n  \n  return (\n    <>\n      <button\n        className=\"mobile-menu-button md:hidden\"\n        onClick={() => setIsOpen(!isOpen)}\n        aria-label=\"Toggle navigation menu\"\n      >\n        <MenuIcon />\n      </button>\n      \n      <AnimatePresence>\n        {isOpen && (\n          <motion.nav\n            initial={{ x: '-100%' }}\n            animate={{ x: 0 }}\n            exit={{ x: '-100%' }}\n            className=\"mobile-nav fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg\"\n          >\n            <div className=\"mobile-nav-content p-4\">\n              {/* Navigation items */}\n            </div>\n          </motion.nav>\n        )}\n      </AnimatePresence>\n      \n      {/* Backdrop */}\n      {isOpen && (\n        <div\n          className=\"fixed inset-0 bg-black bg-opacity-50 z-40\"\n          onClick={() => setIsOpen(false)}\n        />\n      )}\n    </>\n  );\n};\n```\n\n## UX Testing & Validation\n\n### User Testing Integration\n```typescript\n// A/B testing for UX improvements\nconst useABTest = (testName: string, variants: string[]) => {\n  const [variant] = useState(() => {\n    const stored = localStorage.getItem(`ab-test-${testName}`);\n    if (stored && variants.includes(stored)) return stored;\n    \n    const randomVariant = variants[Math.floor(Math.random() * variants.length)];\n    localStorage.setItem(`ab-test-${testName}`, randomVariant);\n    \n    // Track assignment\n    trackEvent('ab_test_assigned', {\n      test_name: testName,\n      variant: randomVariant\n    });\n    \n    return randomVariant;\n  });\n  \n  return variant;\n};\n\n// Usage\nconst ContributorListVariant = () => {\n  const variant = useABTest('contributor-list-layout', ['grid', 'list']);\n  \n  return variant === 'grid' ? (\n    <ContributorGrid contributors={contributors} />\n  ) : (\n    <ContributorList contributors={contributors} />\n  );\n};\n```\n\n### UX Metrics Collection\n```typescript\n// Performance UX metrics\nconst useUXMetrics = () => {\n  useEffect(() => {\n    // Time to interactive\n    const observer = new PerformanceObserver((list) => {\n      const entries = list.getEntries();\n      entries.forEach((entry) => {\n        if (entry.entryType === 'navigation') {\n          trackEvent('ux_timing', {\n            metric: 'time_to_interactive',\n            value: entry.loadEventEnd - entry.fetchStart\n          });\n        }\n      });\n    });\n    \n    observer.observe({ entryTypes: ['navigation'] });\n    \n    // User engagement\n    const startTime = Date.now();\n    return () => {\n      const sessionDuration = Date.now() - startTime;\n      trackEvent('ux_engagement', {\n        session_duration: sessionDuration\n      });\n    };\n  }, []);\n};\n```\n\n## Related Documentation\n\n- [Implementation Checklist](./implementation-checklist.md) - UX validation checklist\n- [Feature Template](./feature-template.md) - Standardized UX patterns\n- [Testing Documentation](../testing/) - UX testing strategies\n- [Accessibility Guidelines](../setup/) - Accessibility implementation\n\n---\n\n**UX Philosophy**: Design for the user's success, not just the interface's beauty. Every interaction should feel effortless and purposeful.
+```typescript
+const InteractiveContributorList = ({ contributors }) => {
+  const [filters, setFilters] = useState({ search: '', sortBy: 'contributions' });
+  const [selectedContributor, setSelectedContributor] = useState(null);
+  
+  const filteredContributors = useMemo(() => {
+    return contributors
+      .filter(c => c.username.toLowerCase().includes(filters.search.toLowerCase()))
+      .sort((a, b) => b[filters.sortBy] - a[filters.sortBy]);
+  }, [contributors, filters]);
+  
+  return (
+    <div className=\"contributor-explorer\">
+      <div className=\"filters\">
+        <SearchInput 
+          value={filters.search}
+          onChange={(search) => setFilters(f => ({ ...f, search }))}
+          placeholder=\"Search contributors...\"
+        />
+        <SortSelect
+          value={filters.sortBy}
+          onChange={(sortBy) => setFilters(f => ({ ...f, sortBy }))}
+          options={[
+            { value: 'contributions', label: 'Contributions' },
+            { value: 'recent_activity', label: 'Recent Activity' }
+          ]}
+        />
+      </div>
+      
+      <div className=\"contributor-grid\">
+        {filteredContributors.map(contributor => (
+          <ContributorCard
+            key={contributor.id}
+            contributor={contributor}
+            selected={selectedContributor?.id === contributor.id}
+            onClick={() => setSelectedContributor(contributor)}
+          />
+        ))}
+      </div>
+      
+      {selectedContributor && (
+        <ContributorDetailModal
+          contributor={selectedContributor}
+          onClose={() => setSelectedContributor(null)}
+        />
+      )}
+    </div>
+  );
+};
+```
+
+## Performance UX Optimization
+
+### Virtualization for Large Lists
+```typescript
+import { FixedSizeList as List } from 'react-window';
+
+const VirtualizedContributorList = ({ contributors }) => {
+  const itemHeight = 80;
+  const containerHeight = 400;
+  
+  const Row = ({ index, style }) => (
+    <div style={style}>
+      <ContributorCard contributor={contributors[index]} />
+    </div>
+  );
+  
+  return (
+    <List
+      height={containerHeight}
+      itemCount={contributors.length}
+      itemSize={itemHeight}
+      itemData={contributors}
+    >
+      {Row}
+    </List>
+  );
+};
+```
+
+### Image Optimization
+```typescript
+const OptimizedAvatar = ({ src, alt, size = 48 }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+  
+  return (
+    <div className=\"avatar-container\" style={{ width: size, height: size }}>
+      {!loaded && !error && (
+        <div className=\"avatar-skeleton animate-pulse bg-gray-200\" />
+      )}
+      
+      <img
+        src={`${src}&s=${size * 2}`} // 2x for high DPI
+        alt={alt}
+        width={size}
+        height={size}
+        loading=\"lazy\"
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        className={cn(
+          'avatar',
+          loaded ? 'opacity-100' : 'opacity-0',
+          'transition-opacity duration-200'
+        )}
+      />
+      
+      {error && (
+        <div className=\"avatar-fallback\">
+          {alt?.[0]?.toUpperCase() || '?'}
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+## Notification System
+
+### Subtle Notification Pattern
+```typescript
+const NotificationSystem = () => {
+  const { notifications, removeNotification } = useNotifications();
+  
+  return (
+    <div className=\"notification-container fixed top-4 right-4 z-50\">
+      <AnimatePresence>
+        {notifications.map(notification => (
+          <motion.div
+            key={notification.id}
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className={cn(
+              'notification',
+              `notification-${notification.type}`,
+              'mb-2 p-3 rounded-lg shadow-lg'
+            )}
+          >
+            <div className=\"notification-content\">
+              {notification.icon && (
+                <notification.icon className=\"w-5 h-5 mr-2\" />
+              )}
+              <span>{notification.message}</span>
+            </div>
+            
+            {notification.action && (
+              <button
+                onClick={notification.action.onClick}
+                className=\"notification-action\"
+              >
+                {notification.action.label}
+              </button>
+            )}
+            
+            <button
+              onClick={() => removeNotification(notification.id)}
+              className=\"notification-close\"
+              aria-label=\"Close notification\"
+            >
+              ×
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
+```
+
+## Mobile UX Considerations
+
+### Touch-Friendly Interactions
+```css
+/* Minimum touch target size */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Touch feedback */
+.interactive:active {
+  transform: scale(0.98);
+  opacity: 0.8;
+}
+
+/* Prevent zoom on inputs */
+input, select, textarea {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+```
+
+### Mobile Navigation Pattern
+```typescript
+const MobileNavigation = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <>
+      <button
+        className=\"mobile-menu-button md:hidden\"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label=\"Toggle navigation menu\"
+      >
+        <MenuIcon />
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && (
+          <motion.nav
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            className=\"mobile-nav fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg\"
+          >
+            <div className=\"mobile-nav-content p-4\">
+              {/* Navigation items */}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+      
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className=\"fixed inset-0 bg-black bg-opacity-50 z-40\"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
+  );
+};
+```
+
+## UX Testing & Validation
+
+### User Testing Integration
+```typescript
+// A/B testing for UX improvements
+const useABTest = (testName: string, variants: string[]) => {
+  const [variant] = useState(() => {
+    const stored = localStorage.getItem(`ab-test-${testName}`);
+    if (stored && variants.includes(stored)) return stored;
+    
+    const randomVariant = variants[Math.floor(Math.random() * variants.length)];
+    localStorage.setItem(`ab-test-${testName}`, randomVariant);
+    
+    // Track assignment
+    trackEvent('ab_test_assigned', {
+      test_name: testName,
+      variant: randomVariant
+    });
+    
+    return randomVariant;
+  });
+  
+  return variant;
+};
+
+// Usage
+const ContributorListVariant = () => {
+  const variant = useABTest('contributor-list-layout', ['grid', 'list']);
+  
+  return variant === 'grid' ? (
+    <ContributorGrid contributors={contributors} />
+  ) : (
+    <ContributorList contributors={contributors} />
+  );
+};
+```
+
+### UX Metrics Collection
+```typescript
+// Performance UX metrics
+const useUXMetrics = () => {
+  useEffect(() => {
+    // Time to interactive
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (entry.entryType === 'navigation') {
+          trackEvent('ux_timing', {
+            metric: 'time_to_interactive',
+            value: entry.loadEventEnd - entry.fetchStart
+          });
+        }
+      });
+    });
+    
+    observer.observe({ entryTypes: ['navigation'] });
+    
+    // User engagement
+    const startTime = Date.now();
+    return () => {
+      const sessionDuration = Date.now() - startTime;
+      trackEvent('ux_engagement', {
+        session_duration: sessionDuration
+      });
+    };
+  }, []);
+};
+```
+
+## Related Documentation
+
+- [Implementation Checklist](./implementation-checklist.md) - UX validation checklist
+- [Feature Template](./feature-template.md) - Standardized UX patterns
+- [Testing Documentation](../testing/) - UX testing strategies
+- [Accessibility Guidelines](../setup/) - Accessibility implementation
+
+---
+
+**UX Philosophy**: Design for the user's success, not just the interface's beauty. Every interaction should feel effortless and purposeful.

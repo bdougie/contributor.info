@@ -12,45 +12,25 @@ Implementation documentation helps developers:
 
 ## Documentation Index
 
-### 🎨 UI & Frontend Implementations
-- **[Core Web Vitals Phase 1](./core-web-vitals-phase1.md)** - LCP, CLS, and performance optimizations through skeleton screens and resource hints
-- **[Data Loading Optimizations Phase 2](./data-loading-optimizations-phase2.md)** - Progressive data loading, intersection observer, and API optimization for Core Web Vitals
-- **[Lighthouse Optimizations](./LIGHTHOUSE_OPTIMIZATIONS.md)** - Performance optimizations and metrics improvements
-- **[Distribution Charts Restoration](./distribution-charts-restoration.md)** - Chart component fixes and improvements
-- **[Mobile Fixes Summary](./MOBILE_FIXES_SUMMARY.md)** - Mobile responsiveness improvements
-- **[Social Cards Deployment](./social-cards-deployment.md)** - Social media card generation
+### Contributor Analysis
+- [Contributor Classification via Events](./contributor-classification-via-events.md) - Identifying maintainers from privileged GitHub events
+- [Smart Commit Analysis Implementation](./smart-commit-analysis-implementation.md) - Automated commit analysis
+- [AI Repository Summaries](./ai-repository-summaries.md) - LLM-powered repository summaries
 
-### 🔧 Technical Infrastructure
-- **[ES Module Fix Summary](./es-module-fix-summary.md)** - Module system modernization
-- **[Chromatic Fix Summary](./chromatic-fix-summary.md)** - Visual testing infrastructure
-- **[Storybook Supabase Fix Complete](./storybook-supabase-fix-complete.md)** - Development tooling improvements
-- **[Storybook Supabase Mock Solution](./storybook-supabase-mock-solution.md)** - Testing infrastructure
+### Spam Detection
+- [Spam Detection Implementation](./spam-detection-implementation.md) - Phase 1 spam detection
+- [Spam Detection Phase 2](./spam-detection-phase2.md) - Real-time detection
 
-### 🤖 AI & Analytics Features
-- **[AI Repository Summaries](./ai-repository-summaries.md)** - LLM-powered repository analysis
-- **[Smart Commit Analysis Implementation](./smart-commit-analysis-implementation.md)** - Automated commit analysis
-- **[Bot Role Implementation Summary](./bot-role-implementation-summary.md)** - Bot detection and handling
+### Data Sync and Performance
+- [PR Data Sync on Page Load](./pr-sync-on-page-load.md) - Hook that refreshes PR data when a page loads
+- [Assignee Distribution Performance Optimization](./assignee-distribution-performance-optimization.md) - RPC-backed assignee distribution
+- [Scatterplot Optimization](./scatterplot-optimization.md) - Rendering optimizations for the contributions scatterplot
+- [Supabase Lazy Loading Audit (PR #1282)](./pr-1282-supabase-lazy-loading-audit.md) - Audit of lazy Supabase client loading
+- [Type Safety and Performance Fixes](./type-safety-and-performance-fixes.md) - Type fixes across the workspace identifier code
+- [Discussion Similarity Function Type Fix](./discussion-similarity-type-fix.md) - Type fix for the discussion similarity RPC
 
-### 🔒 Security & Quality Implementations
-- **[Spam Detection Implementation](./spam-detection-implementation.md)** - Phase 1 spam detection
-- **[Spam Detection Phase 2](./spam-detection-phase2.md)** - Enhanced spam detection
-- **[Spam Detection Phase 3](./spam-detection-phase3.md)** - Advanced spam prevention
-- **[Self Selection Fix Summary](./self-selection-fix-summary.md)** - User selection improvements
-- **[Contributor Confidence Testing Summary](./contributor-confidence-testing-summary.md)** - Confidence scoring
-
-### 📊 Data & Integration Systems
-- **[Database Fallback Implementation](./database-fallback-implementation.md)** - Resilient data access
-- **[Progressive Capture Job System Fixes](./progressive-capture-job-system-fixes.md)** - Background processing improvements
-- **[Resend Integration](./resend-integration.md)** - Email service integration
-- **[GitHub Actions Migration Summary](./github-actions-migration-summary.md)** - Migration from Inngest to GitHub Actions for large repository processing
-
-### 🔍 Monitoring & Observability
-- **[Sentry Monitoring Setup](./sentry-monitoring-setup.md)** - Error tracking and performance monitoring
-- **[Optimization Summary](./optimization-summary.md)** - General performance optimizations
-- **[Solution Summary](./solution-summary.md)** - Multi-issue resolution summary
-
-### 📝 Special Projects
-- **[Ross](./ross.md)** - Specific contributor or feature implementation
+### Integrations
+- [Resend Integration](./resend-integration.md) - Email delivery via Resend
 
 ## Implementation Categories
 
@@ -165,4 +145,98 @@ class FeatureErrorBoundary extends React.Component {
     
     return this.props.children;
   }
-}\n```\n\n### Database Implementation Pattern\n```sql\n-- Standard database implementation\n-- 1. Create tables with proper indexes\nCREATE TABLE feature_data (\n  id SERIAL PRIMARY KEY,\n  user_id UUID REFERENCES users(id),\n  data JSONB NOT NULL,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);\n\n-- 2. Add indexes for performance\nCREATE INDEX idx_feature_data_user_id ON feature_data(user_id);\nCREATE INDEX idx_feature_data_created_at ON feature_data(created_at);\n\n-- 3. Add RLS policies for security\nALTER TABLE feature_data ENABLE ROW LEVEL SECURITY;\nCREATE POLICY \"Users can view their own data\" ON feature_data\n  FOR SELECT USING (auth.uid() = user_id);\n```\n\n## Quality Standards\n\n### Code Quality\n- **TypeScript strict mode** - Full type safety\n- **ESLint compliance** - Code style consistency\n- **Test coverage** - Minimum 80% coverage for new features\n- **Documentation** - Comprehensive inline and external docs\n\n### Performance Standards\n- **Load time** - <3 seconds for initial page load\n- **Bundle size** - <500KB for main bundle\n- **Memory usage** - No memory leaks in long-running sessions\n- **Database queries** - <100ms for common queries\n\n### Security Standards\n- **Input validation** - All user inputs validated\n- **Authentication** - Proper session management\n- **Authorization** - Principle of least privilege\n- **Data protection** - Encryption at rest and in transit\n\n### User Experience Standards\n- **Accessibility** - WCAG 2.1 AA compliance\n- **Responsive design** - Mobile-first approach\n- **Loading states** - Clear feedback for all operations\n- **Error handling** - User-friendly error messages\n\n## Implementation Review Process\n\n### Pre-Implementation\n1. **Requirements review** - Clear acceptance criteria\n2. **Architecture review** - Technical design approval\n3. **Security review** - Security implications assessment\n4. **Performance review** - Performance impact analysis\n\n### During Implementation\n1. **Code review** - Peer review of all changes\n2. **Testing review** - Test coverage and quality\n3. **Documentation review** - Documentation completeness\n4. **Integration testing** - End-to-end functionality\n\n### Post-Implementation\n1. **Performance monitoring** - Metrics collection and analysis\n2. **Error monitoring** - Error rates and patterns\n3. **User feedback** - Usage patterns and satisfaction\n4. **Maintenance planning** - Future maintenance needs\n\n## Maintenance & Updates\n\n### Regular Maintenance Tasks\n- **Dependency updates** - Security patches and version updates\n- **Performance monitoring** - Ongoing performance analysis\n- **Bug fixes** - Issue resolution and quality improvements\n- **Documentation updates** - Keeping docs current with changes\n\n### Long-term Maintenance\n- **Architecture evolution** - System design improvements\n- **Technology upgrades** - Framework and tool upgrades\n- **Feature deprecation** - Removing outdated functionality\n- **Knowledge transfer** - Team knowledge sharing\n\n## Related Documentation\n\n- [Features Documentation](../features/) - Feature specifications and requirements\n- [Setup Documentation](../setup/) - Implementation environment setup\n- [Testing Documentation](../testing/) - Testing strategies and tools\n- [Postmortem Reports](../postmortem/) - Implementation failure analysis\n\n---\n\n**Implementation Philosophy**: Build it right the first time, but be prepared to iterate based on real-world usage and feedback.
+}
+```
+
+### Database Implementation Pattern
+```sql
+-- Standard database implementation
+-- 1. Create tables with proper indexes
+CREATE TABLE feature_data (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Add indexes for performance
+CREATE INDEX idx_feature_data_user_id ON feature_data(user_id);
+CREATE INDEX idx_feature_data_created_at ON feature_data(created_at);
+
+-- 3. Add RLS policies for security
+ALTER TABLE feature_data ENABLE ROW LEVEL SECURITY;
+CREATE POLICY \"Users can view their own data\" ON feature_data
+  FOR SELECT USING (auth.uid() = user_id);
+```
+
+## Quality Standards
+
+### Code Quality
+- **TypeScript strict mode** - Full type safety
+- **ESLint compliance** - Code style consistency
+- **Test coverage** - Minimum 80% coverage for new features
+- **Documentation** - Comprehensive inline and external docs
+
+### Performance Standards
+- **Load time** - <3 seconds for initial page load
+- **Bundle size** - <500KB for main bundle
+- **Memory usage** - No memory leaks in long-running sessions
+- **Database queries** - <100ms for common queries
+
+### Security Standards
+- **Input validation** - All user inputs validated
+- **Authentication** - Proper session management
+- **Authorization** - Principle of least privilege
+- **Data protection** - Encryption at rest and in transit
+
+### User Experience Standards
+- **Accessibility** - WCAG 2.1 AA compliance
+- **Responsive design** - Mobile-first approach
+- **Loading states** - Clear feedback for all operations
+- **Error handling** - User-friendly error messages
+
+## Implementation Review Process
+
+### Pre-Implementation
+1. **Requirements review** - Clear acceptance criteria
+2. **Architecture review** - Technical design approval
+3. **Security review** - Security implications assessment
+4. **Performance review** - Performance impact analysis
+
+### During Implementation
+1. **Code review** - Peer review of all changes
+2. **Testing review** - Test coverage and quality
+3. **Documentation review** - Documentation completeness
+4. **Integration testing** - End-to-end functionality
+
+### Post-Implementation
+1. **Performance monitoring** - Metrics collection and analysis
+2. **Error monitoring** - Error rates and patterns
+3. **User feedback** - Usage patterns and satisfaction
+4. **Maintenance planning** - Future maintenance needs
+
+## Maintenance & Updates
+
+### Regular Maintenance Tasks
+- **Dependency updates** - Security patches and version updates
+- **Performance monitoring** - Ongoing performance analysis
+- **Bug fixes** - Issue resolution and quality improvements
+- **Documentation updates** - Keeping docs current with changes
+
+### Long-term Maintenance
+- **Architecture evolution** - System design improvements
+- **Technology upgrades** - Framework and tool upgrades
+- **Feature deprecation** - Removing outdated functionality
+- **Knowledge transfer** - Team knowledge sharing
+
+## Related Documentation
+
+- [Features Documentation](../features/) - Feature specifications and requirements
+- [Setup Documentation](../setup/) - Implementation environment setup
+- [Testing Documentation](../testing/) - Testing strategies and tools
+- [Postmortem Reports](../postmortems/) - Implementation failure analysis
+
+---
+
+**Implementation Philosophy**: Build it right the first time, but be prepared to iterate based on real-world usage and feedback.

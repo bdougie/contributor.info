@@ -1,249 +1,51 @@
 # Setup Scripts
 
-Configuration and initialization scripts for setting up the contributor.info platform infrastructure.
+Local development setup, seed data, and environment switching.
 
 ## Quick Start
 
-New to the project? Run a single command:
-
 ```bash
-npm run setup
-```
-
-This handles everything: prerequisites, environment files, Supabase, and migrations.
-
-Other setup commands:
-
-```bash
-npm run setup:verify   # Check if your local environment is healthy
+npm run setup          # Prerequisites, env files, Supabase, migrations in one step
+npm run setup:verify   # Check that the local environment is healthy
 npm run setup:reset    # Tear down and start fresh
 ```
 
-## 🔧 Overview
+Step by step, the same flow is:
 
-Setup scripts handle:
-- First-time local development setup
-- Infrastructure initialization
-- Security configuration
-- Storage setup
-- Authentication keys
-
-## 🛠️ Scripts
-
-| Script | Purpose | When to Run |
-|--------|---------|-------------|
-| `first-time-setup.mjs` | Universal first-time setup | New contributor onboarding |
-| `verify-setup.mjs` | Validate local dev environment | After setup or to diagnose issues |
-| `reset-setup.mjs` | Clean reset of local state | When you want a fresh start |
-| `start-local-supabase.js` | Start Supabase without auto-migrations | Manual Supabase control |
-| `switch-environment.js` | Switch between local/production env | Changing environments |
-| `generate-seed-data.mjs` | Generate seed data from GitHub repos | After setup, with GitHub token |
-| `setup-supabase-storage.js` | Configure storage buckets | Initial deployment |
-| `setup-card-regeneration.js` | Initialize social card system | Feature setup |
-| `setup-chromatic-baselines.sh` | Setup visual testing | CI/CD configuration |
-| `encode-private-key.js` | Encode GitHub App keys | Security setup |
-| `prepare-private-key.sh` | Prepare keys for deployment | Pre-deployment |
-| `split-private-key.sh` | Split keys for security | Key management |
-| `upload-private-key.sh` | Upload keys to secure storage | Deployment |
-
-## 💡 Usage Examples
-
-### First-Time Local Development Setup
 ```bash
-# One command does it all
-npm run setup
-
-# Or step by step:
-npm run env:local                       # Configure .env.local for local dev
-npm run supabase:start                  # Start Supabase containers
+npm run env:local                       # Write .env.local for local development
+npm run supabase:start                  # Start the Supabase containers
 npm run supabase:migrate:consolidated   # Apply database migrations
-npm run db:seed                         # Generate seed data (requires GitHub token)
+npm run db:seed                         # Seed data (requires a GitHub token)
 ```
 
-### Verify Your Setup
+## Scripts
+
+| Script | Entry point | Purpose |
+|--------|-------------|---------|
+| `first-time-setup.mjs` | `npm run setup` | Universal first-time setup; calls the other scripts in this folder |
+| `verify-setup.mjs` | `npm run setup:verify` | Validate the local environment |
+| `reset-setup.mjs` | `npm run setup:reset` | Stop Supabase, clean backups, reset the database |
+| `start-local-supabase.js` | `npm run supabase:start` | Start Supabase without auto-migrations |
+| `switch-environment.js` | `npm run env:local`, `npm run env:production` | Swap `.env.local` between local and production targets |
+| `generate-seed-data.mjs` | `npm run db:seed`, `db:seed:quick`, `db:seed:dry` | Queue seed-data capture for example repositories |
+| `check-seed-status.mjs` | `npm run seed:status` | Show progress of seed-data jobs |
+| `clean-seed-data.mjs` | `npm run db:seed:clean` | Remove seeded rows from the local database |
+| `install-husky.js` | `npm run postinstall` | Install git hooks locally; skipped in CI |
+| `set-edge-function-secrets.sh` | manual | Set the Inngest secrets on the Supabase `queue-event` edge function. See [docs/edge-functions/setting-secrets.md](../../docs/edge-functions/setting-secrets.md) |
+
+## GitHub App private key
+
+The app reads the key from `GITHUB_APP_PRIVATE_KEY_ENCODED` (full PEM, base64). Generate the value with:
+
 ```bash
-npm run setup:verify
+base64 -i path/to/private-key.pem | tr -d '\n'
 ```
 
-### Reset Everything
-```bash
-npm run setup:reset   # Stop Supabase, clean backups, reset DB
-npm run setup         # Set up again from scratch
-```
+See [docs/github-app/setup.md](../../docs/github-app/setup.md) for the other accepted formats.
 
-### Initial Platform Setup
-```bash
-# 1. Setup Supabase storage
-node scripts/setup/setup-supabase-storage.js
+## Related
 
-# 2. Configure social cards
-node scripts/setup/setup-card-regeneration.js
-
-# 3. Setup visual testing
-./scripts/setup/setup-chromatic-baselines.sh
-```
-
-### GitHub App Configuration
-```bash
-# Encode private key
-node scripts/setup/encode-private-key.js --key-path ./private-key.pem
-
-# Prepare for deployment
-./scripts/setup/prepare-private-key.sh
-
-# Split for security (if needed)
-./scripts/setup/split-private-key.sh
-```
-
-## 🔐 Security Setup
-
-### GitHub App Keys
-1. Download private key from GitHub App settings
-2. Encode using `encode-private-key.js`
-3. Store securely in environment variables
-
-### Environment Variables
-```bash
-# Required for setup
-GITHUB_APP_ID=your-app-id
-GITHUB_PRIVATE_KEY=encoded-private-key
-SUPABASE_SERVICE_KEY=your-service-key
-```
-
-## 📦 Storage Configuration
-
-### Supabase Buckets
-```javascript
-{
-  buckets: [
-    {
-      name: "social-cards",
-      public: true,
-      allowedMimeTypes: ["image/png", "image/jpeg"]
-    },
-    {
-      name: "app-assets",
-      public: true,
-      allowedMimeTypes: ["image/*"]
-    }
-  ]
-}
-```
-
-### Storage Policies
-- Public read access for assets
-- Authenticated write access
-- Size limits: 5MB per file
-
-## 🎨 Visual Testing Setup
-
-### Chromatic Configuration
-```bash
-# Initial setup
-CHROMATIC_PROJECT_TOKEN=your-token \
-  ./scripts/setup/setup-chromatic-baselines.sh
-
-# Update baselines
-npm run chromatic:update
-```
-
-## 🔑 Key Management
-
-### Private Key Encoding
-```javascript
-// Original PEM format
------BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA...
------END RSA PRIVATE KEY-----
-
-// Encoded format (single line)
-LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVB...
-```
-
-### Split Key Strategy
-For enhanced security:
-1. Split key into multiple parts
-2. Store parts in different locations
-3. Reconstruct during deployment
-
-## 🚀 Deployment Checklist
-
-### Pre-deployment
-- [ ] All environment variables set
-- [ ] Storage buckets created
-- [ ] Private keys encoded
-- [ ] Visual baselines established
-
-### Post-deployment
-- [ ] Verify storage access
-- [ ] Test authentication
-- [ ] Check visual regression
-- [ ] Monitor error logs
-
-## ⚙️ Configuration Files
-
-### Storage Config
-```javascript
-// config/storage.js
-export default {
-  provider: "supabase",
-  buckets: ["social-cards", "app-assets"],
-  cdn: {
-    enabled: true,
-    ttl: 3600
-  }
-}
-```
-
-### Security Config
-```javascript
-// config/security.js
-export default {
-  github: {
-    appId: process.env.GITHUB_APP_ID,
-    privateKey: process.env.GITHUB_PRIVATE_KEY
-  }
-}
-```
-
-## 🔄 Maintenance
-
-### Regular Tasks
-1. **Rotate Keys**: Every 90 days
-2. **Review Permissions**: Monthly
-3. **Update Baselines**: After UI changes
-4. **Clean Storage**: Remove old assets
-
-### Health Checks
-```bash
-# Verify storage
-node scripts/health-checks/check-bucket-status.js
-
-# Test authentication
-node scripts/testing-tools/test-github-auth.mjs
-```
-
-## 🆘 Troubleshooting
-
-### "Storage setup failed"
-- Verify Supabase credentials
-- Check service role permissions
-- Ensure buckets don't exist
-
-### "Key encoding error"
-- Verify PEM file format
-- Check file permissions
-- Use absolute paths
-
-### "Chromatic setup failed"
-- Install dependencies first
-- Check project token
-- Verify network access
-
-## 📚 Best Practices
-
-1. **Security First**: Never commit keys
-2. **Test Locally**: Verify setup before production
-3. **Document Changes**: Update configs
-4. **Backup Keys**: Store securely offline
-5. **Monitor Usage**: Check quotas regularly
+- [docs/setup/local-development.md](../../docs/setup/local-development.md)
+- [docs/setup/database-migrations.md](../../docs/setup/database-migrations.md)
+- [scripts/migrations/](../migrations/) for the migration tooling used in CI

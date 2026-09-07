@@ -60,13 +60,13 @@ node scripts/migrations/generate-local-safe.js
 
 **Output:**
 - `migrations-local/` - All migrations made safe for local development
-- `000_consolidated_local_safe.sql` - Single file with all migrations
+- `001_production_based_consolidated.sql` - Single file with all migrations
 - `setup-local.sh` - Bash script for easy setup
 - Generates README with usage instructions
 
 ## Quick Start for Local Development
 
-After running the scripts, use the generated local-safe migrations:
+The committed flow is `npm run supabase:migrate:consolidated` (which runs `supabase/migrations-local/setup-local.mjs --consolidated`), or `npm run setup` for a full first-time setup. The options below are the manual equivalents:
 
 ```bash
 # Option 1: Run the setup script
@@ -74,7 +74,7 @@ bash supabase/migrations-local/setup-local.sh
 
 # Option 2: Run consolidated migration
 psql "postgresql://postgres:postgres@localhost:54322/postgres" \
-  -f supabase/migrations-local/000_consolidated_local_safe.sql
+  -f supabase/migrations-local/001_production_based_consolidated.sql
 
 # Option 3: Run individual migrations
 for file in supabase/migrations-local/*.sql; do
@@ -182,7 +182,7 @@ supabase/
 ├── migration-analysis-report.json      # Analysis results
 ├── migration-validation-report.json    # Validation results
 ├── migrations-local/                   # Local-safe versions
-│   ├── 000_consolidated_local_safe.sql # All migrations in one file
+│   ├── 001_production_based_consolidated.sql # All migrations in one file
 │   ├── setup-local.sh                  # Setup script
 │   ├── README.md                       # Usage instructions
 │   └── *.sql                          # Individual safe migrations
@@ -202,7 +202,7 @@ If migrations fail:
 2. Use local-safe versions: `bash supabase/migrations-local/setup-local.sh`
 3. Check reports for specific issues
 4. Skip optional features (auth, extensions) if not needed
-5. See [Database Migrations Guide](../../docs/setup/DATABASE_MIGRATIONS.md)
+5. See [Database Migrations Guide](../../docs/setup/database-migrations.md)
 
 ## Contributing
 

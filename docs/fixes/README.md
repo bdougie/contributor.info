@@ -9,7 +9,6 @@ This directory contains detailed documentation for significant bug fixes in the 
 
 Fixed two critical issues affecting the `/trending` page and browser console:
 
-1. **[Trending 502 Error](./trending-502-error-and-sentry.md)**
    - ✅ Fixed 502 Bad Gateway on `/trending` endpoint
    - ✅ Corrected RPC function name mismatch
    - ✅ Added comprehensive Sentry error tracking
@@ -24,8 +23,8 @@ Fixed two critical issues affecting the `/trending` page and browser console:
 ## Index of All Fixes
 
 ### API & Backend Fixes
-- [Trending 502 Error and Sentry Setup](./trending-502-error-and-sentry.md) (2025-11-24)
-- [PR 1087 Manual Backfill 404 Fix](./pr-1087-manual-backfill-404-fix.md) (existing)
+- Trending 502 Error and Sentry Setup (2025-11-24)
+- PR 1087 Manual Backfill 404 Fix (existing)
 
 ### Security & CSP Fixes
 - [PostHog CSP Violations](./posthog-csp-violations.md) (2025-11-24)

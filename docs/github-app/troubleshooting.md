@@ -10,9 +10,9 @@ Netlify has a 4KB limit on environment variables per function. The GitHub App pr
 #### Option 1: Use Newline-Encoded Private Key (Recommended)
 Store the private key with encoded newlines to reduce size:
 
-1. **Encode your private key**:
+1. **Encode your private key** (full PEM, base64, single line):
    ```bash
-   node scripts/encode-private-key.mjs path/to/your.private-key.pem
+   base64 -i path/to/your.private-key.pem | tr -d '\n'
    ```
 
 2. **Copy the encoded output** (will be ~1.7KB instead of 2.3KB)

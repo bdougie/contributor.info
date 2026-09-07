@@ -12,7 +12,7 @@
  * a minimum cluster size of 3 to avoid noise clusters.
  *
  * @see https://docs.contributor.info/features/contribution-analytics - Contribution Analytics (user docs)
- * @see /docs/data-fetching/embedding-computation.md - Embedding pipeline (internal docs)
+ * @see /docs/features/embeddings-system.md - Embedding pipeline (internal docs)
  * @module
  */
 

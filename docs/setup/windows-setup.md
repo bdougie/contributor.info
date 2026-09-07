@@ -324,5 +324,5 @@ Once your environment is set up:
 
 1. Read the [Local Development Guide](./LOCAL_DEVELOPMENT.md)
 2. Check the [Contributing Guidelines](../../CONTRIBUTING.md)
-3. Explore the [Supabase Documentation](../supabase/README.md)
+3. Explore the [Supabase Documentation](./local-development.md)
 4. Start developing! 🚀

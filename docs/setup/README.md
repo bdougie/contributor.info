@@ -14,7 +14,6 @@ Setup documentation helps developers:
 
 ### 🏗️ Architecture & System Design
 - **[Architecture Overview (2025-06-26)](./ARCHITECTURE_2025-06-26.md)** - Complete system architecture documentation
-- **[Phase 1 Setup Guide](./phase1-setup.md)** - GitHub Events Classification Foundation setup
 
 ### 🤖 AI & LLM Integration
 - **[LLM Integration Guide](./llm-integration.md)** - Language model integration setup

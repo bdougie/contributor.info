@@ -69,22 +69,11 @@ These variables exposed administrative Polar API tokens in the browser bundle, a
 
 #### Part 1: Remove Unused Variables
 
-Run the cleanup script:
-```bash
-./scripts/cleanup-netlify-env-vars.sh
-```
-
-This removes 5 unused variables from all deployment contexts.
+Remove the unused variables listed above from every deployment context with `netlify env:unset <NAME>`. (The one-off cleanup scripts that did this in 2025 have been removed.)
 
 #### Part 2: Optimize Variable Scopes (RECOMMENDED)
 
-**Better approach**: Scope function-only variables to exclude the build step:
-
-```bash
-./scripts/optimize-netlify-env-scopes.sh
-```
-
-This script:
+**Better approach**: Scope function-only variables to exclude the build step with `netlify env:set <NAME> <value> --scope functions`. The original scoping pass did the following:
 1. Removes unused variables (same as Part 1)
 2. Provides instructions to re-scope function-only vars in Netlify UI
 

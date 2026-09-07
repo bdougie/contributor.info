@@ -94,7 +94,7 @@ export const FEATURE_FLAGS = {
 },
 
 # 3. Create in PostHog (via script)
-node scripts/create-workspace-feature-flag.js
+node scripts/posthog/create-workspace-feature-flag.js
 ```
 
 ### Target Specific Cohort
@@ -195,20 +195,20 @@ if (showNewFeature && !dismissed) {
 ### Update Internal Team
 ```bash
 # Add new team member
-# Edit scripts/create-internal-users-cohort.js
+# Edit scripts/posthog/create-internal-users-cohort.js
 const INTERNAL_USERS = [
   'bdougie',
   'new-member', // Add here
 ];
 
 # Run update
-node scripts/create-internal-users-cohort.js
+node scripts/posthog/create-internal-users-cohort.js
 ```
 
 ### Create Feature Flag
 ```bash
 # Copy and modify the template
-cp scripts/create-workspace-feature-flag.js scripts/create-my-feature-flag.js
+cp scripts/posthog/create-workspace-feature-flag.js scripts/create-my-feature-flag.js
 
 # Edit the configuration
 # Run creation

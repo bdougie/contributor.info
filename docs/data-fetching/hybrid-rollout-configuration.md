@@ -102,7 +102,7 @@ node scripts/update-rollout.js
 node scripts/debug-inngest-auth.js
 
 # Test production events
-node scripts/test-production-inngest.js
+node scripts/testing-tools/test-production-inngest.js
 ```
 
 ## Routing Logic
@@ -188,7 +188,7 @@ npm start
 
 3. **Test production events**:
    ```bash
-   node scripts/test-production-inngest.js
+   node scripts/testing-tools/test-production-inngest.js
    ```
 
 ## Monitoring
@@ -300,8 +300,6 @@ WHERE feature_name = 'hybrid_progressive_capture';
 
 ## Related Documentation
 
-- [Implementation Status](./implementation-status.md)
-- [GitHub Actions Implementation](./github-actions-implementation.md)
-- [Inngest Setup](./inngest-setup.md)
+- [Inngest Setup](../infrastructure/inngest-supabase-migration.md)
 - [Queue Management](./queue-management.md)
 - [Monitoring Guide](./monitoring-capture-health.md)

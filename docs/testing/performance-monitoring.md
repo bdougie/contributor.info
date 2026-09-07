@@ -52,7 +52,7 @@ The performance monitoring system provides real-time visibility into:
 
 #### Files
 - `supabase/migrations/20250616000002_enable_performance_monitoring.sql` - Database setup
-- `scripts/monitor-database-performance.js` - CLI monitoring tool
+- `scripts/performance/monitor-database-performance.js` - CLI monitoring tool
 - `src/lib/supabase-monitoring.ts` - Application-level database monitoring
 
 #### Usage
@@ -166,7 +166,7 @@ const metrics = supabase.getMetrics();
 - **Performance Recommendations**: Automated optimization suggestions
 
 #### Files
-- `scripts/monitor-cdn-performance.js` - CDN monitoring script (existing)
+- `scripts/performance/monitor-cdn-performance.js` - CDN monitoring script (existing)
 
 #### Usage
 

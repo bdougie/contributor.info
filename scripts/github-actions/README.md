@@ -1,6 +1,8 @@
 # GitHub Actions Scripts
 
-This directory contains scripts used by GitHub Actions workflows for automating various data capture and synchronization tasks.
+Scripts run by the GitHub Actions workflows in `.github/workflows/`, plus two repo-maintenance tools.
+
+> **Known breakage (2026-09):** `progressive-backfill.js`, `recover-stuck-chunks.js`, `report-failure.js`, and `capture-pr-details-graphql.js` import `commander`, which is not a declared dependency. The `progressive-backfill.yml` and `chunk-recovery.yml` workflows have failed on `ERR_MODULE_NOT_FOUND` since early 2026 and GitHub has disabled them for inactivity. Add `commander` to `devDependencies` (or switch to `node:util` `parseArgs`) and re-enable the workflows. Tracked in `tasks/docs-audit-2026-09-06.md`.
 
 ## Table of Contents
 
@@ -9,6 +11,7 @@ This directory contains scripts used by GitHub Actions workflows for automating 
 - [Error Reporting](#error-reporting)
 - [Rate Limit Management](#rate-limit-management)
 - [Chunk Recovery](#chunk-recovery)
+- [Repository Maintenance](#repository-maintenance)
 
 ## Progressive Backfill
 
@@ -89,14 +92,15 @@ Handles GitHub GraphQL API interactions:
 
 ### `capture-pr-details-graphql.js`
 
-Captures detailed PR information including reviews, comments, and commits.
+Captures detailed PR information including reviews, comments, and commits. Dispatched by `capture-pr-details-graphql.yml`, which `src/lib/progressive-capture/hybrid-queue-manager.ts` targets for large PR-detail jobs. The workflow has never completed a run; besides the `commander` problem above, the script imports `../../src/lib/inngest/graphql-client.js` (only a `.ts` exists). Fix or remove together with the workflow and the queue-manager mapping.
 
 **Usage:**
 ```bash
 node scripts/github-actions/capture-pr-details-graphql.js \
-  --owner=microsoft \
-  --repo=vscode \
-  --pr-numbers=123,456,789
+  --repository-id=123 \
+  --repository-name=microsoft/vscode \
+  --pr-numbers=123,456,789 \
+  --job-id=<progressive capture job id>
 ```
 
 ## Error Reporting
@@ -242,6 +246,16 @@ FROM backfill_chunks
 WHERE status = 'failed' 
 GROUP BY repository_id;
 ```
+
+## Repository Maintenance
+
+### `actions-similarity.ts`
+
+Run by `npm run similarity:check`. Fetches open issues and PRs, generates embeddings through `app/services/issue-similarity`, and reports likely duplicates. Used by the similarity check-run feature in the GitHub App.
+
+### `audit-workflows.sh`
+
+Static audit of `.github/workflows/*.yml` for unpinned actions, exposed secrets, and missing `permissions:` blocks. Run it before adding or editing a workflow.
 
 ## Contributing
 

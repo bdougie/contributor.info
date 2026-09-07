@@ -104,8 +104,8 @@ The switcher automatically:
 - Shows clear status and next steps
 
 **📚 Detailed Setup Guides:**
-- **[Local Development Guide](./docs/setup/LOCAL_DEVELOPMENT.md)** - Complete local environment setup
-- **[Windows Setup Guide](./docs/setup/WINDOWS_SETUP.md)** - Windows-specific instructions (WSL2 and native)
+- **[Local Development Guide](./docs/setup/local-development.md)** - Complete local environment setup
+- **[Windows Setup Guide](./docs/setup/windows-setup.md)** - Windows-specific instructions (WSL2 and native)
 - **[Migration Guide](./supabase/MIGRATION_GUIDE.md)** - Database migration instructions
 - **[Supabase Documentation](./supabase/README.md)** - Comprehensive database documentation
 
@@ -176,7 +176,7 @@ For detailed documentation, see:
 - Document complex schema changes
 
 **📚 Detailed Documentation:**
-- [Database Migrations Guide](./docs/setup/DATABASE_MIGRATIONS.md)
+- [Database Migrations Guide](./docs/setup/database-migrations.md)
 - [Migration Scripts](./scripts/migrations/)
 - [Supabase Setup](./docs/supabase/)
 - [Local Migration Automation](./supabase/migrations-local/README.md) - Consolidated migration approach with troubleshooting
@@ -308,7 +308,7 @@ npm run verify:csp       # Verify CSP hash after HTML changes
 - **Recommended**: Use WSL2 for best compatibility
 - **Alternative**: Native Windows with PowerShell also supported
 - All npm scripts use `npx` to avoid global installation issues
-- See [Windows Setup Guide](./docs/setup/WINDOWS_SETUP.md) for detailed instructions
+- See [Windows Setup Guide](./docs/setup/windows-setup.md) for detailed instructions
 
 #### macOS
 - Docker Desktop or Colima both work well
@@ -472,7 +472,7 @@ export const Clickable: Story = {
 ```
 
 **📚 Testing Documentation**:
-- [Bulletproof Testing Guidelines](./docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
+- [Bulletproof Testing Guidelines](./docs/testing/bulletproof-testing-guidelines.md)
 - [Testing Best Practices](./docs/testing/testing-best-practices.md)
 - [E2E Testing Philosophy](./docs/testing/e2e-minimal-testing-philosophy.md)
 
@@ -630,24 +630,23 @@ For security vulnerabilities, please email security@contributor.info instead of 
 ## 📚 Additional Resources
 
 ### Setup & Development
-- [Local Development Guide](./docs/setup/LOCAL_DEVELOPMENT.md) - Complete setup instructions
-- [Windows Setup Guide](./docs/setup/WINDOWS_SETUP.md) - Windows-specific setup
-- [Seed Data Guide](./docs/setup/SEED_DATA.md) - Generate test data
+- [Local Development Guide](./docs/setup/local-development.md) - Complete setup instructions
+- [Windows Setup Guide](./docs/setup/windows-setup.md) - Windows-specific setup
+- [Seed Data Guide](./docs/setup/seed-data.md) - Generate test data
 
 ### Database & Supabase
-- [Supabase Dev Setup](./docs/supabase/DEV_SETUP.md) - Database environment
-- [Migration Guide](./docs/supabase/MIGRATION_GUIDE.md) - Schema changes
-- [RLS Policies](./docs/supabase/RLS_POLICIES.md) - Security configuration
-- [Supabase Quick Reference](./docs/supabase/QUICK_REFERENCE.md) - Common patterns
+- [Supabase Dev Setup](./docs/supabase/dev-setup.md) - Database environment
+- [Database Migrations Guide](./docs/setup/database-migrations.md) - Schema changes
+- [RLS Policies](./docs/supabase/rls-policies.md) - Security configuration
+- [Supabase Quick Reference](./docs/supabase/quick-reference.md) - Common patterns
 
 ### Testing
 - [Testing Best Practices](./docs/testing/testing-best-practices.md)
-- [Bulletproof Testing Guidelines](./docs/testing/BULLETPROOF_TESTING_GUIDELINES.md)
+- [Bulletproof Testing Guidelines](./docs/testing/bulletproof-testing-guidelines.md)
 - [E2E Testing Philosophy](./docs/testing/e2e-minimal-testing-philosophy.md)
-- [Storybook Guide](./docs/testing/chromatic-readme.md)
 
 ### Architecture & Design
-- [Architecture Overview](./docs/setup/ARCHITECTURE_2025-06-26.md)
+- [Architecture Overview](./AGENTS.md#architecture)
 - [Data Fetching Strategy](./docs/data-fetching/)
 - [Performance Optimization](./docs/performance/)
 - [Security Guidelines](./docs/security/)

@@ -80,27 +80,27 @@ export default tseslint.config(
         {
           selector: 'FunctionDeclaration[async=true]',
           message:
-            'Async functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+            'Async functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/bulletproof-testing-guidelines.md',
         },
         {
           selector: 'ArrowFunctionExpression[async=true]',
           message:
-            'Async arrow functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+            'Async arrow functions are forbidden in unit tests. Use synchronous patterns only. See docs/testing/bulletproof-testing-guidelines.md',
         },
         {
           selector: 'AwaitExpression',
           message:
-            'await expressions are forbidden in unit tests. Use synchronous mocks instead. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+            'await expressions are forbidden in unit tests. Use synchronous mocks instead. See docs/testing/bulletproof-testing-guidelines.md',
         },
         {
           selector: 'CallExpression[callee.name="waitFor"]',
           message:
-            'waitFor() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+            'waitFor() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/bulletproof-testing-guidelines.md',
         },
         {
           selector: 'CallExpression[callee.name="waitForElementToBeRemoved"]',
           message:
-            'waitForElementToBeRemoved() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/BULLETPROOF_TESTING_GUIDELINES.md',
+            'waitForElementToBeRemoved() is forbidden in unit tests as it can hang indefinitely. Use synchronous assertions only. See docs/testing/bulletproof-testing-guidelines.md',
         },
       ],
     },

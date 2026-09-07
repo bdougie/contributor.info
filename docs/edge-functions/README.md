@@ -279,5 +279,5 @@ supabase functions logs function-name --since 1h
 
 - [Infrastructure](../infrastructure/) - Infrastructure setup
 - [API](../api/) - API documentation
-- [Deployment](../deployment/) - Deployment procedures
+- [Deployment](../infrastructure/) - Deployment procedures
 - [Supabase Setup](../supabase/) - Supabase configuration

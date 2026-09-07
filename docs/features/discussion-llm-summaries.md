@@ -258,7 +258,7 @@ Track summary generation with:
 
 ```bash
 # Using the service
-node scripts/backfill-discussion-summaries.mjs --repository-id=<uuid>
+node scripts/data-sync/backfill-discussion-summaries.mjs --repository-id=<uuid>
 
 # Or via admin UI (future)
 # Navigate to Admin > Discussions > Generate Summaries

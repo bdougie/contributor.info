@@ -17,16 +17,16 @@ Recent improvements include:
 
 **Purpose**: Check if a repository has review and comment data
 
-**Location**: `scripts/test-review-sync.mjs`
+**Location**: `scripts/testing-tools/test-review-sync.mjs`
 
 **Usage**:
 ```bash
 # Basic usage - defaults to continuedev/continue
-node scripts/test-review-sync.mjs
+node scripts/testing-tools/test-review-sync.mjs
 
 # Specify repository
-node scripts/test-review-sync.mjs facebook react
-node scripts/test-review-sync.mjs microsoft vscode
+node scripts/testing-tools/test-review-sync.mjs facebook react
+node scripts/testing-tools/test-review-sync.mjs microsoft vscode
 ```
 
 **What it shows**:
@@ -60,19 +60,19 @@ Total Comments: 2156
 
 **Purpose**: Capture missing review and comment data for existing PRs
 
-**Location**: `scripts/backfill-reviews-comments.mjs`
+**Location**: `scripts/data-sync/backfill-reviews-comments.mjs`
 
 **Usage**:
 ```bash
 # Basic usage - processes 50 most recent PRs
-node scripts/backfill-reviews-comments.mjs owner repo
+node scripts/data-sync/backfill-reviews-comments.mjs owner repo
 
 # Specify number of PRs to check
-node scripts/backfill-reviews-comments.mjs owner repo 100
+node scripts/data-sync/backfill-reviews-comments.mjs owner repo 100
 
 # Example for popular repositories
-node scripts/backfill-reviews-comments.mjs facebook react 75
-node scripts/backfill-reviews-comments.mjs microsoft vscode 150
+node scripts/data-sync/backfill-reviews-comments.mjs facebook react 75
+node scripts/data-sync/backfill-reviews-comments.mjs microsoft vscode 150
 ```
 
 **What it does**:
@@ -189,10 +189,10 @@ WARNING: No INNGEST_EVENT_KEY found. Would have sent these events:
 **Solution**: Reduce the limit parameter to process fewer PRs at once:
 ```bash
 # Instead of processing 200 PRs
-node scripts/backfill-reviews-comments.mjs owner repo 200
+node scripts/data-sync/backfill-reviews-comments.mjs owner repo 200
 
 # Process in smaller batches
-node scripts/backfill-reviews-comments.mjs owner repo 50
+node scripts/data-sync/backfill-reviews-comments.mjs owner repo 50
 ```
 
 ### Jobs Queue But No Data Appears
@@ -220,7 +220,6 @@ node scripts/backfill-reviews-comments.mjs owner repo 50
 
 ## Related Documentation
 
-- [Progressive Data Capture Implementation](./progressive-data-capture-implementation.md) - Technical details
 - [Troubleshooting Guide](../troubleshooting/README.md) - General debugging steps
 - [Queue Management](./queue-management.md) - Understanding job processing
 - [Monitoring Guide](./monitoring-capture-health.md) - System health monitoring

@@ -11,17 +11,15 @@ This folder contains documentation for infrastructure components, deployment arc
 ### Inngest Architecture
 
 - **[dual-inngest-architecture.md](./dual-inngest-architecture.md)** - Dual Inngest instance architecture
-- **[hybrid-job-processing.md](./hybrid-job-processing.md)** - Hybrid job processing system
+- **[hybrid-job-processing.md](./inngest-supabase-migration.md)** - Hybrid job processing system
 - **[idempotency-implementation.md](./idempotency-implementation.md)** - Idempotency for job processing
-- **[inngest-pipeline-validation.md](./inngest-pipeline-validation.md)** - Pipeline validation
 - **[inngest-supabase-migration.md](./inngest-supabase-migration.md)** - Migration to Supabase Edge Functions
 - **[queue-event-migration.md](./queue-event-migration.md)** - Queue event system migration
 - **[testing-inngest-supabase.md](./testing-inngest-supabase.md)** - Testing Inngest with Supabase
 
 ### Edge Functions
 
-- **[edge-function-scaling-strategy.md](./edge-function-scaling-strategy.md)** - Scaling strategy for Edge Functions
-- **[supabase-edge-function-secrets.md](./supabase-edge-function-secrets.md)** - Managing Edge Function secrets
+- **[supabase-edge-function-secrets.md](../edge-functions/setting-secrets.md)** - Managing Edge Function secrets
 - **[supabase-edge-functions-deployment.md](./supabase-edge-functions-deployment.md)** - Deployment procedures
 - **[supabase-edge-functions.md](./supabase-edge-functions.md)** - Edge Functions overview
 
@@ -222,7 +220,7 @@ GitHub PR → Netlify Deploy Preview
 
 ## Related Documentation
 
-- [Deployment](../deployment/) - Deployment procedures
+- [Deployment](./) - Deployment procedures
 - [Operations](../operations/) - Operational procedures
 - [Edge Functions](../edge-functions/) - Edge Function documentation
 - [Architecture](../architecture/) - System architecture

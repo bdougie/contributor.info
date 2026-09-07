@@ -144,4 +144,4 @@ The webhook handling has been migrated from Netlify Functions to Fly.io for:
 - Better observability with metrics
 - Lower latency (<200ms response time)
 
-For more details, see the [migration documentation](../../docs/migration/github-webhooks-fly-migration.md).
+For more details, see the [migration documentation](../infrastructure/fly-webhook-migration.md).

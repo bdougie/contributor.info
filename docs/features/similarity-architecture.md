@@ -314,7 +314,7 @@ strategy:
     
 steps:
   - run: |
-      npx tsx scripts/actions-similarity.ts \
+      npx tsx scripts/github-actions/actions-similarity.ts \
         --shard ${{ matrix.shard }} \
         --total-shards 4
 ```
@@ -481,10 +481,10 @@ test('GitHub Actions workflow integration', async () => {
 
 ```bash
 # Enable verbose logging
-DEBUG=* npx tsx scripts/actions-similarity.ts ...
+DEBUG=* npx tsx scripts/github-actions/actions-similarity.ts ...
 
 # Profile memory usage
-node --inspect npx tsx scripts/actions-similarity.ts ...
+node --inspect npx tsx scripts/github-actions/actions-similarity.ts ...
 
 # Test with sample data
 echo '{"title":"Test","body":"Content"}' | \

@@ -132,4 +132,4 @@ These workflows are part of a larger data synchronization system:
 - Both workflows integrate with the hybrid queue system for efficient data processing
 - Data flows into the same Supabase database used by the web application
 
-For more technical details about the data processing architecture, see the [Progressive Data Capture Implementation](progressive-data-capture-implementation.md) documentation.
+For more technical details about the data processing architecture, see the Progressive Data Capture Implementation documentation.

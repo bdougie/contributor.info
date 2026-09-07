@@ -329,9 +329,9 @@ npx supabase functions logs <function-name> --tail
 
 - [Supabase Edge Functions Architecture](./supabase-edge-functions.md) - Technical architecture and data flow
 - [Dual Inngest Architecture](./dual-inngest-architecture.md) - Complete system architecture
-- [Hybrid Job Processing](./hybrid-job-processing.md) - Job routing strategy
-- [Embedding Computation](../data-fetching/embedding-computation.md) - ML workload example
-- [Edge Function Secrets](./supabase-edge-function-secrets.md) - Secret management guide
+- [Hybrid Job Processing](./inngest-supabase-migration.md) - Job routing strategy
+- [Embedding Computation](../features/embeddings-system.md) - ML workload example
+- [Edge Function Secrets](../edge-functions/setting-secrets.md) - Secret management guide
 - [Queue Event Migration](./queue-event-migration.md) - Migration from Netlify to Supabase
 
 ## Support & Troubleshooting
