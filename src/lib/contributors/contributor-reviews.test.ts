@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   buildContributorReviews,
   countContributorReviews,
+  DEFAULT_REVIEW_FILTERS,
+  filterContributorReviews,
+  hasFeedback,
   pickReviewForComment,
+  reviewRepositories,
   isOwnPullRequest,
   pullRequestUrl,
   reviewUrl,
@@ -189,5 +193,72 @@ describe('review links', () => {
   it('prefers the stored html_url when present', () => {
     const review = summary({ id: 'r1', submitted_at: '2026-01-01T10:00:00Z' });
     expect(reviewUrl(review)).toBe('https://github.com/acme/widgets/pull/1#pullrequestreview-r1');
+  });
+});
+
+describe('filterContributorReviews', () => {
+  const approvedEmpty = {
+    ...summary({ id: 'a', submitted_at: '2026-01-01T00:00:00Z', state: 'APPROVED' }),
+    comments: [],
+  };
+  const approvedWithBody = {
+    ...summary({
+      id: 'b',
+      submitted_at: '2026-01-02T00:00:00Z',
+      state: 'APPROVED',
+      body: 'LGTM but check x',
+    }),
+    comments: [],
+  };
+  const commentedInline = {
+    ...summary({ id: 'c', submitted_at: '2026-01-03T00:00:00Z', is_own_pr: true }),
+    comments: [comment({ id: 'c1', created_at: '2026-01-03T00:00:00Z' })],
+  };
+  const otherRepo = {
+    ...summary({
+      id: 'd',
+      submitted_at: '2026-01-04T00:00:00Z',
+      repository: { owner: 'acme', name: 'gears', full_name: 'acme/gears' },
+    }),
+    comments: [],
+  };
+  const all = [approvedEmpty, approvedWithBody, commentedInline, otherRepo];
+
+  it('returns everything with default filters', () => {
+    expect(filterContributorReviews(all, DEFAULT_REVIEW_FILTERS)).toHaveLength(4);
+  });
+
+  it('keeps only reviews with a body or inline comments when feedbackOnly is set', () => {
+    const kept = filterContributorReviews(all, { ...DEFAULT_REVIEW_FILTERS, feedbackOnly: true });
+    expect(kept.map((r) => r.id)).toEqual(['b', 'c']);
+  });
+
+  it('filters by state, ownership, and repository', () => {
+    expect(
+      filterContributorReviews(all, { ...DEFAULT_REVIEW_FILTERS, state: 'APPROVED' }).map(
+        (r) => r.id
+      )
+    ).toEqual(['a', 'b']);
+    expect(
+      filterContributorReviews(all, { ...DEFAULT_REVIEW_FILTERS, ownership: 'own' }).map(
+        (r) => r.id
+      )
+    ).toEqual(['c']);
+    expect(
+      filterContributorReviews(all, { ...DEFAULT_REVIEW_FILTERS, ownership: 'others' })
+    ).toHaveLength(3);
+    expect(
+      filterContributorReviews(all, { ...DEFAULT_REVIEW_FILTERS, repository: 'acme/gears' }).map(
+        (r) => r.id
+      )
+    ).toEqual(['d']);
+  });
+
+  it('treats whitespace-only bodies as no feedback', () => {
+    expect(hasFeedback({ ...approvedEmpty, body: '   ' })).toBe(false);
+  });
+
+  it('lists distinct repositories in first-seen order', () => {
+    expect(reviewRepositories(all)).toEqual(['acme/widgets', 'acme/gears']);
   });
 });

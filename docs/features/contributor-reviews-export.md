@@ -12,6 +12,15 @@ the product, for example as a labeling corpus.
 - A count of inline review comments attached to that review.
 - Header totals: reviews, approvals, changes requested, inline comments.
 
+- Each row links to GitHub scrolled to that review, shows the date with a
+  relative time, and is marked **Own PR** or **PR by \<author\>**.
+
+Filters sit under the header: review state, own versus others' PRs,
+repository (when more than one), and a **With feedback only** switch that keeps
+reviews with a summary body or inline comments. That last one is the fast way
+past empty approvals to the human feedback. The header shows "Showing X of Y"
+while filtered, and the CSV and JSONL buttons export the filtered set.
+
 Data is read on demand when the tab is opened, not when the modal opens.
 
 ## Export

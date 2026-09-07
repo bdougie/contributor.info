@@ -1,7 +1,18 @@
+import { useMemo, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { AlertCircle, Download, FileText, Loader2, MessageSquare } from '@/components/ui/icon';
 import { useContributorReviews } from '@/hooks/useContributorReviews';
 import {
@@ -9,8 +20,12 @@ import {
   exportContributorReviewsToJSONL,
 } from '@/lib/utils/csv-export';
 import {
+  DEFAULT_REVIEW_FILTERS,
+  filterContributorReviews,
+  reviewRepositories,
   reviewUrl,
   type ContributorReview,
+  type ContributorReviewFilters,
   type ReviewState,
 } from '@/lib/contributors/contributor-reviews';
 import { cn } from '@/lib/utils';
@@ -38,12 +53,24 @@ const STATE_CLASSES: Record<ReviewState, string> = {
   PENDING: 'border-yellow-500/40 text-yellow-600 dark:text-yellow-400',
 };
 
+const STATE_FILTER_OPTIONS: Array<{ value: ContributorReviewFilters['state']; label: string }> = [
+  { value: 'all', label: 'All states' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'CHANGES_REQUESTED', label: 'Changes requested' },
+  { value: 'COMMENTED', label: 'Commented' },
+  { value: 'DISMISSED', label: 'Dismissed' },
+];
+
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+}
+
+function formatAgo(value: string): string {
+  return formatDistanceToNow(new Date(value), { addSuffix: true });
 }
 
 function ReviewRow({ review }: { review: ContributorReview }) {
@@ -71,7 +98,9 @@ function ReviewRow({ review }: { review: ContributorReview }) {
             </Badge>
             <span className="truncate max-w-[200px]">{review.repository.full_name}</span>
             <span>•</span>
-            <span>{formatDate(review.submitted_at)}</span>
+            <span title={new Date(review.submitted_at).toLocaleString()}>
+              {formatDate(review.submitted_at)} · {formatAgo(review.submitted_at)}
+            </span>
             {review.comments.length > 0 && (
               <>
                 <span>•</span>
@@ -110,12 +139,21 @@ export function ContributorReviewsTab({
     enabled: active,
   });
 
-  const canExport = Boolean(contributorUsername) && reviews.length > 0 && !loading;
+  const [filters, setFilters] = useState<ContributorReviewFilters>(DEFAULT_REVIEW_FILTERS);
+  const repositories = useMemo(() => reviewRepositories(reviews), [reviews]);
+  const visible = useMemo(() => filterContributorReviews(reviews, filters), [reviews, filters]);
+  const isFiltered = visible.length !== reviews.length;
+
+  const canExport = Boolean(contributorUsername) && visible.length > 0 && !loading;
 
   const description = (() => {
     if (loading) return 'Loading review history…';
     if (counts.total === 0) return 'No reviews found in this workspace';
-    const parts = [`${counts.total} reviews`];
+    const parts = [
+      isFiltered
+        ? `Showing ${visible.length} of ${counts.total} reviews`
+        : `${counts.total} reviews`,
+    ];
     if (counts.othersPullRequests) parts.push(`${counts.othersPullRequests} on others' PRs`);
     if (counts.ownPullRequests) parts.push(`${counts.ownPullRequests} on own PRs`);
     if (counts.approved) parts.push(`${counts.approved} approved`);
@@ -137,8 +175,9 @@ export function ContributorReviewsTab({
               variant="outline"
               size="sm"
               disabled={!canExport}
+              title={isFiltered ? 'Exports the filtered reviews' : undefined}
               onClick={() =>
-                contributorUsername && exportContributorReviewsToCSV(contributorUsername, reviews)
+                contributorUsername && exportContributorReviewsToCSV(contributorUsername, visible)
               }
             >
               <Download className="h-4 w-4 mr-1.5" />
@@ -148,8 +187,9 @@ export function ContributorReviewsTab({
               variant="outline"
               size="sm"
               disabled={!canExport}
+              title={isFiltered ? 'Exports the filtered reviews' : undefined}
               onClick={() =>
-                contributorUsername && exportContributorReviewsToJSONL(contributorUsername, reviews)
+                contributorUsername && exportContributorReviewsToJSONL(contributorUsername, visible)
               }
             >
               <FileText className="h-4 w-4 mr-1.5" />
@@ -157,6 +197,83 @@ export function ContributorReviewsTab({
             </Button>
           </div>
         </div>
+        {reviews.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-3">
+            <Select
+              value={filters.state}
+              onValueChange={(value) =>
+                setFilters((f) => ({ ...f, state: value as ContributorReviewFilters['state'] }))
+              }
+            >
+              <SelectTrigger className="h-8 w-[170px] text-xs" aria-label="Filter by review state">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATE_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filters.ownership}
+              onValueChange={(value) =>
+                setFilters((f) => ({
+                  ...f,
+                  ownership: value as ContributorReviewFilters['ownership'],
+                }))
+              }
+            >
+              <SelectTrigger className="h-8 w-[150px] text-xs" aria-label="Filter by PR author">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All PRs</SelectItem>
+                <SelectItem value="others">Others' PRs</SelectItem>
+                <SelectItem value="own">Own PRs</SelectItem>
+              </SelectContent>
+            </Select>
+            {repositories.length > 1 && (
+              <Select
+                value={filters.repository}
+                onValueChange={(value) => setFilters((f) => ({ ...f, repository: value }))}
+              >
+                <SelectTrigger className="h-8 w-[200px] text-xs" aria-label="Filter by repository">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All repositories</SelectItem>
+                  {repositories.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <Switch
+                id="reviews-feedback-only"
+                checked={filters.feedbackOnly}
+                onCheckedChange={(checked) => setFilters((f) => ({ ...f, feedbackOnly: checked }))}
+              />
+              <Label htmlFor="reviews-feedback-only" className="text-xs cursor-pointer">
+                With feedback only
+              </Label>
+            </div>
+            {isFiltered && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => setFilters(DEFAULT_REVIEW_FILTERS)}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="p-0">
         <ScrollArea className="h-[400px] px-6 py-4">
@@ -188,9 +305,16 @@ export function ContributorReviewsTab({
                 </div>
               );
             }
+            if (visible.length === 0) {
+              return (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">No reviews match these filters</p>
+                </div>
+              );
+            }
             return (
               <div className="space-y-2">
-                {reviews.map((review) => (
+                {visible.map((review) => (
                   <ReviewRow key={review.id} review={review} />
                 ))}
               </div>

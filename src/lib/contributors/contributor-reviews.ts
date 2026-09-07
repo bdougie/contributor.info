@@ -179,3 +179,46 @@ export function countContributorReviews(reviews: ContributorReview[]): Contribut
     }
   );
 }
+
+export interface ContributorReviewFilters {
+  /** Review state, or 'all'. */
+  state: ReviewState | 'all';
+  /** Whose pull requests: the contributor's own, other people's, or all. */
+  ownership: 'all' | 'own' | 'others';
+  /** Keep only reviews that carry a summary body or inline comments. */
+  feedbackOnly: boolean;
+  /** Repository full name, or 'all'. */
+  repository: string;
+}
+
+export const DEFAULT_REVIEW_FILTERS: ContributorReviewFilters = {
+  state: 'all',
+  ownership: 'all',
+  feedbackOnly: false,
+  repository: 'all',
+};
+
+/** True when the review says something: a summary body or at least one inline comment. */
+export function hasFeedback(review: ContributorReview): boolean {
+  return review.body.trim().length > 0 || review.comments.length > 0;
+}
+
+export function filterContributorReviews(
+  reviews: ContributorReview[],
+  filters: ContributorReviewFilters
+): ContributorReview[] {
+  return reviews.filter((review) => {
+    if (filters.state !== 'all' && review.state !== filters.state) return false;
+    if (filters.ownership === 'own' && !review.is_own_pr) return false;
+    if (filters.ownership === 'others' && review.is_own_pr) return false;
+    if (filters.feedbackOnly && !hasFeedback(review)) return false;
+    if (filters.repository !== 'all' && review.repository.full_name !== filters.repository)
+      return false;
+    return true;
+  });
+}
+
+/** Distinct repository names in the order they first appear. */
+export function reviewRepositories(reviews: ContributorReview[]): string[] {
+  return [...new Set(reviews.map((review) => review.repository.full_name))];
+}
