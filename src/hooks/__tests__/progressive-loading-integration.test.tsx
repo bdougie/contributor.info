@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import { render, waitFor, cleanup } from '@testing-library/react';
 import { useIntersectionLoader } from '../use-intersection-loader';
 import { useProgressiveRepoData, useDataStageReady } from '../use-progressive-repo-data';
@@ -65,7 +65,11 @@ const simulateIntersection = (isIntersecting: boolean) => {
   }
 };
 
-global.IntersectionObserver = mockIntersectionObserver;
+vi.stubGlobal('IntersectionObserver', mockIntersectionObserver);
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 // Mock requestIdleCallback with immediate execution for testing
 const mockRequestIdleCallback = vi.fn((callback: IdleRequestCallback) => {

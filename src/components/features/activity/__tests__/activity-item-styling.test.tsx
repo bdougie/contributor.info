@@ -30,13 +30,17 @@ class MockIntersectionObserver {
 let mockObserver: MockIntersectionObserver | null = null;
 
 beforeEach(() => {
-  global.IntersectionObserver = vi.fn().mockImplementation((callback) => {
-    mockObserver = new MockIntersectionObserver(callback);
-    return mockObserver;
-  }) as unknown as typeof IntersectionObserver;
+  vi.stubGlobal(
+    'IntersectionObserver',
+    vi.fn().mockImplementation((callback: IntersectionObserverCallback) => {
+      mockObserver = new MockIntersectionObserver(callback);
+      return mockObserver;
+    })
+  );
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   mockObserver = null;
 });
 
