@@ -425,3 +425,45 @@ export function exportContributorReviewsToJSONL(
   const jsonl = serializeContributorReviewsToJSONL(reviewer, reviews);
   downloadTextFile(jsonl, filename, 'application/x-ndjson;charset=utf-8;');
 }
+
+// ============================================
+// Review Corpus Export (several reviewers at once)
+// ============================================
+
+export interface ReviewerReviews {
+  reviewer: string;
+  reviews: ContributorReview[];
+}
+
+/** Flattens every reviewer's history into one CSV, reviewer column first. */
+export function transformReviewCorpusToCSV(entries: ReviewerReviews[]): ContributorReviewCSVRow[] {
+  return entries.flatMap((entry) =>
+    transformContributorReviewsToCSV(entry.reviewer, entry.reviews)
+  );
+}
+
+export function exportReviewCorpusToCSV(
+  entries: ReviewerReviews[],
+  filename = generateExportFilename('review-corpus', 'reviews')
+): void {
+  downloadCSV(unparse(transformReviewCorpusToCSV(entries)), filename);
+}
+
+/** One JSONL record per review across every reviewer, in the given order. */
+export function serializeReviewCorpusToJSONL(entries: ReviewerReviews[]): string {
+  return entries
+    .map((entry) => serializeContributorReviewsToJSONL(entry.reviewer, entry.reviews))
+    .filter((chunk) => chunk.length > 0)
+    .join('\n');
+}
+
+export function exportReviewCorpusToJSONL(
+  entries: ReviewerReviews[],
+  filename = generateExportFilename('review-corpus', 'reviews', 'jsonl')
+): void {
+  downloadTextFile(
+    serializeReviewCorpusToJSONL(entries),
+    filename,
+    'application/x-ndjson;charset=utf-8;'
+  );
+}

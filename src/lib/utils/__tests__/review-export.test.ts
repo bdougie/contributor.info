@@ -8,6 +8,8 @@ import {
   transformContributorReviewsToCSV,
   transformContributorReviewsToRecords,
   serializeContributorReviewsToJSONL,
+  serializeReviewCorpusToJSONL,
+  transformReviewCorpusToCSV,
   generateExportFilename,
 } from '../csv-export';
 import type { ContributorReview } from '@/lib/contributors/contributor-reviews';
@@ -132,5 +134,29 @@ describe('generateExportFilename', () => {
       /^octo-cat_reviews_\d{4}-\d{2}-\d{2}\.jsonl$/
     );
     expect(generateExportFilename('Octo Cat', 'reviews')).toMatch(/\.csv$/);
+  });
+});
+
+describe('review corpus export', () => {
+  it('concatenates every reviewer into one JSONL stream, skipping empty reviewers', () => {
+    const second = { ...review, id: 'r2', github_id: '333', comments: [] };
+    const jsonl = serializeReviewCorpusToJSONL([
+      { reviewer: 'alice', reviews: [review] },
+      { reviewer: 'nobody', reviews: [] },
+      { reviewer: 'bob', reviews: [second] },
+    ]);
+    const records = jsonl.split('\n').map((line) => JSON.parse(line));
+
+    expect(records.map((r) => r.reviewer)).toEqual(['alice', 'bob']);
+    expect(records.map((r) => r.review_github_id)).toEqual(['111', '333']);
+  });
+
+  it('flattens every reviewer into one CSV row set with the reviewer column', () => {
+    const rows = transformReviewCorpusToCSV([
+      { reviewer: 'alice', reviews: [review] },
+      { reviewer: 'bob', reviews: [review] },
+    ]);
+
+    expect(rows.map((r) => r.Reviewer)).toEqual(['alice', 'bob']);
   });
 });

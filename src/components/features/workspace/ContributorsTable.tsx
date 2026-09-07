@@ -43,6 +43,8 @@ import {
   Minus,
   Plus,
   Trash2,
+  Download,
+  Loader2,
 } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
 import { humanizeNumber } from '@/lib/utils';
@@ -79,6 +81,8 @@ export interface ContributorsTableProps {
   onContributorClick?: (contributor: Contributor) => void;
   onAddToGroup?: (contributorId: string) => void;
   onBulkAddToGroups?: (contributorIds: string[], groupIds: string[]) => void;
+  /** Export review history for the selected contributors in the given format. */
+  onExportReviews?: (contributorIds: string[], format: 'jsonl' | 'csv') => Promise<void>;
   onAddNote?: (contributorId: string) => void;
   onRemoveContributor?: (contributorId: string) => void;
   showHeader?: boolean;
@@ -118,6 +122,7 @@ export function ContributorsTable({
   onContributorClick,
   onAddToGroup,
   onBulkAddToGroups,
+  onExportReviews,
   onAddNote,
   onRemoveContributor,
   showHeader = true,
@@ -173,6 +178,18 @@ export function ContributorsTable({
     },
     [selectedContributors, setSelectedContributors]
   );
+
+  const [exportingReviews, setExportingReviews] = useState(false);
+
+  const handleExportReviews = async (format: 'jsonl' | 'csv') => {
+    if (selectedContributors.size === 0 || !onExportReviews) return;
+    setExportingReviews(true);
+    try {
+      await onExportReviews(Array.from(selectedContributors), format);
+    } finally {
+      setExportingReviews(false);
+    }
+  };
 
   const handleBulkAddToGroup = async (groupId: string) => {
     if (selectedContributors.size === 0 || !onBulkAddToGroups) return;
@@ -572,6 +589,28 @@ export function ContributorsTable({
                 </DropdownMenu>
               );
             })()}
+            {onExportReviews && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="sm" variant="outline" disabled={exportingReviews}>
+                    {exportingReviews ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Export Reviews
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportReviews('jsonl')}>
+                    JSONL (with inline comments)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportReviews('csv')}>
+                    CSV (one row per review)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button size="sm" variant="ghost" onClick={() => setSelectedContributors(new Set())}>
               Clear Selection
             </Button>

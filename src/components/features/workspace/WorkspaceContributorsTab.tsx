@@ -6,7 +6,12 @@ import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { useWorkspaceContributors } from '@/hooks/useWorkspaceContributors';
-import { exportContributorsToCSV } from '@/lib/utils/csv-export';
+import {
+  exportContributorsToCSV,
+  exportReviewCorpusToCSV,
+  exportReviewCorpusToJSONL,
+} from '@/lib/utils/csv-export';
+import { fetchContributorReviews } from '@/lib/contributors/fetch-contributor-reviews';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useContributorGroups } from '@/hooks/useContributorGroups';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -294,6 +299,40 @@ export function WorkspaceContributorsTab({
 
   const handleExport = () => {
     exportContributorsToCSV(filteredContributors, 'contributors.csv');
+  };
+
+  const handleExportReviews = async (contributorIds: string[], format: 'jsonl' | 'csv') => {
+    const selected = contributors.filter((c) => contributorIds.includes(c.id));
+    if (selected.length === 0) {
+      toast.warning('Select at least one contributor to export reviews');
+      return;
+    }
+
+    try {
+      const entries = await Promise.all(
+        selected.map(async (contributor) => ({
+          reviewer: contributor.username,
+          reviews: await fetchContributorReviews(contributor.username, workspaceId),
+        }))
+      );
+      const total = entries.reduce((sum, entry) => sum + entry.reviews.length, 0);
+      if (total === 0) {
+        toast.info('No reviews captured yet for the selected contributors');
+        return;
+      }
+
+      if (format === 'jsonl') {
+        exportReviewCorpusToJSONL(entries);
+      } else {
+        exportReviewCorpusToCSV(entries);
+      }
+      toast.success(
+        `Exported ${total} review${total === 1 ? '' : 's'} from ${entries.length} contributor${entries.length === 1 ? '' : 's'}`
+      );
+    } catch (err) {
+      console.error('Error exporting reviews:', err);
+      toast.error('Failed to export reviews');
+    }
   };
 
   // CRM handler functions
@@ -875,6 +914,7 @@ export function WorkspaceContributorsTab({
                   onContributorClick={handleContributorClick}
                   onAddToGroup={handleAddToGroup}
                   onBulkAddToGroups={handleBulkAddContributorsToGroups}
+                  onExportReviews={handleExportReviews}
                   onAddNote={handleAddNote}
                   onRemoveContributor={handleRemoveContributor}
                   showHeader={false}

@@ -16,7 +16,17 @@ Data is read on demand when the tab is opened, not when the modal opens.
 
 ## Export
 
-Two buttons in the tab header:
+### Several contributors at once
+
+On the workspace Contributors tab, tick the contributors you want and use
+**Export Reviews** in the selection bar. It fetches each person's full review
+history and downloads one combined file, JSONL or CSV, named
+`review-corpus_reviews_<date>.<ext>`. Every record carries a `reviewer` field
+so the file can be split per person later.
+
+### One contributor
+
+Two buttons in the Reviews tab header of the profile modal:
 
 - **CSV** flattens one row per review with a comment count. Good for
   spreadsheets.
@@ -51,6 +61,7 @@ range.
 ## Files
 
 - `src/hooks/useContributorReviews.ts`
+- `src/lib/contributors/fetch-contributor-reviews.ts` (shared fetch used by the hook and the bulk export)
 - `src/lib/contributors/contributor-reviews.ts`
 - `src/components/features/workspace/ContributorReviewsTab.tsx`
 - `src/lib/utils/csv-export.ts` (review CSV and JSONL exports)
