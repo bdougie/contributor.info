@@ -85,6 +85,9 @@ async function main() {
     console.error('❌ Fatal error:', error);
     process.exit(1);
   }
+
+  // The Supabase client keeps a connection alive, so exit explicitly once done.
+  process.exit(0);
 }
 
 async function storePullRequestData(repositoryId, repositoryFullName, prData) {
