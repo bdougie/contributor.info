@@ -73,6 +73,9 @@ function parseWorkspaceSlug(pathname: string): string | null {
 /**
  * Render workspace detail content
  */
+/** Repositories shown in the server-rendered preview grid. The full list is inlined for hydration. */
+const SSR_PREVIEW_REPOSITORIES = 6;
+
 function renderWorkspaceContent(workspace: WorkspaceDetailData): SafeHTML {
   const ownerName = workspace.owner?.github_username || 'Unknown';
   const ownerAvatar =
@@ -212,7 +215,7 @@ function renderWorkspaceContent(workspace: WorkspaceDetailData): SafeHTML {
                 <div class="mb-8">
                   <h2 class="text-lg font-semibold mb-4">Repositories</h2>
                   <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    ${workspace.repositories.map(
+                    ${workspace.repositories.slice(0, SSR_PREVIEW_REPOSITORIES).map(
                       (repo) => html`
                         <a
                           href="/${repo.full_name}"
@@ -253,10 +256,11 @@ function renderWorkspaceContent(workspace: WorkspaceDetailData): SafeHTML {
                       `
                     )}
                   </div>
-                  ${workspace.repository_count > 6
+                  ${workspace.repository_count > SSR_PREVIEW_REPOSITORIES
                     ? html`
                         <p class="text-sm text-muted-foreground text-center mt-4">
-                          and ${workspace.repository_count - 6} more repositories...
+                          and ${workspace.repository_count - SSR_PREVIEW_REPOSITORIES} more
+                          repositories...
                         </p>
                       `
                     : ''}

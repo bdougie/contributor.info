@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { RefreshCw, GitPullRequest, AlertCircle, MessageSquare } from '@/compone
 import { OrganizationAvatar } from '@/components/ui/organization-avatar';
 import { getRepoOwnerAvatarUrl } from '@/lib/utils/avatar';
 import { useGitHubWorkspaceWork } from '@/hooks/use-github-workspace-work';
+import { useIntersectionObserver } from '@/hooks/use-intersection-observer';
+import { runWhenIdle } from '@/lib/utils/idle-callback';
 import {
   workCategoryLabels,
   type GitHubWorkCategory,
@@ -45,7 +47,15 @@ export function GitHubMyWorkCard({
   repositories: string[];
   repositoryAvatars?: Record<string, string | undefined>;
 }) {
-  const work = useGitHubWorkspaceWork(workspaceId, repositories);
+  // The four GitHub Search requests behind this card are not part of the overview's
+  // first paint. They start once the card is within 200px of the viewport or the
+  // browser goes idle, whichever comes first, so readers who never scroll still get
+  // their work without the searches competing with the initial render.
+  const { ref, hasIntersected } = useIntersectionObserver({ rootMargin: '200px' });
+  const [idle, setIdle] = useState(false);
+  useEffect(() => runWhenIdle(() => setIdle(true)), []);
+  const ready = hasIntersected || idle;
+  const work = useGitHubWorkspaceWork(workspaceId, repositories, { enabled: ready });
   // GitHub search echoes repository names in their canonical case, which may differ
   // from the stored full_name, so avatars are matched case-insensitively.
   const avatars = new Map(
@@ -81,7 +91,7 @@ export function GitHubMyWorkCard({
   ];
 
   return (
-    <Card>
+    <Card ref={ref}>
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>My Work</CardTitle>

@@ -27,7 +27,12 @@ import {
 import { useWorkspaceContext } from '@/contexts/WorkspaceContext';
 import type { Discussion } from '@/components/features/workspace/WorkspaceDiscussionsTable';
 import { type Issue } from '@/components/features/workspace/WorkspaceIssuesTable';
-import { AddRepositoryModal } from '@/components/features/workspace/AddRepositoryModal';
+// Loaded on first open: the modal carries its own zod validation and search UI.
+const AddRepositoryModal = lazy(() =>
+  import('@/components/features/workspace/AddRepositoryModal').then((m) => ({
+    default: m.AddRepositoryModal,
+  }))
+);
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useWorkspaceGitHubAppStatus } from '@/hooks/use-workspace-github-app-status';
@@ -40,13 +45,14 @@ import type {
   ActivityDataPoint,
 } from '@/components/features/workspace';
 import type { Workspace, WorkspaceMemberWithUser } from '@/types/workspace';
-import { WorkspaceService } from '@/services/workspace.service';
 import { GitHubMyWorkCard } from '@/components/features/workspace/GitHubMyWorkCard';
 import type { WorkspaceActivityTabProps as WorkspaceActivityProps } from '@/components/features/workspace/WorkspaceActivityTab';
 import { fetchGitHubUserProfile } from '@/services/github-profile';
 import { abbreviateBios } from '@/lib/llm/abbreviate-bios';
 import { useIsSlowConnection } from '@/hooks/useOnlineStatus';
 import { useWorkspaceDetailSSRData } from '@/hooks/use-ssr-data';
+import { seedFromSSR } from '@/lib/workspace/workspace-ssr-seed';
+import { runWhenIdle } from '@/lib/utils/idle-callback';
 // Analytics imports disabled - will be implemented in issue #598
 // import { AnalyticsDashboard } from '@/components/features/workspace/AnalyticsDashboard';
 
@@ -163,6 +169,18 @@ interface WorkspaceRepository {
 
 // WorkspaceActivity component and props moved to WorkspaceActivityTab.tsx
 
+/**
+ * Upper bound on repositories fetched for the dashboard. Matches the SSR
+ * payload cap so hydration and refetch render the same list.
+ */
+const WORKSPACE_REPOSITORY_QUERY_LIMIT = 100;
+
+/**
+ * Hold non-success metric skeletons back this long so a warm Phase B never
+ * flashes card skeletons. Same value as the repo page status debounce.
+ */
+const METRICS_LOADING_DEBOUNCE_MS = 800;
+
 function WorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
@@ -170,16 +188,45 @@ function WorkspacePage() {
   const { syncWithUrl } = useWorkspaceContext();
   const isSlowConnection = useIsSlowConnection();
   const ssrData = useWorkspaceDetailSSRData();
-  const ssrDataRef = useRef(ssrData);
-  const ssrConsumedRef = useRef(false);
+  // Seed state synchronously from the SSR payload (read in the initializers, not
+  // in an effect, so the first client render is the dashboard rather than a
+  // skeleton that replaces the server-rendered HTML).
+  const [ssrSeed] = useState(() => seedFromSSR(ssrData, workspaceId));
+  // Once the dashboard has rendered real data, refetches refresh in place
+  // instead of flipping back to the skeleton.
+  const hasRenderedWorkspaceRef = useRef(ssrSeed !== null);
 
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [workspace, setWorkspace] = useState<Workspace | null>(ssrSeed?.workspace ?? null);
+  const [repositories, setRepositories] = useState<Repository[]>(ssrSeed?.repositories ?? []);
   const skipNextFetchRef = useRef(false);
-  const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(null);
-  const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(null);
+  const [metrics, setMetrics] = useState<WorkspaceMetrics | null>(() =>
+    ssrSeed ? calculateWorkspaceMetrics(ssrSeed.repositories) : null
+  );
+  const [trendData, setTrendData] = useState<WorkspaceTrendData | null>(() =>
+    ssrSeed ? { labels: [], datasets: [] } : null
+  );
   const [activityData, setActivityData] = useState<ActivityDataPoint[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
+  // Debounced view of metricsLoading: a warm Phase B resolves well inside the
+  // window, so metric cards never flash skeleton → value on refetch. The very
+  // first load (no rendered workspace yet) shows the page skeleton instead.
+  const [showMetricsSkeleton, setShowMetricsSkeleton] = useState(true);
+  const hasLoadedMetricsRef = useRef(false);
+  useEffect(() => {
+    if (!metricsLoading) {
+      hasLoadedMetricsRef.current = true;
+      setShowMetricsSkeleton(false);
+      return;
+    }
+    // First load: keep the skeleton until real numbers exist. Refetches: hold
+    // the existing numbers unless the refetch outlasts the debounce window.
+    if (!hasLoadedMetricsRef.current) {
+      setShowMetricsSkeleton(true);
+      return;
+    }
+    const timer = setTimeout(() => setShowMetricsSkeleton(true), METRICS_LOADING_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [metricsLoading]);
 
   const [fullPRData, setFullPRData] = useState<WorkspaceActivityProps['prData']>([]);
   const [fullIssueData, setFullIssueData] = useState<WorkspaceActivityProps['issueData']>([]);
@@ -187,18 +234,26 @@ function WorkspacePage() {
   const [fullCommentData, setFullCommentData] = useState<WorkspaceActivityProps['commentData']>([]);
   const [fullStarData, setFullStarData] = useState<WorkspaceActivityProps['starData']>([]);
   const [fullForkData, setFullForkData] = useState<WorkspaceActivityProps['forkData']>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(ssrSeed === null);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   const [selectedRepositories, setSelectedRepositories] = useState<string[]>([]);
   const [addRepositoryModalOpen, setAddRepositoryModalOpen] = useState(false);
+  // Mount the (lazy) modal only once it has been requested, then keep it
+  // mounted so close animations and form state behave normally afterwards.
+  const [addRepositoryModalMounted, setAddRepositoryModalMounted] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentMember, setCurrentMember] = useState<WorkspaceMemberWithUser | null>(null);
-  const [memberCount, setMemberCount] = useState(0);
+  const [memberCount, setMemberCount] = useState(ssrSeed?.memberCount ?? 0);
   const [isWorkspaceOwner, setIsWorkspaceOwner] = useState(false);
   const pendingRepository = parseRepositoryInput(
     new URLSearchParams(location.search).get('addRepository')
   );
+  const shouldShowAddRepositoryModal =
+    addRepositoryModalOpen || (!!pendingRepository && isWorkspaceOwner);
+  useEffect(() => {
+    if (shouldShowAddRepositoryModal) setAddRepositoryModalMounted(true);
+  }, [shouldShowAddRepositoryModal]);
   const [appUserId, setAppUserId] = useState<string | null>(null);
   const [reviewerModalOpen, setReviewerModalOpen] = useState(false);
   const [githubAppModalOpen, setGithubAppModalOpen] = useState(false);
@@ -394,23 +449,31 @@ function WorkspacePage() {
 
     try {
       const supabase = await getSupabase();
-      // Get current user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user);
 
       // Parse workspace identifier with type safety
       const identifier = parseWorkspaceIdentifier(workspaceId);
       const { field, value } = getWorkspaceQueryField(identifier);
 
-      // Fetch workspace details using the appropriate field
-      const { data: workspaceData, error: wsError } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('is_active', true)
-        .eq(field, value)
-        .maybeSingle();
+      // Wave 1: the three lookups that do not depend on each other. Previously
+      // these were serial and cost three round trips before anything rendered.
+      const [
+        {
+          data: { user },
+        },
+        resolvedAppUserId,
+        { data: workspaceData, error: wsError },
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        getAppUserId(),
+        supabase
+          .from('workspaces')
+          .select('*')
+          .eq('is_active', true)
+          .eq(field, value)
+          .maybeSingle(),
+      ]);
+      setCurrentUser(user);
+      setAppUserId(resolvedAppUserId);
 
       if (wsError) {
         logger.error('Error fetching workspace:', wsError);
@@ -424,10 +487,6 @@ function WorkspacePage() {
         setLoading(false);
         return null;
       }
-
-      // Get app_users.id for workspace ownership and membership checks
-      const resolvedAppUserId = await getAppUserId();
-      setAppUserId(resolvedAppUserId);
 
       // Check if current user is the workspace owner
       const ownership = resolveWorkspaceOwnership(
@@ -444,52 +503,31 @@ function WorkspacePage() {
         );
       }
 
-      // Fetch current member info and member count
-      if (resolvedAppUserId) {
-        const { data: memberData } = await supabase
-          .from('workspace_members')
-          .select('*')
-          .eq('workspace_id', workspaceData.id)
-          .eq('user_id', resolvedAppUserId)
-          .maybeSingle();
-
-        if (memberData && user) {
-          // Fetch user details for the current member
-          const { data: userData } = await supabase
-            .from('app_users')
-            .select('auth_user_id, email, display_name, avatar_url')
-            .eq('auth_user_id', user.id)
-            .maybeSingle();
-
-          const memberWithUser: WorkspaceMemberWithUser = {
-            ...memberData,
-            user: userData
-              ? {
-                  id: userData.auth_user_id,
-                  email: userData.email,
-                  display_name: userData.display_name || userData.email?.split('@')[0],
-                  avatar_url: userData.avatar_url,
-                }
-              : {
-                  id: user.id,
-                  email: user.email || '',
-                  display_name: user.email?.split('@')[0] || 'User',
-                  avatar_url: null,
-                },
-          };
-          setCurrentMember(memberWithUser);
-        }
-
-        const { count } = await supabase
-          .from('workspace_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', workspaceData.id);
-
-        setMemberCount(count || 0);
-      }
-
-      // Fetch repositories with their details (use the actual workspace ID)
-      const { data: repoData, error: repoError } = await supabase
+      // Wave 2: everything keyed on the workspace row, in parallel. Member
+      // lookups only run for signed-in app users; the repository list always runs.
+      const memberPromise = resolvedAppUserId
+        ? supabase
+            .from('workspace_members')
+            .select('*')
+            .eq('workspace_id', workspaceData.id)
+            .eq('user_id', resolvedAppUserId)
+            .maybeSingle()
+        : null;
+      const userPromise =
+        resolvedAppUserId && user
+          ? supabase
+              .from('app_users')
+              .select('auth_user_id, email, display_name, avatar_url')
+              .eq('auth_user_id', user.id)
+              .maybeSingle()
+          : null;
+      const memberCountPromise = resolvedAppUserId
+        ? supabase
+            .from('workspace_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('workspace_id', workspaceData.id)
+        : null;
+      const repositoriesPromise = supabase
         .from('workspace_repositories')
         .select(
           `
@@ -508,7 +546,37 @@ function WorkspacePage() {
             )
           `
         )
-        .eq('workspace_id', workspaceData.id);
+        .eq('workspace_id', workspaceData.id)
+        .order('is_pinned', { ascending: false })
+        .limit(WORKSPACE_REPOSITORY_QUERY_LIMIT);
+
+      const [memberResult, userResult, memberCountResult, { data: repoData, error: repoError }] =
+        await Promise.all([memberPromise, userPromise, memberCountPromise, repositoriesPromise]);
+
+      const memberData = memberResult?.data ?? null;
+      if (memberData && user) {
+        const userData = userResult?.data ?? null;
+        const memberWithUser: WorkspaceMemberWithUser = {
+          ...memberData,
+          user: userData
+            ? {
+                id: userData.auth_user_id,
+                email: userData.email,
+                display_name: userData.display_name || userData.email?.split('@')[0],
+                avatar_url: userData.avatar_url,
+              }
+            : {
+                id: user.id,
+                email: user.email || '',
+                display_name: user.email?.split('@')[0] || 'User',
+                avatar_url: null,
+              },
+        };
+        setCurrentMember(memberWithUser);
+      }
+      if (memberCountResult) {
+        setMemberCount(memberCountResult.count || 0);
+      }
 
       if (repoError) {
         logger.error('Error fetching repositories:', repoError);
@@ -543,6 +611,7 @@ function WorkspacePage() {
 
       // Phase A complete — render workspace + repos with zero metrics + loading
       setWorkspace(workspaceData);
+      hasRenderedWorkspaceRef.current = true;
       setRepositories(transformedRepos);
       // Show zero metrics immediately so the dashboard layout renders
       setMetrics(calculateWorkspaceMetrics(transformedRepos));
@@ -908,51 +977,34 @@ function WorkspacePage() {
           setFullCommentData(formattedComments);
         }
 
-        // Lightweight queries for per-repo open PR/issue counts
-        const [openPRDataResult, openIssueDataResult] = await Promise.all([
-          supabase
-            .from('pull_requests')
-            .select('repository_id')
-            .in('repository_id', repoIds)
-            .eq('state', 'open')
-            .limit(1000),
-          supabase
-            .from('issues')
-            .select('repository_id')
-            .in('repository_id', repoIds)
-            .eq('state', 'open')
-            .limit(1000),
-        ]);
+        // Per-repo open PR/issue counts and the distinct PR-author count come
+        // from one RPC (migration 20260907191704). The previous three queries
+        // fetched up to 2500 id rows and counted client-side, and the 1000-row
+        // cap undercounted any workspace with more open items than that.
+        interface OpenItemCounts {
+          repository_id: string;
+          open_prs: number;
+          open_issues: number;
+          contributor_count: number;
+        }
+        const { data: openCounts, error: openCountsError } = await supabase.rpc(
+          'count_workspace_open_items',
+          { p_repository_ids: repoIds }
+        );
 
         const prCountMap = new Map<string, number>();
-        if (openPRDataResult.data) {
-          openPRDataResult.data.forEach((pr) => {
-            const count = prCountMap.get(pr.repository_id) || 0;
-            prCountMap.set(pr.repository_id, count + 1);
-          });
-        }
-
         const issueCountMap = new Map<string, number>();
-        if (openIssueDataResult.data) {
-          openIssueDataResult.data.forEach((issue) => {
-            const count = issueCountMap.get(issue.repository_id) || 0;
-            issueCountMap.set(issue.repository_id, count + 1);
-          });
-        }
-
-        // Fetch contributor count
-        const { data: prContributorData, error: prContributorError } = await supabase
-          .from('pull_requests')
-          .select('author_id')
-          .in('repository_id', repoIds)
-          .not('author_id', 'is', null)
-          .limit(queryLimit);
-
-        if (prContributorError) {
-          logger.error('Error fetching PR contributors:', prContributorError);
-        } else if (prContributorData && prContributorData.length > 0) {
-          const contributorIds = [...new Set(prContributorData.map((pr) => pr.author_id))];
-          uniqueContributorCount = Math.max(uniqueContributorCount, contributorIds.length);
+        if (openCountsError) {
+          logger.error('Error fetching workspace open item counts:', openCountsError);
+        } else {
+          for (const row of (openCounts ?? []) as OpenItemCounts[]) {
+            prCountMap.set(row.repository_id, Number(row.open_prs) || 0);
+            issueCountMap.set(row.repository_id, Number(row.open_issues) || 0);
+            uniqueContributorCount = Math.max(
+              uniqueContributorCount,
+              Number(row.contributor_count) || 0
+            );
+          }
         }
 
         // Update repositories with their PR and issue counts
@@ -1091,7 +1143,8 @@ function WorkspacePage() {
         const { data: contributors } = await supabase
           .from('contributors')
           .select('username, bio')
-          .in('username', actorLogins);
+          .in('username', actorLogins)
+          .limit(actorLogins.length);
         if (contributors) {
           for (const c of contributors) {
             if (c.bio) {
@@ -1160,8 +1213,14 @@ function WorkspacePage() {
   }, []);
 
   // Orchestrate all phases progressively
+  const enrichmentCancelRef = useRef<(() => void) | null>(null);
+
   const fetchWorkspace = useCallback(async () => {
-    setLoading(true);
+    // Only show the page skeleton before the first successful render. After an
+    // SSR seed or a completed Phase A, refetches refresh the dashboard in place.
+    if (!hasRenderedWorkspaceRef.current) {
+      setLoading(true);
+    }
     setMetricsLoading(true);
 
     // Phase A: Core workspace + repos
@@ -1173,11 +1232,19 @@ function WorkspacePage() {
     // Phase B: Metrics (runs after Phase A renders)
     await fetchWorkspaceMetrics(transformedRepos);
 
-    // Phase C: Enrichment — skip on slow connections
+    // Phase C: Enrichment — off the critical path entirely. Skipped on slow
+    // connections; otherwise deferred until the main thread is idle so the
+    // per-repo event queries and GitHub profile calls never compete with LCP.
     if (!isSlowConnection) {
-      fetchWorkspaceEnrichment(transformedRepos);
+      enrichmentCancelRef.current?.();
+      enrichmentCancelRef.current = runWhenIdle(() => {
+        enrichmentCancelRef.current = null;
+        void fetchWorkspaceEnrichment(transformedRepos);
+      });
     }
   }, [fetchWorkspaceCore, fetchWorkspaceMetrics, fetchWorkspaceEnrichment, isSlowConnection]);
+
+  useEffect(() => () => enrichmentCancelRef.current?.(), []);
 
   // Separate useEffect to update metrics with event data without refetching
   useEffect(() => {
@@ -1212,35 +1279,8 @@ function WorkspacePage() {
       return;
     }
 
-    // Seed from SSR data for instant first paint (consumed once via ref)
-    const cachedSSR = ssrDataRef.current;
-    if (!ssrConsumedRef.current && cachedSSR?.workspace) {
-      ssrConsumedRef.current = true;
-      const ws = cachedSSR.workspace;
-      if (ws.repositories) {
-        const ssrRepos: Repository[] = ws.repositories.map((r) => ({
-          id: r.id,
-          full_name: r.full_name,
-          name: r.name,
-          owner: r.owner,
-          description: r.description ?? undefined,
-          language: r.language ?? undefined,
-          stars: r.stargazer_count || 0,
-          forks: 0,
-          open_prs: 0,
-          open_issues: 0,
-          contributors: 0,
-          last_activity: new Date().toISOString(),
-          is_pinned: false,
-          avatar_url: `https://avatars.githubusercontent.com/${r.owner}`,
-          html_url: `https://github.com/${r.full_name}`,
-        }));
-        setRepositories(ssrRepos);
-        setMetrics(calculateWorkspaceMetrics(ssrRepos));
-        setTrendData({ labels: [], datasets: [] });
-      }
-    }
-
+    // State was already seeded from the SSR payload in the initializers (if the
+    // payload matched this workspace); this fetch refreshes it in place.
     fetchWorkspace();
   }, [fetchWorkspace, workspaceId, syncWithUrl]);
 
@@ -1368,6 +1408,9 @@ function WorkspacePage() {
     if (!workspace || !currentUser || !appUserId) return;
 
     try {
+      // Loaded on demand: the service pulls in form validation (zod) and the
+      // Inngest client, none of which the dashboard needs to render.
+      const { WorkspaceService } = await import('@/services/workspace.service');
       const result = await WorkspaceService.removeRepositoryFromWorkspace(
         workspace.id,
         appUserId,
@@ -1721,7 +1764,7 @@ function WorkspacePage() {
                       .map((repo) => repo.full_name)}
                   />
                 }
-                loading={metricsLoading}
+                loading={showMetricsSkeleton}
                 tier={workspace.tier as 'free' | 'pro' | 'enterprise'}
                 timeRange={timeRange}
                 onAddRepository={isWorkspaceOwner ? handleAddRepository : undefined}
@@ -1918,24 +1961,26 @@ function WorkspacePage() {
       <UpgradePrompt tier={workspace.tier} onUpgradeClick={handleUpgradeClick} />
 
       {/* Add Repository Modal */}
-      {workspace && (
-        <AddRepositoryModal
-          open={addRepositoryModalOpen || (!!pendingRepository && isWorkspaceOwner)}
-          initialRepository={pendingRepository || undefined}
-          onOpenChange={(open) => {
-            setAddRepositoryModalOpen(open);
-            if (!open && pendingRepository) {
-              const params = new URLSearchParams(location.search);
-              params.delete('addRepository');
-              navigate(
-                { pathname: location.pathname, search: params.toString(), hash: location.hash },
-                { replace: true }
-              );
-            }
-          }}
-          workspaceId={workspace.id}
-          onSuccess={handleAddRepositorySuccess}
-        />
+      {workspace && addRepositoryModalMounted && (
+        <Suspense fallback={null}>
+          <AddRepositoryModal
+            open={shouldShowAddRepositoryModal}
+            initialRepository={pendingRepository || undefined}
+            onOpenChange={(open) => {
+              setAddRepositoryModalOpen(open);
+              if (!open && pendingRepository) {
+                const params = new URLSearchParams(location.search);
+                params.delete('addRepository');
+                navigate(
+                  { pathname: location.pathname, search: params.toString(), hash: location.hash },
+                  { replace: true }
+                );
+              }
+            }}
+            workspaceId={workspace.id}
+            onSuccess={handleAddRepositorySuccess}
+          />
+        </Suspense>
       )}
     </div>
   );

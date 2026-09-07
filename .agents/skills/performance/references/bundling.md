@@ -47,6 +47,7 @@ Rules:
 - **Do not manually chunk anything that is already behind a dynamic `import()`.** Rollup splits it correctly on its own; a manual chunk can merge it with something eager.
 - **Do not chunk toolchains with many small shared helpers** (markdown, syntax highlighting, i18n). The helpers get hoisted into the vendor chunk, other chunks import them, and the whole chunk becomes eager.
 - **Do not split app code by hand.** Route-level `React.lazy` is the only app-code splitting that pays off. Hand-made `app-admin` / `app-charts` chunks produce `Cannot access 'X' before initialization` when a context or `forwardRef` crosses the boundary.
+- **Pin shared transitive dependencies before the vendor that dominates them.** When two vendors share a dependency (zod under both an AI SDK and a job-queue SDK; `@opentelemetry/api` under both), Rollup tends to hoist the shared module into whichever manual chunk imports it most. Every other importer then statically pulls that whole vendor chunk. Symptom: a route chunk shows `import "./vendor-ai-sdk-…"` with no AI feature. Fix: `if (id.includes('/node_modules/zod/')) return 'vendor-zod';` above the vendor test, and add a chunk-graph assertion so it cannot come back (see `measurement.md#chunk-graph-gate`).
 - **Do not trust an old postmortem over a working config.** A failed split from a year ago proves the ordering then was wrong, not that the split is impossible. Re-test; keep the new constraints as comments in the config, with the issue number.
 
 ## Preload allowlist

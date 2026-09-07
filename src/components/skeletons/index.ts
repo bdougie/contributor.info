@@ -10,6 +10,7 @@ export { DistributionSkeleton } from './layouts/distribution-skeleton';
 export { FeedSkeleton } from './layouts/feed-skeleton';
 export { HealthSkeleton } from './layouts/health-skeleton';
 export { HomeSkeleton } from './layouts/home-skeleton';
+export { WorkspaceSkeleton } from './layouts/workspace-skeleton';
 
 // Feature skeletons (Phase 2)
 export { ContributorOfMonthSkeleton } from './features/contributor-of-month-skeleton';

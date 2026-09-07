@@ -157,8 +157,8 @@ export default function Layout() {
 
     initAuth();
 
-    // Prefetch critical routes after initial load
-    prefetchCriticalRoutes();
+    // Prefetch critical routes after initial load (skipped on workspace routes)
+    prefetchCriticalRoutes(window.location.pathname);
 
     return () => {
       isMounted = false;

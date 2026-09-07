@@ -154,6 +154,31 @@ describe('GitHub workspace work authentication and scope', () => {
     expect(queries.every((query) => query.options.refetchOnWindowFocus === true)).toBe(true);
   });
 
+  it('does not run any GitHub search while the caller has not enabled it', async () => {
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useGitHubWorkspaceWork('workspace', ['papercomputeco/tapes'], { enabled }),
+      { initialProps: { enabled: false }, wrapper }
+    );
+    expect(result.current.loading).toBe(true);
+    expect(result.current.items).toEqual([]);
+    expect(mocks.session).not.toHaveBeenCalled();
+    expect(mocks.fetchWork).not.toHaveBeenCalled();
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(mocks.fetchWork).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps results in memory for a minute so a tab switch does not search again', async () => {
+    const { result } = renderHook(
+      () => useGitHubWorkspaceWork('workspace', ['papercomputeco/tapes']),
+      { wrapper }
+    );
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    const queries = client.getQueryCache().findAll({ queryKey: ['github-work'] });
+    expect(queries.every((query) => query.options.gcTime === 60_000)).toBe(true);
+    expect(queries.every((query) => query.options.staleTime === 60_000)).toBe(true);
+  });
+
   it('retains independently successful categories when one fails', async () => {
     mocks.fetchWork.mockImplementation(async ({ category }) => {
       if (category === 'assigned') throw new Error('GitHub unavailable');

@@ -74,7 +74,14 @@ export interface WorkspaceDetailPageData {
     tier: string;
     owner_id: string;
     created_at: string;
+    updated_at: string;
+    last_activity_at: string | null;
     visibility: 'public' | 'private';
+    is_active: boolean;
+    max_repositories: number;
+    current_repository_count: number;
+    data_retention_days: number;
+    settings: Record<string, unknown>;
     repository_count: number;
     member_count: number;
     contributor_count: number;
@@ -85,7 +92,11 @@ export interface WorkspaceDetailPageData {
       owner: string;
       description: string | null;
       language: string | null;
-      stargazer_count: number;
+      stargazers_count: number;
+      forks_count: number;
+      open_issues_count: number;
+      avatar_url: string | null;
+      is_pinned: boolean;
     }>;
     owner: {
       id: string;

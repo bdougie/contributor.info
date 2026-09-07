@@ -7,6 +7,7 @@
       "url": [
         "http://localhost:4173/",
         "http://localhost:4173/workspaces",
+        "http://localhost:4173/i/demo",
         "http://localhost:4173/continuedev/continue"
       ],
       "numberOfRuns": 3,
@@ -52,7 +53,7 @@
           }
         },
         {
-          "matchingUrlPattern": "^http://localhost:4173/(trending|workspaces|continuedev/continue)$",
+          "matchingUrlPattern": "^http://localhost:4173/(trending|workspaces|i/demo|continuedev/continue)$",
           "assertions": {
             "categories:performance": ["warn", { "minScore": 0.75 }],
             "largest-contentful-paint": ["warn", { "maxNumericValue": 4000 }],

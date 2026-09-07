@@ -60,9 +60,15 @@ export interface HomeSSRData {
  * @param maxAgeSeconds - Maximum age of SSR data before considering it stale
  * @returns SSR data for the current route, or null if unavailable
  */
-export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
+export function useSSRData<T = unknown>(maxAgeSeconds = 300, routeKey?: string): T | null {
   const location = useLocation();
   const consumedRef = useRef(false);
+
+  // Edge functions write either the concrete pathname (repo, profile) or a
+  // fixed key ('home', 'workspaces', 'workspace-detail') as `route`. Callers
+  // whose edge function uses a fixed key must pass it, otherwise the lookup
+  // compares '/i/<slug>' against 'workspace-detail' and never matches.
+  const lookupKey = routeKey ?? location.pathname;
 
   const ssrData = useMemo(() => {
     // Only consume SSR data once per component lifecycle
@@ -75,10 +81,10 @@ export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
     }
 
     // Get SSR data for current route
-    const data = getSSRDataForRoute<T>(location.pathname);
+    const data = getSSRDataForRoute<T>(lookupKey);
 
     if (data) {
-      logger.debug('[SSR] Using SSR data for %s', location.pathname);
+      logger.debug('[SSR] Using SSR data for %s', lookupKey);
       consumedRef.current = true;
 
       // Schedule cleanup after next render
@@ -88,7 +94,7 @@ export function useSSRData<T = unknown>(maxAgeSeconds = 300): T | null {
     }
 
     return data;
-  }, [location.pathname, maxAgeSeconds]);
+  }, [lookupKey, maxAgeSeconds]);
 
   return ssrData;
 }
@@ -104,26 +110,29 @@ export function useRepoSSRData(): RepoSSRData | null {
  * Hook for home page SSR data
  */
 export function useHomeSSRData(): HomeSSRData | null {
-  return useSSRData<HomeSSRData>();
+  return useSSRData<HomeSSRData>(300, 'home');
 }
 
 /**
  * Hook for workspaces page SSR data
  */
 export function useWorkspacesSSRData(): WorkspacesPageData | null {
-  return useSSRData<WorkspacesPageData>();
+  return useSSRData<WorkspacesPageData>(300, 'workspaces');
 }
 
 /**
  * Hook for workspace detail page SSR data
  */
 export function useWorkspaceDetailSSRData(): WorkspaceDetailPageData | null {
-  return useSSRData<WorkspaceDetailPageData>();
+  // Accept payloads for the edge cache's full stale-while-revalidate window
+  // (getSSRHeaders(300, 3600) in ssr-workspace-detail.ts): the page refreshes
+  // in place, so a stale header is still better than a skeleton.
+  return useSSRData<WorkspaceDetailPageData>(3600, 'workspace-detail');
 }
 
 /**
  * Hook for workspace creation page SSR data
  */
 export function useWorkspaceNewSSRData(): WorkspaceNewPageData | null {
-  return useSSRData<WorkspaceNewPageData>();
+  return useSSRData<WorkspaceNewPageData>(300, 'workspaces/new');
 }

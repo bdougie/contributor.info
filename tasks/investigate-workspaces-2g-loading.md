@@ -1,3 +1,5 @@
+> **Superseded 2026-09-07.** The fixes for this investigation landed in #1732 (`1e305f20`). What was fixed, what was missed (the SSR seed never fires, `workspace_repositories` is unlimited, open counts still fetch ids), and what regressed since (4 GitHub Search calls on the overview, zod hoisted into `vendor-ai-sdk`) are tracked in `tasks/workspace-performance-audit-2026-09-07.md`. The chunk sizes and line numbers below are from before #1732.
+
 # Investigation: Workspaces Can't Load on 2G
 
 ## Summary

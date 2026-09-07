@@ -21,8 +21,8 @@ import {
 } from '@/lib/validations/workspace';
 import { WorkspacePermissionService } from './workspace-permissions.service';
 import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
-import { inngest } from '@/lib/inngest/client';
 import { logError } from '@/lib/error-logging';
+import type { Inngest } from 'inngest';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -38,6 +38,14 @@ import type {
   WorkspaceRepositoryFilters,
   WorkspaceMemberWithUser,
 } from '@/types/workspace';
+
+// The Inngest client pulls in the `inngest` SDK (and its zod dependency) at
+// module scope. Every send here happens on a user action, so load it on demand
+// to keep it out of the workspace page's initial chunk graph.
+const sendInngestEvent = async (...args: Parameters<Inngest['send']>) => {
+  const { inngest } = await import('@/lib/inngest/client');
+  return inngest.send(...args);
+};
 
 /**
  * Service response type
@@ -780,7 +788,7 @@ export class WorkspaceService {
         await workspacePrioritySync.markAsWorkspaceRepo(data.repository_id);
 
         // Trigger immediate priority sync job (async, non-blocking)
-        await inngest.send({
+        await sendInngestEvent({
           name: 'workspace/priorities.sync',
           data: {
             repositoryId: data.repository_id,
@@ -808,7 +816,7 @@ export class WorkspaceService {
           .maybeSingle();
 
         if (repository) {
-          await inngest.send({
+          await sendInngestEvent({
             name: 'workspace.repository.changed',
             data: {
               workspaceId,
@@ -977,7 +985,7 @@ export class WorkspaceService {
         for (const repositoryId of newIds) {
           await workspacePrioritySync.markAsWorkspaceRepo(repositoryId);
         }
-        await inngest.send({
+        await sendInngestEvent({
           name: 'workspace/priorities.sync',
           data: {
             repositoryId: newIds[0],
@@ -1002,7 +1010,7 @@ export class WorkspaceService {
           .maybeSingle();
 
         const firstName = firstRepo?.full_name ?? `${newIds.length} repositories`;
-        await inngest.send({
+        await sendInngestEvent({
           name: 'workspace.repository.changed',
           data: {
             workspaceId,
@@ -1124,7 +1132,7 @@ export class WorkspaceService {
           .maybeSingle();
 
         if (repository) {
-          await inngest.send({
+          await sendInngestEvent({
             name: 'workspace.repository.changed',
             data: {
               workspaceId,

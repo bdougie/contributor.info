@@ -12,6 +12,7 @@ type WorkspaceWithMember = {
   name: string;
   slug: string;
   description: string | null;
+  tier: string;
   owner_id: string;
   created_at: string;
 };
@@ -27,6 +28,7 @@ type RepositoryWithWorkspace = {
     owner: string;
     description: string | null;
     language: string | null;
+    stargazers_count: number | null;
     github_pushed_at: string | null;
     pull_request_count: number | null;
     open_issues_count: number | null;
@@ -44,6 +46,8 @@ type WorkspacePreviewStats = {
 export const workspaceKeys = {
   all: ['workspaces'] as const,
   userWorkspaces: (appUserId: string | null) => [...workspaceKeys.all, 'user', appUserId] as const,
+  /** Public counts shown to signed-out visitors on /workspaces. */
+  demoStats: () => [...workspaceKeys.all, 'demo-stats'] as const,
 };
 
 export interface UseUserWorkspacesReturn {
@@ -113,6 +117,7 @@ async function fetchUserWorkspaces(
       name,
       slug,
       description,
+      tier,
       owner_id,
       created_at
     `
@@ -162,6 +167,7 @@ async function fetchUserWorkspaces(
         owner,
         description,
         language,
+        stargazers_count,
         github_pushed_at,
         pull_request_count,
         open_issues_count,
@@ -224,6 +230,7 @@ async function fetchUserWorkspaces(
           owner: item.repositories.owner,
           description: item.repositories.description,
           language: item.repositories.language,
+          stargazers_count: item.repositories.stargazers_count ?? 0,
           activity_score: activityScore,
           last_activity: item.repositories.github_pushed_at || new Date().toISOString(),
           avatar_url: getRepoOwnerAvatarUrl(
@@ -243,6 +250,7 @@ async function fetchUserWorkspaces(
       name: workspace.name,
       slug: workspace.slug,
       description: workspace.description,
+      tier: workspace.tier,
       owner: {
         id: workspace.owner_id,
         avatar_url: ownerMetadata?.avatar_url,

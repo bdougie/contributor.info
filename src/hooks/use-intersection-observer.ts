@@ -75,6 +75,15 @@ export function useIntersectionObserver(
     // If already intersected and triggerOnce is true, don't observe again
     if (hasIntersectedRef.current && triggerOnce) return;
 
+    // Without IntersectionObserver there is no way to know when the element is
+    // near the viewport, so treat it as visible rather than never loading.
+    if (typeof IntersectionObserver === 'undefined') {
+      hasIntersectedRef.current = true;
+      setIsIntersecting(true);
+      setHasIntersected(true);
+      return;
+    }
+
     observerRef.current = new IntersectionObserver(handleIntersection, {
       threshold,
       root,
