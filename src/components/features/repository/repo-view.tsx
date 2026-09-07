@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import type { GitHubRepository } from '@/lib/github';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
+import { SectionNavigation } from '@/components/ui/section-navigation';
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTimeRangeStore } from '@/lib/time-range-store';
 import { toast } from 'sonner';
@@ -38,6 +40,13 @@ import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
+
+const repositorySections = [
+  { value: 'contributions', label: 'Activity' },
+  { value: 'lottery', label: 'Health' },
+  { value: 'distribution', label: 'Distribution' },
+  { value: 'feed', label: 'Feed' },
+];
 
 // Lazy load Slack button to avoid impacting initial page load
 const RepositorySlackButton = lazy(() =>
@@ -137,6 +146,19 @@ export default function RepoView() {
     // Mark that a search has been performed
     setHasSearchedOnce(true);
     navigate(repositoryPath);
+  };
+
+  const handleTabChange = (value: string) => {
+    const currentTab = getCurrentTab();
+    trackRepositoryTabSwitch(currentTab, value, 'public');
+
+    if (value === 'contributions') {
+      navigate(`/${owner}/${repo}`);
+    } else if (value === 'lottery') {
+      navigate(`/${owner}/${repo}/health`);
+    } else {
+      navigate(`/${owner}/${repo}/${value}`);
+    }
   };
 
   const handleSearchInput = (repositoryPath: string) => {
@@ -365,39 +387,14 @@ export default function RepoView() {
               style={{ background: 'transparent', border: 'none' }}
               aria-label="Repository analysis tabs"
             >
-              <Tabs
-                value={getCurrentTab()}
-                onValueChange={(value) => {
-                  const currentTab = getCurrentTab();
-                  trackRepositoryTabSwitch(currentTab, value, 'public');
-
-                  if (value === 'contributions') {
-                    navigate(`/${owner}/${repo}`);
-                  } else if (value === 'lottery') {
-                    navigate(`/${owner}/${repo}/health`);
-                  } else {
-                    navigate(`/${owner}/${repo}/${value}`);
-                  }
-                }}
-              >
-                <TabsList
-                  className="grid grid-cols-4 w-full max-w-md"
-                  role="tablist"
-                  aria-label="Repository analysis sections"
-                >
-                  <TabsTrigger value="contributions" className="text-xs sm:text-sm">
-                    Activity
-                  </TabsTrigger>
-                  <TabsTrigger value="lottery" className="text-xs sm:text-sm">
-                    Health
-                  </TabsTrigger>
-                  <TabsTrigger value="distribution" className="text-xs sm:text-sm">
-                    Distribution
-                  </TabsTrigger>
-                  <TabsTrigger value="feed" className="text-xs sm:text-sm">
-                    Feed
-                  </TabsTrigger>
-                </TabsList>
+              <Tabs value={getCurrentTab()} onValueChange={handleTabChange}>
+                <SectionNavigation
+                  label="Repository section"
+                  value={getCurrentTab()}
+                  onValueChange={handleTabChange}
+                  className="max-w-md"
+                  items={repositorySections}
+                />
               </Tabs>
             </nav>
 
