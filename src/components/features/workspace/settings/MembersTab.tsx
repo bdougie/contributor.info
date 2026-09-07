@@ -18,7 +18,6 @@ import {
   Users,
   MoreVertical,
   Mail,
-  AlertCircle,
   Sparkles,
   Clock,
   UserCheck,
@@ -467,15 +466,15 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
+      <Card className="min-w-0 shadow-none">
+        <CardHeader className="p-5 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="min-w-0">
-              <CardTitle>Team Members</CardTitle>
-              <CardDescription>Manage your workspace team and their permissions</CardDescription>
+              <CardTitle>Members</CardTitle>
+              <CardDescription>Manage access to this workspace.</CardDescription>
             </div>
             {canManageMembers && (
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                 {!limits.loading && (
                   <div className="text-sm text-muted-foreground whitespace-nowrap">
                     {members.length} / {maxMembers} members
@@ -490,10 +489,11 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                 ) : (
                   <Button
                     onClick={() => setUpgradeModalOpen(true)}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 whitespace-nowrap"
+                    variant="outline"
+                    className="whitespace-nowrap"
                   >
                     <Sparkles className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Upgrade to Invite More</span>
+                    <span className="hidden sm:inline">Upgrade plan</span>
                     <span className="sm:hidden">Upgrade</span>
                   </Button>
                 )}
@@ -501,7 +501,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-5 pb-5 sm:px-6 sm:pb-6">
           {(() => {
             if (loading) {
               return (
@@ -567,27 +567,11 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
             }
             return (
               <div className="space-y-6">
-                {/* Member limit alert */}
                 {!canInviteMore && canManageMembers && (
-                  <div className="flex items-start p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                        Team member limit reached
-                      </p>
-                      <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                        You've reached the maximum of {maxMembers} team member
-                        {maxMembers !== 1 ? 's' : ''} for your current plan.
-                      </p>
-                      <button
-                        onClick={() => setUpgradeModalOpen(true)}
-                        className="text-sm text-amber-600 dark:text-amber-400 hover:underline mt-2 font-medium inline-flex items-center"
-                      >
-                        Upgrade to add more members
-                        <Sparkles className="h-3 w-3 ml-1" />
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Your plan includes {maxMembers} member{maxMembers !== 1 ? 's' : ''}. Upgrade to
+                    invite more.
+                  </p>
                 )}
 
                 {/* Pending Invitations Section */}
@@ -595,15 +579,13 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>
-                        Pending Invitations ({pendingInvitations.length}) - Awaiting Acceptance
-                      </span>
+                      <span>Pending invitations ({pendingInvitations.length})</span>
                     </div>
                     <div className="space-y-2">
                       {pendingInvitations.map((invitation) => (
                         <div
                           key={invitation.id}
-                          className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-muted-foreground/10 gap-3"
+                          className="flex flex-col gap-3 rounded-lg bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between"
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="bg-background rounded-full p-2 flex-shrink-0">
@@ -626,7 +608,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                             </div>
                           </div>
                           {canManageMembers && (
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -649,6 +631,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                 size="sm"
                                 onClick={() => handleCancelInvitation(invitation.id)}
                                 className="text-destructive hover:text-destructive"
+                                aria-label={`Cancel invitation for ${invitation.email}`}
                                 disabled={operationInProgress === `cancel-${invitation.id}`}
                               >
                                 <UserX className="h-3 w-3" />
@@ -668,17 +651,19 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                     {pendingInvitations.length > 0 && (
                       <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                         <UserCheck className="h-4 w-4" />
-                        <span>Active Members ({members.length})</span>
+                        <span>Active members ({members.length})</span>
                       </div>
                     )}
                     <div className="w-full overflow-x-auto">
-                      <Table className="w-full">
+                      <Table className="w-full table-fixed sm:table-auto">
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="min-w-[250px]">Member</TableHead>
-                            <TableHead className="min-w-[120px]">Role</TableHead>
-                            <TableHead className="min-w-[120px]">Joined</TableHead>
-                            <TableHead className="min-w-[100px] text-right">Actions</TableHead>
+                            <TableHead>Member</TableHead>
+                            <TableHead className="hidden sm:table-cell">Role</TableHead>
+                            <TableHead className="hidden md:table-cell">Joined</TableHead>
+                            <TableHead className="w-14 text-right">
+                              <span className="sr-only">Actions</span>
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -697,8 +682,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                       </AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0 flex-1">
-                                      <div className="font-medium flex items-center gap-2">
-                                        <span className="truncate max-w-[200px]">
+                                      <div className="font-medium flex flex-wrap items-center gap-2">
+                                        <span className="truncate">
                                           {member.user?.display_name ||
                                             member.user?.email?.split('@')[0]}
                                         </span>
@@ -711,13 +696,16 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                           </Badge>
                                         )}
                                       </div>
-                                      <div className="text-sm text-muted-foreground truncate max-w-[250px]">
+                                      <div className="text-sm text-muted-foreground truncate">
                                         {member.user?.email}
                                       </div>
+                                      <span className="mt-1 block text-xs capitalize text-muted-foreground sm:hidden">
+                                        {member.role}
+                                      </span>
                                     </div>
                                   </div>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="hidden sm:table-cell">
                                   <Badge
                                     variant={getRoleBadgeVariant(member.role)}
                                     className="gap-1"
@@ -728,7 +716,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                     </span>
                                   </Badge>
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
+                                <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
                                   {member.accepted_at
                                     ? new Date(member.accepted_at).toLocaleDateString('en-US', {
                                         month: 'short',
@@ -744,7 +732,8 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                          className="h-11 w-11 p-0"
+                                          aria-label={`Manage ${member.user?.display_name || member.user?.email || 'member'}`}
                                           disabled={
                                             operationInProgress === `role-${member.user_id}`
                                           }
@@ -783,13 +772,7 @@ export function MembersTab({ workspaceId, currentUserRole }: MembersTabProps) {
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
-                                  ) : (
-                                    member.role === 'owner' && (
-                                      <Badge variant="outline" className="text-xs opacity-60">
-                                        Owner
-                                      </Badge>
-                                    )
-                                  )}
+                                  ) : null}
                                 </TableCell>
                               </TableRow>
                             );
