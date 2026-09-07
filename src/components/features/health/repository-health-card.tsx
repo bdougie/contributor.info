@@ -21,12 +21,17 @@ import {
 } from '@/lib/insights/health-metrics';
 import { useOnDemandSync } from '@/hooks/use-on-demand-sync';
 import { LearnMoreLink } from '@/components/ui/learn-more-link';
-import { hasConfidenceScore } from '@/lib/insights/confidence-display-state';
+import {
+  hasConfidenceScore,
+  SYNCED_CONFIDENCE_STALE_AFTER_MS,
+} from '@/lib/insights/confidence-display-state';
 
 interface ConfidenceSnapshot {
   key: string;
   score: number;
   calculatedAt: string | null;
+  /** How old the score may be before it is flagged as stale. Undefined uses the in-app default. */
+  staleAfterMs?: number;
   breakdown?: ConfidenceBreakdown['breakdown'];
   trend?: ConfidenceTrendData;
 }
@@ -115,7 +120,10 @@ export function RepositoryHealthCard() {
           setConfidenceSnapshot({
             key: confidenceKey,
             score,
+            // last_analysis is the newest role verification, i.e. the last sync,
+            // not a fresh calculation. Judge its age on the sync window.
             calculatedAt: typedData.last_analysis,
+            staleAfterMs: SYNCED_CONFIDENCE_STALE_AFTER_MS,
             // Preserve the current breakdown until the scoring algorithm is unified.
             breakdown: {
               starForkConfidence: Number(typedData.avg_confidence_score) * 0.35,
@@ -276,6 +284,7 @@ export function RepositoryHealthCard() {
               <ContributorConfidenceCard
                 confidenceScore={confidence?.score ?? null}
                 calculatedAt={confidence?.calculatedAt}
+                staleAfterMs={confidence?.staleAfterMs}
                 syncStatus={confidenceSyncStatus}
                 loading={confidenceLoading}
                 error={confidenceError}

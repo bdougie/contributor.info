@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { isSyncStalled, SYNC_STALL_TIMEOUT_MS } from '@/lib/sync-status';
+import { getSyncRowError, isSyncStalled, SYNC_STALL_TIMEOUT_MS } from '@/lib/sync-status';
 
 interface OnDemandSyncOptions {
   owner: string;
@@ -97,9 +97,7 @@ export function useOnDemandSync({
           isInProgress: syncData.sync_status === 'in_progress' && !stalled,
           isComplete: syncData.sync_status === 'completed',
           isStalled: stalled,
-          error:
-            syncData.error_message ||
-            (syncData.sync_status === 'failed' ? 'The latest repository update failed.' : null),
+          error: getSyncRowError(syncData),
           lastSyncAt: syncData.last_sync_at,
           eventsProcessed: syncData.events_processed,
         }));
@@ -256,9 +254,7 @@ export function useOnDemandSync({
             isInProgress: syncData.sync_status === 'in_progress' && !stalled,
             isComplete: syncData.sync_status === 'completed',
             isStalled: stalled,
-            error:
-              syncData.error_message ||
-              (syncData.sync_status === 'failed' ? 'The latest repository update failed.' : null),
+            error: getSyncRowError(syncData),
             lastSyncAt: syncData.last_sync_at,
             eventsProcessed: syncData.events_processed,
           }));

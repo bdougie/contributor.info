@@ -84,6 +84,8 @@ export interface ContributorConfidenceCardProps {
   error?: string | null;
   className?: string;
   calculatedAt?: string | null;
+  /** Age after which the score is flagged as stale. Defaults to the in-app cache lifetime. */
+  staleAfterMs?: number;
   syncStatus?: SyncStatus;
   onRefresh?: () => void;
   breakdown?: {
@@ -160,6 +162,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   error = null,
   className,
   calculatedAt,
+  staleAfterMs,
   syncStatus,
   onRefresh,
   breakdown,
@@ -176,7 +179,7 @@ export const ContributorConfidenceCard = memo(function ContributorConfidenceCard
   }, []);
   const hasScore = hasConfidenceScore(confidenceScore);
   const displayState = getConfidenceDisplayState(
-    { score: confidenceScore, calculatedAt, loading, error, syncStatus },
+    { score: confidenceScore, calculatedAt, staleAfterMs, loading, error, syncStatus },
     now
   );
   const busy = displayState === 'loading' || displayState === 'refreshing';

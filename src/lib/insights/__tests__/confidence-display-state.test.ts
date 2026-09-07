@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { getConfidenceDisplayState } from '../confidence-display-state';
+import {
+  getConfidenceDisplayState,
+  SYNCED_CONFIDENCE_STALE_AFTER_MS,
+} from '../confidence-display-state';
 
 const now = Date.parse('2026-09-07T12:00:00Z');
 const fresh = { score: 25, calculatedAt: '2026-09-07T11:50:00Z' };
@@ -27,6 +30,26 @@ describe('confidence display state', () => {
     expect(getConfidenceDisplayState({ ...fresh, calculatedAt: '2026-09-07T11:00:00Z' }, now)).toBe(
       'stale'
     );
+  });
+
+  it('does not flag a synced score as stale on the one-hour calculation window', () => {
+    const tenDaysAgo = new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString();
+    expect(
+      getConfidenceDisplayState(
+        { ...fresh, calculatedAt: tenDaysAgo, staleAfterMs: SYNCED_CONFIDENCE_STALE_AFTER_MS },
+        now
+      )
+    ).toBe('ready');
+  });
+
+  it('still flags a synced score once it passes the sync window', () => {
+    const tooOld = new Date(now - SYNCED_CONFIDENCE_STALE_AFTER_MS).toISOString();
+    expect(
+      getConfidenceDisplayState(
+        { ...fresh, calculatedAt: tooOld, staleAfterMs: SYNCED_CONFIDENCE_STALE_AFTER_MS },
+        now
+      )
+    ).toBe('stale');
   });
 
   it.each([null, NaN, Infinity, -1, 101])(
