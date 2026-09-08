@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
 import { AddRepositoryModal } from '../AddRepositoryModal';
 import type { GitHubRepository } from '@/lib/github';
+import { toOrgImportRepo, type OrgImportRepo } from '@/lib/utils/org-import';
 
 const mocks = vi.hoisted(() => ({
   fetchRepositoryInfo: vi.fn(),
@@ -20,7 +21,8 @@ const mocks = vi.hoisted(() => ({
   },
   maxRepositories: 3,
   addRepositories: vi.fn(),
-  orgRepos: [],
+  orgRepos: [] as OrgImportRepo[],
+  savedLookup: vi.fn(),
 }));
 vi.mock('@/lib/github', () => ({ fetchRepositoryInfo: mocks.fetchRepositoryInfo }));
 vi.mock('@/hooks/use-github-search', () => ({
@@ -48,20 +50,25 @@ vi.mock('@/lib/supabase-lazy', () => ({
   getSupabase: () =>
     Promise.resolve({
       auth: { getUser: () => Promise.resolve({ data: { user: { id: 'auth-user' } } }) },
-      from: (table: string) => ({
-        select: () => ({
-          eq: () =>
-            table === 'workspaces'
-              ? {
-                  maybeSingle: () =>
-                    Promise.resolve({
-                      data: { tier: 'team', max_repositories: mocks.maxRepositories },
-                      error: null,
-                    }),
-                }
-              : Promise.resolve({ data: [], error: null }),
-        }),
-      }),
+      from: (table: string) =>
+        table === 'repositories'
+          ? {
+              select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: mocks.savedLookup }) }) }),
+            }
+          : {
+              select: () => ({
+                eq: () =>
+                  table === 'workspaces'
+                    ? {
+                        maybeSingle: () =>
+                          Promise.resolve({
+                            data: { tier: 'team', max_repositories: mocks.maxRepositories },
+                            error: null,
+                          }),
+                      }
+                    : Promise.resolve({ data: [], error: null }),
+              }),
+            },
     }),
 }));
 
@@ -93,6 +100,8 @@ describe('workspace exact repository selection', () => {
     vi.clearAllMocks();
     mocks.results = [];
     mocks.maxRepositories = 3;
+    mocks.orgRepos = [];
+    mocks.savedLookup.mockResolvedValue({ data: null, error: null });
     mocks.fetchRepositoryInfo.mockResolvedValue(tapes);
   });
 
@@ -105,22 +114,61 @@ describe('workspace exact repository selection', () => {
       await user.type(screen.getByRole('combobox'), `${query}{Enter}`);
       await screen.findByText('Selected Repositories (1)');
       expect(screen.getByRole('combobox')).toHaveValue('');
-      expect(mocks.fetchRepositoryInfo).toHaveBeenCalledWith('papercomputeco', 'tapes');
+      expect(mocks.fetchRepositoryInfo).toHaveBeenCalledWith('papercomputeco', 'tapes', {
+        throwOnError: true,
+      });
       expect(mocks.addRepositories).not.toHaveBeenCalled();
     }
   );
 
-  it('retains an unknown repository and allows retrying the same query', async () => {
+  it('stages an inaccessible exact name for verification from the same input', async () => {
     mocks.fetchRepositoryInfo.mockResolvedValueOnce(null);
     const user = userEvent.setup();
-    renderPicker('papercomputeco/tapes');
+    renderPicker('papercomputeco/paper');
     await screen.findByText('0 / 3 used');
     await user.click(screen.getByRole('button', { name: 'Select', exact: true }));
-    await screen.findByText(/Unable to find papercomputeco\/tapes/);
-    expect(screen.getByRole('combobox')).toHaveValue('papercomputeco/tapes');
-    await user.click(screen.getByRole('button', { name: 'Select', exact: true }));
     await screen.findByText('Selected Repositories (1)');
+    expect(screen.getByText('Pending verification')).toBeInTheDocument();
+    expect(screen.queryByText('Private', { exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole('combobox')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Add private repo' })).not.toBeInTheDocument();
+    expect(mocks.savedLookup).toHaveBeenCalledOnce();
+    expect(mocks.addRepositories).not.toHaveBeenCalled();
+  });
+
+  it('finds a registered private repository after GitHub cannot see it', async () => {
+    mocks.fetchRepositoryInfo.mockResolvedValueOnce(null);
+    mocks.savedLookup.mockResolvedValueOnce({
+      data: {
+        github_id: 99,
+        owner: 'papercomputeco',
+        name: 'paper',
+        description: null,
+        language: 'Go',
+        stargazers_count: 0,
+        forks_count: 0,
+        is_private: true,
+      },
+      error: null,
+    });
+    renderPicker('https://github.com/papercomputeco/paper');
+    await screen.findByText('0 / 3 used');
+    fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
+    await screen.findByText('Selected Repositories (1)');
+    expect(screen.getByText('papercomputeco/paper')).toBeInTheDocument();
+    expect(screen.getByText('Private', { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText('Pending verification')).not.toBeInTheDocument();
+  });
+
+  it('keeps the query for retry when the private lookup fails', async () => {
+    mocks.fetchRepositoryInfo.mockResolvedValueOnce(null);
+    mocks.savedLookup.mockResolvedValueOnce({ data: null, error: new Error('Unavailable') });
+    renderPicker('papercomputeco/paper');
+    await screen.findByText('0 / 3 used');
+    fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
+    await screen.findByText('Repository lookup failed. Please try again.');
+    expect(screen.getByRole('combobox')).toHaveValue('papercomputeco/paper');
+    expect(screen.getByText('Selected Repositories (0)')).toBeInTheDocument();
   });
 
   it('preserves input when a lookup rejects or input is not an exact repository', async () => {
@@ -132,6 +180,7 @@ describe('workspace exact repository selection', () => {
     await screen.findByText(/Repository lookup failed/);
     expect(screen.getByRole('combobox')).toHaveValue('papercomputeco/tapes');
     await user.clear(screen.getByRole('combobox'));
+    expect(screen.queryByText(/Repository lookup failed/)).not.toBeInTheDocument();
     await user.type(screen.getByRole('combobox'), 'tapes{Enter}');
     expect(screen.getByText(/Enter an exact owner\/repository/)).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toHaveValue('tapes');
@@ -171,10 +220,16 @@ describe('workspace exact repository selection', () => {
     await screen.findByText('0 / 3 used');
     fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
     expect(screen.getByRole('combobox')).toBeDisabled();
-    fireEvent.change(screen.getByPlaceholderText('owner/repo'), {
-      target: { value: 'pcc-labs/private' },
+    mocks.orgRepos = [toOrgImportRepo({ id: 99, name: 'other', full_name: 'pcc-labs/other' })];
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Import from org' }), {
+      button: 0,
+      ctrlKey: false,
     });
-    fireEvent.keyDown(screen.getByPlaceholderText('owner/repo'), { key: 'Enter' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'GitHub organization name' }), {
+      target: { value: 'pcc-labs' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Load repos' }));
+    await screen.findByText('Selected Repositories (1)');
     await act(async () => {
       resolveLookup(tapes);
     });
@@ -240,15 +295,25 @@ describe('workspace exact repository selection', () => {
     renderPicker('papercomputeco/tapes');
     await screen.findByText('0 / 1 used');
     fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
-    fireEvent.change(screen.getByPlaceholderText('owner/repo'), {
-      target: { value: 'pcc-labs/private' },
+    mocks.orgRepos = [toOrgImportRepo({ id: 99, name: 'other', full_name: 'pcc-labs/other' })];
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Import from org' }), {
+      button: 0,
+      ctrlKey: false,
     });
-    fireEvent.keyDown(screen.getByPlaceholderText('owner/repo'), { key: 'Enter' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'GitHub organization name' }), {
+      target: { value: 'pcc-labs' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Load repos' }));
+    await screen.findByText('Selected Repositories (1)');
     await act(async () => {
       resolveLookup(tapes);
     });
     expect(screen.getByText('Selected Repositories (1)')).toBeInTheDocument();
     expect(screen.getByText(/Maximum 1 repositories allowed/)).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Search', exact: true }), {
+      button: 0,
+      ctrlKey: false,
+    });
     expect(screen.getByRole('combobox')).toHaveValue('papercomputeco/tapes');
   });
 

@@ -23,7 +23,7 @@ import {
   ExternalLink,
   Target,
   MoreHorizontal,
-  Settings,
+  Plus,
   Sparkles,
 } from '@/components/ui/icon';
 import {
@@ -32,7 +32,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, humanizeNumber } from '@/lib/utils';
 import { useState, useMemo, useCallback, KeyboardEvent } from 'react';
 import {
@@ -447,31 +446,19 @@ export function RepositoryList({
   return (
     <Card className={className}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Repositories</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
+            <CardTitle>Repositories</CardTitle>
             <Badge variant="secondary" role="status" aria-live="polite">
               {repositories.length} total
             </Badge>
-            {onAddRepository && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={onAddRepository}
-                    className="h-7"
-                    aria-label="Manage repositories"
-                  >
-                    <Settings className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Manage repositories</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
           </div>
+          {onAddRepository && (
+            <Button type="button" size="sm" onClick={onAddRepository}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Add repository
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>

@@ -606,7 +606,8 @@ export async function fetchPullRequests(
 
 export async function fetchRepositoryInfo(
   owner: string,
-  repo: string
+  repo: string,
+  options: { throwOnError?: boolean } = {}
 ): Promise<{
   id: number;
   name: string;
@@ -673,6 +674,7 @@ export async function fetchRepositoryInfo(
     };
   } catch (error) {
     console.error('Error fetching repository info:', error);
+    if (options.throwOnError) throw error;
     return null;
   }
 }

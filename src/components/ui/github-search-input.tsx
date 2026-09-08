@@ -42,6 +42,7 @@ interface GitHubSearchInputProps {
   value?: string;
   onSearch: (repository: string) => void | boolean | Promise<void | boolean>;
   onSelect?: (repository: GitHubRepository) => void | boolean | Promise<void | boolean>;
+  onValueChange?: (value: string) => void;
   className?: string;
   showButton?: boolean;
   buttonText?: string;
@@ -78,6 +79,7 @@ export function GitHubSearchInput({
   value = '',
   onSearch,
   onSelect,
+  onValueChange,
   className,
   showButton = true,
   buttonText = 'Search',
@@ -199,6 +201,8 @@ export function GitHubSearchInput({
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
+    setSubmissionError(null);
+    onValueChange?.(e.target.value);
   };
 
   // PLG Tracking: Handle input focus to track search initiation
@@ -297,6 +301,8 @@ export function GitHubSearchInput({
 
   const handleClear = () => {
     setInputValue('');
+    setSubmissionError(null);
+    onValueChange?.('');
     setSelectedIndex(-1);
     setShowDropdown(false);
     inputRef.current?.focus();
