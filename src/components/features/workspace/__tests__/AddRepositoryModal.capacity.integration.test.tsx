@@ -199,9 +199,11 @@ describe('workspace picker capacity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add 2 Repositories' }));
     await screen.findByText('1 / 3 used');
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Add 1 Repository' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Retry 1 Repository' })).toBeEnabled()
     );
 
+    expect(screen.getByText('Not added')).toBeInTheDocument();
+    expect(screen.getByText('Temporary failure')).toBeInTheDocument();
     expect(screen.getByText('Selected Repositories (1)')).toBeInTheDocument();
     select(2);
     select(3);

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { GitHubSearchInput } from '@/components/ui/github-search-input';
@@ -29,6 +30,7 @@ import {
   ExternalLink,
   Loader2,
   Star,
+  Clock,
 } from '@/components/ui/icon';
 import type { Workspace } from '@/types/workspace';
 import { fetchRepositoryInfo, type GitHubRepository } from '@/lib/github';
@@ -67,6 +69,37 @@ const WorkspaceService =
     : DefaultWorkspaceService;
 
 const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/contributor-info/installations/new';
+const TRACKING_UNAVAILABLE_MESSAGE =
+  'The tracking service is temporarily unavailable. Please try again.';
+
+const trackingResponseSchema = z.object({
+  success: z.boolean().optional(),
+  repositoryId: z.string().optional(),
+  code: z.string().optional(),
+  message: z.string().optional(),
+  installUrl: z.string().optional(),
+});
+
+/**
+ * `_` is legal in a repository name and is also a single-character wildcard in
+ * LIKE, so escape the pattern metacharacters before an ilike lookup.
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
+const savedRepositorySchema = z.object({
+  github_id: z.number(),
+  owner: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  language: z.string().nullable(),
+  stargazers_count: z.number().nullable(),
+  forks_count: z.number().nullable(),
+  // Nullable in the repositories table; the privacy RLS policy treats NULL as
+  // public via IS DISTINCT FROM TRUE, so mirror that rather than throwing.
+  is_private: z.boolean().nullable(),
+});
 
 /**
  * Tracking failure that carries the structured error code from the
@@ -88,6 +121,8 @@ interface StagedRepository extends GitHubRepository {
   notes?: string;
   tags?: string[];
   is_pinned?: boolean;
+  visibilityUnverified?: boolean;
+  addError?: { message: string; installUrl?: string; pendingAccess: boolean };
 }
 
 // Extend existing GitHubRepository type for workspace context
@@ -129,9 +164,22 @@ export function AddRepositoryModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingRepoId, setRemovingRepoId] = useState<string | null>(null);
-  // Private repos that need the GitHub App installed before they can be added
-  const [installNeeded, setInstallNeeded] = useState<{ repos: string[]; url: string } | null>(null);
-  const [privateRepoInput, setPrivateRepoInput] = useState('');
+  const failedRepositoryCount = stagedRepos.filter((repo) => repo.addError).length;
+  const pendingRepositoryCount = stagedRepos.filter((repo) => repo.addError?.pendingAccess).length;
+  const selectedRepositoriesRef = useRef<HTMLElement>(null);
+
+  const wasSubmittingRef = useRef(false);
+
+  // Move focus to the failures once, when a submit finishes. Keying on the
+  // failure count instead would yank focus again every time the user removes
+  // one of several failed rows.
+  useEffect(() => {
+    const finishedSubmitting = wasSubmittingRef.current && !submitting;
+    wasSubmittingRef.current = submitting;
+    if (finishedSubmitting && failedRepositoryCount > 0) {
+      selectedRepositoriesRef.current?.focus();
+    }
+  }, [submitting, failedRepositoryCount]);
 
   // Org import tab state
   const [orgInput, setOrgInput] = useState('');
@@ -284,7 +332,7 @@ export function AddRepositoryModal({
   }, [open, workspaceId]);
 
   const handleSelectRepository = useCallback(
-    (repo: GitHubRepository) => {
+    (repo: StagedRepository) => {
       if (loading || !workspace) {
         setError('Workspace details are unavailable. Please reopen this dialog to try again.');
         return false;
@@ -314,8 +362,14 @@ export function AddRepositoryModal({
         return false;
       }
 
-      // Add to staging
-      setStagedRepos([...stagedRepos, repo]);
+      // Add to staging. Functional so it composes with the updates handleSubmit
+      // applies while a submit is in flight, and so the duplicate guard above
+      // cannot be defeated by two selections landing in the same render.
+      setStagedRepos((prev) =>
+        prev.some((r) => r.full_name.toLowerCase() === repo.full_name.toLowerCase())
+          ? prev
+          : [...prev, repo]
+      );
       setError(null);
       toast.success(`Added ${repo.full_name} to selection`);
       return true;
@@ -338,13 +392,47 @@ export function AddRepositoryModal({
     const generation = lookupGeneration.current;
     const [owner, name] = fullName.split('/');
     try {
-      const repo = await fetchRepositoryInfo(owner, name);
+      const repo = await fetchRepositoryInfo(owner, name, { throwOnError: true });
       if (generation !== lookupGeneration.current) return false;
       if (!repo) {
-        setError(
-          `Unable to find ${fullName}. Check the name and try again, or use the private repository field below.`
-        );
-        return false;
+        // The browser's GitHub token may not see private repositories. Look for a
+        // registered row through the signed-in user's RLS-scoped client, which
+        // exposes a private repository only to members of a workspace that
+        // already contains it. A hit recovers real metadata for a repo the user
+        // can see elsewhere; a miss is expected and falls through to the
+        // tracking API, which verifies the name and access at Add time.
+        const supabase = await getSupabaseClient();
+        const { data: savedRepo, error: lookupError } = await supabase
+          .from('repositories')
+          .select(
+            'github_id, owner, name, description, language, stargazers_count, forks_count, is_private'
+          )
+          // GitHub names are case-insensitive but the row stores GitHub's casing,
+          // so an exact match would miss `Acme/Secret` against `acme/secret`.
+          // limit(1) rather than maybeSingle(): a pattern is not a unique key.
+          .ilike('owner', escapeLikePattern(owner))
+          .ilike('name', escapeLikePattern(name))
+          .limit(1);
+        if (generation !== lookupGeneration.current) return false;
+        if (lookupError) throw lookupError;
+
+        const saved = savedRepo?.[0] ? savedRepositorySchema.parse(savedRepo[0]) : null;
+        const resolvedOwner = saved?.owner ?? owner;
+        const resolvedName = saved?.name ?? name;
+        // A 404 does not establish visibility or existence. Preserve the exact
+        // name for the tracking API to verify when the user chooses Add.
+        return selectRepositoryRef.current({
+          id: saved?.github_id ?? 0,
+          name: resolvedName,
+          full_name: `${resolvedOwner}/${resolvedName}`,
+          owner: { login: resolvedOwner, avatar_url: `https://github.com/${resolvedOwner}.png` },
+          description: saved?.description ?? null,
+          language: saved?.language ?? undefined,
+          stargazers_count: saved?.stargazers_count ?? 0,
+          forks_count: saved?.forks_count ?? 0,
+          private: saved?.is_private ?? false,
+          visibilityUnverified: !saved,
+        });
       }
       const canonicalOwner = repo.full_name.split('/')[0];
       return selectRepositoryRef.current({
@@ -358,31 +446,6 @@ export function AddRepositoryModal({
       return false;
     }
   }, []);
-
-  const handleAddPrivateRepo = useCallback(() => {
-    const match = privateRepoInput.trim().match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
-    if (!match) {
-      setError('Enter the repository as owner/name, e.g. acme/internal-tools');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-    const [, owner, name] = match;
-
-    // Private repos can't be found via GitHub search with our public-only
-    // OAuth scope, so stage them from the typed owner/name — the tracking
-    // API verifies access via the GitHub App installation
-    const selected = handleSelectRepository({
-      id: 0,
-      name,
-      full_name: `${owner}/${name}`,
-      owner: { login: owner, avatar_url: `https://github.com/${owner}.png` },
-      description: null,
-      stargazers_count: 0,
-      forks_count: 0,
-      private: true,
-    });
-    if (selected) setPrivateRepoInput('');
-  }, [privateRepoInput, handleSelectRepository]);
 
   /** A repo row can be checked when it isn't already in the workspace and,
    * if private, the org has the GitHub App installed. */
@@ -561,20 +624,27 @@ export function AddRepositoryModal({
         body: JSON.stringify({ owner, repo: name }),
       });
 
-      const trackResult = await trackResponse.json();
+      // Proxies and upstream outages can return empty or HTML error responses.
+      const parsedResult = trackingResponseSchema.safeParse(
+        await trackResponse.json().catch(() => null)
+      );
+      if (!parsedResult.success || trackResponse.status >= 500) {
+        throw new Error(TRACKING_UNAVAILABLE_MESSAGE);
+      }
+      const trackResult = parsedResult.data;
 
       // Handle API-level errors with user-friendly messages
       if (!trackResponse.ok) {
         if (trackResult.code === 'app_installation_required') {
           throw new TrackingError(
-            `${repo.full_name} is private. Install the contributor.info GitHub App on it to opt in.`,
+            'This repository is private. Give the contributor.info GitHub App access to this repository, then retry.',
             trackResult.code,
             trackResult.installUrl || GITHUB_APP_INSTALL_URL
           );
         }
         if (trackResponse.status === 404) {
           throw new TrackingError(
-            `${repo.full_name} was not found on GitHub. If it's a private repository, install the contributor.info GitHub App on it first.`,
+            "We couldn't find this repository or access it on GitHub. Check the name. If it's private, give the contributor.info GitHub App access, then retry.",
             trackResult.code,
             trackResult.installUrl || GITHUB_APP_INSTALL_URL
           );
@@ -584,9 +654,6 @@ export function AddRepositoryModal({
         }
         if (trackResponse.status === 429) {
           throw new Error('Rate limit reached. Please wait a moment and try again.');
-        }
-        if (trackResponse.status === 503) {
-          throw new Error('The tracking service is temporarily unavailable. Please try again.');
         }
         throw new Error(trackResult.message || `Unable to track ${repo.full_name}.`);
       }
@@ -630,7 +697,6 @@ export function AddRepositoryModal({
 
     setSubmitting(true);
     setError(null);
-    setInstallNeeded(null);
 
     try {
       const supabase = await getSupabaseClient();
@@ -645,7 +711,8 @@ export function AddRepositoryModal({
         ): Promise<{
           id: string | null;
           error: string | null;
-          trackingError?: unknown;
+          installUrl?: string;
+          pendingAccess?: boolean;
           repo: StagedRepository;
         }> => {
           try {
@@ -655,7 +722,20 @@ export function AddRepositoryModal({
             const message =
               err instanceof Error ? err.message : `Failed to set up ${repo.full_name}`;
             console.error('Error tracking repository %s:', repo.full_name, err);
-            return { id: null, error: message, trackingError: err, repo };
+            return {
+              id: null,
+              error: message,
+              installUrl: err instanceof TrackingError ? err.installUrl : undefined,
+              // A repository staged from an unverified name carries private:
+              // false because nothing has confirmed its visibility yet. Treat it
+              // like a known private repo so a 404 reads as pending access.
+              pendingAccess:
+                err instanceof TrackingError &&
+                (err.code === 'app_installation_required' ||
+                  ((repo.private || repo.visibilityUnverified === true) &&
+                    err.code === 'repository_not_found')),
+              repo,
+            };
           }
         }
       );
@@ -665,25 +745,24 @@ export function AddRepositoryModal({
       );
       const failed = repoResults.filter((r) => r.id === null);
 
-      // Surface private repos that need the GitHub App with a dedicated
-      // install prompt instead of a plain error message
-      const installFailures = failed.filter(
-        (r) => r.trackingError instanceof TrackingError && r.trackingError.installUrl
+      // Keep each failed repository selected with its own reason and recovery action.
+      const failuresByName = new Map(
+        failed.map((result) => [
+          result.repo.full_name,
+          {
+            message: result.error!,
+            installUrl: result.installUrl,
+            pendingAccess: result.pendingAccess ?? false,
+          },
+        ])
       );
-      if (installFailures.length > 0) {
-        setInstallNeeded({
-          repos: installFailures.map((r) => r.repo.full_name),
-          url:
-            (installFailures[0].trackingError as TrackingError).installUrl ||
-            GITHUB_APP_INSTALL_URL,
-        });
-      }
+      setStagedRepos((repos) =>
+        repos.map((repo) => ({ ...repo, addError: failuresByName.get(repo.full_name) }))
+      );
 
       // Add all resolved repositories to the workspace in one batch
       const addedRepos: ExistingRepository[] = [];
-      const errors: string[] = failed
-        .filter((r) => !installFailures.includes(r))
-        .map((r) => r.error!);
+      const errors: string[] = [];
 
       if (resolved.length > 0) {
         const response = await WorkspaceService.addRepositoriesToWorkspace(
@@ -733,7 +812,7 @@ export function AddRepositoryModal({
       }
 
       if (errors.length > 0) {
-        setError(errors.join('\n'));
+        setError([...new Set(errors)].join('\n'));
       }
     } catch (err) {
       console.error('%s %o', 'Error adding repositories to workspace:', err);
@@ -756,7 +835,6 @@ export function AddRepositoryModal({
   const handleCancel = useCallback(() => {
     if (!submitting) {
       setError(null);
-      setInstallNeeded(null);
       setStagedRepos([]);
       setOrgInput('');
       setOrgQuery(null);
@@ -768,310 +846,243 @@ export function AddRepositoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[700px] max-h-[90dvh] flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Manage Workspace Repositories
+            Add repositories
           </DialogTitle>
           <DialogDescription>
-            Add new repositories or remove existing ones from your workspace.
-            {isFreeTier && ` Free tier is limited to ${maxRepos} repositories.`}
+            Search GitHub or import repositories from an organization.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Tier Limit Display */}
-        <div
-          className="flex items-center justify-between p-3 bg-muted rounded-lg"
-          role="status"
-          aria-live="polite"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Repository Slots:</span>
-            <Badge variant={remainingSlots <= 2 ? 'destructive' : 'secondary'}>
-              {workspace ? `${currentRepoCount} / ${maxRepos} used` : 'Capacity unavailable'}
-            </Badge>
-          </div>
-          {isFreeTier && (
-            <Badge variant="outline" className="gap-1">
-              <AlertCircle className="h-3 w-3" />
-              Free Tier
-            </Badge>
-          )}
-        </div>
-
-        {/* Add repositories: search or org import */}
-        <Tabs defaultValue="search">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="search">Search</TabsTrigger>
-            <TabsTrigger value="org">Import from org</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="search" className="space-y-2">
-            <GitHubSearchInput
-              value={initialRepository}
-              placeholder="Search for repositories (e.g., facebook/react)"
-              onSearch={handleExactRepositorySearch}
-              onSelect={handleSelectRepository}
-              buttonText="Select"
-            />
-            <div className="flex gap-2">
-              <Input
-                value={privateRepoInput}
-                onChange={(e) => setPrivateRepoInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddPrivateRepo();
-                  }
-                }}
-                placeholder="owner/repo"
-                aria-label="Add a private repository by owner/name"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddPrivateRepo}
-                disabled={!privateRepoInput.trim()}
-              >
-                Add private repo
-              </Button>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain -mr-2 pr-2">
+          {/* Tier Limit Display */}
+          <div
+            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Repository Slots:</span>
+              <Badge variant={remainingSlots <= 2 ? 'destructive' : 'secondary'}>
+                {workspace ? `${currentRepoCount} / ${maxRepos} used` : 'Capacity unavailable'}
+              </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Private repositories don't appear in search. Enter owner/name directly — tracking them
-              requires installing the contributor.info GitHub App.
-            </p>
-          </TabsContent>
-
-          <TabsContent value="org" className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                value={orgInput}
-                onChange={(e) => setOrgInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleLoadOrg();
-                  }
-                }}
-                placeholder="Organization name (e.g. papercomputeco)"
-                aria-label="GitHub organization name"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleLoadOrg}
-                disabled={!orgInput.trim() || orgLoading}
-              >
-                {orgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load repos'}
-              </Button>
-            </div>
-
-            {orgError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{orgError}</AlertDescription>
-              </Alert>
+            {isFreeTier && (
+              <Badge variant="outline" className="gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Free Tier
+              </Badge>
             )}
-
-            {orgQuery && !orgLoading && !orgError && (
-              <>
-                {orgRepos.some((r) => r.isPrivate) && !orgAppInstalled && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="flex flex-col gap-2">
-                      <span>
-                        Private repositories in {orgQuery} need the contributor.info GitHub App
-                        installed on the org before they can be added.
-                      </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="w-fit gap-1"
-                        onClick={() =>
-                          window.open(GITHUB_APP_INSTALL_URL, '_blank', 'noopener,noreferrer')
-                        }
-                      >
-                        Install GitHub App
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {filterEligible(orgRepos, showForksArchived).length} repositories in {orgQuery}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="show-forks-archived"
-                      checked={showForksArchived}
-                      onCheckedChange={setShowForksArchived}
-                    />
-                    <Label htmlFor="show-forks-archived" className="text-xs">
-                      Show forks & archived
-                    </Label>
-                  </div>
-                </div>
-
-                <ScrollArea className="h-[180px] pr-4 border rounded-lg p-2">
-                  <div className="space-y-1">
-                    {filterEligible(orgRepos, showForksArchived).map((repo) => {
-                      const inWorkspace = existingRepoIds.has(repo.fullName);
-                      const isStaged = stagedRepos.some((r) => r.full_name === repo.fullName);
-                      const selectable = isOrgRepoSelectable(repo);
-                      return (
-                        <div
-                          key={repo.fullName}
-                          className={`flex items-center gap-2 p-1.5 rounded ${
-                            selectable ? '' : 'opacity-50'
-                          }`}
-                        >
-                          <Checkbox
-                            id={`org-repo-${repo.fullName}`}
-                            checked={isStaged || inWorkspace}
-                            disabled={!selectable || (!isStaged && !canAddMore)}
-                            onCheckedChange={(checked) =>
-                              handleToggleOrgRepo(repo, checked === true)
-                            }
-                            aria-label={`Select ${repo.fullName}`}
-                          />
-                          <label
-                            htmlFor={`org-repo-${repo.fullName}`}
-                            className="flex-1 min-w-0 flex items-center gap-2 text-sm cursor-pointer"
-                          >
-                            <span className="truncate font-medium">{repo.name}</span>
-                            {repo.isPrivate && (
-                              <Badge variant="outline" className="text-xs">
-                                private
-                              </Badge>
-                            )}
-                            {repo.isFork && (
-                              <Badge variant="secondary" className="text-xs">
-                                fork
-                              </Badge>
-                            )}
-                            {repo.isArchived && (
-                              <Badge variant="secondary" className="text-xs">
-                                archived
-                              </Badge>
-                            )}
-                            {inWorkspace && (
-                              <Badge variant="secondary" className="text-xs">
-                                added
-                              </Badge>
-                            )}
-                            <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1 shrink-0">
-                              <Star className="h-3 w-3" />
-                              {repo.stargazersCount.toLocaleString()}
-                            </span>
-                          </label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        {/* Existing Repositories Section */}
-        {loading ? (
-          <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="ml-2 text-sm text-muted-foreground">Loading repositories...</span>
           </div>
-        ) : (
-          existingRepos.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Current Workspace Repositories</h3>
-                  <Badge variant="outline">{existingRepos.length} repositories</Badge>
-                </div>
-                <ScrollArea className="h-[150px] pr-4">
-                  <div className="space-y-2">
-                    {existingRepos.map((repo) => (
-                      <div
-                        key={repo.id}
-                        className="flex items-start justify-between p-2 rounded-lg border bg-muted/30"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium truncate">{repo.full_name}</span>
-                            {repo.is_pinned && (
-                              <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1">
-                            {repo.language && (
-                              <span className="text-xs text-muted-foreground">{repo.language}</span>
-                            )}
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Star className="h-3 w-3" />
-                              {repo.stargazers_count?.toLocaleString() || 0}
-                            </span>
-                          </div>
-                        </div>
+
+          {/* Add repositories: search or org import */}
+          <Tabs defaultValue="search">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="search">Search</TabsTrigger>
+              <TabsTrigger value="org">Import from org</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="search" className="space-y-2">
+              <GitHubSearchInput
+                value={initialRepository}
+                disabled={submitting}
+                placeholder="Search repositories or paste owner/repo or GitHub URL"
+                onSearch={handleExactRepositorySearch}
+                onSelect={handleSelectRepository}
+                onValueChange={() => setError(null)}
+                buttonText="Select"
+              />
+              <p className="text-xs text-muted-foreground">
+                Public or private — use the repository name or GitHub URL. We'll let you know if
+                GitHub App access is needed.
+              </p>
+            </TabsContent>
+
+            <TabsContent value="org" className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={orgInput}
+                  onChange={(e) => setOrgInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleLoadOrg();
+                    }
+                  }}
+                  placeholder="Organization name (e.g. papercomputeco)"
+                  aria-label="GitHub organization name"
+                  disabled={submitting}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleLoadOrg}
+                  disabled={!orgInput.trim() || orgLoading || submitting}
+                >
+                  {orgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load repos'}
+                </Button>
+              </div>
+
+              {orgError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{orgError}</AlertDescription>
+                </Alert>
+              )}
+
+              {orgQuery && !orgLoading && !orgError && (
+                <>
+                  {orgRepos.some((r) => r.isPrivate) && !orgAppInstalled && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription className="flex flex-col gap-2">
+                        <span>
+                          Private repositories in {orgQuery} need the contributor.info GitHub App
+                          installed on the org before they can be added.
+                        </span>
                         <Button
-                          variant="ghost"
+                          type="button"
                           size="sm"
-                          onClick={() => handleRemoveFromWorkspace(repo.id, repo.full_name)}
-                          disabled={removingRepoId === repo.id || removingRepoId !== null}
-                          className="ml-2 text-destructive hover:text-destructive"
-                          aria-label={`Remove ${repo.full_name} from workspace`}
-                          title={`Remove ${repo.full_name} from workspace`}
+                          variant="outline"
+                          className="w-fit gap-1"
+                          onClick={() =>
+                            window.open(GITHUB_APP_INSTALL_URL, '_blank', 'noopener,noreferrer')
+                          }
                         >
-                          {removingRepoId === repo.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <X className="h-4 w-4" />
-                          )}
+                          Install GitHub App
+                          <ExternalLink className="h-3 w-3" />
                         </Button>
-                      </div>
-                    ))}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {filterEligible(orgRepos, showForksArchived).length} repositories in{' '}
+                      {orgQuery}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="show-forks-archived"
+                        checked={showForksArchived}
+                        onCheckedChange={setShowForksArchived}
+                      />
+                      <Label htmlFor="show-forks-archived" className="text-xs">
+                        Show forks & archived
+                      </Label>
+                    </div>
                   </div>
-                </ScrollArea>
-              </div>
-            </>
-          )
-        )}
 
-        <Separator />
+                  <ScrollArea className="h-[180px] pr-4 border rounded-lg p-2">
+                    <div className="space-y-1">
+                      {filterEligible(orgRepos, showForksArchived).map((repo) => {
+                        const inWorkspace = existingRepoIds.has(repo.fullName);
+                        const isStaged = stagedRepos.some((r) => r.full_name === repo.fullName);
+                        const selectable = isOrgRepoSelectable(repo);
+                        return (
+                          <div
+                            key={repo.fullName}
+                            className={`flex items-center gap-2 p-1.5 rounded ${
+                              selectable ? '' : 'opacity-50'
+                            }`}
+                          >
+                            <Checkbox
+                              id={`org-repo-${repo.fullName}`}
+                              checked={isStaged || inWorkspace}
+                              disabled={submitting || !selectable || (!isStaged && !canAddMore)}
+                              onCheckedChange={(checked) =>
+                                handleToggleOrgRepo(repo, checked === true)
+                              }
+                              aria-label={`Select ${repo.fullName}`}
+                            />
+                            <label
+                              htmlFor={`org-repo-${repo.fullName}`}
+                              className="flex-1 min-w-0 flex items-center gap-2 text-sm cursor-pointer"
+                            >
+                              <span className="truncate font-medium">{repo.name}</span>
+                              {repo.isPrivate && (
+                                <Badge variant="outline" className="text-xs">
+                                  private
+                                </Badge>
+                              )}
+                              {repo.isFork && (
+                                <Badge variant="secondary" className="text-xs">
+                                  fork
+                                </Badge>
+                              )}
+                              {repo.isArchived && (
+                                <Badge variant="secondary" className="text-xs">
+                                  archived
+                                </Badge>
+                              )}
+                              {inWorkspace && (
+                                <Badge variant="secondary" className="text-xs">
+                                  added
+                                </Badge>
+                              )}
+                              <span className="ml-auto text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+                                <Star className="h-3 w-3" />
+                                {repo.stargazersCount.toLocaleString()}
+                              </span>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
 
-        {/* Shopping Cart Section */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Selected Repositories ({stagedRepos.length})
-            </h3>
-            {stagedRepos.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => setStagedRepos([])}>
-                Clear All
-              </Button>
-            )}
-          </div>
+          <Separator />
 
-          {stagedRepos.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No repositories selected</p>
-                <p className="text-xs mt-1">Search and select repositories above</p>
-              </div>
+          {/* Selected repositories stay above the existing workspace list. */}
+          <section
+            ref={selectedRepositoriesRef}
+            tabIndex={-1}
+            aria-label="Selected repositories"
+            className="space-y-2 focus:outline-none"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-medium flex items-center gap-2" aria-live="polite">
+                <Package className="h-4 w-4" />
+                Selected Repositories ({stagedRepos.length})
+              </h3>
+              {stagedRepos.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={submitting}
+                  onClick={() => setStagedRepos([])}
+                >
+                  Clear All
+                </Button>
+              )}
             </div>
-          ) : (
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-2">
+
+            {stagedRepos.length === 0 ? (
+              <div className="flex items-center justify-center rounded-lg border border-dashed p-6 text-muted-foreground">
+                <div className="text-center">
+                  <p className="text-sm">No repositories selected</p>
+                  <p className="text-xs mt-1">Search and select repositories above</p>
+                </div>
+              </div>
+            ) : (
+              <ul className="space-y-2">
                 {stagedRepos.map((repo) => (
-                  <div
+                  <li
                     key={repo.full_name}
-                    className="flex items-start justify-between p-3 rounded-lg border bg-card"
+                    className={cn(
+                      'flex items-start justify-between p-3 rounded-lg border bg-card',
+                      repo.addError &&
+                        (repo.addError.pendingAccess
+                          ? 'border-amber-500/50 bg-amber-500/5'
+                          : 'border-destructive bg-destructive/5')
+                    )}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -1081,112 +1092,220 @@ export function AddRepositoryModal({
                           className="h-5 w-5 rounded"
                         />
                         <span className="font-medium text-sm truncate">{repo.full_name}</span>
-                      </div>
-                      {repo.description && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          {repo.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-3 mt-1">
-                        {repo.language && (
-                          <span className="text-xs text-muted-foreground">{repo.language}</span>
+                        {(repo.private || repo.addError?.pendingAccess) && (
+                          <Badge variant="outline" className="shrink-0 text-xs">
+                            Private
+                          </Badge>
                         )}
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          {repo.stargazers_count.toLocaleString()}
-                        </span>
                       </div>
+                      {repo.addError && (
+                        <div className="mt-2 space-y-2">
+                          <p
+                            className={cn(
+                              'flex items-center gap-1.5 text-sm font-semibold',
+                              repo.addError.pendingAccess
+                                ? 'text-amber-700 dark:text-amber-400'
+                                : 'text-destructive'
+                            )}
+                          >
+                            {repo.addError.pendingAccess ? (
+                              <Clock className="h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                            )}
+                            {repo.addError.pendingAccess ? 'Pending access' : 'Not added'}
+                          </p>
+                          <p className="text-sm">{repo.addError.message}</p>
+                          {repo.addError.installUrl && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              asChild
+                            >
+                              <a
+                                href={repo.addError.installUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Give GitHub App access
+                                <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      {!repo.addError && repo.visibilityUnverified && (
+                        <div className="mt-2 space-y-1">
+                          <p className="flex items-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-400">
+                            <Clock className="h-4 w-4" aria-hidden="true" />
+                            Pending verification
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            This repository may be private or unavailable. We'll check its name and
+                            access when you add it.
+                          </p>
+                        </div>
+                      )}
+                      {!repo.addError && !repo.visibilityUnverified && (
+                        <>
+                          {repo.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                              {repo.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 mt-1">
+                            {repo.language && (
+                              <span className="text-xs text-muted-foreground">{repo.language}</span>
+                            )}
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Star className="h-3 w-3" />
+                              {repo.stargazers_count.toLocaleString()}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveFromStaging(repo.full_name)}
+                      disabled={submitting}
                       className="ml-2"
                       aria-label={`Remove ${repo.full_name} from selection`}
                       title="Remove from selection"
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </ScrollArea>
+              </ul>
+            )}
+          </section>
+
+          {/* Existing Repositories Section */}
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading repositories...</span>
+            </div>
+          ) : (
+            existingRepos.length > 0 && (
+              <details className="rounded-lg border p-3">
+                <summary className="cursor-pointer text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm">
+                  Already in workspace ({existingRepos.length})
+                </summary>
+                <div className="mt-3 space-y-2">
+                  {existingRepos.map((repo) => (
+                    <div
+                      key={repo.id}
+                      className="flex items-start justify-between p-2 rounded-lg border bg-muted/30"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">{repo.full_name}</span>
+                          {repo.is_pinned && (
+                            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          {repo.language && (
+                            <span className="text-xs text-muted-foreground">{repo.language}</span>
+                          )}
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Star className="h-3 w-3" />
+                            {repo.stargazers_count?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveFromWorkspace(repo.id, repo.full_name)}
+                        disabled={removingRepoId === repo.id || removingRepoId !== null}
+                        className="ml-2 text-destructive hover:text-destructive"
+                        aria-label={`Remove ${repo.full_name} from workspace`}
+                        title={`Remove ${repo.full_name} from workspace`}
+                      >
+                        {removingRepoId === repo.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )
+          )}
+
+          {/* Warning if approaching limit */}
+          {!error && remainingSlots > 0 && remainingSlots <= stagedRepos.length && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                You're about to use all remaining repository slots.
+              </AlertDescription>
+            </Alert>
           )}
         </div>
 
-        {/* GitHub App install prompt for private repositories */}
-        {installNeeded && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex flex-col gap-2">
-              <span>
-                {installNeeded.repos.join(', ')}{' '}
-                {installNeeded.repos.length === 1
-                  ? 'is a private repository'
-                  : 'are private repositories'}
-                . Install the contributor.info GitHub App on{' '}
-                {installNeeded.repos.length === 1 ? 'it' : 'them'} to opt in, then add{' '}
-                {installNeeded.repos.length === 1 ? 'it' : 'them'} again.
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="w-fit gap-1"
-                onClick={() => window.open(installNeeded.url, '_blank', 'noopener,noreferrer')}
-              >
-                Install GitHub App
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Warning if approaching limit */}
-        {!error && remainingSlots > 0 && remainingSlots <= stagedRepos.length && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>You're about to use all remaining repository slots.</AlertDescription>
-          </Alert>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              submitting ||
-              stagedRepos.length === 0 ||
-              loading ||
-              !workspace ||
-              stagedRepos.length > remainingSlots
-            }
-            className="gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Setting up {stagedRepos.length}{' '}
-                {stagedRepos.length === 1 ? 'repository' : 'repositories'}...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                Add {stagedRepos.length} {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}
-              </>
-            )}
-          </Button>
-        </DialogFooter>
+        <div className="shrink-0 space-y-3 border-t pt-4">
+          {pendingRepositoryCount > 0 && (
+            <p role="status" className="text-sm text-amber-700 dark:text-amber-400">
+              {pendingRepositoryCount}{' '}
+              {pendingRepositoryCount === 1 ? 'repository is' : 'repositories are'} pending GitHub
+              App access. Grant access, then retry.
+            </p>
+          )}
+          {failedRepositoryCount > pendingRepositoryCount && (
+            <p role="alert" className="text-sm text-destructive">
+              {failedRepositoryCount - pendingRepositoryCount}{' '}
+              {failedRepositoryCount - pendingRepositoryCount === 1
+                ? 'repository was'
+                : 'repositories were'}{' '}
+              not added. Review the details above and retry.
+            </p>
+          )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCancel} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                submitting ||
+                stagedRepos.length === 0 ||
+                loading ||
+                !workspace ||
+                stagedRepos.length > remainingSlots
+              }
+              className="gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Setting up {stagedRepos.length}{' '}
+                  {stagedRepos.length === 1 ? 'repository' : 'repositories'}...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {failedRepositoryCount > 0 ? 'Retry' : 'Add'} {stagedRepos.length}{' '}
+                  {stagedRepos.length === 1 ? 'Repository' : 'Repositories'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
