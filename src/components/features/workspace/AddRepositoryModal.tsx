@@ -80,15 +80,25 @@ const trackingResponseSchema = z.object({
   installUrl: z.string().optional(),
 });
 
+/**
+ * `_` is legal in a repository name and is also a single-character wildcard in
+ * LIKE, so escape the pattern metacharacters before an ilike lookup.
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
 const savedRepositorySchema = z.object({
-  github_id: z.number().nullable(),
+  github_id: z.number(),
   owner: z.string(),
   name: z.string(),
   description: z.string().nullable(),
   language: z.string().nullable(),
   stargazers_count: z.number().nullable(),
   forks_count: z.number().nullable(),
-  is_private: z.boolean(),
+  // Nullable in the repositories table; the privacy RLS policy treats NULL as
+  // public via IS DISTINCT FROM TRUE, so mirror that rather than throwing.
+  is_private: z.boolean().nullable(),
 });
 
 /**
@@ -158,8 +168,15 @@ export function AddRepositoryModal({
   const pendingRepositoryCount = stagedRepos.filter((repo) => repo.addError?.pendingAccess).length;
   const selectedRepositoriesRef = useRef<HTMLElement>(null);
 
+  const wasSubmittingRef = useRef(false);
+
+  // Move focus to the failures once, when a submit finishes. Keying on the
+  // failure count instead would yank focus again every time the user removes
+  // one of several failed rows.
   useEffect(() => {
-    if (!submitting && failedRepositoryCount > 0) {
+    const finishedSubmitting = wasSubmittingRef.current && !submitting;
+    wasSubmittingRef.current = submitting;
+    if (finishedSubmitting && failedRepositoryCount > 0) {
       selectedRepositoriesRef.current?.focus();
     }
   }, [submitting, failedRepositoryCount]);
@@ -345,8 +362,14 @@ export function AddRepositoryModal({
         return false;
       }
 
-      // Add to staging
-      setStagedRepos([...stagedRepos, repo]);
+      // Add to staging. Functional so it composes with the updates handleSubmit
+      // applies while a submit is in flight, and so the duplicate guard above
+      // cannot be defeated by two selections landing in the same render.
+      setStagedRepos((prev) =>
+        prev.some((r) => r.full_name.toLowerCase() === repo.full_name.toLowerCase())
+          ? prev
+          : [...prev, repo]
+      );
       setError(null);
       toast.success(`Added ${repo.full_name} to selection`);
       return true;
@@ -372,21 +395,28 @@ export function AddRepositoryModal({
       const repo = await fetchRepositoryInfo(owner, name, { throwOnError: true });
       if (generation !== lookupGeneration.current) return false;
       if (!repo) {
-        // The browser's GitHub token may not see private repositories. Check
-        // registered repositories using the signed-in user's RLS-scoped client.
+        // The browser's GitHub token may not see private repositories. Look for a
+        // registered row through the signed-in user's RLS-scoped client, which
+        // exposes a private repository only to members of a workspace that
+        // already contains it. A hit recovers real metadata for a repo the user
+        // can see elsewhere; a miss is expected and falls through to the
+        // tracking API, which verifies the name and access at Add time.
         const supabase = await getSupabaseClient();
         const { data: savedRepo, error: lookupError } = await supabase
           .from('repositories')
           .select(
             'github_id, owner, name, description, language, stargazers_count, forks_count, is_private'
           )
-          .eq('owner', owner)
-          .eq('name', name)
-          .maybeSingle();
+          // GitHub names are case-insensitive but the row stores GitHub's casing,
+          // so an exact match would miss `Acme/Secret` against `acme/secret`.
+          // limit(1) rather than maybeSingle(): a pattern is not a unique key.
+          .ilike('owner', escapeLikePattern(owner))
+          .ilike('name', escapeLikePattern(name))
+          .limit(1);
         if (generation !== lookupGeneration.current) return false;
         if (lookupError) throw lookupError;
 
-        const saved = savedRepo ? savedRepositorySchema.parse(savedRepo) : null;
+        const saved = savedRepo?.[0] ? savedRepositorySchema.parse(savedRepo[0]) : null;
         const resolvedOwner = saved?.owner ?? owner;
         const resolvedName = saved?.name ?? name;
         // A 404 does not establish visibility or existence. Preserve the exact
@@ -696,10 +726,14 @@ export function AddRepositoryModal({
               id: null,
               error: message,
               installUrl: err instanceof TrackingError ? err.installUrl : undefined,
+              // A repository staged from an unverified name carries private:
+              // false because nothing has confirmed its visibility yet. Treat it
+              // like a known private repo so a 404 reads as pending access.
               pendingAccess:
                 err instanceof TrackingError &&
                 (err.code === 'app_installation_required' ||
-                  (repo.private && err.code === 'repository_not_found')),
+                  ((repo.private || repo.visibilityUnverified === true) &&
+                    err.code === 'repository_not_found')),
               repo,
             };
           }
@@ -854,6 +888,7 @@ export function AddRepositoryModal({
             <TabsContent value="search" className="space-y-2">
               <GitHubSearchInput
                 value={initialRepository}
+                disabled={submitting}
                 placeholder="Search repositories or paste owner/repo or GitHub URL"
                 onSearch={handleExactRepositorySearch}
                 onSelect={handleSelectRepository}
@@ -879,12 +914,13 @@ export function AddRepositoryModal({
                   }}
                   placeholder="Organization name (e.g. papercomputeco)"
                   aria-label="GitHub organization name"
+                  disabled={submitting}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleLoadOrg}
-                  disabled={!orgInput.trim() || orgLoading}
+                  disabled={!orgInput.trim() || orgLoading || submitting}
                 >
                   {orgLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load repos'}
                 </Button>
@@ -956,7 +992,7 @@ export function AddRepositoryModal({
                             <Checkbox
                               id={`org-repo-${repo.fullName}`}
                               checked={isStaged || inWorkspace}
-                              disabled={!selectable || (!isStaged && !canAddMore)}
+                              disabled={submitting || !selectable || (!isStaged && !canAddMore)}
                               onCheckedChange={(checked) =>
                                 handleToggleOrgRepo(repo, checked === true)
                               }

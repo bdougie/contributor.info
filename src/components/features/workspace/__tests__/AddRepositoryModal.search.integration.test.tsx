@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   addRepositories: vi.fn(),
   orgRepos: [] as OrgImportRepo[],
   savedLookup: vi.fn(),
+  lookupFilters: [] as Array<[string, string]>,
 }));
 vi.mock('@/lib/github', () => ({ fetchRepositoryInfo: mocks.fetchRepositoryInfo }));
 vi.mock('@/hooks/use-github-search', () => ({
@@ -49,12 +50,31 @@ vi.mock('@/services/workspace.service', () => ({
 vi.mock('@/lib/supabase-lazy', () => ({
   getSupabase: () =>
     Promise.resolve({
-      auth: { getUser: () => Promise.resolve({ data: { user: { id: 'auth-user' } } }) },
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: { id: 'auth-user' } } }),
+        getSession: () => Promise.resolve({ data: { session: { access_token: 'token' } } }),
+      },
       from: (table: string) =>
         table === 'repositories'
-          ? {
-              select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: mocks.savedLookup }) }) }),
-            }
+          ? // Two callers read this table: the RLS-scoped name lookup
+            // (ilike/ilike/limit) and the tracking path (eq/eq/maybeSingle).
+            // savedLookup supplies the row for both; limit wraps it in a list.
+            (() => {
+              const chain = {
+                select: () => chain,
+                eq: () => chain,
+                ilike: (column: string, value: string) => {
+                  mocks.lookupFilters.push([column, value]);
+                  return chain;
+                },
+                maybeSingle: () => mocks.savedLookup(),
+                limit: async () => {
+                  const { data, error } = await mocks.savedLookup();
+                  return { data: data ? [data] : [], error };
+                },
+              };
+              return chain;
+            })()
           : {
               select: () => ({
                 eq: () =>
@@ -102,6 +122,7 @@ describe('workspace exact repository selection', () => {
     mocks.maxRepositories = 3;
     mocks.orgRepos = [];
     mocks.savedLookup.mockResolvedValue({ data: null, error: null });
+    mocks.lookupFilters = [];
     mocks.fetchRepositoryInfo.mockResolvedValue(tapes);
   });
 
@@ -158,6 +179,86 @@ describe('workspace exact repository selection', () => {
     expect(screen.getByText('papercomputeco/paper')).toBeInTheDocument();
     expect(screen.getByText('Private', { exact: true })).toBeInTheDocument();
     expect(screen.queryByText('Pending verification')).not.toBeInTheDocument();
+  });
+
+  it('marks an unverified name as pending access when tracking returns 404', async () => {
+    mocks.fetchRepositoryInfo.mockResolvedValueOnce(null);
+    mocks.addRepositories.mockResolvedValue({ success: true, data: { added: [], skipped: [] } });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () =>
+        Promise.resolve({
+          success: false,
+          message: 'Repository papercomputeco/paper not found on GitHub.',
+          code: 'repository_not_found',
+          installUrl: 'https://github.com/apps/contributor-info/installations/new',
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderPicker('papercomputeco/paper');
+    await screen.findByText('0 / 3 used');
+    fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
+    await screen.findByText('Pending verification');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 Repository' }));
+    await screen.findByText('Pending access');
+
+    expect(screen.queryByText('Not added')).not.toBeInTheDocument();
+    expect(screen.getByText(/1 repository is pending GitHub App access/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Give GitHub App access/ })).toHaveAttribute(
+      'href',
+      'https://github.com/apps/contributor-info/installations/new'
+    );
+    expect(screen.getByRole('button', { name: 'Retry 1 Repository' })).toBeEnabled();
+    vi.unstubAllGlobals();
+  });
+
+  it('matches a saved repository case-insensitively and escapes LIKE wildcards', async () => {
+    mocks.fetchRepositoryInfo.mockResolvedValueOnce(null);
+    mocks.savedLookup.mockResolvedValueOnce({
+      data: {
+        github_id: 7,
+        owner: 'papercomputeco',
+        name: 'paper_trail',
+        description: null,
+        language: null,
+        stargazers_count: 0,
+        forks_count: 0,
+        is_private: null,
+      },
+      error: null,
+    });
+    renderPicker('PaperComputeCo/Paper_Trail');
+    await screen.findByText('0 / 3 used');
+    fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
+    await screen.findByText('Selected Repositories (1)');
+
+    // `_` is a LIKE wildcard, so it must reach the query escaped.
+    expect(mocks.lookupFilters).toEqual([
+      ['owner', 'PaperComputeCo'],
+      ['name', 'Paper\\_Trail'],
+    ]);
+    // The row's canonical casing wins over what the user typed.
+    expect(screen.getByText('papercomputeco/paper_trail')).toBeInTheDocument();
+    // A NULL is_private reads as public, matching the privacy RLS policy.
+    expect(screen.queryByText('Private', { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText('Pending verification')).not.toBeInTheDocument();
+  });
+
+  it('locks the entry points while a submit is in flight', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
+    renderPicker('papercomputeco/tapes');
+    await screen.findByText('0 / 3 used');
+    fireEvent.click(screen.getByRole('button', { name: 'Select', exact: true }));
+    await screen.findByText('Selected Repositories (1)');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add 1 Repository' }));
+    await waitFor(() => expect(screen.getByRole('combobox')).toBeDisabled());
+    expect(screen.getByRole('button', { name: /Remove .* from selection/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Clear All' })).toBeDisabled();
+    vi.unstubAllGlobals();
   });
 
   it('keeps the query for retry when the private lookup fails', async () => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { SearchIcon, Star, Clock, GitBranch, Loader2, X } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,12 +37,40 @@ function useDebouncedCallback<T extends (...args: Parameters<T>) => void>(
   );
 }
 
+/** Preferred dropdown height; trimmed to whatever space the input actually has. */
+const DROPDOWN_MAX_HEIGHT = 320;
+/** Below this the dropdown is too short to be useful, so stop trimming. */
+const DROPDOWN_MIN_HEIGHT = 120;
+
+/**
+ * The dropdown is positioned against the input, so any scrollable ancestor
+ * clips it — inside a dialog body that scrolls, the lower results get cut off.
+ * Measure the gap between the input and the nearest clipping edge so the
+ * dropdown fits whole and scrolls itself instead.
+ */
+function availableSpaceBelow(input: HTMLElement): number {
+  let limit = typeof window === 'undefined' ? Infinity : window.innerHeight;
+  for (let node = input.parentElement; node && node !== document.body; node = node.parentElement) {
+    const { overflow, overflowY } = getComputedStyle(node);
+    if (
+      /^(auto|scroll|hidden|clip)$/.test(overflowY) ||
+      /^(auto|scroll|hidden|clip)$/.test(overflow)
+    ) {
+      limit = Math.min(limit, node.getBoundingClientRect().bottom);
+    }
+  }
+  // The dropdown sits 4px below the input (mt-1); the rest keeps it off the edge.
+  return limit - input.getBoundingClientRect().bottom - 12;
+}
+
 interface GitHubSearchInputProps {
   placeholder?: string;
   value?: string;
   onSearch: (repository: string) => void | boolean | Promise<void | boolean>;
   onSelect?: (repository: GitHubRepository) => void | boolean | Promise<void | boolean>;
   onValueChange?: (value: string) => void;
+  /** Blocks input while the consumer is busy, e.g. saving the current selection. */
+  disabled?: boolean;
   className?: string;
   showButton?: boolean;
   buttonText?: string;
@@ -80,6 +108,7 @@ export function GitHubSearchInput({
   onSearch,
   onSelect,
   onValueChange,
+  disabled = false,
   className,
   showButton = true,
   buttonText = 'Search',
@@ -96,6 +125,7 @@ export function GitHubSearchInput({
   const mountedRef = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownMaxHeight, setDropdownMaxHeight] = useState(DROPDOWN_MAX_HEIGHT);
   const { formatRelativeTime } = useTimeFormatter();
   const {
     trackSearchResultsViewed,
@@ -282,6 +312,28 @@ export function GitHubSearchInput({
     }
   };
 
+  // Keep the dropdown inside whatever ancestor clips it, re-measuring while it
+  // is open because scrolling the dialog body changes the space below the input.
+  useLayoutEffect(() => {
+    if (!showDropdown) return;
+    const measure = () => {
+      const input = inputRef.current;
+      if (!input) return;
+      const available = availableSpaceBelow(input);
+      setDropdownMaxHeight(
+        Math.round(Math.max(DROPDOWN_MIN_HEIGHT, Math.min(DROPDOWN_MAX_HEIGHT, available)))
+      );
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    // Capture phase so scrolling any ancestor, not just the window, re-measures.
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [showDropdown, results.length]);
+
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -316,7 +368,7 @@ export function GitHubSearchInput({
             ref={inputRef}
             placeholder={placeholder}
             value={inputValue}
-            disabled={submitting}
+            disabled={submitting || disabled}
             aria-busy={submitting}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
@@ -397,7 +449,8 @@ export function GitHubSearchInput({
               id="github-search-listbox"
               role="listbox"
               aria-label="Search results"
-              className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md max-h-80 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-200"
+              style={{ maxHeight: dropdownMaxHeight }}
+              className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md overflow-y-auto overscroll-contain animate-in fade-in-0 zoom-in-95 duration-200"
             >
               {loading && (
                 <div className="p-2">
@@ -501,7 +554,7 @@ export function GitHubSearchInput({
         </div>
 
         {showButton && (
-          <Button type="submit" aria-label={buttonText} disabled={submitting}>
+          <Button type="submit" aria-label={buttonText} disabled={submitting || disabled}>
             <SearchIcon className="mr-2 h-4 w-4" />
             {buttonText}
           </Button>

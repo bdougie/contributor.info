@@ -5,12 +5,13 @@ import { GitHubSearchInput } from '../github-search-input';
 // Mock dependencies
 const mockSetQuery = vi.fn();
 const mockClearResults = vi.fn();
+const searchState = vi.hoisted(() => ({ results: [] as Array<Record<string, unknown>> }));
 
 vi.mock('@/hooks/use-github-search', () => ({
   useGitHubSearch: () => ({
     query: '',
     setQuery: mockSetQuery,
-    results: [],
+    results: searchState.results,
     loading: false,
     error: null,
     clearResults: mockClearResults,
@@ -68,6 +69,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 describe('GitHubSearchInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    searchState.results = [];
   });
 
   it('renders correctly with placeholder', () => {
@@ -133,5 +135,55 @@ describe('GitHubSearchInput', () => {
     const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'test' } });
     expect(input.getAttribute('value')).toBe('test');
+  });
+
+  it('disables the input and submit button when the consumer is busy', () => {
+    render(<GitHubSearchInput onSearch={vi.fn()} buttonText="Select" disabled />);
+    expect(screen.getByRole('combobox')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Select' })).toBeDisabled();
+  });
+
+  describe('dropdown height', () => {
+    // jsdom reports every rect as zero, so stub the two the measurement reads:
+    // the input it hangs from and the scrollable ancestor that clips it.
+    function renderWithGeometry(clipBottom: number | null) {
+      searchState.results = [
+        {
+          id: 1,
+          name: 'react',
+          full_name: 'facebook/react',
+          owner: { login: 'facebook', avatar_url: '' },
+          description: null,
+          stargazers_count: 0,
+          forks_count: 0,
+        },
+      ];
+      const { container } = render(
+        <div style={clipBottom === null ? undefined : { overflowY: 'auto' }}>
+          <GitHubSearchInput onSearch={vi.fn()} />
+        </div>
+      );
+      const clip = container.firstElementChild as HTMLElement;
+      if (clipBottom !== null) {
+        clip.getBoundingClientRect = () => ({ bottom: clipBottom }) as DOMRect;
+      }
+      const input = screen.getByRole('combobox');
+      input.getBoundingClientRect = () => ({ bottom: 100 }) as DOMRect;
+      fireEvent.change(input, { target: { value: 'react' } });
+      return screen.getByRole('listbox');
+    }
+
+    it('trims to the space left by a scrollable ancestor', () => {
+      // 300 (clip) - 100 (input) - 12 (gap)
+      expect(renderWithGeometry(300)).toHaveStyle({ maxHeight: '188px' });
+    });
+
+    it('keeps a usable height when the ancestor leaves almost no room', () => {
+      expect(renderWithGeometry(150)).toHaveStyle({ maxHeight: '120px' });
+    });
+
+    it('caps at the preferred height when nothing clips it', () => {
+      expect(renderWithGeometry(null)).toHaveStyle({ maxHeight: '320px' });
+    });
   });
 });
