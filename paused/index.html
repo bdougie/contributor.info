@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>contributor.info is paused</title>
+  <meta name="description" content="contributor.info is temporarily paused. Reach out to bdougie if you'd like to see it come back.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='%23f59e0b'/%3E%3Crect x='5' y='4' width='2' height='8' fill='%23111'/%3E%3Crect x='9' y='4' width='2' height='8' fill='%23111'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --fg: #1c1917;
+      --muted: #57534e;
+      --accent: #f59e0b;
+      --card: #ffffff;
+      --border: #e7e5e4;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0c0a09;
+        --fg: #fafaf9;
+        --muted: #a8a29e;
+        --accent: #fbbf24;
+        --card: #1c1917;
+        --border: #292524;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+    }
+    main {
+      max-width: 520px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .badge svg { width: 18px; height: 18px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 12px; }
+    p { margin: 0 0 16px; color: var(--muted); }
+    p:last-of-type { margin-bottom: 0; }
+    a { color: var(--fg); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+    .links { margin-top: 28px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+    @media (max-width: 480px) { main { padding: 32px 20px; } h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/><line x1="10" y1="8" x2="10" y2="16"/><line x1="14" y1="8" x2="14" y2="16"/>
+      </svg>
+      Paused
+    </div>
+    <h1>contributor.info is taking a break</h1>
+    <p>This project is paused for now, so the site, data syncing, and integrations are offline.</p>
+    <p>Want to see it come back? Reach out to <a href="https://b.dougie.dev">bdougie</a> and let him know.</p>
+    <div class="links">
+      <a href="https://github.com/bdougie/contributor.info">Source on GitHub</a>
+      <a href="https://b.dougie.dev">b.dougie.dev</a>
+    </div>
+  </main>
+  <script>
+    // Existing visitors have a service worker that may keep serving the cached app.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) { rs.forEach(function (r) { r.unregister(); }); });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+    }
+  </script>
+</body>
+</html>
