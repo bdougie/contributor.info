@@ -1,3 +1,0 @@
-# Serve the paused notice for every path. "/" itself resolves to index.html
-# because the rule is not forced (no "!"), so existing files win.
-/*  /  302
