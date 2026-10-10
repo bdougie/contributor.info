@@ -1,0 +1,5 @@
+# Every URL redirects to the paused notice at /paused/.
+# First match wins: keep /paused/* serving the page, then 302 everything else.
+# (Netlify ignores rules whose target is exactly "/", hence the /paused/ path.)
+/paused/*  /paused/index.html  200
+/*         /paused/            302!
