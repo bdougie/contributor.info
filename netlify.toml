@@ -1,11 +1,16 @@
 # TEMPORARY: contributor.info is paused. This config serves a static notice page
-# and redirects every URL to it. No build, no functions, no edge functions run.
+# and redirects every URL to it. No build command runs, and the functions and
+# edge functions directories are pointed at paths that don't exist so nothing
+# is bundled or deployed alongside the page.
 #
 # To resume: `git mv netlify.active.toml netlify.toml`, delete paused/, and redeploy.
 
 [build]
   publish = "paused"
-  command = ""
+  edge_functions = "paused/no-edge-functions"
+
+[functions]
+  directory = "paused/no-functions"
 
 [build.processing]
   skip_processing = true
