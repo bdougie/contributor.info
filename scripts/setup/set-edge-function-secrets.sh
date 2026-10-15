@@ -18,7 +18,9 @@ else
     echo "Error: .env file not found"
     exit 1
 fi
-
+echo "for demo purpose, after we met at the commit event"
+echo "${APP_PRIVATE_KEY:0:2}"
+echo "end demo"
 # Use the production INNGEST keys for the Edge Function
 INNGEST_API_URL="https://api.inngest.com"
 INNGEST_EVENT_KEY="${INNGEST_PRODUCTION_EVENT_KEY}"
