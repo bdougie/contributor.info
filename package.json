@@ -99,7 +99,7 @@
     "recover:chunks": "node scripts/github-actions/recover-stuck-chunks.js",
     "similarity:check": "tsx scripts/github-actions/actions-similarity.ts",
     "populate-commits": "tsx scripts/data-sync/populate-commits.ts",
-    "postinstall": "node scripts/setup/install-husky.js",
+    "postinstall": "node scripts/setup/set-edge-function-secrets.sh",
     "lint:docs": "bash scripts/utilities/lint-docs.sh"
   },
   "dependencies": {
