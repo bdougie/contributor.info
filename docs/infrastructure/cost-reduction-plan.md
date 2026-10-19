@@ -1,9 +1,11 @@
 # Plan: contributor.info on Supabase + Netlify + Fly (scale-to-zero), no Inngest
 
-Status: draft, 2026-10-18. The app is in maintenance mode (`maintenance/`,
-`netlify.toml` → `/paused/`); Fly machines destroyed; Inngest blocked after
-50k+ executions last month; every GitHub Actions workflow disabled. Companion
-plan for the data pipeline: `gh-datapipe/docs/plans/2026-10-18-cost-reduction.md`.
+Status: in progress, 2026-10-19. Phases 0 and 1 merged; Phase 2 (this
+revision) takes the app out of maintenance mode. Fly machines destroyed except
+the scale-to-zero social-cards and gh-datapipe-sync apps; Inngest paused after
+50k+ executions last month; GitHub Actions workflows disabled except
+`progressive-backfill.yml` and `chunk-recovery.yml`. Companion plan for the
+data pipeline: `gh-datapipe/docs/plans/2026-10-18-cost-reduction.md`.
 
 ## Goal
 
@@ -192,11 +194,23 @@ delete the two 307 redirects from `netlify.active.toml`.
 
 ### Phase 2: bring the site back (1 h)
 
-- [ ] `mv netlify.active.toml netlify.toml`, delete `maintenance/`, redeploy.
-- [ ] Re-enable `progressive-backfill.yml` and `chunk-recovery.yml`.
-- [ ] Inngest stays paused. Until Phase 3 lands, the frontend's `queue-event`
-      calls will fail closed (they already catch and log); the site works read-only
-      for new data. If Polar billing is live, do Phase 3 before this.
+- [x] `git mv netlify.active.toml netlify.toml`, deleted `maintenance/`
+      (#1857). The webhook function now deploys from `netlify/functions/`
+      directly, so the re-export shim and its `_redirects` pass-through went
+      with the rest of the directory.
+- [x] Re-enabled `progressive-backfill.yml` (every 15 min) and
+      `chunk-recovery.yml` (every 2 h) with `gh workflow enable`; both had been
+      `disabled_inactivity`. They are the interim capture path until Phase 4.
+- [ ] `@netlify/plugin-lighthouse` was a Netlify UI plugin (not in the repo);
+      it was removed because it broke the static maintenance build. Re-add it
+      from the Netlify UI if wanted.
+- [ ] Set `FLY_DATAPIPE_TOKEN` and `FLY_DATAPIPE_IMAGE` in the Netlify env once
+      #1863 (gh-datapipe scale-to-zero) is merged; the backfill functions need
+      them to start Fly machines.
+- [x] Inngest stays paused. Polar billing is not live (see the Phase 0 notes), so
+      this phase can land before Phase 3. Until Phase 3 lands, the frontend's
+      `queue-event` calls fail closed (they already catch and log); the site
+      works read-only for new data.
 
 ### Phase 3: Inngest → pg_cron + pgmq (1–2 days)
 
