@@ -2,7 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { renderer } from './playwright-renderer.js';
-import { generateCacheKey, getCachedImage, cacheImage, getCacheStats } from './cache.js';
+import { generateCacheKey, getCachedImage, cacheImage, getCacheStats, CACHE_TTL } from './cache.js';
 import {
   fetchSelfSelectionData,
   fetchLotteryFactorData,
@@ -60,9 +60,11 @@ setInterval(() => {
 }, RATE_LIMIT_WINDOW_MS);
 const PORT = process.env.PORT || 8080;
 
-// Initialize Supabase client
+// Initialize Supabase client. Reads work with the anon key, but writing
+// screenshots into the `chart-screenshots` bucket is refused by RLS unless
+// the service role key is set, so prefer it when present.
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 // Only initialize if environment variables are provided
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
@@ -97,6 +99,9 @@ function validateInput(input, pattern = /^[a-zA-Z0-9_.-]+$/) {
 
 // Valid chart types
 const VALID_CHART_TYPES = ['self-selection', 'lottery-factor', 'health-factors', 'distribution'];
+
+// Matches the storage TTL so a crawler-side cache never outlives the object
+const CHART_CACHE_CONTROL = `public, max-age=${CACHE_TTL / 1000}, s-maxage=${CACHE_TTL / 1000}`;
 
 // Chart rendering endpoint (with rate limiting)
 app.get('/charts/:chartType', rateLimit, async (req, res) => {
@@ -141,7 +146,7 @@ app.get('/charts/:chartType', rateLimit, async (req, res) => {
 
       res.set({
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
+        'Cache-Control': CHART_CACHE_CONTROL,
         'Access-Control-Allow-Origin': '*',
         'X-Response-Time': `${responseTime}ms`,
         'X-Cache': 'HIT',

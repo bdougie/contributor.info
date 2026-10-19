@@ -1,15 +1,20 @@
-import crypto from 'crypto';
-
 /**
  * Two-tier caching layer for chart screenshots
  *
- * Tier 1: In-memory LRU cache (instant hits)
- * Tier 2: Supabase Storage (persistent across restarts)
+ * Tier 1: In-memory LRU cache (instant hits, dies with the machine)
+ * Tier 2: Supabase Storage, public bucket `chart-screenshots`
  *
- * TTL: 6 hours by default
+ * The storage object path is deterministic (no hash) so the social-meta
+ * edge function on contributor.info can build the same path and point
+ * crawlers straight at the public object URL without waking this app.
+ * Keep `storagePathFor` in sync with `chartStoragePath` in
+ * netlify/edge-functions/social-meta.ts.
+ *
+ * TTL: 24 hours. Reads go through the public URL so the object's
+ * Last-Modified header decides freshness in both tiers.
  */
 
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const MAX_MEMORY_ENTRIES = 100;
 const STORAGE_BUCKET = 'chart-screenshots';
 
@@ -84,39 +89,54 @@ setInterval(() => {
 }, 60000).unref();
 
 /**
- * Generate cache key from chart parameters
+ * Generate cache key from chart parameters. The key doubles as the
+ * storage object path: `{chartType}/{owner}/{repo}/{timeRange}-{distributionType}.png`.
+ * Owner and repo are validated as `[a-zA-Z0-9_.-]` by the route, so the
+ * path needs no escaping.
  *
  * @param {string} chartType - Type of chart
  * @param {object} params - Chart parameters
- * @returns {string} - MD5 hash cache key
+ * @returns {string} - Storage object path
  */
 function generateCacheKey(chartType, params) {
-  const normalized = {
-    type: chartType,
-    owner: params.owner?.toLowerCase(),
-    repo: params.repo?.toLowerCase(),
-    timeRange: params.timeRange || '30',
-    distributionType: params.type || 'donut',
-  };
+  const owner = String(params.owner || '').toLowerCase();
+  const repo = String(params.repo || '').toLowerCase();
+  const timeRange = String(params.timeRange || '30');
+  const distributionType = String(params.type || 'donut').toLowerCase();
+  return `${chartType}/${owner}/${repo}/${timeRange}-${distributionType}.png`;
+}
 
-  // Sort keys for consistent hashing
-  const sorted = Object.keys(normalized)
-    .sort()
-    .reduce((obj, key) => {
-      if (normalized[key] !== undefined) {
-        obj[key] = normalized[key];
-      }
-      return obj;
-    }, {});
+/**
+ * Public URL of a cached object. Null when Supabase is not configured.
+ *
+ * @param {string} key - Cache key (storage object path)
+ * @returns {string|null}
+ */
+function publicUrlFor(key) {
+  const baseUrl = process.env.SUPABASE_URL;
+  if (!baseUrl) return null;
+  return `${baseUrl.replace(/\/$/, '')}/storage/v1/object/public/${STORAGE_BUCKET}/${key}`;
+}
 
-  return crypto.createHash('md5').update(JSON.stringify(sorted)).digest('hex');
+/**
+ * Age in milliseconds derived from a Last-Modified header, or Infinity
+ * when the header is missing or unparseable (treated as stale).
+ *
+ * @param {string|null} lastModified
+ * @returns {number}
+ */
+function ageFromLastModified(lastModified) {
+  if (!lastModified) return Infinity;
+  const modifiedAt = Date.parse(lastModified);
+  if (Number.isNaN(modifiedAt)) return Infinity;
+  return Date.now() - modifiedAt;
 }
 
 /**
  * Get cached image
  *
  * @param {string} key - Cache key
- * @param {object} supabase - Supabase client
+ * @param {object} supabase - Supabase client (unused for reads; the bucket is public)
  * @returns {Promise<Buffer|null>} - Image buffer or null
  */
 async function getCachedImage(key, supabase) {
@@ -127,21 +147,23 @@ async function getCachedImage(key, supabase) {
     return memoryHit;
   }
 
-  // Check Supabase Storage
-  if (supabase) {
+  // Check Supabase Storage through the public URL so we get Last-Modified
+  const url = supabase ? publicUrlFor(key) : null;
+  if (url) {
     try {
-      const { data, error } = await supabase.storage.from(STORAGE_BUCKET).download(`${key}.png`);
+      const response = await fetch(url);
+      if (response.ok) {
+        const age = ageFromLastModified(response.headers.get('last-modified'));
+        if (age <= CACHE_TTL) {
+          const buffer = Buffer.from(await response.arrayBuffer());
 
-      if (!error && data) {
-        // Convert blob to buffer
-        const arrayBuffer = await data.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+          // Repopulate memory cache for whatever TTL the object has left
+          memoryCache.set(key, buffer, CACHE_TTL - age);
+          global.cacheHits = (global.cacheHits || 0) + 1;
 
-        // Repopulate memory cache
-        memoryCache.set(key, buffer);
-        global.cacheHits = (global.cacheHits || 0) + 1;
-
-        return buffer;
+          return buffer;
+        }
+        console.log('Storage cache stale for %s (age %d s)', key, Math.round(age / 1000));
       }
     } catch (error) {
       // Storage miss or error - continue to render
@@ -156,6 +178,10 @@ async function getCachedImage(key, supabase) {
 /**
  * Store image in cache
  *
+ * Storage writes need the service role key (`SUPABASE_SERVICE_ROLE_KEY`
+ * on Fly); with the anon key every upload is refused by RLS and only the
+ * memory tier works.
+ *
  * @param {string} key - Cache key
  * @param {Buffer} buffer - Image buffer
  * @param {object} supabase - Supabase client
@@ -168,10 +194,10 @@ async function cacheImage(key, buffer, supabase) {
   if (supabase) {
     supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(`${key}.png`, buffer, {
+      .upload(key, buffer, {
         upsert: true,
         contentType: 'image/png',
-        cacheControl: `public, max-age=${CACHE_TTL / 1000}`,
+        cacheControl: `${CACHE_TTL / 1000}`,
       })
       .then(({ error }) => {
         if (error) {
@@ -195,7 +221,7 @@ async function invalidateCache(key, supabase) {
 
   if (supabase) {
     try {
-      await supabase.storage.from(STORAGE_BUCKET).remove([`${key}.png`]);
+      await supabase.storage.from(STORAGE_BUCKET).remove([key]);
     } catch (error) {
       console.error('Cache invalidation error: %s', error.message);
     }
@@ -219,4 +245,14 @@ function getCacheStats() {
   };
 }
 
-export { generateCacheKey, getCachedImage, cacheImage, invalidateCache, getCacheStats, CACHE_TTL };
+export {
+  generateCacheKey,
+  publicUrlFor,
+  ageFromLastModified,
+  getCachedImage,
+  cacheImage,
+  invalidateCache,
+  getCacheStats,
+  CACHE_TTL,
+  STORAGE_BUCKET,
+};

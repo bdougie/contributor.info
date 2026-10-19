@@ -31,13 +31,31 @@ GET https://contributor-info-social-cards.fly.dev/charts/{chartType}?owner={owne
 ```
 
 The Fly app scales to zero (`fly-social-cards/fly.toml`: `min_machines_running = 0`,
-`auto_stop_machines = "stop"`, `auto_start_machines = true`). No machine runs
-between requests; the first `/charts/*` hit after idle pays a cold start of
-roughly 3–5 s including the Chromium launch, then the machine stops again after
-a few idle minutes. The Supabase Storage cache lives inside the app, so a cached
-render still wakes a machine but skips Playwright. Do not raise
-`min_machines_running` to hide the cold start; the Phase 4 plan is to render
-charts as SVG in the Netlify function and delete this app.
+`auto_stop_machines = "suspend"`, `auto_start_machines = true`). Measured
+2026-10-19, a stopped machine took ~17 s to serve its first chart (boot,
+Chromium launch, render), which no crawler waits for. Charts stay on Fly
+(Chromium, and we keep control of the cache); the fix is to keep crawlers off
+the cold path:
+
+- **Storage-first for crawlers.** Each render is written to the public
+  Supabase Storage bucket `chart-screenshots` at a deterministic path,
+  `{chartType}/{owner}/{repo}/{timeRange}-{distributionType}.png` (lowercase).
+  `social-meta.ts` HEADs that object (1.5 s budget) and, if it exists and is
+  under 24 h old, uses the public object URL as `og:image`. Only a miss sends
+  the crawler to the Fly URL. The path and TTL live in both
+  `fly-social-cards/src/cache.js` and `social-meta.ts`; change them together.
+- **Pre-warm on human view.** `prewarmChartCard` in
+  `src/lib/social-cards/prewarm.ts` fetches the Fly chart URL when someone
+  views a chart tab, so the screenshot is in storage before the link is
+  shared.
+- **Suspend, not stop.** On a miss the machine resumes from a memory snapshot
+  in well under a second instead of relaunching Chromium. Suspend needs
+  <= 2 GB memory and no swap, which the VM block respects.
+
+Storage writes need `SUPABASE_SERVICE_ROLE_KEY` on the Fly app (RLS refuses
+the anon key; the logs show `Storage cache write error: new row violates
+row-level security policy` when it is missing). Do not raise
+`min_machines_running` to hide the cold start.
 
 ### Card types
 
@@ -85,6 +103,7 @@ The function uses the shared Supabase client (`netlify/functions/_shared/supabas
 - **Jan 2025**: Netlify Edge Functions → Fly.io Express service (real data, but no CDN, per-request renders, cold starts)
 - **Jul 2026**: Card rendering → same-origin Netlify Function with native resvg, durable CDN caching, and pre-warming (PR #1825). Charts remain on Fly.io. The Fly service's card-rendering code was removed; its `/social-cards/*` URLs 301-redirect to contributor.info so og:image URLs cached by social platforms from old shares keep resolving.
 - **Oct 2026**: Fly chart service set to scale-to-zero (cost-reduction plan, Phase 1b). Previously one `shared-cpu-2x` machine ran 24/7 for a handful of chart renders a day.
+- **Oct 2026**: Chart cards made cold-start proof (cost-reduction plan, Phase 4, #1861): crawlers read the rendered PNG straight from Supabase Storage, chart tabs pre-warm on view, Fly machines suspend instead of stop, storage TTL 6 h → 24 h. The storage tier had silently never worked (anon key vs RLS); the Fly app now needs the service role key.
 
 ## Related Documentation
 

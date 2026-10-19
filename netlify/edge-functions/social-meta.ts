@@ -20,6 +20,83 @@ const CRAWLER_USER_AGENTS = [
 // behind durable CDN caching.
 const CHARTS_BASE = 'https://contributor-info-social-cards.fly.dev';
 
+// The Fly app scales to zero and takes ~17 s cold, so crawlers are pointed
+// at the rendered PNG in the public `chart-screenshots` bucket whenever one
+// exists and is fresh. Only a miss sends the crawler to Fly. The object path
+// and TTL mirror `generateCacheKey` / `CACHE_TTL` in
+// fly-social-cards/src/cache.js; change both together.
+const CHART_STORAGE_BUCKET = 'chart-screenshots';
+const CHART_STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
+const CHART_STORAGE_CHECK_TIMEOUT_MS = 1500;
+// Fly's route only accepts these characters for owner/repo, so anything
+// else cannot have a cached object and goes straight to Fly (which 400s).
+const CHART_PARAM_PATTERN = /^[a-zA-Z0-9_.-]{1,100}$/;
+
+interface ChartImage {
+  apiChartType: string;
+  owner: string;
+  repo: string;
+}
+
+function chartStoragePath({ apiChartType, owner, repo }: ChartImage): string {
+  // Defaults match the Fly route: timeRange=30, type=donut.
+  return `${apiChartType}/${owner.toLowerCase()}/${repo.toLowerCase()}/30-donut.png`;
+}
+
+function chartFlyUrl({ apiChartType, owner, repo }: ChartImage): string {
+  return `${CHARTS_BASE}/charts/${apiChartType}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+}
+
+function chartStorageUrl(chart: ChartImage): string | null {
+  const supabaseUrl = Deno.env.get('VITE_SUPABASE_URL') || Deno.env.get('SUPABASE_URL');
+  if (!supabaseUrl) return null;
+  if (!CHART_PARAM_PATTERN.test(chart.owner) || !CHART_PARAM_PATTERN.test(chart.repo)) {
+    return null;
+  }
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${CHART_STORAGE_BUCKET}/${chartStoragePath(chart)}`;
+}
+
+function isFresh(lastModified: string | null): boolean {
+  if (!lastModified) return false;
+  const modifiedAt = Date.parse(lastModified);
+  if (Number.isNaN(modifiedAt)) return false;
+  return Date.now() - modifiedAt <= CHART_STORAGE_TTL_MS;
+}
+
+/**
+ * Cached storage object if present and fresh, else the Fly render URL.
+ * Any failure of the HEAD check (timeout, network, 4xx) falls back to Fly,
+ * so a storage outage degrades to today's behaviour rather than no image.
+ */
+async function resolveChartImage(chart: ChartImage): Promise<string> {
+  const storageUrl = chartStorageUrl(chart);
+  const flyUrl = chartFlyUrl(chart);
+  if (!storageUrl) return flyUrl;
+
+  try {
+    const response = await fetch(storageUrl, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(CHART_STORAGE_CHECK_TIMEOUT_MS),
+    });
+    const fresh = response.ok && isFresh(response.headers.get('last-modified'));
+    addBreadcrumb({
+      message: fresh ? 'Chart image served from storage cache' : 'Chart image cache miss',
+      category: 'social-meta',
+      level: 'info',
+      data: { status: response.status, path: chartStoragePath(chart) },
+    });
+    return fresh ? storageUrl : flyUrl;
+  } catch (error) {
+    addBreadcrumb({
+      message: 'Chart storage check failed, falling back to Fly',
+      category: 'social-meta',
+      level: 'warning',
+      data: { error: error instanceof Error ? error.message : String(error) },
+    });
+    return flyUrl;
+  }
+}
+
 function isCrawler(userAgent: string | null): boolean {
   if (!userAgent) return false;
   const ua = userAgent.toLowerCase();
@@ -30,6 +107,8 @@ interface MetaTags {
   title: string;
   description: string;
   image: string;
+  // Set for chart pages; the handler resolves it to storage or Fly.
+  chart?: ChartImage;
 }
 
 // Chart type mappings for social meta
@@ -105,10 +184,12 @@ function getMetaTagsForPath(pathname: string, origin: string): MetaTags {
       };
       // Map 'health' to 'health-factors' for the API
       const apiChartType = chartType === 'health' ? 'health-factors' : chartType;
+      const chart: ChartImage = { apiChartType, owner, repo };
       return {
         title: `${chartMeta.title} - ${owner}/${repo} - contributor.info`,
         description: `${chartMeta.description} for ${owner}/${repo} on GitHub.`,
-        image: `${CHARTS_BASE}/charts/${apiChartType}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+        image: chartFlyUrl(chart),
+        chart,
       };
     }
   }
@@ -196,6 +277,9 @@ async function handler(request: Request, context: Context) {
   // Parse URL
   const url = new URL(request.url);
   const meta = getMetaTagsForPath(url.pathname, url.origin);
+  if (meta.chart) {
+    meta.image = await resolveChartImage(meta.chart);
+  }
 
   // Track which meta tags are being generated
   addBreadcrumb({

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { isSSRPage } from '@/lib/ssr-hydration';
-import { prewarmSocialCard } from '@/lib/social-cards/prewarm';
+import { prewarmSocialCard, prewarmChartCard } from '@/lib/social-cards/prewarm';
 
 interface SocialMeta {
   title?: string;
@@ -125,6 +125,13 @@ export function SocialMetaTags({
   useEffect(() => {
     prewarmSocialCard(imageUrl);
   }, [imageUrl]);
+
+  // Chart tabs share the repo card client-side, but crawlers get a chart
+  // screenshot from Fly; warm that too so the first share has an image.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    prewarmChartCard(window.location.pathname);
+  }, [currentUrl]);
 
   // Skip rendering if SSR has already provided meta tags to avoid duplicates
   // SSR pages have all necessary meta tags pre-rendered in the HTML head

@@ -86,9 +86,11 @@ Or manually:
 # Create app (first time only)
 fly apps create contributor-info-social-cards
 
-# Set secrets
+# Set secrets. The service role key is required for writing screenshots
+# into the `chart-screenshots` bucket (RLS refuses the anon key); without
+# it only the in-memory cache works and crawlers always hit a cold machine.
 fly secrets set SUPABASE_URL=your-url-here
-fly secrets set SUPABASE_ANON_KEY=your-key-here
+fly secrets set SUPABASE_SERVICE_ROLE_KEY=your-key-here
 
 # Deploy
 fly deploy

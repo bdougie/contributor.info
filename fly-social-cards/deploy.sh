@@ -36,10 +36,11 @@ if ! fly secrets list | grep -q "SUPABASE_URL"; then
     fly secrets set SUPABASE_URL="$SUPABASE_URL"
 fi
 
-if ! fly secrets list | grep -q "SUPABASE_ANON_KEY"; then
-    read -s -p "Enter SUPABASE_ANON_KEY: " SUPABASE_ANON_KEY
+# Storage writes need the service role key; the anon key is refused by RLS.
+if ! fly secrets list | grep -q "SUPABASE_SERVICE_ROLE_KEY"; then
+    read -s -p "Enter SUPABASE_SERVICE_ROLE_KEY: " SUPABASE_SERVICE_ROLE_KEY
     echo  # Add newline after hidden input
-    fly secrets set SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+    fly secrets set SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY"
 fi
 
 # Deploy the application
