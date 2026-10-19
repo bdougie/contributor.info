@@ -138,7 +138,14 @@ delete the two 307 redirects from `netlify.active.toml`.
       `rls-monitor.yml`, `daily-sitemap-generation.yml`, `submit-sitemap.yml`,
       `update-tracked-repos.yml`. All were already disabled on GitHub (manually
       or for inactivity). Kept `progressive-backfill.yml` and `chunk-recovery.yml`
-      (both `disabled_inactivity` until Phase 2).
+      (both `disabled_inactivity` until Phase 2). Two things the deleted files
+      did that were not duplicates: `performance-monitoring.yml` was also the
+      PR gate for `scripts/performance/check-chunk-graph.mjs`, now a step in
+      `ci-tests.yml`; and `capture-workspace-issues.yml` was the only scheduled
+      caller of `workspace-issues-sync`, now listed under Phase 3a. The weekly
+      `update-tracked-repos.yml` is not replaced: `release.yml` regenerates
+      `tracked-repositories.{txt,json}` on every push to `main`, and nothing in
+      this repo or gh-datapipe reads those files.
 - [x] Polar billing is **not live**: `POLAR_ENVIRONMENT=production` is set on
       Netlify but the stored `POLAR_ACCESS_TOKEN` is rejected by both the
       production and sandbox Polar APIs, and the only `active` row in
@@ -177,9 +184,21 @@ delete the two 307 redirects from `netlify.active.toml`.
       `enrich-contributors-cron` (0 3), `refresh-repository-metadata-cron` (0 0),
       `send-slack-assignee-report-cron` (0 9), `send-user-slack-monthly-leaderboard-cron`
       (0 9 1 * *), `sync-discussions-cron` (0 2), `sync-workspace-comments-cron`
-      (0 */4), `sync-workspace-priorities` (0 */6). Confirm each has an edge
-      function entry point that does not depend on Inngest's `step` object; add
-      thin ones where the logic only exists inside the Inngest function.
+      (0 */4), `sync-workspace-priorities` (0 */6). Phase 0 found four more
+      `cron:` triggers in `src/lib/inngest/functions/` that this list missed:
+      `scheduled-workspace-aggregation` (0 6,18) and
+      `cleanup-workspace-metrics-data` (0 3) in `aggregate-workspace-metrics.ts`,
+      `compute-embeddings` (0 */6) and `generate-embeddings` (0 */2). The two
+      embedding crons overlap; keep one. Note the Netlify Inngest app
+      (`functions/index.ts`) and the Supabase `inngest-prod` app register
+      different subsets, so take the union. Also add a schedule that is not an
+      Inngest cron at all: `workspace-issues-sync` (0 */6) was only ever called
+      by the deleted `capture-workspace-issues.yml`; the remaining
+      `workspace-issues-refresh` path is visit-triggered from the Issues tab, so
+      unvisited workspaces would otherwise stop getting issue updates. Confirm
+      each has an edge function entry point that does not depend on Inngest's
+      `step` object; add thin ones where the logic only exists inside the
+      Inngest function.
 - [ ] Migration B: `pgmq.create('jobs')`; pg_cron every minute → `process-job`.
 - [ ] `queue-event`: replace `sendToInngest()` with `background_jobs` insert +
       `pgmq.send`.
