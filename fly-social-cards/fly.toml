@@ -1,4 +1,14 @@
-# Fly.io configuration for social cards generation service
+# Fly.io configuration for the chart screenshot service (headless Chromium).
+#
+# Scale-to-zero (cost-reduction plan, Phase 1b): no machine runs between
+# requests. Fly's proxy starts a machine on the first request (~3-5 s cold,
+# including the Chromium launch) and stops it again after a few idle minutes.
+# OG social cards already render in the Netlify `social-cards` function behind
+# CDN caching; this app only serves `/charts/*` and the legacy og:image
+# redirects. Repeat chart renders are served from the Supabase Storage cache
+# by the app itself, so they still wake a machine; see docs/social-cards.md.
+#
+# Rules: never set min_machines_running > 0 or auto_stop_machines = false here.
 app = "contributor-info-social-cards"
 primary_region = "sjc"
 kill_signal = "SIGINT"
@@ -12,50 +22,34 @@ kill_timeout = "5s"
   PORT = "8080"
 
 [experimental]
-  allowed_public_ports = []
   auto_rollback = true
 
-[[services]]
-  protocol = "tcp"
+[http_service]
   internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
   processes = ["app"]
 
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-    force_https = true
-
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-  
-  [services.concurrency]
+  [http_service.concurrency]
     type = "connections"
     hard_limit = 25
     soft_limit = 20
 
-  [[services.tcp_checks]]
-    interval = "15s"
-    timeout = "2s"
-    grace_period = "1s"
-    restart_limit = 6
-
-  [[services.http_checks]]
-    interval = "10s"
-    grace_period = "5s"
-    method = "get"
+  # One health check is enough; the old tcp + http pair kept the machine
+  # "busy" from the proxy's point of view. grace_period covers Chromium startup.
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
     path = "/health"
-    protocol = "http"
-    timeout = "2s"
-    tls_skip_verify = false
-    [services.http_checks.headers]
 
-# Scale configuration for better performance
 [metrics]
   port = 9091
   path = "/metrics"
 
-# Deploy configuration
 [deploy]
   strategy = "rolling"
 

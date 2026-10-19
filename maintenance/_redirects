@@ -1,5 +1,10 @@
-# Every URL redirects to the paused notice at /paused/.
-# First match wins: keep /paused/* serving the page, then 302 everything else.
+# Every URL redirects to the paused notice at /paused/, except the GitHub App
+# webhook receiver, which keeps running as a background function while paused.
+# First match wins. The forced /* rule below would otherwise shadow the
+# function path, so it is allowed through explicitly.
 # (Netlify ignores rules whose target is exactly "/", hence the /paused/ path.)
+/.netlify/functions/github-webhook-background  /.netlify/functions/github-webhook-background  200!
+/api/github-webhook                            /.netlify/functions/github-webhook-background  200!
+/api/github/webhook                            /.netlify/functions/github-webhook-background  200!
 /paused/*  /paused/index.html  200
 /*         /paused/            302!

@@ -11,7 +11,6 @@ import { supabaseAdmin } from '../../src/lib/supabase-admin';
 // / repositories are blocked by RLS for the anon role, so use the service-role
 // admin client (RLS bypass). supabaseAdmin is always initialized server-side.
 const supabase = supabaseAdmin!;
-import { inngest } from '../../src/lib/inngest/client';
 import { githubAppAuth } from '../lib/auth';
 import { indexGitHistory } from '../services/git-history';
 import { generateFileEmbeddings } from '../services/file-embeddings';
@@ -101,16 +100,14 @@ async function handleInstallationCreated(event: InstallationEvent) {
       await handleRepositoriesAdded(event.installation, event.repositories);
     }
 
-    // Send welcome event
-    await inngest.send({
-      name: 'github.app.installed',
-      data: {
-        installation_id: event.installation.id,
-        account: event.installation.account.login,
-        repository_selection: event.installation.repository_selection,
-        repository_count: event.repositories?.length || 0,
-      },
-    });
+    // The former `github.app.installed` Inngest event had no consumer; the
+    // metrics row below is the record of the install.
+    console.log(
+      'App installed for %s (%s, %d repos)',
+      event.installation.account.login,
+      event.installation.repository_selection,
+      event.repositories?.length || 0
+    );
 
     // Track installation metrics
     await trackInstallationMetrics('installation_created', {
@@ -213,14 +210,8 @@ async function handleInstallationUnsuspended(event: InstallationEvent) {
 async function handleNewPermissionsAccepted(event: InstallationEvent) {
   console.log('New permissions accepted for installation:', event.installation.id);
 
-  // Could trigger re-sync of data with new permissions
-  await inngest.send({
-    name: 'github.app.permissions_updated',
-    data: {
-      installation_id: event.installation.id,
-      account: event.installation.account.login,
-    },
-  });
+  // The former `github.app.permissions_updated` Inngest event had no consumer.
+  // A re-sync with the new permissions happens on the next scheduled sync.
 }
 
 /**
@@ -321,16 +312,15 @@ async function handleRepositoriesAdded(
           })
           .eq('id', repoId);
 
-        // Queue for data sync
-        await inngest.send({
-          name: 'github.repository.app_enabled',
-          data: {
-            installation_id: installation.id,
-            repository_id: repoId,
-            repository_name: repo.full_name,
-            is_private: repo.private,
-          },
-        });
+        // The former `github.repository.app_enabled` Inngest event had no
+        // consumer. Data sync is picked up by the scheduled sync; the
+        // `webhook_priority` flag above is what marks the repo as app-enabled.
+        console.log(
+          'App enabled for %s (installation %d, private=%s)',
+          repo.full_name,
+          installation.id,
+          String(repo.private)
+        );
 
         // Index git history and generate embeddings in the background
         try {

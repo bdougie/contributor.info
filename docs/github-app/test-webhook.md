@@ -2,11 +2,11 @@
 
 ## Important: Webhook Service Migration
 
-**GitHub webhooks are now handled by a dedicated Fly.io service**, not Netlify Functions.
+**GitHub webhooks are handled by a Netlify Background Function** (`github-webhook-background`), not the Fly.io service this page used to describe. The Fly app `contributor-info-webhooks` was removed in Oct 2026 (cost-reduction plan, Phase 1a). Sections below that reference `fly logs`, `/health` or `/metrics` are historical; use the Netlify Functions tab (or `netlify logs:function github-webhook-background`) and the `idempotency_keys` table (`endpoint = 'github-webhook-background'`, one row per delivery with status and timing) instead.
 
-- **Production Webhook URL**: `https://contributor-info-webhooks.fly.dev/webhook`
-- **Health Check**: `https://contributor-info-webhooks.fly.dev/health`
-- **Metrics**: `https://contributor-info-webhooks.fly.dev/metrics`
+- **Production Webhook URL**: `https://contributor.info/.netlify/functions/github-webhook-background`
+- **Legacy URLs that still work**: `/api/github-webhook`, `/api/github/webhook` (rewritten to the function)
+- **Health Check / Metrics**: none. The function returns 202 immediately; outcomes are in `idempotency_keys`.
 
 ## 1. Test the Webhook Service Health
 
@@ -56,7 +56,7 @@ Shows webhook processing statistics.
 ## 2. Test GitHub Ping
 
 1. Go to your GitHub App settings: https://github.com/settings/apps/contributor-info
-2. Verify the webhook URL is set to: `https://contributor-info-webhooks.fly.dev/webhook`
+2. Verify the webhook URL is set to: `https://contributor.info/.netlify/functions/github-webhook-background`
 3. Click on "Advanced" in the left sidebar
 4. Look for "Recent Deliveries"
 5. Find a "ping" event (or trigger one by clicking "Ping" button)

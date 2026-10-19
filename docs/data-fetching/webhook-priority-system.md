@@ -289,7 +289,7 @@ ORDER BY hour DESC;
 
 3. **Check Fly.io Logs**
    ```bash
-   fly logs -a contributor-info-webhooks
+   netlify logs:function github-webhook-background
    ```
 
 ### Progressive Capture Not Skipping

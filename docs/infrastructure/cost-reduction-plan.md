@@ -159,14 +159,36 @@ delete the two 307 redirects from `netlify.active.toml`.
 
 ### Phase 1: webhooks on Netlify, social cards scale-to-zero (half day)
 
-- [ ] `github-webhook-background.mts` as above; test each event type with
-      "Redeliver" from the GitHub App's Advanced tab.
-- [ ] Repoint the GitHub App webhook URL; remove the redirects.
-- [ ] Delete `webhooks-server/`, `.github/workflows/deploy-github-webhooks.yml`,
-      the `FLY_API_TOKEN_WEBHOOKS` secret; `fly apps destroy contributor-info-webhooks`.
-- [ ] `fly-social-cards/fly.toml`: `min_machines_running = 0`,
-      `auto_stop_machines = "stop"`, `auto_start_machines = true`; redeploy;
-      confirm a chart URL wakes it and it stops again within minutes.
+- [x] `netlify/functions/github-webhook-background.mts` (helpers in
+      `lib/github-webhook.mts`, unit tested). Dispatches `pull_request`,
+      `issues`, `issue_comment`, `installation`, `installation_repositories`
+      straight to the `app/webhooks/*` handlers, as the Fly server did; the
+      in-memory `event-router` is reached through `issues.ts`/`pull-request.ts`
+      and is per-invocation state only. `check_run`, `label` and `ping` are
+      acknowledged and dropped (no handler existed before either). Service-role
+      writes: the function sets the anon env names to the service key before
+      dynamically importing the handlers, which is what the Fly box did via its
+      secrets. The three `inngest.send` calls in `installation.ts` are gone;
+      nothing consumed those events.
+- [x] While the site is paused, `maintenance/functions/` re-exports the function
+      so it still deploys; `maintenance/_redirects` lets its path through the
+      catch-all. Phase 2 deletes both with the rest of `maintenance/`.
+- [ ] Cutover (needs secrets that only exist on Fly today): set
+      `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (base64) and
+      `GITHUB_APP_WEBHOOK_SECRET` in the Netlify env, deploy, repoint the GitHub
+      App webhook URL to
+      `https://contributor.info/.netlify/functions/github-webhook-background`,
+      then "Redeliver" one of each event type from the App's Advanced tab and
+      check `idempotency_keys` for a `completed` row per delivery.
+- [x] Deleted `webhooks-server/` and `.github/workflows/deploy-github-webhooks.yml`;
+      the two 307 redirects in `netlify.active.toml` are now 200 rewrites to the
+      function; CSP `connect-src` no longer lists the Fly host.
+- [ ] After cutover is verified: `fly apps destroy contributor-info-webhooks`
+      and delete the `FLY_API_TOKEN_WEBHOOKS` repo secret.
+- [x] `fly-social-cards/fly.toml` rewritten from the legacy `[[services]]` block
+      to `[http_service]` with `min_machines_running = 0`,
+      `auto_stop_machines = "stop"`, `auto_start_machines = true`, one health
+      check; redeployed 2026-10-18. Wake/stop behaviour recorded in #1856.
 
 ### Phase 2: bring the site back (1 h)
 

@@ -30,6 +30,15 @@ Charts still render on Fly.io (Playwright/Chromium with a Supabase-storage cache
 GET https://contributor-info-social-cards.fly.dev/charts/{chartType}?owner={owner}&repo={repo}
 ```
 
+The Fly app scales to zero (`fly-social-cards/fly.toml`: `min_machines_running = 0`,
+`auto_stop_machines = "stop"`, `auto_start_machines = true`). No machine runs
+between requests; the first `/charts/*` hit after idle pays a cold start of
+roughly 3–5 s including the Chromium launch, then the machine stops again after
+a few idle minutes. The Supabase Storage cache lives inside the app, so a cached
+render still wakes a machine but skips Playwright. Do not raise
+`min_machines_running` to hide the cold start; the Phase 4 plan is to render
+charts as SVG in the Netlify function and delete this app.
+
 ### Card types
 
 | Type | Content | Data |
@@ -75,6 +84,7 @@ The function uses the shared Supabase client (`netlify/functions/_shared/supabas
 
 - **Jan 2025**: Netlify Edge Functions → Fly.io Express service (real data, but no CDN, per-request renders, cold starts)
 - **Jul 2026**: Card rendering → same-origin Netlify Function with native resvg, durable CDN caching, and pre-warming (PR #1825). Charts remain on Fly.io. The Fly service's card-rendering code was removed; its `/social-cards/*` URLs 301-redirect to contributor.info so og:image URLs cached by social platforms from old shares keep resolving.
+- **Oct 2026**: Fly chart service set to scale-to-zero (cost-reduction plan, Phase 1b). Previously one `shared-cpu-2x` machine ran 24/7 for a handful of chart renders a day.
 
 ## Related Documentation
 

@@ -1,5 +1,7 @@
 # Fly.io Webhook Migration
 
+> **Superseded (Oct 2026).** Webhooks moved again, from the Fly service described here to the Netlify Background Function `github-webhook-background` (cost-reduction plan, Phase 1a). Background functions return 202 immediately and run for up to 15 minutes, which removes the 10 s sync-function timeout that caused the 404s below. The Fly app `contributor-info-webhooks` has been destroyed. Kept for history; the RLS lesson (write with the service-role key) still applies and is what `withServiceRoleEnv()` in the new function does.
+
 ## Overview
 
 GitHub webhooks have been migrated from Netlify Functions to a dedicated Fly.io service to improve reliability and reduce 404 errors.
