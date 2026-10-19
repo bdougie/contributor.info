@@ -43,9 +43,7 @@ Client → /api/workspace-sync → Supabase Edge Function → Database
    - Redirects `/api/workspace-sync` to Supabase
    - Includes `X-Forwarded-Host` header for proper host detection
 
-3. **Archived**:
-   - `/netlify/functions/api-codeowners.mts.disabled`
-   - `/netlify/functions/workspace-sync-simple.ts.disabled`
+3. **Removed**: the original Netlify functions (`api-codeowners.mts`, `workspace-sync-simple.ts`) were kept as `.disabled` files for a while and deleted in the Phase 4 cost-reduction cleanup (#1861). Recover them from git history if ever needed.
 
 ### Key Features Preserved
 
@@ -163,8 +161,9 @@ If issues occur, rollback by:
      force = true
    ```
 
-2. Rename the disabled functions back:
+2. Restore the original functions from git history (they were deleted in #1861):
    ```bash
+   git checkout 63b54d2a -- netlify/functions/api-codeowners.mts.disabled netlify/functions/workspace-sync-simple.ts.disabled
    mv netlify/functions/api-codeowners.mts.disabled netlify/functions/api-codeowners.mts
    mv netlify/functions/workspace-sync-simple.ts.disabled netlify/functions/workspace-sync-simple.ts
    ```

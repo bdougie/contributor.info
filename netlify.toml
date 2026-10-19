@@ -214,12 +214,6 @@
   force = true
 
 [[redirects]]
-  from = "/api/hello"
-  to = "/.netlify/functions/hello"
-  status = 200
-  force = true
-
-[[redirects]]
   from = "/api/github/callback"
   to = "/.netlify/functions/github-callback"
   status = 200
