@@ -5,8 +5,11 @@ import {
   readWebhookHeaders,
   isHandledEvent,
   buildDeliveryClaim,
+  buildReclaimPatch,
+  staleProcessingCutoff,
   isDuplicateKeyError,
   DELIVERY_TTL_MS,
+  STALE_PROCESSING_MS,
   WEBHOOK_ENDPOINT,
 } from '../lib/github-webhook.mts';
 
@@ -110,6 +113,28 @@ describe('buildDeliveryClaim', () => {
     const c = buildDeliveryClaim('d', 'issues', 'opened', '{"a":2}');
     expect(a.request_hash).toBe(b.request_hash);
     expect(a.request_hash).not.toBe(c.request_hash);
+  });
+});
+
+describe('redelivery of a failed or stale claim', () => {
+  it('computes the stale cutoff 20 minutes before now', () => {
+    const now = new Date('2026-10-18T12:00:00.000Z');
+    expect(staleProcessingCutoff(now)).toBe('2026-10-18T11:40:00.000Z');
+    expect(STALE_PROCESSING_MS).toBe(20 * 60 * 1000);
+  });
+
+  it('resets status, outcome and clock while keeping the key and metadata', () => {
+    const now = new Date('2026-10-18T12:00:00.000Z');
+    const claim = buildDeliveryClaim('d-9', 'issues', 'opened', '{"a":1}', now);
+    const patch = buildReclaimPatch(claim, now);
+
+    expect(patch.status).toBe('processing');
+    expect(patch.response).toBeNull();
+    expect(patch.created_at).toBe(now.toISOString());
+    expect(new Date(patch.expires_at).getTime() - now.getTime()).toBe(DELIVERY_TTL_MS);
+    expect(patch.request_hash).toBe(claim.request_hash);
+    expect(patch.metadata).toEqual({ ...claim.metadata, retried_at: now.toISOString() });
+    expect('key' in patch).toBe(false);
   });
 });
 

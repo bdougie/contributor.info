@@ -90,6 +90,32 @@ export function buildDeliveryClaim(
   };
 }
 
+/**
+ * A `processing` claim older than this is treated as abandoned (the invocation
+ * died). Netlify background functions run at most 15 minutes, so 20 minutes
+ * leaves headroom for a slow but live run.
+ */
+export const STALE_PROCESSING_MS = 20 * 60 * 1000;
+
+export function staleProcessingCutoff(now: Date = new Date()): string {
+  return new Date(now.getTime() - STALE_PROCESSING_MS).toISOString();
+}
+
+/**
+ * Fields to write when taking over a failed or stale claim for a redelivery.
+ * Resets the clock and the recorded outcome; keeps the original key.
+ */
+export function buildReclaimPatch(claim: DeliveryClaim, now: Date = new Date()) {
+  return {
+    status: 'processing' as const,
+    request_hash: claim.request_hash,
+    response: null,
+    created_at: now.toISOString(),
+    expires_at: new Date(now.getTime() + DELIVERY_TTL_MS).toISOString(),
+    metadata: { ...claim.metadata, retried_at: now.toISOString() },
+  };
+}
+
 /** Postgres unique-violation code, what a duplicate delivery id insert returns. */
 export const PG_UNIQUE_VIOLATION = '23505';
 

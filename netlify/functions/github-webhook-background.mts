@@ -25,6 +25,8 @@ import {
   verifyWebhookSignature,
   isHandledEvent,
   buildDeliveryClaim,
+  buildReclaimPatch,
+  staleProcessingCutoff,
   isDuplicateKeyError,
   type HandledEvent,
 } from './lib/github-webhook.mts';
@@ -123,16 +125,43 @@ export default async function githubWebhookBackground(req: Request, _context: Co
 
   if (claimError) {
     if (isDuplicateKeyError(claimError)) {
-      console.log('github-webhook-background: duplicate delivery %s, skipping', deliveryId);
-      return;
+      // GitHub's "Redeliver" reuses the delivery id. Take the claim over only
+      // if the earlier attempt failed or has been "processing" longer than the
+      // function's budget allows (i.e. the invocation died). A completed or
+      // in-flight claim wins and this attempt is dropped. The conditional
+      // UPDATE is atomic, so two concurrent redeliveries cannot both proceed.
+      const { data: reclaimed, error: reclaimError } = await supabase
+        .from('idempotency_keys')
+        .update(buildReclaimPatch(claim))
+        .eq('key', claim.key)
+        .or(`status.eq.failed,and(status.eq.processing,created_at.lt.${staleProcessingCutoff()})`)
+        .select('key');
+
+      if (reclaimError) {
+        console.error(
+          'github-webhook-background: could not inspect duplicate delivery %s: %s',
+          deliveryId,
+          reclaimError.message
+        );
+        return;
+      }
+      if (!reclaimed || reclaimed.length === 0) {
+        console.log(
+          'github-webhook-background: delivery %s already completed or in flight, skipping',
+          deliveryId
+        );
+        return;
+      }
+      console.log('github-webhook-background: retrying failed/stale delivery %s', deliveryId);
+    } else {
+      // Could not record the claim. Process anyway rather than drop the event;
+      // handlers are idempotent on GitHub ids.
+      console.error(
+        'github-webhook-background: could not claim delivery %s: %s',
+        deliveryId,
+        claimError.message
+      );
     }
-    // Could not record the claim. Process anyway rather than drop the event;
-    // handlers are idempotent on GitHub ids.
-    console.error(
-      'github-webhook-background: could not claim delivery %s: %s',
-      deliveryId,
-      claimError.message
-    );
   }
 
   console.log('github-webhook-background: %s.%s (delivery %s)', event, action ?? '-', deliveryId);
