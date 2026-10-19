@@ -233,6 +233,11 @@ delete the two 307 redirects from `netlify.active.toml`.
 - [ ] `process-job`: pgmq read/delete/archive loop; add cases for the bucket-3
       types; `capture/*` cases call `fly-machines.createMachine()` (shared lib
       with the Netlify functions, or a Deno copy under `supabase/functions/_shared`).
+- [ ] Move the per-repository git-history indexing and file-embedding work
+      that `installation_repositories.added` triggers (`app/webhooks/installation.ts`,
+      `handleRepositoriesAdded`) onto the queue as one job per repo. Since
+      Phase 1a it runs inline inside the webhook background function and is
+      bounded by its 15 min budget; a large installation should fan out instead.
 - [ ] Frontend: `src/lib/inngest/client-safe.ts` already prefers
       `/functions/v1/queue-event`; remove the direct `inngest.send` fallback.
       Delete `hybrid-queue-manager.ts`'s `github_actions` branch once Phase 4 lands.
