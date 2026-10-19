@@ -25,13 +25,17 @@ class LRUCache {
     this.cache = new Map();
   }
 
+  /**
+   * @returns {{ data: Buffer, remainingTtlMs: number } | null}
+   */
   get(key) {
     if (!this.cache.has(key)) return null;
 
     const entry = this.cache.get(key);
 
     // Check expiry
-    if (Date.now() > entry.expiry) {
+    const remainingTtlMs = entry.expiry - Date.now();
+    if (remainingTtlMs <= 0) {
       this.cache.delete(key);
       return null;
     }
@@ -40,7 +44,7 @@ class LRUCache {
     this.cache.delete(key);
     this.cache.set(key, entry);
 
-    return entry.data;
+    return { data: entry.data, remainingTtlMs };
   }
 
   set(key, data, ttl = CACHE_TTL) {
@@ -133,18 +137,19 @@ function ageFromLastModified(lastModified) {
 }
 
 /**
- * Get cached image
+ * Get cached image. The remaining TTL is returned so the HTTP response can
+ * carry a matching max-age instead of restarting the clock on every hit.
  *
  * @param {string} key - Cache key
  * @param {object} supabase - Supabase client (unused for reads; the bucket is public)
- * @returns {Promise<Buffer|null>} - Image buffer or null
+ * @returns {Promise<{ buffer: Buffer, remainingTtlMs: number }|null>}
  */
 async function getCachedImage(key, supabase) {
   // Check memory cache first (fastest)
   const memoryHit = memoryCache.get(key);
   if (memoryHit) {
     global.cacheHits = (global.cacheHits || 0) + 1;
-    return memoryHit;
+    return { buffer: memoryHit.data, remainingTtlMs: memoryHit.remainingTtlMs };
   }
 
   // Check Supabase Storage through the public URL so we get Last-Modified
@@ -156,12 +161,13 @@ async function getCachedImage(key, supabase) {
         const age = ageFromLastModified(response.headers.get('last-modified'));
         if (age <= CACHE_TTL) {
           const buffer = Buffer.from(await response.arrayBuffer());
+          const remainingTtlMs = CACHE_TTL - age;
 
           // Repopulate memory cache for whatever TTL the object has left
-          memoryCache.set(key, buffer, CACHE_TTL - age);
+          memoryCache.set(key, buffer, remainingTtlMs);
           global.cacheHits = (global.cacheHits || 0) + 1;
 
-          return buffer;
+          return { buffer, remainingTtlMs };
         }
         console.log('Storage cache stale for %s (age %d s)', key, Math.round(age / 1000));
       }

@@ -19,8 +19,8 @@ const CHARTS_BASE = 'https://contributor-info-social-cards.fly.dev';
 const CHART_PATH_PATTERN =
   /^\/([^/]+)\/([^/]+)\/(lottery-factor|self-selection|health|distribution)\/?$/;
 
-// URLs warmed this page load; a failed warm is dropped so a later view
-// retries.
+// URLs warmed this page load; a failed warm (network error or non-2xx such
+// as Fly's 429 rate limit) is dropped so a later view retries.
 const warmed = new Set<string>();
 
 function warm(url: string): void {
@@ -28,7 +28,11 @@ function warm(url: string): void {
   if (!import.meta.env.PROD) return;
   if (warmed.has(url)) return;
   warmed.add(url);
-  fetch(url).catch(() => warmed.delete(url));
+  fetch(url)
+    .then((response) => {
+      if (!response.ok) warmed.delete(url);
+    })
+    .catch(() => warmed.delete(url));
 }
 
 export function prewarmSocialCard(imageUrl: string): void {
