@@ -204,6 +204,12 @@ delete the two 307 redirects from `netlify.active.toml`.
 - [ ] `@netlify/plugin-lighthouse` was a Netlify UI plugin (not in the repo);
       it was removed because it broke the static maintenance build. Re-add it
       from the Netlify UI if wanted.
+- [ ] Found on the #1865 deploy preview: the `GITHUB_TOKEN` in the Netlify env
+      is dead (GitHub returns 401), the same token that is dead on Fly
+      (gh-datapipe#265). `/api/health` reports github `unhealthy`,
+      `/api/track-repository` returns 503 "GitHub API error", and every
+      function that reads `GITHUB_TOKEN` / `VITE_GITHUB_TOKEN` is affected.
+      Rotate the token in Netlify (and Fly) before announcing the site is back.
 - [ ] Set `FLY_DATAPIPE_TOKEN` and `FLY_DATAPIPE_IMAGE` in the Netlify env once
       #1863 (gh-datapipe scale-to-zero) is merged; the backfill functions need
       them to start Fly machines.
