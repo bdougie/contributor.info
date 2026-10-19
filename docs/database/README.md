@@ -30,7 +30,7 @@ RLS policies control data access at the database row level, ensuring users only 
 
 RLS health is monitored by:
 - The Supabase advisors (Dashboard → Advisors, or `GET /v1/projects/{ref}/advisors/performance`) - reports `auth_rls_initplan` and `multiple_permissive_policies` lints
-- `.github/workflows/rls-monitor.yml` - checks new migrations for unoptimized auth patterns on PRs and runs the Supabase linter weekly
+- Manual review of new migrations for unoptimized auth patterns (the `rls-monitor.yml` workflow was removed in Oct 2026 under the cost-reduction plan; rely on the Supabase advisors above)
 
 ## Best Practices
 

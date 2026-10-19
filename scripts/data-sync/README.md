@@ -4,8 +4,8 @@ Operational scripts that trigger or backfill GitHub data in Supabase. Most of th
 
 | Script | Entry point | Purpose |
 |--------|-------------|---------|
-| `update-tracked-repos.js` | `release.yml`, `update-tracked-repos.yml` | Regenerate `tracked-repositories.txt` and `.json` at the repo root from the database |
-| `trigger-pr-activity-updates.js` | `update-pr-activity.yml` | Queue PR activity refreshes for tracked repositories |
+| `update-tracked-repos.js` | `release.yml` | Regenerate `tracked-repositories.txt` and `.json` at the repo root from the database |
+| `trigger-pr-activity-updates.js` | `node scripts/data-sync/trigger-pr-activity-updates.js` (the `update-pr-activity.yml` workflow was removed in Oct 2026; gh-datapipe owns the hourly refresh) | Queue PR activity refreshes for tracked repositories |
 | `populate-commits.ts` | `npm run populate-commits` | Capture commits for one repository through `src/lib/capture-commits.ts` |
 | `backfill-reviews-comments.mjs` | `node scripts/data-sync/backfill-reviews-comments.mjs [--dry-run]` | Find PRs missing reviews or comments and emit `capture/pr.reviews` and `capture/pr.comments` |
 | `backfill-discussion-summaries.mjs` | `node scripts/data-sync/backfill-discussion-summaries.mjs` | Generate LLM summaries for discussions that have none |

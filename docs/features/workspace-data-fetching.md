@@ -142,6 +142,8 @@ Fetches issues for workspace repositories with configurable parameters:
 
 ### capture-workspace-issues.yml
 
+> **Note (Oct 2026):** This workflow was removed under the cost-reduction plan (`docs/infrastructure/cost-reduction-plan.md`, Phase 0). The `workspace-issues-sync` edge function described below is the only sync path.
+
 Scheduled workflow for automatic issues synchronization:
 
 **Schedule:** Every 6 hours

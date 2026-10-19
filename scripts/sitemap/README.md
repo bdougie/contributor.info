@@ -4,7 +4,7 @@
 
 ## How it runs
 
-- **Daily**: `.github/workflows/daily-sitemap-generation.yml` runs the script and commits the result when the files change.
+- **Daily**: no longer scheduled. The `daily-sitemap-generation.yml` and `submit-sitemap.yml` workflows were removed in Oct 2026 (cost-reduction plan, Phase 0); regenerate manually and commit when tracked repositories change.
 - **Manually**: `npm run generate-sitemap`.
 
 The sitemap is not generated during `npm run build`; the committed files in `public/` are what ships.
