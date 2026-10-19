@@ -200,7 +200,12 @@ delete the two 307 redirects from `netlify.active.toml`.
       with the rest of the directory.
 - [x] Re-enabled `progressive-backfill.yml` (every 15 min) and
       `chunk-recovery.yml` (every 2 h) with `gh workflow enable`; both had been
-      `disabled_inactivity`. They are the interim capture path until Phase 4.
+      `disabled_inactivity`. They are the interim capture path until Phase 4,
+      but only for repositories that already have an `active`
+      `progressive_backfill_state` row: the live `api-track-repository`
+      function hands new repositories to Inngest (paused) and never inserts
+      that row, so a repository tracked after the relaunch gets no historical
+      backfill until the Phase 3 item below lands.
 - [ ] `@netlify/plugin-lighthouse` was a Netlify UI plugin (not in the repo);
       it was removed because it broke the static maintenance build. Re-add it
       from the Netlify UI if wanted.
@@ -253,6 +258,17 @@ delete the two 307 redirects from `netlify.active.toml`.
 - [ ] `process-job`: pgmq read/delete/archive loop; add cases for the bucket-3
       types; `capture/*` cases call `fly-machines.createMachine()` (shared lib
       with the Netlify functions, or a Deno copy under `supabase/functions/_shared`).
+- [ ] `api-track-repository`: when a repository is tracked (or reactivated),
+      do what `capture-repository-sync-enhanced.ts` step 3 does today: insert
+      an `active` `progressive_backfill_state` row (and a pending
+      `progressive_capture_jobs` row) for repositories with 100+ PRs and under
+      80% captured, so the re-enabled `progressive-backfill.yml` picks them up.
+      Found by Devin on #1865. Fold it into the `capture/*` job path if Phase 4
+      replaces the Actions workflow first.
+- [ ] Delete `netlify/functions/trigger-inngest-sync.ts`, its redirect, and the
+      `unified-sync-button.tsx` call that uses it. It accepts repository IDs
+      without authentication and only forwards them to Inngest; the button
+      should post to `queue-event` like the rest of the frontend.
 - [ ] Move the per-repository git-history indexing and file-embedding work
       that `installation_repositories.added` triggers (`app/webhooks/installation.ts`,
       `handleRepositoriesAdded`) onto the queue as one job per repo. Since
