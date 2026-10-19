@@ -89,16 +89,33 @@ function serverKey(): string | undefined {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || undefined;
 }
 
+/**
+ * The signed-in user's access token, when there is a session. queue-event
+ * grants signed-in users more than anonymous callers (workspace events), and
+ * records who queued what.
+ */
+async function browserSessionToken(): Promise<string | undefined> {
+  try {
+    const { getSupabase } = await import('../supabase-lazy');
+    const { data } = await (await getSupabase()).auth.getSession();
+    return data.session?.access_token || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 interface Endpoint {
   url: string;
   headers: Record<string, string>;
   name: string;
 }
 
-function endpointsFor(idempotencyKey: string): Endpoint[] {
-  const key = (!isBrowser() && serverKey()) || SUPABASE_ANON_KEY;
-  const authHeaders: Record<string, string> = key
-    ? { apikey: key, Authorization: `Bearer ${key}` }
+async function endpointsFor(idempotencyKey: string): Promise<Endpoint[]> {
+  const bearer = isBrowser()
+    ? (await browserSessionToken()) || SUPABASE_ANON_KEY
+    : serverKey() || SUPABASE_ANON_KEY;
+  const authHeaders: Record<string, string> = bearer
+    ? { apikey: SUPABASE_ANON_KEY || bearer, Authorization: `Bearer ${bearer}` }
     : {};
   const endpoints: Endpoint[] = [];
   if (SUPABASE_URL) {
@@ -116,7 +133,11 @@ function endpointsFor(idempotencyKey: string): Endpoint[] {
     // Same function behind the site's /api redirect (netlify.toml)
     endpoints.push({
       url: '/api/queue-event',
-      headers: { 'Content-Type': 'application/json', 'X-Idempotency-Key': idempotencyKey },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey,
+        ...authHeaders,
+      },
       name: 'Netlify redirect',
     });
   }
@@ -141,7 +162,7 @@ export async function sendInngestEvent<T extends { name: string; data: Record<st
   options?: { idempotencyKey?: string }
 ): Promise<QueueEventResult> {
   const idempotencyKey = options?.idempotencyKey || generateIdempotencyKey();
-  const endpoints = endpointsFor(idempotencyKey);
+  const endpoints = await endpointsFor(idempotencyKey);
 
   if (endpoints.length === 0) {
     throw new Error('SUPABASE_URL is not configured; cannot queue events');

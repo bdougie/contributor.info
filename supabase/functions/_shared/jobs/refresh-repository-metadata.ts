@@ -11,6 +11,11 @@ import { fetchGitHubAPI, GITHUB_API_BASE } from '../github.ts';
 import { NonRetriableJobError } from './types.ts';
 import type { JobContext, JobPayload, JobResult } from './types.ts';
 
+/**
+ * Per run. Rows are taken least-recently-refreshed first and the update bumps
+ * last_updated_at, so a set larger than this rotates through over several
+ * nights instead of the same 300 being refreshed every time.
+ */
 const MAX_PER_RUN = 300;
 
 interface RepositoryRow {
@@ -37,7 +42,7 @@ export async function refreshRepositoryMetadata(
     .select('id, owner, name')
     .eq('is_private', false)
     .eq('is_active', true)
-    .order('stargazers_count', { ascending: false })
+    .order('last_updated_at', { ascending: true, nullsFirst: true })
     .limit(MAX_PER_RUN);
   if (error) throw new Error(`Failed to fetch repositories: ${error.message}`);
 

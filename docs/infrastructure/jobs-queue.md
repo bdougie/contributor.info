@@ -58,6 +58,36 @@ schedules).
 Cron-enqueued jobs pass a dedupe window, so a stalled worker never piles up
 duplicates of the same schedule.
 
+## Who may send what
+
+The Supabase gateway accepts the public anon key, so `queue-event` decides by
+the bearer token it is given:
+
+| Caller | Allowed |
+|---|---|
+| service role (Netlify functions, webhook background function; `SUPABASE_SERVICE_ROLE_KEY`) | any event |
+| signed-in user (the browser sends the session token when there is one) | `capture/*` for a tracked repository, `workspace/priorities.sync` |
+| anonymous (anon key) | `capture/*` for a tracked repository |
+
+Retired events are acknowledged for every caller. Anything else answers 403.
+`capture/*` from any caller reuses a capture of the same repository and
+sources that is queued or running and under ten minutes old, so a page load
+or sync button cannot start one Fly machine per request. `discover/*`,
+`sync-router/*`, `classify/*` and `embedding*` are server-only; the
+`sync-router/*` handlers additionally refuse repositories nobody has tracked.
+
+## Dedupe
+
+`enqueue_job(..., dedupe_window, dedupe_statuses)` returns the id of an
+identical active job (same type and `repositoryId`) instead of queueing a new
+one. Policies are in `_shared/jobs/retired.ts`:
+
+- item-level embedding events merge into a **queued** job only. A running job
+  has already chosen its items, so a later issue or PR gets its own run, and
+  the selection query at execution time picks up whatever is still missing.
+- whole-table sweeps (`workspace/priorities.sync`, `classify/*`) merge into
+  queued **and** processing jobs; a second run would only repeat the first.
+
 Inngest crons that were **not** carried over, because their targets no longer
 exist or gh-datapipe already does the work:
 
@@ -109,6 +139,12 @@ listed in `_shared/jobs/retired.ts`; `queue-event` answers them with
   the visibility timeout is 600 s so a slow invocation never overlaps itself.
   Handlers check `ctx.remainingMs()` and stop early rather than hit the
   400 s edge limit; whatever is left waits for the next run.
+- Messages read but not handled before the budget ran out are made visible
+  again on exit; when under a minute of budget is left the worker reads one
+  message at a time.
+- An embedding run that lost a batch, or ran out of time with items left,
+  throws so the message retries; already-embedded items are excluded by the
+  selection query, so the retry only does what is missing.
 - Per-isolate circuit breaker: 5 consecutive failures of one job type pause
   that type for a minute.
 
@@ -146,7 +182,8 @@ The `health-jobs` edge function reports the same `background_jobs` counts.
 -- run something now
 select public.enqueue_job('workspace/priorities.sync', '{"trigger":"manual"}', null, 'manual');
 
--- re-run a failed row (no queue message; process-job runs it directly)
+-- re-run a failed or completed row (no queue message; process-job runs it
+-- directly; queued/processing rows are refused with 409 because the queue owns them)
 -- curl -X POST $SUPABASE_URL/functions/v1/process-job \
 --   -H "Authorization: Bearer $SERVICE_ROLE_KEY" -d '{"jobId":"<uuid>"}'
 

@@ -87,10 +87,13 @@ const BACKFILL_MIN_PRS = 100;
 const BACKFILL_MAX_COMPLETENESS = 0.8;
 
 /**
- * Insert the `active` progressive_backfill_state row (plus a pending
- * progressive_capture_jobs row) that the progressive-backfill workflow picks
- * up, for repositories with 100+ PRs and under 80% captured. This used to be
- * step 3 of the Inngest capture-repository-sync-enhanced function; found
+ * Make sure the progressive-backfill workflow will pick the repository up:
+ * an `active` progressive_backfill_state row plus a pending
+ * progressive_capture_jobs row, for repositories with 100+ PRs and under 80%
+ * captured. A repository has at most one state row and the workflow only
+ * selects `active` ones, so a paused, failed or completed row is reactivated
+ * with refreshed counts when the repository is still incomplete. This used to
+ * be step 3 of the Inngest capture-repository-sync-enhanced function; found
  * missing by Devin on #1865. Returns true when a backfill was started.
  */
 async function ensureBackfillState(
@@ -101,13 +104,6 @@ async function ensureBackfillState(
 ): Promise<boolean> {
   if (totalPrs < BACKFILL_MIN_PRS) return false;
   try {
-    const { data: existing } = await supabase
-      .from('progressive_backfill_state')
-      .select('id, status')
-      .eq('repository_id', repositoryId)
-      .maybeSingle();
-    if (existing) return false;
-
     const { count } = await supabase
       .from('pull_requests')
       .select('*', { count: 'exact', head: true })
@@ -116,36 +112,70 @@ async function ensureBackfillState(
     const completeness = captured / totalPrs;
     if (completeness >= BACKFILL_MAX_COMPLETENESS) return false;
 
-    const { error } = await supabase.from('progressive_backfill_state').insert({
-      repository_id: repositoryId,
-      total_prs: totalPrs,
-      processed_prs: captured,
-      status: 'active',
-      chunk_size: 25,
-      metadata: {
-        initial_completeness: completeness,
-        initiated_by: 'api-track-repository',
-        reason,
-      },
-    });
+    const { data: existing } = await supabase
+      .from('progressive_backfill_state')
+      .select('id, status')
+      .eq('repository_id', repositoryId)
+      .maybeSingle();
+    if (existing?.status === 'active') return false;
+
+    const metadata = {
+      initial_completeness: completeness,
+      initiated_by: 'api-track-repository',
+      reason,
+      ...(existing ? { reactivated_from: existing.status } : {}),
+    };
+    const { error } = existing
+      ? await supabase
+          .from('progressive_backfill_state')
+          .update({
+            status: 'active',
+            total_prs: totalPrs,
+            processed_prs: captured,
+            consecutive_errors: 0,
+            last_error: null,
+            metadata,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id)
+      : await supabase.from('progressive_backfill_state').insert({
+          repository_id: repositoryId,
+          total_prs: totalPrs,
+          processed_prs: captured,
+          status: 'active',
+          chunk_size: 25,
+          metadata,
+        });
     if (error) {
-      if (error.code !== '23505') console.error('Failed to create backfill state:', error);
+      if (error.code !== '23505') console.error('Failed to activate backfill state:', error);
       return false;
     }
-    const { error: jobError } = await supabase.from('progressive_capture_jobs').insert({
-      job_type: 'progressive_backfill',
-      repository_id: repositoryId,
-      status: 'pending',
-      processor_type: 'github_actions',
-      metadata: {
-        reason: 'auto_initiated',
-        total_prs: totalPrs,
-        current_completeness: completeness,
-      },
-    });
-    if (jobError) console.error('Failed to queue progressive backfill job:', jobError);
+
+    const { data: pendingJob } = await supabase
+      .from('progressive_capture_jobs')
+      .select('id')
+      .eq('repository_id', repositoryId)
+      .eq('job_type', 'progressive_backfill')
+      .in('status', ['pending', 'processing'])
+      .limit(1)
+      .maybeSingle();
+    if (!pendingJob) {
+      const { error: jobError } = await supabase.from('progressive_capture_jobs').insert({
+        job_type: 'progressive_backfill',
+        repository_id: repositoryId,
+        status: 'pending',
+        processor_type: 'github_actions',
+        metadata: {
+          reason: 'auto_initiated',
+          total_prs: totalPrs,
+          current_completeness: completeness,
+        },
+      });
+      if (jobError) console.error('Failed to queue progressive backfill job:', jobError);
+    }
     console.log(
-      'Started progressive backfill for %s (%d of %d PRs captured)',
+      '%s progressive backfill for %s (%d of %d PRs captured)',
+      existing ? 'Reactivated' : 'Started',
       repositoryId,
       captured,
       totalPrs
@@ -157,10 +187,6 @@ async function ensureBackfillState(
   }
 }
 
-/**
- * Blocked owner names that are app routes, not GitHub organizations
- * These should never be treated as repository identifiers
- */
 const GITHUB_APP_INSTALL_URL = 'https://github.com/apps/contributor-info/installations/new';
 
 /**

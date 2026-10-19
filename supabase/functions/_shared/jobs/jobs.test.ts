@@ -2,7 +2,7 @@ import { assert, assertEquals } from 'https://deno.land/std@0.177.0/testing/asse
 import { needsClassification } from './classify-repositories.ts';
 import { contentHash, embeddingInput } from './embeddings.ts';
 import { hasHandler, JOB_HANDLERS } from './registry.ts';
-import { DEDUPE_WINDOWS, isRetiredEvent, RETIRED_EVENTS } from './retired.ts';
+import { DEDUPE_POLICIES, dedupeStatuses, isRetiredEvent, RETIRED_EVENTS } from './retired.ts';
 import {
   retryDelaySeconds,
   shouldRetry,
@@ -11,7 +11,8 @@ import {
 } from './retry.ts';
 import { calculateNextScheduledAt, formatAssigneeReport } from './slack-assignee-report.ts';
 import { splitRepository } from './sync-router.ts';
-import { isNonRetriable, NonRetriableJobError } from './types.ts';
+import { assertRepositoryName, isNonRetriable, NonRetriableJobError } from './types.ts';
+import { CAPTURE_DEDUPE_MINUTES, isValidRepositoryName } from '../datapipe-capture.ts';
 
 Deno.test('retry: exponential backoff from 60 s, capped at one hour', () => {
   assertEquals(retryDelaySeconds(1), 60);
@@ -46,8 +47,8 @@ Deno.test('registry: retired events never have handlers, dedupe windows always d
     assertEquals(hasHandler(event), false, `${event} is retired but has a handler`);
     assertEquals(isRetiredEvent(event), true);
   }
-  for (const type of Object.keys(DEDUPE_WINDOWS)) {
-    assert(hasHandler(type), `${type} has a dedupe window but no handler`);
+  for (const type of Object.keys(DEDUPE_POLICIES)) {
+    assert(hasHandler(type), `${type} has a dedupe policy but no handler`);
   }
   assertEquals(isRetiredEvent('classify/repository.single'), false);
 });
@@ -145,4 +146,51 @@ Deno.test('sync-router: repository can be given joined or split', () => {
     threw = isNonRetriable(error);
   }
   assertEquals(threw, true);
+});
+
+Deno.test('dedupe: item-level embedding events only merge into queued jobs', () => {
+  assertEquals(dedupeStatuses(DEDUPE_POLICIES['embedding/issue.generate']), ['queued']);
+  assertEquals(dedupeStatuses(DEDUPE_POLICIES['embeddings/compute.requested']), ['queued']);
+  assertEquals(dedupeStatuses(DEDUPE_POLICIES['workspace/priorities.sync']), [
+    'queued',
+    'processing',
+  ]);
+  assertEquals(dedupeStatuses(DEDUPE_POLICIES['classify/repository.size']), [
+    'queued',
+    'processing',
+  ]);
+});
+
+Deno.test('names: only GitHub-shaped owner/repository pairs are accepted', () => {
+  assertEquals(assertRepositoryName('bdougie', 'contributor.info'), [
+    'bdougie',
+    'contributor.info',
+  ]);
+  assertEquals(assertRepositoryName('open-source-ready', 'gh_datapipe'), [
+    'open-source-ready',
+    'gh_datapipe',
+  ]);
+  for (
+    const [owner, name] of [
+      ['owner', 'repo name'],
+      ['owner', 'repo\n%s'],
+      ['../etc', 'passwd'],
+      ['', 'repo'],
+      [undefined, 'repo'],
+      ['owner', 'a'.repeat(101)],
+    ]
+  ) {
+    let rejected = false;
+    try {
+      assertRepositoryName(owner, name);
+    } catch (error) {
+      rejected = isNonRetriable(error);
+    }
+    assertEquals(rejected, true, `${owner}/${name} should be rejected`);
+  }
+  assertEquals(isValidRepositoryName('bdougie/contributor.info'), true);
+  assertEquals(isValidRepositoryName('bdougie'), false);
+  assertEquals(isValidRepositoryName('a/b/c'), false);
+  assertEquals(isValidRepositoryName('owner/re po'), false);
+  assert(CAPTURE_DEDUPE_MINUTES >= 5);
 });

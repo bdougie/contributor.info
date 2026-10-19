@@ -14,8 +14,28 @@ export type JobResult = Record<string, unknown>;
 export interface EnqueueOptions {
   repositoryId?: string;
   source?: string;
-  /** Postgres interval, e.g. '10 minutes'. Skips an identical active job. */
+  /** Postgres interval, e.g. '10 minutes'. Skips an identical job in dedupeStatuses. */
   dedupeWindow?: string;
+  /** Statuses the dedupe looks at; default queued and processing. */
+  dedupeStatuses?: string[];
+}
+
+/** GitHub owner and repository names: letters, digits, '-', '_', '.'. */
+const GITHUB_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+
+/**
+ * Validate an owner/name pair that came from a caller before it reaches a
+ * URL, a query or a log line. Throws NonRetriableJobError on anything that
+ * is not a GitHub-shaped name.
+ */
+export function assertRepositoryName(owner: unknown, name: unknown): [string, string] {
+  if (
+    typeof owner !== 'string' || typeof name !== 'string' || !GITHUB_NAME.test(owner) ||
+    !GITHUB_NAME.test(name)
+  ) {
+    throw new NonRetriableJobError('owner and repository must be GitHub-shaped names');
+  }
+  return [owner, name];
 }
 
 export interface JobContext {

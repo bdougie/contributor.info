@@ -4,7 +4,7 @@
  */
 
 import { GraphQLClient } from '../graphql-client.ts';
-import { asNumber, asString, NonRetriableJobError } from './types.ts';
+import { asNumber, assertRepositoryName, asString, NonRetriableJobError } from './types.ts';
 import type { JobContext, JobPayload, JobResult } from './types.ts';
 
 /** Resolve owner/name from either a "owner/name" string or separate fields. */
@@ -16,25 +16,30 @@ export function splitRepository(payload: JobPayload): [string, string] {
   if (!repoOwner || !repoName) {
     throw new NonRetriableJobError('Job payload must include repository or owner and name');
   }
-  return [repoOwner, repoName];
+  return assertRepositoryName(repoOwner, repoName);
 }
 
+/**
+ * sync-router jobs write pull requests with the server's GitHub token, so
+ * they only run for repositories someone has already tracked. Anything else
+ * goes through api-track-repository, which applies the private-repo and
+ * installation rules.
+ */
 async function ensureRepositoryId(ctx: JobContext, owner: string, repo: string): Promise<string> {
   const fullName = `${owner}/${repo}`;
-  const { data: existing } = await ctx.supabase.from('repositories').select('id').eq(
-    'full_name',
-    fullName,
-  ).maybeSingle();
-  if (existing?.id) return existing.id;
-  const { data: created, error } = await ctx.supabase
-    .from('repositories')
-    .insert({ full_name: fullName, owner, name: repo, first_tracked_at: new Date().toISOString() })
-    .select('id')
+  const { data: tracked, error } = await ctx.supabase
+    .from('tracked_repositories')
+    .select('repository_id, repositories!inner(full_name)')
+    .eq('tracking_enabled', true)
+    .eq('repositories.full_name', fullName)
+    .limit(1)
     .maybeSingle();
-  if (error || !created) {
-    throw new Error(`Failed to create repository ${fullName}: ${error?.message}`);
+  if (error) throw new Error(`tracked_repositories lookup failed: ${error.message}`);
+  const repositoryId = (tracked as { repository_id?: string } | null)?.repository_id;
+  if (!repositoryId) {
+    throw new NonRetriableJobError(`Repository ${fullName} is not tracked; track it first`);
   }
-  return created.id;
+  return repositoryId;
 }
 
 async function syncRepositoryWithGraphQL(

@@ -108,6 +108,15 @@ REVOKE ALL ON public.background_jobs FROM anon, authenticated;
 GRANT ALL ON public.background_jobs TO service_role;
 
 -- ============================================================================
+-- embedding_jobs: the scheduled run covers every workspace repository
+-- ============================================================================
+-- The compute-embeddings cron creates one embedding_jobs row with no
+-- repository. The column was NOT NULL (20250928070001), so the Inngest cron's
+-- insert had been failing too.
+
+ALTER TABLE public.embedding_jobs ALTER COLUMN repository_id DROP NOT NULL;
+
+-- ============================================================================
 -- Caller check (same rule as datapipe_assert_service_caller)
 -- ============================================================================
 
@@ -200,16 +209,20 @@ GRANT EXECUTE ON FUNCTION public.invoke_edge_function(TEXT, JSONB) TO service_ro
 -- enqueue_job(type, payload, repository_id, source, dedupe_window)
 -- ============================================================================
 -- Inserts the tracking row and the queue message in one transaction. With
--- dedupe_window, an identical job (same type and repositoryId) that is still
--- queued or processing and younger than the window is returned instead of a
--- new one; the crons use this so a stalled worker cannot pile up duplicates.
+-- dedupe_window, an identical job (same type and repositoryId) that is in one
+-- of dedupe_statuses and younger than the window is returned instead of a new
+-- one. The crons dedupe against queued and processing rows so a stalled
+-- worker cannot pile up duplicates; item-level events (an issue webhook, say)
+-- dedupe against queued rows only, because a processing job has already
+-- chosen its items and a later change must get its own run.
 
 CREATE OR REPLACE FUNCTION public.enqueue_job(
   job_type TEXT,
   job_payload JSONB DEFAULT '{}'::jsonb,
   p_repository_id UUID DEFAULT NULL,
   p_source TEXT DEFAULT NULL,
-  dedupe_window INTERVAL DEFAULT NULL
+  dedupe_window INTERVAL DEFAULT NULL,
+  dedupe_statuses TEXT[] DEFAULT ARRAY['queued', 'processing']
 )
 RETURNS UUID
 LANGUAGE plpgsql
@@ -237,7 +250,7 @@ BEGIN
     SELECT id INTO new_job_id
     FROM public.background_jobs j
     WHERE j.type = job_type
-      AND j.status IN ('queued', 'processing')
+      AND j.status = ANY (dedupe_statuses)
       AND j.created_at > NOW() - dedupe_window
       AND COALESCE(j.payload ->> 'repositoryId', j.repository_id::TEXT, '') = repo_key
     ORDER BY j.created_at DESC
@@ -263,11 +276,11 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL) IS
+COMMENT ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL, TEXT[]) IS
   'Queue a job for the process-job edge function: background_jobs row + pgmq message. dedupe_window skips an identical active job.';
 
-REVOKE ALL ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL) TO service_role, postgres;
+REVOKE ALL ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL, TEXT[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.enqueue_job(TEXT, JSONB, UUID, TEXT, INTERVAL, TEXT[]) TO service_role, postgres;
 
 -- ============================================================================
 -- pgmq wrappers for the worker (pgmq itself is not exposed through PostgREST)

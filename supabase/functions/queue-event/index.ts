@@ -11,20 +11,43 @@
  *                        then process-job is kicked so the job starts now
  *                        instead of at the next one-minute cron tick
  *
+ * Who may send what (the gateway accepts the anon key, so this is the check):
+ *   service role   any event. Netlify functions and the webhook background
+ *                  function send with SUPABASE_SERVICE_ROLE_KEY.
+ *   signed-in user capture/* for a tracked repository, workspace/* events.
+ *   anonymous      capture/* for a tracked repository only; capture starts are
+ *                  deduped per repository for 10 minutes, so an anonymous
+ *                  caller cannot start a machine per request.
+ *
  * `X-Idempotency-Key` dedupes a request for 24 h through `idempotency_keys`.
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders } from '../_shared/cors.ts';
-import { isCaptureEvent, startCapture } from '../_shared/datapipe-capture.ts';
+import {
+  isCaptureEvent,
+  isValidRepositoryName,
+  resolveRepository,
+  startCapture,
+} from '../_shared/datapipe-capture.ts';
 import { enqueueJob, kickProcessJob } from '../_shared/jobs/queue.ts';
 import { hasHandler } from '../_shared/jobs/registry.ts';
-import { DEDUPE_WINDOWS, isRetiredEvent, RETIRED_EVENTS } from '../_shared/jobs/retired.ts';
+import {
+  DEDUPE_POLICIES,
+  dedupeStatuses,
+  isRetiredEvent,
+  RETIRED_EVENTS,
+} from '../_shared/jobs/retired.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+type Caller = { tier: 'service' } | { tier: 'user'; userId: string } | { tier: 'anon' };
+
+/** Events a signed-in user may queue in addition to capture/*. */
+const USER_EVENTS = new Set(['workspace/priorities.sync']);
 
 interface QueueEventRequest {
   eventName: string;
@@ -44,6 +67,27 @@ interface IdempotencyRecord {
   key: string;
   status: 'processing' | 'completed' | 'failed';
   response: IdempotencyResponse | null;
+}
+
+class RequestError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'RequestError';
+  }
+}
+
+async function identifyCaller(req: Request): Promise<Caller> {
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return { tier: 'anon' };
+  if (token === supabaseServiceKey) return { tier: 'service' };
+  try {
+    const { data: { user } } = await supabase.auth.getUser(token);
+    if (user?.id) return { tier: 'user', userId: user.id };
+  } catch {
+    // anon key or an expired session: anonymous
+  }
+  return { tier: 'anon' };
 }
 
 async function generateRequestHash(
@@ -122,6 +166,43 @@ async function updateIdempotencyRecord(
   if (error) console.error('Error updating idempotency record:', error);
 }
 
+/** Non-service callers may only capture repositories that are already tracked. */
+async function assertTrackedRepository(data: Record<string, unknown>): Promise<void> {
+  const repository = await resolveRepository(supabase, data);
+  if (!repository || !isValidRepositoryName(repository)) {
+    throw new RequestError(400, 'capture events need a tracked repository');
+  }
+  const { data: tracked } = await supabase
+    .from('tracked_repositories')
+    .select('repository_id, repositories!inner(full_name)')
+    .eq('tracking_enabled', true)
+    .eq('repositories.full_name', repository)
+    .limit(1)
+    .maybeSingle();
+  if (!tracked) {
+    throw new RequestError(403, 'Repository is not tracked; track it before requesting a sync');
+  }
+}
+
+async function authorize(
+  caller: Caller,
+  eventName: string,
+  data: Record<string, unknown>,
+): Promise<void> {
+  if (caller.tier === 'service') return;
+  if (isCaptureEvent(eventName)) {
+    await assertTrackedRepository(data);
+    return;
+  }
+  if (caller.tier === 'user' && USER_EVENTS.has(eventName)) return;
+  throw new RequestError(
+    403,
+    caller.tier === 'anon'
+      ? `Sign in to queue ${eventName}`
+      : `${eventName} can only be queued by the server`,
+  );
+}
+
 interface RouteResult {
   eventId?: string;
   retired?: boolean;
@@ -130,39 +211,36 @@ interface RouteResult {
 }
 
 async function routeEvent(
+  caller: Caller,
   eventName: string,
   data: Record<string, unknown>,
-  userId?: string,
 ): Promise<RouteResult> {
   if (isRetiredEvent(eventName)) {
     console.log('Retired event %s acknowledged: %s', eventName, RETIRED_EVENTS[eventName]);
     return { retired: true, reason: RETIRED_EVENTS[eventName] };
   }
 
+  if (!isCaptureEvent(eventName) && !hasHandler(eventName)) {
+    throw new RequestError(400, `Unknown event: ${eventName}`);
+  }
+
+  await authorize(caller, eventName, data);
+
   if (isCaptureEvent(eventName)) {
     const capture = await startCapture(supabase, eventName, data);
     return { eventId: capture.datapipe_job_id, queued: true };
   }
 
-  if (!hasHandler(eventName)) {
-    throw new UnknownEventError(eventName);
-  }
-
   const repositoryId = typeof data.repositoryId === 'string' ? data.repositoryId : undefined;
+  const policy = DEDUPE_POLICIES[eventName];
   const jobId = await enqueueJob(supabase, eventName, data, {
     repositoryId,
-    source: userId ? `user:${userId}` : 'queue-event',
-    dedupeWindow: DEDUPE_WINDOWS[eventName],
+    source: caller.tier === 'user' ? `user:${caller.userId}` : `queue-event:${caller.tier}`,
+    dedupeWindow: policy?.window,
+    dedupeStatuses: policy ? dedupeStatuses(policy) : undefined,
   });
   kickProcessJob(supabaseUrl, supabaseServiceKey, `queue-event:${eventName}`);
   return { eventId: jobId, queued: true };
-}
-
-class UnknownEventError extends Error {
-  constructor(eventName: string) {
-    super(`Unknown event: ${eventName}`);
-    this.name = 'UnknownEventError';
-  }
 }
 
 function json(status: number, body: unknown): Response {
@@ -185,17 +263,8 @@ serve(async (req: Request) => {
     }
 
     const idempotencyKey = req.headers.get('X-Idempotency-Key');
-
-    let userId: string | undefined;
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-        userId = user?.id;
-      } catch {
-        // anon key or service key: no user
-      }
-    }
+    const caller = await identifyCaller(req);
+    const userId = caller.tier === 'user' ? caller.userId : undefined;
 
     if (idempotencyKey) {
       const { isDuplicate, response } = await handleIdempotency(
@@ -212,14 +281,14 @@ serve(async (req: Request) => {
 
     let routed: RouteResult;
     try {
-      routed = await routeEvent(eventName, data, userId);
+      routed = await routeEvent(caller, eventName, data);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error('Failed to queue event %s: %s', eventName, message);
+      console.error('Failed to queue event %s (%s): %s', eventName, caller.tier, message);
       if (idempotencyKey) {
         await updateIdempotencyRecord(idempotencyKey, 'failed', { error: message });
       }
-      const status = error instanceof UnknownEventError ? 400 : 500;
+      const status = error instanceof RequestError ? error.status : 500;
       return json(status, { error: 'Failed to queue event', message });
     }
 

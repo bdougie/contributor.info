@@ -29,6 +29,7 @@ export async function enqueueJob(
     p_repository_id: options.repositoryId ?? null,
     p_source: options.source ?? null,
     dedupe_window: options.dedupeWindow ?? null,
+    dedupe_statuses: options.dedupeStatuses ?? ['queued', 'processing'],
   });
   if (error) {
     throw new Error(`enqueue_job(${type}) failed: ${error.message}`);

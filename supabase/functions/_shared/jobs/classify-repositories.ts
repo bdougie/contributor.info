@@ -53,14 +53,21 @@ export async function classifyRepositoryBatch(
 ): Promise<JobResult> {
   if (!ctx.githubToken) throw new NonRetriableJobError('GitHub token not configured');
 
-  const cutoff = daysAgo(HIGH_PRIORITY_RECLASSIFY_AFTER_DAYS).toISOString();
+  // The same rule as needsClassification(), applied in SQL so the limit only
+  // counts eligible rows: never classified, older than 30 days, or high
+  // priority and older than 7 days.
+  const staleCutoff = daysAgo(RECLASSIFY_AFTER_DAYS).toISOString();
+  const highCutoff = daysAgo(HIGH_PRIORITY_RECLASSIFY_AFTER_DAYS).toISOString();
   const { data, error } = await ctx.supabase
     .from('tracked_repositories')
     .select('repository_id, priority, size, size_calculated_at, repositories!inner(owner, name)')
     .eq('tracking_enabled', true)
-    .or(`size.is.null,size_calculated_at.is.null,size_calculated_at.lt.${cutoff}`)
+    .or(
+      `size.is.null,size_calculated_at.is.null,size_calculated_at.lt.${staleCutoff},` +
+        `and(priority.eq.high,size_calculated_at.lt.${highCutoff})`,
+    )
     .order('size_calculated_at', { ascending: true, nullsFirst: true })
-    .limit(MAX_PER_RUN * 4);
+    .limit(MAX_PER_RUN);
   if (error) throw new Error(`Failed to list tracked repositories: ${error.message}`);
 
   const candidates: ClassifyCandidate[] = [];

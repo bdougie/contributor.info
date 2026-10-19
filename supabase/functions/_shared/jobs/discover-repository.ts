@@ -6,7 +6,7 @@
  */
 
 import { fetchGitHubAPI, GITHUB_API_BASE } from '../github.ts';
-import { asString, NonRetriableJobError } from './types.ts';
+import { assertRepositoryName, asString, NonRetriableJobError } from './types.ts';
 import type { JobContext, JobPayload, JobResult } from './types.ts';
 
 interface GitHubRepository {
@@ -41,11 +41,10 @@ interface GitHubRepository {
 }
 
 export async function discoverRepository(ctx: JobContext, payload: JobPayload): Promise<JobResult> {
-  const owner = asString(payload.owner);
-  const repo = asString(payload.repo) ?? asString(payload.name);
-  if (!owner || !repo) {
-    throw new NonRetriableJobError('discover/repository.new requires owner and repo');
-  }
+  const [owner, repo] = assertRepositoryName(
+    payload.owner,
+    asString(payload.repo) ?? asString(payload.name),
+  );
   const fullName = `${owner}/${repo}`;
   const { supabase } = ctx;
 
