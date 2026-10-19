@@ -4,7 +4,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 import { Progress } from './ui/progress';
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, RefreshCw, CheckCircle, XCircle, AlertCircle } from '@/components/ui/icon';
-import type { BackfillResponse, JobStatus } from '../lib/manual-backfill/client';
+import type { BackfillResponse, JobStatus } from '../lib/manual-backfill/types';
+import { safeGetSession } from '@/lib/auth/safe-auth';
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const { session } = await safeGetSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
 
 interface ManualBackfillProps {
   repository: string;
@@ -16,16 +22,6 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
   const [currentJob, setCurrentJob] = useState<BackfillResponse | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
-
-  // Clean up EventSource on unmount
-  useEffect(() => {
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
-  }, [eventSource]);
 
   // Poll for job status if we have an active job
   useEffect(() => {
@@ -40,7 +36,9 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/backfill/status/${currentJob.job_id}`);
+        const response = await fetch(`/api/backfill/status/${currentJob.job_id}`, {
+          headers: await authHeaders(),
+        });
         if (response.ok) {
           const status = await response.json();
           setJobStatus(status);
@@ -71,6 +69,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await authHeaders()),
         },
         body: JSON.stringify({
           repository,
@@ -97,30 +96,8 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         created_at: new Date().toISOString(),
       });
 
-      // Set up SSE for real-time updates
-      const sse = new EventSource(`/api/backfill/events?job_id=${job.job_id}`);
-
-      sse.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.job_id === job.job_id) {
-            setJobStatus((prev) => ({
-              ...prev!,
-              ...data,
-            }));
-          }
-        } catch (err) {
-          console.error('Failed to parse SSE data:', err);
-        }
-      };
-
-      sse.onerror = () => {
-        console.error('SSE connection error');
-        sse.close();
-        setEventSource(null);
-      };
-
-      setEventSource(sse);
+      // Status is polled from /api/backfill/status/:id (see the effect above);
+      // the Fly machine writes progress into datapipe_jobs as it runs.
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger backfill');
     } finally {
@@ -134,14 +111,11 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
     try {
       const response = await fetch(`/api/backfill/cancel/${currentJob.job_id}`, {
         method: 'POST',
+        headers: await authHeaders(),
       });
 
       if (response.ok) {
         setJobStatus((prev) => (prev ? { ...prev, status: 'cancelled' } : null));
-        if (eventSource) {
-          eventSource.close();
-          setEventSource(null);
-        }
       }
     } catch (err) {
       console.error('Failed to cancel job:', err);

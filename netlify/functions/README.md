@@ -20,18 +20,20 @@ netlify/functions/
 
 The manual backfill service consists of several endpoints:
 
-- `backfill-trigger.ts` - Trigger a new backfill job
-- `backfill-status.ts` - Check job status
-- `backfill-cancel.ts` - Cancel a running job
-- `backfill-events.ts` - List backfill jobs
+- `backfill-trigger.mts` - Create a `datapipe_jobs` row and a one-off Fly machine that runs the backfill
+- `backfill-status.mts` - Read the job row (the machine writes progress into it)
+- `backfill-cancel.mts` - Mark the row cancelled and destroy the machine
+
+Shared code: `lib/datapipe-jobs.mts` (job rows) and `lib/fly-machines.mts` (Fly Machines API).
 
 ### Configuration
 
 These functions require environment variables to be set:
-- `GH_DATPIPE_KEY` - API key for the data pipeline service
-- `GH_DATPIPE_API_URL` - Base URL for the data pipeline API
+- `FLY_DATAPIPE_TOKEN` - Fly deploy token scoped to `gh-datapipe-sync`
+- `FLY_DATAPIPE_IMAGE` - image tag printed by `gh-datapipe/scripts/deploy-to-fly.sh`
+- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` - to read and write `datapipe_jobs`
 
-See [Manual Backfill Setup](../../docs/data-fetching/manual-backfill-setup.md) for detailed configuration instructions.
+See [gh-datapipe scale-to-zero](../../docs/infrastructure/datapipe-scale-to-zero.md) for the full setup.
 
 ## Important: File Path Convention
 
@@ -47,62 +49,12 @@ If you encounter 404 errors, check that:
 2. No duplicate `netlify/functions` paths exist
 3. Function files are at the root level of `netlify/functions/`
 
-## Lazy Initialization Pattern
+## Configuration Checks
 
-The backfill functions use lazy initialization to handle missing environment variables gracefully:
-
-```typescript
-class ManualBackfillServerClient {
-  private apiUrl: string | undefined;
-  private apiKey: string | undefined;
-
-  constructor() {
-    // Don't throw here - allows function to load
-    this.apiUrl = process.env.GH_DATPIPE_API_URL;
-    this.apiKey = process.env.GH_DATPIPE_KEY;
-  }
-
-  async triggerBackfill(request: BackfillRequest) {
-    // Validate here - allows proper error response
-    if (!this.apiUrl || !this.apiKey) {
-      throw new Error('Service not configured');
-    }
-    // ... rest of implementation
-  }
-}
-```
-
-This pattern ensures:
-- Functions can load even without environment variables
-- Proper HTTP status codes (503) instead of 404 errors
-- Clear error messages for debugging
-
-## Testing
-
-Run tests for all functions:
-```bash
-npm test netlify/functions/__tests__
-```
-
-Run integration tests:
-```bash
-npm test netlify/functions/__tests__/backfill-endpoints.integration.test.ts
-```
-
-## Deployment
-
-Functions are automatically deployed with Netlify. Configuration is in `netlify.toml`:
-
-```toml
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-[[redirects]]
-  from = "/api/backfill/*"
-  to = "/.netlify/functions/backfill-:splat"
-  status = 200
-```
+The backfill functions never throw at import time. Each handler calls
+`isConfigured()` / `getSupabaseAdmin()` first and returns `503 SERVICE_UNAVAILABLE`
+when the Fly or Supabase variables are missing, so a misconfigured deploy fails
+with a readable JSON body instead of a 500.
 
 ## Debugging 404 Errors
 
@@ -123,7 +75,7 @@ If you encounter 404 errors:
 **Solution**: Check that environment variables are set and functions are in the correct directory
 
 ### Issue: 503 Service Unavailable
-**Solution**: This is expected when `GH_DATPIPE_KEY` is not configured. Add the required environment variables.
+**Solution**: This is expected when `FLY_DATAPIPE_TOKEN`, `FLY_DATAPIPE_IMAGE` or `SUPABASE_SERVICE_ROLE_KEY` is not configured. Add the required environment variables.
 
 ### Issue: Function doesn't load
 **Solution**: Ensure the function uses lazy initialization and doesn't throw errors in the constructor

@@ -5,6 +5,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 // Import job processors
 import { GraphQLClient } from '../inngest-prod/graphql-client.ts';
 import { RepositorySizeClassifier } from '../inngest-prod/repository-classifier.ts';
+import { CAPTURE_SOURCES, startCapture } from '../_shared/datapipe-capture.ts';
 
 // Type definitions for job payloads
 interface RepositorySyncPayload {
@@ -68,7 +69,21 @@ const circuitBreakers = new Map<
   }
 >();
 
+/** Resolve owner/name from either a "owner/name" string or separate fields. */
+function splitRepository(
+  repository: string | undefined,
+  owner: string | undefined,
+  name: string | undefined,
+): [string, string] {
+  const [repoOwner, repoName] = repository ? repository.split('/') : [owner, name];
+  if (!repoOwner || !repoName) {
+    throw new Error('Job payload must include repository or owner and name');
+  }
+  return [repoOwner, repoName];
+}
+
 console.log('Job processor starting with circuit breaker protection...');
+console.log('Datapipe capture routes: %d', Object.keys(CAPTURE_SOURCES).length);
 
 serve(async (req: Request) => {
   // Handle CORS
@@ -257,36 +272,51 @@ async function processJobSync(
 
     // Route to appropriate processor based on job type
     switch (type) {
-      // Inngest job types
-      case 'capture/repository.sync.graphql': {
-        const { repositoryId, owner, repo, days = 30 } = payload;
-        result = await syncRepositoryWithGraphQL(repositoryId, owner, repo, days);
+      // Former Inngest capture/* events: one gh-datapipe Fly machine per job
+      // (see _shared/datapipe-capture.ts and gh-datapipe/docs/capture-event-mapping.md)
+      case 'capture/repository.events':
+      case 'capture/repository.sync':
+      case 'capture/repository.sync.graphql':
+      case 'capture/repository.sync.enhanced':
+      case 'capture/pr.details':
+      case 'capture/pr.details.graphql':
+      case 'capture/pr.reviews':
+      case 'capture/pr.comments':
+      case 'capture/issue.comments':
+      case 'capture/repository.comments.all':
+      case 'capture/repository.issues':
+      case 'capture/repository.discussions': {
+        const capture = await startCapture(supabase, type, payload as Record<string, unknown>);
+        result = {
+          success: true,
+          message: `Started gh-datapipe machine ${capture.fly_machine_id}`,
+          data: capture,
+        };
         break;
       }
 
       case 'classify/repository.single': {
-        const { repositoryId, owner, repo } = payload;
+        const { repositoryId, owner, repo } = payload as RepositorySyncPayload;
+        if (!repositoryId || !repo) {
+          throw new Error('classify/repository.single requires repositoryId and repo');
+        }
         result = await classifyRepositorySize(repositoryId, owner, repo);
-        break;
-      }
-
-      case 'capture/pr.details.graphql': {
-        const { owner, repo, prNumbers } = payload;
-        result = await fetchPullRequestDetails(owner, repo, prNumbers);
         break;
       }
 
       // Sync-router job types
       case 'sync-router/repository.sync': {
-        const { repository, owner, name, fullSync, daysLimit = 30 } = payload;
-        const [repoOwner, repoName] = repository ? repository.split('/') : [owner, name];
-        result = await syncRepositoryBasic(repoOwner, repoName, fullSync, daysLimit);
+        const { repository, owner, name, fullSync, daysLimit = 30 } =
+          payload as RepositorySyncPayload;
+        const [repoOwner, repoName] = splitRepository(repository, owner, name);
+        result = await syncRepositoryBasic(repoOwner, repoName, fullSync ?? false, daysLimit);
         break;
       }
 
       case 'sync-router/repository.sync.graphql': {
-        const { repository, owner, name, fullSync, daysLimit = 30 } = payload;
-        const [repoOwner, repoName] = repository ? repository.split('/') : [owner, name];
+        const { repository, owner, name, fullSync, daysLimit = 30 } =
+          payload as RepositorySyncPayload;
+        const [repoOwner, repoName] = splitRepository(repository, owner, name);
 
         // Look up repository ID
         const { data: repoData } = await supabase
@@ -320,8 +350,8 @@ async function processJobSync(
       }
 
       case 'sync-router/pr.details.batch': {
-        const { repository, owner, name, prNumbers } = payload;
-        const [repoOwner, repoName] = repository ? repository.split('/') : [owner, name];
+        const { repository, owner, name, prNumbers } = payload as PRDetailsPayload;
+        const [repoOwner, repoName] = splitRepository(repository, owner, name);
         result = await fetchPullRequestDetails(repoOwner, repoName, prNumbers);
         break;
       }
@@ -334,7 +364,7 @@ async function processJobSync(
         // These are processed by process-webhook function
         // This is a fallback if they somehow end up here
         console.log(`Webhook job ${type} should be processed by process-webhook function`);
-        result = await processWebhookFallback(type, payload);
+        result = await processWebhookFallback(type, payload as WebhookPayload);
         break;
       }
 
