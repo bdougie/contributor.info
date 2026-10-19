@@ -22,7 +22,6 @@ import {
 import { WorkspacePermissionService } from './workspace-permissions.service';
 import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
 import { logError } from '@/lib/error-logging';
-import type { Inngest } from 'inngest';
 import type {
   Workspace,
   WorkspaceWithStats,
@@ -39,12 +38,11 @@ import type {
   WorkspaceMemberWithUser,
 } from '@/types/workspace';
 
-// The Inngest client pulls in the `inngest` SDK (and its zod dependency) at
-// module scope. Every send here happens on a user action, so load it on demand
-// to keep it out of the workspace page's initial chunk graph.
-const sendInngestEvent = async (...args: Parameters<Inngest['send']>) => {
-  const { inngest } = await import('@/lib/inngest/client');
-  return inngest.send(...args);
+// Every send here happens on a user action, so load the queue client on
+// demand to keep it out of the workspace page's initial chunk graph.
+const sendInngestEvent = async (event: { name: string; data: Record<string, unknown> }) => {
+  const { sendInngestEvent: queueEvent } = await import('@/lib/inngest/client-safe');
+  return queueEvent(event);
 };
 
 /**

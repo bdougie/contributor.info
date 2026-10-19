@@ -6,9 +6,6 @@ import { supabaseAdmin } from '../../src/lib/supabase-admin';
 // / repositories are blocked by RLS for the anon role, so use the service-role
 // admin client (RLS bypass). supabaseAdmin is always initialized server-side.
 const supabase = supabaseAdmin!;
-import { githubAppAuth } from '../lib/auth';
-import { indexGitHistory } from '../services/git-history';
-import { generateFileEmbeddings } from '../services/file-embeddings';
 
 interface RepositoryBasic {
   id: number;
@@ -323,67 +320,10 @@ async function handleRepositoriesAdded(
           String(repo.private)
         );
 
-        // Index git history and generate embeddings. These used to be
-        // fire-and-forget because the Fly server was a long-lived process. The
-        // webhook now runs in a Netlify Background Function, which only keeps
-        // the invocation alive for awaited work, so both are awaited here
-        // (inside the 15 min budget). Failures are logged, not thrown, so one
-        // repo cannot block the rest of the installation.
-        try {
-          const octokit = await githubAppAuth.getInstallationOctokit(installation.id);
-
-          // Ensure owner is properly set before calling indexGitHistory
-          if (!repo.owner?.login) {
-            repo.owner = {
-              login: repo.full_name.split('/')[0],
-              id: 0,
-              type: 'User',
-            };
-          }
-
-          const indexHistory = indexGitHistory(repo, octokit).catch((error) => {
-            console.error('Failed to index git history for %s:', repo.full_name, error);
-          });
-
-          const embedRecentFiles = octokit.repos
-            .listCommits({
-              owner: repo.owner?.login || repo.full_name.split('/')[0],
-              repo: repo.name,
-              per_page: 10,
-            })
-            .then(async ({ data: commits }) => {
-              const files = new Set<string>();
-
-              for (const commit of commits) {
-                try {
-                  const { data: commitData } = await octokit.repos.getCommit({
-                    owner: repo.owner?.login || repo.full_name.split('/')[0],
-                    repo: repo.name,
-                    ref: commit.sha,
-                  });
-
-                  commitData.files?.forEach((file) => {
-                    if (file.filename) {
-                      files.add(file.filename);
-                    }
-                  });
-                } catch (error) {
-                  console.error('Error fetching commit %s:', commit.sha, error);
-                }
-              }
-
-              if (files.size > 0) {
-                await generateFileEmbeddings(repo, octokit, Array.from(files));
-              }
-            })
-            .catch((error) => {
-              console.error('Failed to generate embeddings for %s:', repo.full_name, error);
-            });
-
-          await Promise.allSettled([indexHistory, embedRecentFiles]);
-        } catch (error) {
-          console.error(`Failed to get octokit client for installation ${installation.id}:`, error);
-        }
+        // Git-history indexing and file embeddings used to run here. Their
+        // tables (file_contributors, file_embeddings) were dropped on
+        // 2026-04-28 (20260428000007_drop_dead_tables.sql), so that work was
+        // only producing errors; removed with the Inngest migration.
       }
     }
   } catch (error) {

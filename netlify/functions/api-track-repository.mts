@@ -2,6 +2,160 @@ import type { Context } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import { trackInngestFailure, trackTrackingFailure } from './lib/server-tracking.mts';
 import { RateLimiter, getRateLimitKey, applyRateLimitHeaders } from './lib/rate-limiter.mts';
+import { sendInngestEvent } from '../../src/lib/inngest/client-safe';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+interface TrackingEvent {
+  name: string;
+  data: Record<string, unknown>;
+}
+
+/**
+ * Queue background work through the queue-event edge function (pgmq jobs or
+ * gh-datapipe machines). Failures are logged and reported, never thrown:
+ * the repository row already exists, which is what the caller needs.
+ */
+async function queueTrackingEvents(
+  events: TrackingEvent[],
+  context: { owner: string; repo: string; repositoryId: string; eventType: string }
+): Promise<void> {
+  for (const event of events) {
+    try {
+      const result = await sendInngestEvent(event);
+      console.log(
+        'Queued %s for %s/%s: %s',
+        event.name,
+        context.owner,
+        context.repo,
+        result.ids?.[0] ?? (result.retired ? 'retired' : 'unknown')
+      );
+    } catch (error) {
+      console.error('Failed to queue %s:', event.name, error);
+      await trackInngestFailure(event.name, error, context);
+    }
+  }
+}
+
+/**
+ * Ask GitHub how many pull requests the repository has (one GraphQL point)
+ * and store it on repositories.pull_request_count. Returns the best known
+ * value; the stored one when GitHub cannot be reached.
+ */
+async function syncPullRequestTotal(
+  supabase: SupabaseClient,
+  repositoryId: string,
+  owner: string,
+  repo: string,
+  stored: number | null | undefined
+): Promise<number> {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) return stored ?? 0;
+  try {
+    const response = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'contributor-info',
+      },
+      body: JSON.stringify({
+        query:
+          'query($owner:String!,$name:String!){repository(owner:$owner,name:$name){pullRequests{totalCount}}}',
+        variables: { owner, name: repo },
+      }),
+    });
+    if (!response.ok) return stored ?? 0;
+    const json = (await response.json()) as {
+      data?: { repository?: { pullRequests?: { totalCount?: number } } };
+    };
+    const total = json.data?.repository?.pullRequests?.totalCount;
+    if (typeof total !== 'number') return stored ?? 0;
+    if (total !== stored) {
+      await supabase
+        .from('repositories')
+        .update({ pull_request_count: total })
+        .eq('id', repositoryId);
+    }
+    return total;
+  } catch (error) {
+    console.warn('Could not fetch PR total for %s/%s:', owner, repo, error);
+    return stored ?? 0;
+  }
+}
+
+const BACKFILL_MIN_PRS = 100;
+const BACKFILL_MAX_COMPLETENESS = 0.8;
+
+/**
+ * Insert the `active` progressive_backfill_state row (plus a pending
+ * progressive_capture_jobs row) that the progressive-backfill workflow picks
+ * up, for repositories with 100+ PRs and under 80% captured. This used to be
+ * step 3 of the Inngest capture-repository-sync-enhanced function; found
+ * missing by Devin on #1865. Returns true when a backfill was started.
+ */
+async function ensureBackfillState(
+  supabase: SupabaseClient,
+  repositoryId: string,
+  totalPrs: number,
+  reason: string
+): Promise<boolean> {
+  if (totalPrs < BACKFILL_MIN_PRS) return false;
+  try {
+    const { data: existing } = await supabase
+      .from('progressive_backfill_state')
+      .select('id, status')
+      .eq('repository_id', repositoryId)
+      .maybeSingle();
+    if (existing) return false;
+
+    const { count } = await supabase
+      .from('pull_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('repository_id', repositoryId);
+    const captured = count ?? 0;
+    const completeness = captured / totalPrs;
+    if (completeness >= BACKFILL_MAX_COMPLETENESS) return false;
+
+    const { error } = await supabase.from('progressive_backfill_state').insert({
+      repository_id: repositoryId,
+      total_prs: totalPrs,
+      processed_prs: captured,
+      status: 'active',
+      chunk_size: 25,
+      metadata: {
+        initial_completeness: completeness,
+        initiated_by: 'api-track-repository',
+        reason,
+      },
+    });
+    if (error) {
+      if (error.code !== '23505') console.error('Failed to create backfill state:', error);
+      return false;
+    }
+    const { error: jobError } = await supabase.from('progressive_capture_jobs').insert({
+      job_type: 'progressive_backfill',
+      repository_id: repositoryId,
+      status: 'pending',
+      processor_type: 'github_actions',
+      metadata: {
+        reason: 'auto_initiated',
+        total_prs: totalPrs,
+        current_completeness: completeness,
+      },
+    });
+    if (jobError) console.error('Failed to queue progressive backfill job:', jobError);
+    console.log(
+      'Started progressive backfill for %s (%d of %d PRs captured)',
+      repositoryId,
+      captured,
+      totalPrs
+    );
+    return true;
+  } catch (error) {
+    console.error('ensureBackfillState failed:', error);
+    return false;
+  }
+}
 
 /**
  * Blocked owner names that are app routes, not GitHub organizations
@@ -482,8 +636,7 @@ export default async (req: Request, context: Context) => {
       );
     }
 
-    // Directly insert repository into database instead of relying on Inngest
-    // (Inngest discovery function is not processing events in production)
+    // Insert the repository directly; background work is queued afterwards
     try {
       if (!supabaseUrl || !supabaseKey) {
         console.error('Missing Supabase keys');
@@ -497,40 +650,17 @@ export default async (req: Request, context: Context) => {
           statusCode: 503,
         });
 
-        // Fallback to sending Inngest event
-        const inngestEventKey =
-          process.env.INNGEST_EVENT_KEY || process.env.INNGEST_PRODUCTION_EVENT_KEY;
-
-        if (inngestEventKey && inngestEventKey !== 'local_development_only') {
-          const inngestUrl = `https://inn.gs/e/${inngestEventKey}`;
-          await fetch(inngestUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: 'discover/repository.new',
-              data: {
-                owner,
-                repo,
-                source: 'user-tracking',
-                userId: userId || null,
-                timestamp: new Date().toISOString(),
-              },
-            }),
-          });
-        }
-
-        // Return degraded response - tracking may work via Inngest but is not guaranteed
+        // Without Supabase keys nothing can be queued either (queue-event needs
+        // the same project), so say so instead of pretending.
         return withHeaders(
           new Response(
             JSON.stringify({
-              success: true,
-              message: `Tracking request received for ${owner}/${repo}`,
-              warning: 'Background processing may be delayed due to configuration issue',
+              success: false,
+              error: 'Service unavailable',
+              message: `Tracking for ${owner}/${repo} could not be started: server configuration issue`,
             }),
             {
-              status: 200,
+              status: 503,
               headers: {
                 ...corsHeaders,
                 'Content-Type': 'application/json',
@@ -547,7 +677,7 @@ export default async (req: Request, context: Context) => {
       // Step 1: Check if repository already exists in database
       const { data: existingRepos, error: checkError } = await supabase
         .from('repositories')
-        .select('id, owner, name, github_id, is_private')
+        .select('id, owner, name, github_id, is_private, pull_request_count')
         .eq('owner', owner)
         .eq('name', repo);
 
@@ -681,33 +811,19 @@ export default async (req: Request, context: Context) => {
           console.error('Failed to track existing repository:', existingTrackError);
         }
 
-        // Send sync event for existing repository
-        try {
-          const { Inngest } = await import('inngest');
-
-          // Same environment detection as above
-          const isLocal =
-            process.env.NODE_ENV === 'development' ||
-            process.env.NETLIFY_DEV === 'true' ||
-            process.env.CONTEXT === 'dev' ||
-            (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME);
-
-          const eventKey = isLocal
-            ? 'local-dev-key'
-            : process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
-
-          const inngest = new Inngest({
-            id: 'contributor-info',
-            isDev: isLocal,
-            eventKey,
-            ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' }),
-          });
-
-          // Send sync event for the existing repository
-          // Handle each event separately to ensure repository sync succeeds even if commit capture fails
-          let syncResult;
-          try {
-            syncResult = await inngest.send({
+        // Queue background work (classification happens on the first sync;
+        // the gh-datapipe machine refreshes the PR window) and make sure the
+        // progressive backfill picks the repository up if its history is thin.
+        const existingTotalPrs = await syncPullRequestTotal(
+          supabase,
+          existingRepo.id,
+          owner,
+          repo,
+          existingRepo.pull_request_count
+        );
+        await queueTrackingEvents(
+          [
+            {
               name: 'capture/repository.sync.graphql',
               data: {
                 repositoryId: existingRepo.id,
@@ -717,58 +833,16 @@ export default async (req: Request, context: Context) => {
                 priority: 'high',
                 reason: 'Re-tracking existing repository',
               },
-            });
-            console.log('Repository sync event sent successfully:', syncResult.ids);
-          } catch (syncError) {
-            console.error('Failed to send repository sync event:', syncError);
-            // Track Inngest failure to Sentry + PostHog
-            await trackInngestFailure('capture/repository.sync.graphql', syncError, {
-              owner: existingRepo.owner,
-              repo: existingRepo.name,
-              repositoryId: existingRepo.id,
-              eventType: 're-tracking',
-              isLocal,
-            });
-            // Still continue - repository tracking can proceed without commit capture
-          }
-
-          // Try to send commit capture event separately
-          try {
-            const commitResult = await inngest.send({
-              name: 'capture/commits.update',
-              data: {
-                repositoryId: existingRepo.id,
-                repositoryName: `${existingRepo.owner}/${existingRepo.name}`,
-                days: 1, // Incremental update for existing repos
-                priority: 'medium',
-                forceInitial: false,
-                reason: 'Re-tracking existing repository',
-              },
-            });
-            console.log('Commit capture event sent successfully:', commitResult.ids);
-          } catch (commitError) {
-            console.error('Failed to send commit capture event:', commitError);
-            // Track Inngest failure to Sentry + PostHog
-            await trackInngestFailure('capture/commits.update', commitError, {
-              owner: existingRepo.owner,
-              repo: existingRepo.name,
-              repositoryId: existingRepo.id,
-              eventType: 're-tracking-commits',
-              isLocal,
-            });
-            // Log but don't fail the overall operation
-            console.log('Repository will be tracked but commit capture may be delayed');
-          }
-        } catch (eventError) {
-          console.error('Failed to send events:', eventError);
-          // Track general Inngest initialization failure
-          await trackInngestFailure('inngest.client.init', eventError, {
+            },
+          ],
+          {
             owner: existingRepo.owner,
             repo: existingRepo.name,
             repositoryId: existingRepo.id,
-            eventType: 'client-init',
-          });
-        }
+            eventType: 're-tracking',
+          }
+        );
+        await ensureBackfillState(supabase, existingRepo.id, existingTotalPrs, 're-tracking');
 
         return withHeaders(
           new Response(
@@ -923,58 +997,15 @@ export default async (req: Request, context: Context) => {
         // Don't throw - repository exists which is the main goal
       }
 
-      // Step 4: Send Inngest events for background processing using the SDK
-      try {
-        // Import Inngest SDK
-        const { Inngest } = await import('inngest');
-
-        // Detect if we're in local development
-        // Check multiple indicators since Netlify Dev doesn't always set NODE_ENV
-        const isLocal =
-          process.env.NODE_ENV === 'development' ||
-          process.env.NETLIFY_DEV === 'true' ||
-          process.env.CONTEXT === 'dev' ||
-          (!process.env.NETLIFY && !process.env.AWS_LAMBDA_FUNCTION_NAME);
-
-        console.log('Inngest environment detection:', {
-          NODE_ENV: process.env.NODE_ENV,
-          NETLIFY_DEV: process.env.NETLIFY_DEV,
-          CONTEXT: process.env.CONTEXT,
-          NETLIFY: process.env.NETLIFY,
-          AWS_LAMBDA: process.env.AWS_LAMBDA_FUNCTION_NAME,
-          isLocal,
-        });
-
-        // For local development, don't use production keys
-        const eventKey = isLocal
-          ? 'local-dev-key' // Always use local key for local dev
-          : process.env.INNGEST_PRODUCTION_EVENT_KEY || process.env.INNGEST_EVENT_KEY;
-
-        const inngest = new Inngest({
-          id: 'contributor-info',
-          isDev: isLocal,
-          eventKey,
-          // For local dev, events MUST go to local dev server
-          ...(isLocal && { baseUrl: 'http://127.0.0.1:8288' }),
-        });
-
-        console.log('Inngest client configuration:', {
-          id: 'contributor-info',
-          isDev: isLocal,
-          eventKey: eventKey ? '***' : 'none',
-          baseUrl: isLocal ? 'http://127.0.0.1:8288' : 'default',
-        });
-
-        // Send events through the SDK
-        // Send critical events first, then optional ones
-        const criticalEvents = [
+      // Step 4: Queue background work through queue-event (classification +
+      // initial 30-day capture) and start a progressive backfill for large,
+      // thinly captured repositories.
+      const newTotalPrs = await syncPullRequestTotal(supabase, repository.id, owner, repo, 0);
+      await queueTrackingEvents(
+        [
           {
             name: 'classify/repository.single',
-            data: {
-              repositoryId: repository.id,
-              owner,
-              repo,
-            },
+            data: { repositoryId: repository.id, owner, repo },
           },
           {
             name: 'capture/repository.sync.graphql',
@@ -987,52 +1018,15 @@ export default async (req: Request, context: Context) => {
               reason: 'Initial repository discovery',
             },
           },
-        ];
-
-        // Send critical events first (classification and repository sync)
-        const results = await inngest.send(criticalEvents);
-        console.log('Critical events sent successfully:', results.ids);
-
-        // Try to send commit capture event separately (non-critical)
-        try {
-          const commitEvent = {
-            name: 'capture/commits.initial',
-            data: {
-              repositoryId: repository.id,
-              repositoryName: `${repository.owner}/${repository.name}`,
-              days: 7, // Initial capture for 7 days as per configuration
-              priority: 'high',
-              forceInitial: true,
-              reason: 'Initial repository discovery',
-            },
-          };
-
-          const commitResult = await inngest.send(commitEvent);
-          console.log('Commit capture event sent successfully:', commitResult.ids);
-        } catch (commitError) {
-          console.error('Failed to send commit capture event:', commitError);
-          // Track Inngest failure to Sentry + PostHog
-          await trackInngestFailure('capture/commits.initial', commitError, {
-            owner: repository.owner,
-            repo: repository.name,
-            repositoryId: repository.id,
-            eventType: 'initial-commits',
-            isLocal,
-          });
-          console.log('Repository tracking will continue, but commit capture may be delayed');
-          // Don't fail the overall operation - repository tracking is more important
-        }
-      } catch (eventError) {
-        console.error('Failed to send Inngest events:', eventError);
-        // Track Inngest failure to Sentry + PostHog
-        await trackInngestFailure('inngest.critical_events', eventError, {
+        ],
+        {
           owner: repository.owner,
           repo: repository.name,
           repositoryId: repository.id,
           eventType: 'initial-discovery',
-        });
-        // Don't throw - events are non-critical for tracking success
-      }
+        }
+      );
+      await ensureBackfillState(supabase, repository.id, newTotalPrs, 'initial-discovery');
 
       console.log(
         'Successfully tracked repository %s with ID %s',

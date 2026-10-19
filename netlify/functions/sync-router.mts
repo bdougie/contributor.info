@@ -3,7 +3,7 @@
 // Keeps quick operations on Netlify for better response times
 
 import type { Handler } from '@netlify/functions';
-import { inngest } from '../../src/lib/inngest/client';
+import { sendInngestEvent } from '../../src/lib/inngest/client-safe';
 import { createClient } from '@supabase/supabase-js';
 
 // Environment configuration
@@ -108,7 +108,7 @@ export const handler: Handler = async (event) => {
       // Route to Supabase Edge Function
       return await routeToSupabase(action, repository, options);
     } else {
-      // Use Netlify/Inngest for quick operations
+      // Quick operations: a gh-datapipe capture machine
       return await routeToInngest(action, repository, options);
     }
   } catch (error) {
@@ -181,50 +181,19 @@ async function routeToSupabase(action: string, repository: string, options: Sync
         .eq('full_name', repository)
         .single();
 
-      // Create job record in background_jobs table
-      const { data: job, error: jobError } = await supabase
-        .from('background_jobs')
-        .insert({
-          type: jobType,
-          payload: {
-            owner,
-            name,
-            repository,
-            ...options,
-          },
-          status: 'queued',
-          repository_id: repoData?.id || null,
-          created_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (jobError) {
-        console.error('Error creating job record:', jobError);
-        // Fall back to direct call if job creation fails
+      // Queue through queue-event: background_jobs row + pgmq message, run by
+      // the process-job edge function (sync-router/* handlers).
+      const result = await sendInngestEvent({
+        name: jobType,
+        data: { owner, name, repository, repositoryId: repoData?.id, ...options },
+      });
+      const jobId = result.ids?.[0];
+      if (!jobId) {
+        console.error('queue-event returned no job id for %s', jobType);
         return await directSupabaseCall(action, repository, options);
       }
 
-      // Trigger process-job function asynchronously
-      const processUrl = `${SUPABASE_URL}/functions/v1/process-job`;
-
-      // Fire and forget - don't await
-      fetch(processUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        },
-        body: JSON.stringify({ jobId: job.id }),
-      }).catch((error) => {
-        console.error('Error triggering process-job:', error);
-      });
-
-      console.log(`Job queued for processing:`, {
-        jobId: job.id,
-        type: jobType,
-        repository,
-      });
+      console.log(`Job queued for processing:`, { jobId, type: jobType, repository });
 
       return {
         statusCode: 202,
@@ -232,7 +201,7 @@ async function routeToSupabase(action: string, repository: string, options: Sync
         body: JSON.stringify({
           success: true,
           message: 'Operation queued for processing',
-          jobId: job.id,
+          jobId,
           type: jobType,
           router: 'supabase-jobs',
           repository,
@@ -245,8 +214,8 @@ async function routeToSupabase(action: string, repository: string, options: Sync
   } catch (error) {
     console.error(`Supabase routing error:`, error);
 
-    // Fallback to Inngest if Supabase fails
-    console.log('Falling back to Inngest due to Supabase error');
+    // Fall back to a datapipe capture machine if queueing the job failed
+    console.log('Falling back to datapipe capture due to Supabase error');
     return await routeToInngest(action, repository, options);
   }
 }
@@ -299,17 +268,17 @@ async function directSupabaseCall(action: string, repository: string, options: S
   };
 }
 
-// Route to Inngest (existing Netlify functions)
+// Quick operations: one gh-datapipe machine per request via queue-event
 async function routeToInngest(action: string, repository: string, options: SyncOptions) {
   const [owner, name] = repository.split('/');
 
   try {
-    // Map actions to Inngest events
+    // Map actions to capture events (see supabase/functions/_shared/datapipe-capture.ts)
     const eventMap: Record<string, string> = {
-      sync: 'repository.sync.requested',
-      'sync-graphql': 'repository.sync.graphql.requested',
-      'batch-pr': 'pr.details.batch.requested',
-      'quick-update': 'repository.quick.update',
+      sync: 'capture/repository.sync',
+      'sync-graphql': 'capture/repository.sync.graphql',
+      'batch-pr': 'capture/pr.details.graphql',
+      'quick-update': 'capture/repository.sync.graphql',
     };
 
     const eventName = eventMap[action];
@@ -321,22 +290,18 @@ async function routeToInngest(action: string, repository: string, options: SyncO
       };
     }
 
-    // Send event to Inngest
-    const result = await inngest.send({
+    const result = await sendInngestEvent({
       name: eventName,
       data: {
         owner,
         name,
         repository,
+        days: action === 'quick-update' ? 7 : options.daysLimit,
         ...options,
       },
     });
 
-    console.log(`Inngest event sent:`, {
-      event: eventName,
-      repository,
-      id: result.ids,
-    });
+    console.log(`Capture event queued:`, { event: eventName, repository, id: result.ids });
 
     return {
       statusCode: 202,
@@ -344,13 +309,13 @@ async function routeToInngest(action: string, repository: string, options: SyncO
       body: JSON.stringify({
         success: true,
         message: 'Sync queued for processing',
-        router: 'inngest',
-        eventId: result.ids[0],
+        router: 'datapipe',
+        eventId: result.ids?.[0],
         repository,
       }),
     };
   } catch (error) {
-    console.error('Inngest routing error:', error);
+    console.error('Capture routing error:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },

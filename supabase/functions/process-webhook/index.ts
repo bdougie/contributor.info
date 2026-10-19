@@ -37,25 +37,14 @@ import {
 } from '../_shared/responses.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
-// Initialize Inngest client for sending events
-const INNGEST_EVENT_KEY = Deno.env.get('INNGEST_EVENT_KEY') || '';
-const INNGEST_BASE_URL = 'https://inn.gs';
-
-async function sendInngestEvent(event: any) {
-  if (!INNGEST_EVENT_KEY) {
-    console.warn('No Inngest event key configured');
-    return;
-  }
-
-  const response = await fetch(`${INNGEST_BASE_URL}/e/${INNGEST_EVENT_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(event),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to send Inngest event: ${response.status}`);
-  }
+// The workspace metrics events this function used to send to Inngest
+// (`workspace.metrics.aggregate`, `workspace.repository.changed`) are retired:
+// their consumers wrote to workspace_metrics_cache, dropped 2026-04-28. See
+// _shared/jobs/retired.ts. Kept as a log line so the call sites stay readable
+// until process-webhook is reworked.
+function sendInngestEvent(event: { name: string; data: Record<string, unknown> }): Promise<void> {
+  console.log('Retired event %s not sent (no consumer)', event.name);
+  return Promise.resolve();
 }
 
 serve(async (req: Request) => {

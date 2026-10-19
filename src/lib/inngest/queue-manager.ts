@@ -1,4 +1,4 @@
-import { inngest } from './client';
+import { sendInngestEvent } from './client-safe';
 import { supabase } from '../supabase';
 import { ProgressiveCaptureNotifications } from '../progressive-capture/ui-notifications';
 
@@ -19,7 +19,7 @@ export class InngestQueueManager {
     console.log('📤 [Inngest] Sending event:', event.name, event.data);
 
     try {
-      await inngest.send(event);
+      await sendInngestEvent(event);
       console.log('✅ [Inngest] Event sent successfully:', event.name);
       return true;
     } catch (error) {

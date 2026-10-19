@@ -225,63 +225,87 @@ delete the two 307 redirects from `netlify.active.toml`.
 
 ### Phase 3: Inngest → pg_cron + pgmq (1–2 days)
 
-- [ ] Migration A: `cron.schedule` for the 9 crons → `invoke_edge_function()`
-      with the service key from Vault (replace the `app.service_role_key` GUC):
-      `classify-repository-size` (0 */6), `distill-session-knowledge` (0 4),
-      `enrich-contributors-cron` (0 3), `refresh-repository-metadata-cron` (0 0),
-      `send-slack-assignee-report-cron` (0 9), `send-user-slack-monthly-leaderboard-cron`
-      (0 9 1 * *), `sync-discussions-cron` (0 2), `sync-workspace-comments-cron`
-      (0 */4), `sync-workspace-priorities` (0 */6). Phase 0 found four more
-      `cron:` triggers in `src/lib/inngest/functions/` that this list missed:
-      `scheduled-workspace-aggregation` (0 6,18) and
-      `cleanup-workspace-metrics-data` (0 3) in `aggregate-workspace-metrics.ts`,
-      `compute-embeddings` (0 */6) and `batch-generate-embeddings` (0 */2, in
-      `generate-embeddings.ts`). They are not duplicates: `compute-embeddings`
-      works a prioritized queue of issues, PRs and discussions in one run;
-      `batch-generate-embeddings` fans out one `generate-embeddings` event per
-      tracked repository (up to 100 every 2 h) for issues and PRs only. Keep
-      `compute-embeddings` as the pg_cron schedule and confirm its queue covers
-      tracked repositories; drop the per-repo fan-out, which is exactly the
-      event burst pattern that hit the Inngest cap. Note the Netlify Inngest app
-      (`functions/index.ts`) and the Supabase `inngest-prod` app register
-      different subsets, so take the union. Also add a schedule that is not an
-      Inngest cron at all: `workspace-issues-sync` (0 */6) was only ever called
-      by the deleted `capture-workspace-issues.yml`; the remaining
-      `workspace-issues-refresh` path is visit-triggered from the Issues tab, so
-      unvisited workspaces would otherwise stop getting issue updates. Confirm
-      each has an edge function entry point that does not depend on Inngest's
-      `step` object; add thin ones where the logic only exists inside the
-      Inngest function.
-- [ ] Migration B: `pgmq.create('jobs')`; pg_cron every minute → `process-job`.
-- [ ] `queue-event`: replace `sendToInngest()` with `background_jobs` insert +
-      `pgmq.send`.
-- [ ] `process-job`: pgmq read/delete/archive loop; add cases for the bucket-3
-      types; `capture/*` cases call `fly-machines.createMachine()` (shared lib
-      with the Netlify functions, or a Deno copy under `supabase/functions/_shared`).
-- [ ] `api-track-repository`: when a repository is tracked (or reactivated),
-      do what `capture-repository-sync-enhanced.ts` step 3 does today: insert
-      an `active` `progressive_backfill_state` row (and a pending
-      `progressive_capture_jobs` row) for repositories with 100+ PRs and under
-      80% captured, so the re-enabled `progressive-backfill.yml` picks them up.
-      Found by Devin on #1865. Fold it into the `capture/*` job path if Phase 4
-      replaces the Actions workflow first.
-- [ ] Delete `netlify/functions/trigger-inngest-sync.ts`, its redirect, and the
-      `unified-sync-button.tsx` call that uses it. It accepts repository IDs
-      without authentication and only forwards them to Inngest; the button
-      should post to `queue-event` like the rest of the frontend.
-- [ ] Move the per-repository git-history indexing and file-embedding work
-      that `installation_repositories.added` triggers (`app/webhooks/installation.ts`,
-      `handleRepositoriesAdded`) onto the queue as one job per repo. Since
-      Phase 1a it runs inline inside the webhook background function and is
-      bounded by its 15 min budget; a large installation should fan out instead.
-- [ ] Frontend: `src/lib/inngest/client-safe.ts` already prefers
-      `/functions/v1/queue-event`; remove the direct `inngest.send` fallback.
-      Delete `hybrid-queue-manager.ts`'s `github_actions` branch once Phase 4 lands.
-- [ ] Delete `supabase/functions/inngest-prod`, `netlify/functions/inngest*.mts`,
-      `src/lib/inngest/` (keep `types/event-data.ts` if `process-job` uses it),
-      `inngest.config.*`, Inngest env vars. Cancel Inngest.
-- [ ] Watch for a week: `cron.job_run_details` failures, `pgmq.metrics('jobs')`
-      queue depth, `background_jobs` failed rows, edge invocation count.
+Runbook: [jobs-queue.md](./jobs-queue.md). Migrations
+`20261019000002_jobs_queue.sql` and `20261019000003_inngest_crons_to_pg_cron.sql`.
+
+- [x] Migration A (#1858): `invoke_edge_function()` now reads the
+      `service_role_key` Vault secret (the `app.service_role_key` GUC was never
+      set, so the 2025 `sync-github-events-hourly` cron never worked; it is
+      unscheduled because `datapipe-hourly` owns `github_events_cache`). Six
+      pg_cron schedules replace the Inngest crons: `classify-repository-size`,
+      `refresh-repository-metadata-cron` (metadata only), `send-slack-assignee-report-cron`,
+      `sync-workspace-priorities`, `compute-embeddings` and the non-Inngest
+      `workspace-issues-sync`. Five crons enqueue a job for `process-job`
+      (with a dedupe window) rather than calling an edge function, because
+      their logic only existed inside the Inngest functions; it now lives in
+      `supabase/functions/_shared/jobs/`.
+- [x] Not carried over, with reasons (details in the runbook): `distill-session-knowledge`
+      and `send-user-slack-monthly-leaderboard-cron` (tables dropped 2026-04-28),
+      `scheduled-workspace-aggregation` and `cleanup-workspace-metrics-data`
+      (`workspace_metrics_cache` dropped 2026-04-28), `enrich-contributors-cron`
+      (queries a column that does not exist), `batch-generate-embeddings`
+      (per-repo fan-out), `sync-discussions-cron` and `sync-workspace-comments-cron`
+      (the gh-datapipe `hourly-sync` machine fetches recent discussions and
+      comments; each of these would have started one Fly machine per repository),
+      and step 3 of the metadata cron (`capture/repository.events` per repo).
+- [x] Migration B (#1859): `pgmq.create('jobs')`, `background_jobs` recreated
+      (service-role only; it had been dropped in April), `enqueue_job()`,
+      worker wrappers `jobs_read/delete/archive/set_vt`, `drain_jobs_queue()`
+      every minute (invokes `process-job` only when the queue is non-empty),
+      `jobs_housekeeping()` daily.
+- [x] `queue-event`: `sendToInngest()` removed. `capture/*` → gh-datapipe
+      machine (unchanged), retired events → `200 {retired:true}`, everything
+      else → `enqueue_job` + `EdgeRuntime.waitUntil` kick of `process-job`.
+- [x] `process-job`: pgmq read/delete/archive loop with exponential visibility
+      backoff, 280 s budget per invocation, `NonRetriableJobError`. Handlers
+      ported from the Inngest bodies: `workspace/priorities.sync`,
+      `embeddings/compute.requested` and the four webhook bridge events,
+      `discover/repository.new`, `classify/repository.size`,
+      `cron/refresh-repository-metadata`, `cron/slack-assignee-report`; the
+      `sync-router/*` handlers moved to `_shared/jobs/sync-router.ts`. The
+      Deno `RepositorySizeClassifier` now writes the columns that exist
+      (`tracked_repositories.size/metrics/size_calculated_at`); it had been
+      updating non-existent `repositories` columns, so `classify/repository.single`
+      had been failing. The retired set: `workspace.metrics.aggregate`,
+      `workspace.repository.changed`, `embedding/progress.update`,
+      `capture/commits.*`, `update/pr.activity`.
+- [x] `api-track-repository`: the three Inngest SDK blocks replaced with
+      `queue-event` calls (`classify/repository.single`, `capture/repository.sync.graphql`);
+      fetches the PR total from GitHub GraphQL, stores it in
+      `repositories.pull_request_count`, and inserts the `active`
+      `progressive_backfill_state` + pending `progressive_capture_jobs` rows for
+      repositories with 100+ PRs under 80% captured (Devin's finding on #1865).
+      The "missing Supabase keys" branch now answers 503 instead of a fake 200.
+- [x] Deleted `netlify/functions/trigger-inngest-sync.ts` and its redirect;
+      `unified-sync-button.tsx` posts to `queue-event` like the rest of the
+      frontend.
+- [x] `installation_repositories.added`: the git-history indexing and file
+      embedding block was removed rather than queued. Its tables
+      (`file_contributors`, `file_embeddings`) were dropped 2026-04-28, so it
+      only produced errors inside the webhook budget. `app/services/git-history.ts`
+      and `file-embeddings.ts` stay because `app/services/reviewers.ts` still
+      imports them (same dead tables; a separate cleanup).
+- [x] Frontend/server: `src/lib/inngest/client-safe.ts` no longer imports the
+      Inngest SDK; browser and server both POST to `queue-event` (service-role
+      key on the server). `workspace-client.ts`, `workspace.service.ts`,
+      `hybrid-queue-manager.ts`, `queue-manager.ts`, `sync-router.mts`,
+      `trigger-event-backfill.ts` and `app/services/webhook/embedding-queue.ts`
+      go through it. `hybrid-queue-manager.ts`'s `github_actions` branch stays
+      until Phase 4.
+- [x] Edge functions that posted to `inn.gs`: `sync-discussions` starts the
+      datapipe machine directly; `workspace-sync` and `process-webhook` only
+      sent retired workspace-metrics events, so those sends are gone.
+- [ ] Operator: apply both migrations, `vault.create_secret(<service role key>, 'service_role_key')`,
+      deploy `queue-event`, `process-job`, `sync-discussions`, `workspace-sync`,
+      `process-webhook`. Then watch for a week: `cron.job_run_details`,
+      `pgmq.metrics('jobs')`, `background_jobs` failed rows, edge invocation
+      count (queries in the runbook).
+- [ ] Phase 3c (#1860), after the week: delete `supabase/functions/inngest-prod`
+      (`graphql-client.ts` and `repository-classifier.ts` already moved to
+      `_shared/`), `netlify/functions/inngest*.mts`, `src/lib/inngest/` except
+      `client-safe.ts` and `types/event-data.ts` (rename them), `inngest.config.*`,
+      the `[functions.inngest*]` blocks and `/api/inngest*` redirects in
+      `netlify.toml`, `test-embeddings`, the `INNGEST_*` env vars. Cancel Inngest.
 
 ### Phase 4: one capture engine (later)
 
