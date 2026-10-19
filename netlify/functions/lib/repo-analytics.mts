@@ -188,6 +188,9 @@ async function findRepository(
     .select('id')
     .eq('owner', owner)
     .eq('name', repo)
+    // This module reads with the service role, so it must not expose private
+    // repositories; the chat tools only serve public ones.
+    .eq('is_private', false)
     .maybeSingle();
   if (error) {
     console.error('[repo-analytics] repository lookup failed: %s', error.message);
@@ -206,7 +209,9 @@ async function loadActivityRows(
       .from('pull_requests')
       .select('author_id, created_at, merged, merged_at')
       .eq('repository_id', repositoryId)
-      .gte('created_at', sinceIso)
+      // created OR merged in the window; callers check created_at before
+      // counting an "opened", so an old PR merged yesterday counts once.
+      .or(`created_at.gte.${sinceIso},merged_at.gte.${sinceIso}`)
       .limit(ROW_LIMIT),
     client
       .from('reviews')
@@ -219,7 +224,7 @@ async function loadActivityRows(
       .select('author_id, created_at, closed_at')
       .eq('repository_id', repositoryId)
       .eq('is_pull_request', false)
-      .gte('created_at', sinceIso)
+      .or(`created_at.gte.${sinceIso},closed_at.gte.${sinceIso}`)
       .limit(ROW_LIMIT),
   ]);
 
@@ -262,11 +267,14 @@ interface Tally {
   issues_opened: number;
 }
 
-function tallyByContributor(rows: {
-  prs: PullRequestRow[];
-  reviews: ReviewRow[];
-  issues: IssueRow[];
-}): Map<string, Tally> {
+function tallyByContributor(
+  rows: {
+    prs: PullRequestRow[];
+    reviews: ReviewRow[];
+    issues: IssueRow[];
+  },
+  sinceMs: number
+): Map<string, Tally> {
   const tallies = new Map<string, Tally>();
   const bump = (id: string | null, key: keyof Tally) => {
     if (!id) return;
@@ -280,11 +288,15 @@ function tallyByContributor(rows: {
     tallies.set(id, t);
   };
   for (const pr of rows.prs) {
-    bump(pr.author_id, 'prs_opened');
-    if (pr.merged) bump(pr.author_id, 'prs_merged');
+    if (Date.parse(pr.created_at) >= sinceMs) bump(pr.author_id, 'prs_opened');
+    if (pr.merged && pr.merged_at && Date.parse(pr.merged_at) >= sinceMs) {
+      bump(pr.author_id, 'prs_merged');
+    }
   }
   for (const review of rows.reviews) bump(review.reviewer_id, 'reviews_given');
-  for (const issue of rows.issues) bump(issue.author_id, 'issues_opened');
+  for (const issue of rows.issues) {
+    if (Date.parse(issue.created_at) >= sinceMs) bump(issue.author_id, 'issues_opened');
+  }
   return tallies;
 }
 
@@ -307,10 +319,11 @@ export async function getContributors(
   const repository = await findRepository(client, owner, repo);
   if (!repository) return null;
 
-  const rows = await loadActivityRows(client, repository.id, daysAgoIso(ACTIVITY_WINDOW_DAYS));
+  const sinceIso = daysAgoIso(ACTIVITY_WINDOW_DAYS);
+  const rows = await loadActivityRows(client, repository.id, sinceIso);
   if (!rows) return null;
 
-  const tallies = tallyByContributor(rows);
+  const tallies = tallyByContributor(rows, Date.parse(sinceIso));
   const usernames = await loadUsernames(client, tallies.keys());
   const maxScore = Math.max(1, ...Array.from(tallies.values()).map(weightedScore));
 
@@ -342,8 +355,10 @@ export async function getInsights(owner: string, repo: string): Promise<Insights
 
   const now = Date.now();
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-  const recentPrs = rows.prs.filter((pr) => now - Date.parse(pr.created_at) <= thirtyDays);
-  const previousPrs = rows.prs.length - recentPrs.length;
+  const sixtyDays = 2 * thirtyDays;
+  const createdInWindow = rows.prs.filter((pr) => now - Date.parse(pr.created_at) <= sixtyDays);
+  const recentPrs = createdInWindow.filter((pr) => now - Date.parse(pr.created_at) <= thirtyDays);
+  const previousPrs = createdInWindow.length - recentPrs.length;
   const trendingScore =
     previousPrs === 0
       ? recentPrs.length > 0
@@ -359,7 +374,12 @@ export async function getInsights(owner: string, repo: string): Promise<Insights
   const freshness: HealthMetrics['freshness_status'] =
     ageDays <= 7 ? 'active' : ageDays <= 30 ? 'stale' : 'dormant';
 
-  const merged = recentPrs.filter((pr) => pr.merged && pr.author_id);
+  // Lottery factor and contributor of the month count merges in the last 30
+  // days whenever the PR was opened.
+  const merged = rows.prs.filter(
+    (pr) =>
+      pr.merged && pr.author_id && pr.merged_at && now - Date.parse(pr.merged_at) <= thirtyDays
+  );
   const mergedByAuthor = new Map<string, number>();
   for (const pr of merged) {
     mergedByAuthor.set(
@@ -442,12 +462,12 @@ export async function getActivity(
 
   const since = Date.parse(daysAgoIso(window));
   for (const pr of rows.prs) {
-    day(pr.created_at).prs_opened += 1;
+    if (Date.parse(pr.created_at) >= since) day(pr.created_at).prs_opened += 1;
     if (pr.merged_at && Date.parse(pr.merged_at) >= since) day(pr.merged_at).prs_merged += 1;
   }
   for (const review of rows.reviews) day(review.submitted_at).reviews += 1;
   for (const issue of rows.issues) {
-    day(issue.created_at).issues_opened += 1;
+    if (Date.parse(issue.created_at) >= since) day(issue.created_at).issues_opened += 1;
     if (issue.closed_at && Date.parse(issue.closed_at) >= since)
       day(issue.closed_at).issues_closed += 1;
   }
@@ -485,11 +505,21 @@ async function queryDiscover(
     .order('stargazers_count', { ascending: false, nullsFirst: false })
     .limit(Math.min(Math.max(config.limit ?? 10, 1), 50));
 
-  if (config.language) query = query.ilike('language', config.language);
-  if (typeof config.min_stars === 'number') query = query.gte('stargazers_count', config.min_stars);
-  if (config.topic) {
+  // Model-chosen strings go into filters, so they are reduced to a safe
+  // character set first. `topic` lands inside a PostgREST `or` expression,
+  // where commas, dots and parentheses would add predicates.
+  const language = config.language?.replace(/[%_,.()]/g, '').trim();
+  const topic = config.topic
+    ?.toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+    .slice(0, 50);
+  if (language) query = query.ilike('language', language);
+  if (typeof config.min_stars === 'number' && Number.isFinite(config.min_stars)) {
+    query = query.gte('stargazers_count', Math.max(0, Math.floor(config.min_stars)));
+  }
+  if (topic) {
     // Topics is a text[]; fall back to a description match for repos without topics.
-    query = query.or(`topics.cs.{${config.topic}},description.ilike.%${config.topic}%`);
+    query = query.or(`topics.cs.{${topic}},description.ilike.%${topic}%`);
   }
 
   const { data, error } = await query;

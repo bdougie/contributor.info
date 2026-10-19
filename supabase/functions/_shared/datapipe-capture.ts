@@ -6,7 +6,7 @@
  * is documented in gh-datapipe/docs/capture-event-mapping.md.
  */
 
-import { createMachine, isFlyConfigured } from './fly-machines.ts';
+import { createMachine, destroyMachine, isFlyConfigured } from './fly-machines.ts';
 
 /**
  * The slice of a supabase-js client this module uses. Structural so that
@@ -28,7 +28,8 @@ export interface DatapipeDb {
     };
     select(columns: string): {
       eq(column: string, value: string): {
-        maybeSingle(): PromiseLike<DbResult<{ full_name?: string | null }>>;
+        maybeSingle(): PromiseLike<DbResult<{ full_name?: string | null; id?: string }>>;
+        in(column: string, values: number[]): PromiseLike<DbResult<{ created_at: string }[]>>;
       };
     };
   };
@@ -62,6 +63,11 @@ export interface CapturePayload {
   name?: string;
   days?: number;
   daysLimit?: number;
+  /** Item selectors the Inngest functions used. The datapipe has no per-item
+   * mode, so these widen the window far enough to include every item. */
+  prNumber?: number;
+  prNumbers?: number[];
+  issueNumber?: number;
   [key: string]: unknown;
 }
 
@@ -98,6 +104,66 @@ export function backfillCommand(
     '--sources',
     sources.join(','),
   ];
+}
+
+export function selectedNumbers(payload: CapturePayload): { prs: number[]; issues: number[] } {
+  const prs = new Set<number>();
+  if (typeof payload.prNumber === 'number') prs.add(payload.prNumber);
+  for (const n of payload.prNumbers ?? []) if (typeof n === 'number') prs.add(n);
+  const issues = typeof payload.issueNumber === 'number' ? [payload.issueNumber] : [];
+  return { prs: Array.from(prs), issues };
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Widen `days` so that every PR / issue named in the payload falls inside the
+ * backfill window. A review event for a PR opened 90 days ago would otherwise
+ * run a 30-day window that never touches that PR.
+ */
+export async function daysCoveringSelectors(
+  supabase: DatapipeDb,
+  repository: string,
+  payload: CapturePayload,
+  days: number,
+): Promise<number> {
+  const { prs, issues } = selectedNumbers(payload);
+  if (prs.length === 0 && issues.length === 0) return days;
+
+  let oldest = Date.now();
+  const consider = (rows: { created_at: string }[] | null) => {
+    for (const row of rows ?? []) {
+      const ts = Date.parse(row.created_at);
+      if (Number.isFinite(ts) && ts < oldest) oldest = ts;
+    }
+  };
+
+  if (prs.length > 0) {
+    const { data } = await supabase
+      .from('pull_requests')
+      .select('created_at')
+      .eq('repository_full_name', repository)
+      .in('number', prs);
+    consider(data);
+  }
+  if (issues.length > 0) {
+    const { data: repo } = await supabase
+      .from('repositories')
+      .select('id')
+      .eq('full_name', repository)
+      .maybeSingle();
+    if (repo?.id) {
+      const { data } = await supabase
+        .from('issues')
+        .select('created_at')
+        .eq('repository_id', repo.id)
+        .in('number', issues);
+      consider(data);
+    }
+  }
+
+  const needed = Math.ceil((Date.now() - oldest) / MS_PER_DAY) + 1;
+  return Math.min(Math.max(days, needed), MAX_DAYS);
 }
 
 export function daysFromPayload(payload: CapturePayload): number {
@@ -147,14 +213,23 @@ export async function startCapture(
 
   const repository = await resolveRepository(supabase, payload);
   if (!repository) throw new Error(`Could not resolve repository for ${eventName}`);
-  const days = daysFromPayload(payload);
+  const days = await daysCoveringSelectors(supabase, repository, payload, daysFromPayload(payload));
+  const selectors = selectedNumbers(payload);
 
   const { data: job, error } = await supabase
     .from('datapipe_jobs')
     .insert({
       type: 'capture',
       status: 'queued',
-      params: { repository, days, sources, config: 'production', reason: eventName },
+      params: {
+        repository,
+        days,
+        sources,
+        config: 'production',
+        reason: eventName,
+        ...(selectors.prs.length > 0 ? { pr_numbers: selectors.prs } : {}),
+        ...(selectors.issues.length > 0 ? { issue_numbers: selectors.issues } : {}),
+      },
     })
     .select('id')
     .single();
@@ -166,10 +241,17 @@ export async function startCapture(
       cmd: backfillCommand(job.id, repository, days, sources),
       env: { JOB_ID: job.id },
     });
-    await supabase
+    const { error: updateError } = await supabase
       .from('datapipe_jobs')
       .update({ fly_machine_id: machine.id, progress: { step: 'machine_created' } })
       .eq('id', job.id);
+    if (updateError) {
+      // Without the machine id on the row nothing could cancel it later.
+      await destroyMachine(machine.id).catch((e) =>
+        console.error('could not destroy machine %s after update failure: %s', machine.id, e)
+      );
+      throw new Error(`Could not record machine id: ${updateError.message}`);
+    }
     return { datapipe_job_id: job.id, fly_machine_id: machine.id, repository, sources, days };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -5,6 +5,12 @@ import { Progress } from './ui/progress';
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, RefreshCw, CheckCircle, XCircle, AlertCircle } from '@/components/ui/icon';
 import type { BackfillResponse, JobStatus } from '../lib/manual-backfill/types';
+import { safeGetSession } from '@/lib/auth/safe-auth';
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const { session } = await safeGetSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
 
 interface ManualBackfillProps {
   repository: string;
@@ -30,7 +36,9 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`/api/backfill/status/${currentJob.job_id}`);
+        const response = await fetch(`/api/backfill/status/${currentJob.job_id}`, {
+          headers: await authHeaders(),
+        });
         if (response.ok) {
           const status = await response.json();
           setJobStatus(status);
@@ -61,6 +69,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(await authHeaders()),
         },
         body: JSON.stringify({
           repository,
@@ -102,6 +111,7 @@ export function ManualBackfill({ repository, onComplete }: ManualBackfillProps) 
     try {
       const response = await fetch(`/api/backfill/cancel/${currentJob.job_id}`, {
         method: 'POST',
+        headers: await authHeaders(),
       });
 
       if (response.ok) {

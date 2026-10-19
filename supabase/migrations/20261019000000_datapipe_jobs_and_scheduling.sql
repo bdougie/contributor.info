@@ -25,7 +25,9 @@ BEGIN
     RAISE NOTICE 'pg_cron not available - datapipe schedules will be skipped';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_net') THEN
-    CREATE EXTENSION IF NOT EXISTS pg_net;
+    -- pg_cron can only live in its own `cron` schema; pg_net goes in
+    -- `extensions` like every other extension on this project.
+    CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
   ELSE
     RAISE NOTICE 'pg_net not available - datapipe_start_machine will fail at call time';
   END IF;
@@ -91,6 +93,33 @@ GRANT ALL ON public.datapipe_jobs TO service_role;
 GRANT ALL ON public.datapipe_machines TO service_role;
 
 -- ============================================================================
+-- Caller check shared by the SECURITY DEFINER functions below
+-- ============================================================================
+-- Grants already limit EXECUTE to service_role and postgres, but a definer
+-- function should not rely on grants alone. pg_cron runs as postgres;
+-- PostgREST calls carry the JWT role claim.
+
+CREATE OR REPLACE FUNCTION public.datapipe_assert_service_caller()
+RETURNS VOID
+LANGUAGE plpgsql
+SET search_path = public, pg_catalog, pg_temp
+AS $$
+BEGIN
+  IF current_setting('request.jwt.claim.role', true) = 'service_role' THEN
+    RETURN;
+  END IF;
+  IF session_user IN ('postgres', 'supabase_admin') THEN
+    RETURN;
+  END IF;
+  RAISE EXCEPTION 'datapipe functions may only be called by service_role or cron'
+    USING ERRCODE = '42501';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.datapipe_assert_service_caller() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.datapipe_assert_service_caller() TO service_role, postgres;
+
+-- ============================================================================
 -- datapipe_start_machine(job_type, job_params)
 -- ============================================================================
 
@@ -110,6 +139,8 @@ DECLARE
   new_job_id UUID;
   request_id BIGINT;
 BEGIN
+  PERFORM public.datapipe_assert_service_caller();
+
   machine_name := CASE job_type
     WHEN 'sync' THEN 'hourly-sync'
     WHEN 'daily' THEN 'daily'
@@ -139,14 +170,21 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- A machine runs one command at a time; do not queue behind a live run.
+  -- One start per machine at a time. The hourly and freshness crons can both
+  -- target the sync machine, and pg_net is asynchronous, so a row that is
+  -- still queued (start requested, machine not yet claimed it) counts as
+  -- active for 20 minutes. Serialise concurrent callers on the machine id.
+  PERFORM pg_advisory_xact_lock(hashtext('datapipe_start_machine:' || machine));
+
   IF EXISTS (
     SELECT 1 FROM public.datapipe_jobs j
     WHERE j.fly_machine_id = machine
-      AND j.status = 'running'
-      AND j.started_at > NOW() - INTERVAL '3 hours'
+      AND (
+        (j.status = 'running' AND j.started_at > NOW() - INTERVAL '3 hours')
+        OR (j.status = 'queued' AND j.created_at > NOW() - INTERVAL '20 minutes')
+      )
   ) THEN
-    RAISE NOTICE 'datapipe_start_machine: % is still running, skipping', machine_name;
+    RAISE NOTICE 'datapipe_start_machine: % already has a queued or running job, skipping', machine_name;
     RETURN NULL;
   END IF;
 
@@ -198,6 +236,19 @@ DECLARE
   oldest_table TEXT;
   oldest_ts TIMESTAMPTZ;
 BEGIN
+  PERFORM public.datapipe_assert_service_caller();
+
+  -- This is a net for a dead schedule, not for quiet data. If any sync job was
+  -- created in the last 3 hours the hourly cron is alive and there is nothing
+  -- for this function to add (a quiet table cannot be made fresher by
+  -- re-running the sync, and a failing sync is visible in datapipe_jobs).
+  IF EXISTS (
+    SELECT 1 FROM public.datapipe_jobs
+    WHERE type = 'sync' AND created_at > NOW() - INTERVAL '3 hours'
+  ) THEN
+    RETURN NULL;
+  END IF;
+
   SELECT MAX(created_at) INTO newest_event FROM public.github_events_cache;
   SELECT MAX(created_at) INTO newest_pr FROM public.pull_requests;
   SELECT MAX(created_at) INTO newest_issue FROM public.issues;
@@ -213,16 +264,9 @@ BEGIN
   ORDER BY ts ASC NULLS FIRST
   LIMIT 1;
 
+  -- An empty table (NULL) is treated as stale: it has never been synced.
   IF oldest_ts IS NOT NULL AND oldest_ts > NOW() - stale_after THEN
     RETURN NULL; -- fresh
-  END IF;
-
-  IF EXISTS (
-    SELECT 1 FROM public.datapipe_jobs
-    WHERE type = 'sync' AND status = 'running'
-      AND started_at > NOW() - INTERVAL '3 hours'
-  ) THEN
-    RETURN NULL; -- a sync is already on it
   END IF;
 
   RAISE NOTICE 'datapipe_freshness_check: % newest row is % (older than %), starting sync',
@@ -253,6 +297,8 @@ DECLARE
   n_silent INT;
   n_purged INT;
 BEGIN
+  PERFORM public.datapipe_assert_service_caller();
+
   -- queued but the machine never claimed it (start request failed)
   UPDATE public.datapipe_jobs
   SET status = 'failed', error = 'machine never started (no claim within 2 hours)', completed_at = NOW()

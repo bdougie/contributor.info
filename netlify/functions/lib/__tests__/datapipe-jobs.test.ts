@@ -7,11 +7,10 @@ const { createMachine, destroyMachine, flyConfigured } = vi.hoisted(() => ({
   flyConfigured: vi.fn(() => true),
 }));
 
-vi.mock('../fly-machines.mts', () => ({
-  createMachine,
-  destroyMachine,
-  isConfigured: flyConfigured,
-}));
+vi.mock('../fly-machines.mts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../fly-machines.mts')>();
+  return { ...actual, createMachine, destroyMachine, isConfigured: flyConfigured };
+});
 
 interface FakeTable {
   rows: Record<string, unknown>[];
@@ -182,6 +181,42 @@ describe('datapipe-jobs', () => {
     expect(destroyMachine).toHaveBeenCalledWith('m1');
     expect(result).toEqual({ job_id: 'job-1', status: 'cancelled', message: 'Job cancelled' });
     expect(table.updates[0].fields).toMatchObject({ status: 'cancelled' });
+  });
+
+  it('cancelJob tolerates an already-destroyed machine but not other Fly errors', async () => {
+    const { FlyMachinesError } = await import('../fly-machines.mts');
+    const { cancelJob } = await import('../datapipe-jobs.mts');
+
+    table.rows.push(job());
+    destroyMachine.mockRejectedValueOnce(new FlyMachinesError('gone', 404));
+    expect(await cancelJob('job-1', fakeSupabase(table))).toMatchObject({ status: 'cancelled' });
+
+    table.rows[0].status = 'running';
+    destroyMachine.mockRejectedValueOnce(new FlyMachinesError('fly 503', 503));
+    await expect(cancelJob('job-1', fakeSupabase(table))).rejects.toMatchObject({ status: 502 });
+    expect(table.rows[0].status).toBe('running');
+  });
+
+  it('triggerBackfill destroys the machine when the row cannot record its id', async () => {
+    createMachine.mockResolvedValue({ id: 'm-orphan', name: 'x', state: 'created', region: 'iad' });
+    destroyMachine.mockResolvedValue(undefined);
+    const { triggerBackfill } = await import('../datapipe-jobs.mts');
+    const client = fakeSupabase(table);
+    const chain = (
+      client as unknown as { from: () => { update: (f: Record<string, unknown>) => unknown } }
+    ).from();
+    const realUpdate = chain.update;
+    let calls = 0;
+    chain.update = (fields: Record<string, unknown>) => {
+      calls += 1;
+      if (calls === 1) return { eq: async () => ({ error: { message: 'db down' } }) };
+      return realUpdate(fields);
+    };
+    await expect(triggerBackfill({ repository: 'o/r' }, client)).rejects.toMatchObject({
+      status: 500,
+    });
+    expect(destroyMachine).toHaveBeenCalledWith('m-orphan');
+    expect(table.rows[0].status).toBe('failed');
   });
 
   it('cancelJob leaves terminal jobs alone and 404s unknown ids', async () => {

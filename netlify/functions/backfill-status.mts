@@ -12,6 +12,7 @@ import {
   getSupabaseAdmin,
   toJobStatusView,
 } from './lib/datapipe-jobs.mts';
+import { getUserFromAuthHeader } from './lib/request-auth.mts';
 
 const headers = { 'Content-Type': 'application/json' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,6 +35,17 @@ export const handler: Handler = async (event) => {
         error: 'Service unavailable',
         message: 'Manual backfill service is not configured',
       }),
+    };
+  }
+
+  // The row carries repository, progress and error text read with the
+  // service role, so it is only shown to signed-in users.
+  const user = await getUserFromAuthHeader(event.headers);
+  if (!user) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized', message: 'Sign in to read backfill status' }),
     };
   }
 

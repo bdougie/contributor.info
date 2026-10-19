@@ -5,7 +5,8 @@
  * still around (auto_destroy removes it on exit anyway).
  */
 import type { Handler } from '@netlify/functions';
-import { cancelJob, DatapipeJobsError, getSupabaseAdmin } from './lib/datapipe-jobs.mts';
+import { cancelJob, DatapipeJobsError, getJob, getSupabaseAdmin } from './lib/datapipe-jobs.mts';
+import { getUserFromAuthHeader } from './lib/request-auth.mts';
 
 const headers = { 'Content-Type': 'application/json' };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,6 +32,15 @@ export const handler: Handler = async (event) => {
     };
   }
 
+  const user = await getUserFromAuthHeader(event.headers);
+  if (!user) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized', message: 'Sign in to cancel a backfill' }),
+    };
+  }
+
   // Path format: /api/backfill/cancel/{job_id}
   const jobId = event.path.split('/').filter(Boolean).pop();
   if (!jobId || jobId === 'cancel') {
@@ -49,6 +59,26 @@ export const handler: Handler = async (event) => {
   }
 
   try {
+    // Only the user who started the job may cancel it.
+    const job = await getJob(jobId, supabase);
+    if (!job) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Not found', message: `Job ${jobId} not found` }),
+      };
+    }
+    if (job.params.requested_by !== user.id) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error: 'Forbidden',
+          message: 'Only the requester can cancel this job',
+        }),
+      };
+    }
+
     const result = await cancelJob(jobId, supabase);
     return { statusCode: 200, headers, body: JSON.stringify(result) };
   } catch (error) {

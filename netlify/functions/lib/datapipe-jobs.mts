@@ -8,7 +8,12 @@
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createMachine, destroyMachine, isConfigured as flyConfigured } from './fly-machines.mts';
+import {
+  createMachine,
+  destroyMachine,
+  FlyMachinesError,
+  isConfigured as flyConfigured,
+} from './fly-machines.mts';
 
 export type DatapipeJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 export type DatapipeJobType = 'sync' | 'daily' | 'backfill' | 'capture';
@@ -19,6 +24,8 @@ export interface DatapipeJobParams {
   sources?: string[];
   config?: string;
   reason?: string;
+  /** Supabase user id that requested an on-demand job (cancel is limited to them). */
+  requested_by?: string;
   [key: string]: unknown;
 }
 
@@ -64,6 +71,7 @@ export interface TriggerBackfillOptions {
   sources?: string[];
   config?: string;
   reason?: string;
+  requestedBy?: string;
 }
 
 export interface TriggerBackfillResult {
@@ -222,6 +230,7 @@ export async function triggerBackfill(
     config: options.config ?? DEFAULT_CONFIG,
     reason: options.reason ?? 'manual',
   };
+  if (options.requestedBy) params.requested_by = options.requestedBy;
 
   const job = await createJob('backfill', params, client);
 
@@ -233,11 +242,28 @@ export async function triggerBackfill(
       env: { JOB_ID: job.id },
     });
     machineId = machine.id;
-    await updateJob(
-      job.id,
-      { fly_machine_id: machine.id, progress: { step: 'machine_created' } },
-      client
-    );
+    try {
+      await updateJob(
+        job.id,
+        { fly_machine_id: machine.id, progress: { step: 'machine_created' } },
+        client
+      );
+    } catch (updateError) {
+      // The row would never learn the machine id, so cancel could not stop
+      // it. Destroy the machine now rather than leave it running untracked.
+      await destroyMachine(machine.id).catch((destroyError) => {
+        console.error(
+          '[datapipe-jobs] could not destroy machine %s after update failure: %s',
+          machine.id,
+          destroyError
+        );
+      });
+      const message = updateError instanceof Error ? updateError.message : String(updateError);
+      throw new DatapipeJobsError(
+        `Machine ${machine.id} was destroyed because the job row could not be updated: ${message}`,
+        500
+      );
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await updateJob(
@@ -289,9 +315,18 @@ export async function cancelJob(
     try {
       await destroyMachine(job.fly_machine_id);
     } catch (error) {
-      // 404 means the machine already exited and auto-destroyed; anything else
-      // is still worth logging but should not block the cancel.
-      console.error('[datapipe-jobs] destroy machine %s: %s', job.fly_machine_id, error);
+      if (error instanceof FlyMachinesError && error.status === 404) {
+        // Already exited and auto-destroyed; the row can be closed.
+      } else {
+        // Anything else means the machine may still be running. Leave the
+        // row as it is so the caller can retry instead of reporting a
+        // cancellation that did not happen.
+        const message = error instanceof Error ? error.message : String(error);
+        throw new DatapipeJobsError(
+          `Could not stop machine ${job.fly_machine_id}: ${message}`,
+          502
+        );
+      }
     }
   }
 

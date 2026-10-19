@@ -8,11 +8,13 @@
 import type { Handler } from '@netlify/functions';
 import {
   DatapipeJobsError,
+  getSupabaseAdmin,
   isConfigured,
   isValidRepository,
   triggerBackfill,
 } from './lib/datapipe-jobs.mts';
 import { FlyMachinesError } from './lib/fly-machines.mts';
+import { getUserFromAuthHeader } from './lib/request-auth.mts';
 
 const headers = { 'Content-Type': 'application/json' };
 
@@ -53,6 +55,18 @@ export const handler: Handler = async (event) => {
     return unavailable();
   }
 
+  // Each request starts a billable Fly machine with service-role access, so
+  // it needs a signed-in user. The user id is stored on the job so only they
+  // can cancel it.
+  const user = await getUserFromAuthHeader(event.headers);
+  if (!user) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Unauthorized', message: 'Sign in to start a backfill' }),
+    };
+  }
+
   let body: TriggerBody;
   try {
     body = JSON.parse(event.body || '{}') as TriggerBody;
@@ -89,10 +103,50 @@ export const handler: Handler = async (event) => {
 
   const days = typeof body.days === 'number' && body.days > 0 ? Math.floor(body.days) : 30;
 
+  // Only tracked, public repositories. Private repositories need an
+  // installation-level access check that this endpoint does not do yet.
+  const supabase = getSupabaseAdmin();
+  const { data: repoRow, error: repoError } = supabase
+    ? await supabase
+        .from('repositories')
+        .select('id, is_private')
+        .eq('full_name', body.repository)
+        .maybeSingle()
+    : { data: null, error: null };
+  if (repoError) {
+    console.error('[backfill-trigger] repository lookup failed: %s', repoError.message);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Internal server error', message: 'Repository lookup failed' }),
+    };
+  }
+  if (!repoRow) {
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({
+        error: 'Not found',
+        message: `${body.repository} is not tracked. Track it first, then backfill.`,
+      }),
+    };
+  }
+  if (repoRow.is_private) {
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({
+        error: 'Forbidden',
+        message: 'Private repositories cannot be backfilled from this endpoint',
+      }),
+    };
+  }
+
   console.log('[backfill-trigger] Processing request:', {
     repository: body.repository,
     days,
     sources: body.sources ?? 'default',
+    requestedBy: user.id,
     timestamp: new Date().toISOString(),
   });
 
@@ -103,6 +157,7 @@ export const handler: Handler = async (event) => {
       sources: body.sources,
       config: body.config,
       reason: 'manual',
+      requestedBy: user.id,
     });
 
     console.log(
