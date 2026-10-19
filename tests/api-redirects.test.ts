@@ -12,7 +12,6 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 // List of all API endpoints defined in netlify.toml
 const API_ENDPOINTS = [
-  '/api/hello',
   '/api/health',
   '/api/github/callback',
   '/api/github-webhook',
