@@ -213,7 +213,7 @@ async function processPullRequestEvent(event: any, action: string, supabase: any
       results.push({
         workspaceId: wr.workspace_id,
         status: 'failed',
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -257,7 +257,7 @@ async function processIssueEvent(event: any, action: string, supabase: any) {
   }
 
   // Mark all workspace caches as stale
-  const promises = workspaceRepos.map((wr) =>
+  const promises = workspaceRepos.map((wr: { workspace_id: string }) =>
     supabase.rpc('mark_workspace_cache_stale', {
       p_workspace_id: wr.workspace_id,
     })
@@ -301,7 +301,7 @@ async function processPushEvent(event: any, supabase: any) {
   }
 
   // Send aggregation events with lower priority
-  const promises = workspaceRepos.map((wr) =>
+  const promises = workspaceRepos.map((wr: { workspace_id: string }) =>
     sendInngestEvent({
       name: 'workspace.metrics.aggregate',
       data: {
@@ -355,7 +355,7 @@ async function processRepositoryEvent(event: any, action: string, supabase: any)
   }
 
   // Send change notifications
-  const promises = workspaceRepos.map((wr) =>
+  const promises = workspaceRepos.map((wr: { workspace_id: string }) =>
     sendInngestEvent({
       name: 'workspace.repository.changed',
       data: {
