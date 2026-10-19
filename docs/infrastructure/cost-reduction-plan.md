@@ -188,8 +188,14 @@ delete the two 307 redirects from `netlify.active.toml`.
       `cron:` triggers in `src/lib/inngest/functions/` that this list missed:
       `scheduled-workspace-aggregation` (0 6,18) and
       `cleanup-workspace-metrics-data` (0 3) in `aggregate-workspace-metrics.ts`,
-      `compute-embeddings` (0 */6) and `generate-embeddings` (0 */2). The two
-      embedding crons overlap; keep one. Note the Netlify Inngest app
+      `compute-embeddings` (0 */6) and `batch-generate-embeddings` (0 */2, in
+      `generate-embeddings.ts`). They are not duplicates: `compute-embeddings`
+      works a prioritized queue of issues, PRs and discussions in one run;
+      `batch-generate-embeddings` fans out one `generate-embeddings` event per
+      tracked repository (up to 100 every 2 h) for issues and PRs only. Keep
+      `compute-embeddings` as the pg_cron schedule and confirm its queue covers
+      tracked repositories; drop the per-repo fan-out, which is exactly the
+      event burst pattern that hit the Inngest cap. Note the Netlify Inngest app
       (`functions/index.ts`) and the Supabase `inngest-prod` app register
       different subsets, so take the union. Also add a schedule that is not an
       Inngest cron at all: `workspace-issues-sync` (0 */6) was only ever called
