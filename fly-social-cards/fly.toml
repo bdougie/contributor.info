@@ -1,14 +1,20 @@
 # Fly.io configuration for the chart screenshot service (headless Chromium).
 #
 # Scale-to-zero (cost-reduction plan, Phase 1b): no machine runs between
-# requests. Fly's proxy starts a machine on the first request (~3-5 s cold,
-# including the Chromium launch) and stops it again after a few idle minutes.
-# OG social cards already render in the Netlify `social-cards` function behind
-# CDN caching; this app only serves `/charts/*` and the legacy og:image
-# redirects. Repeat chart renders are served from the Supabase Storage cache
-# by the app itself, so they still wake a machine; see docs/social-cards.md.
+# requests. Measured 2026-10-19: a stopped machine takes ~17 s to serve its
+# first chart (boot + Chromium launch + render), far past a crawler's 2-5 s
+# budget, so crawlers must not depend on waking this app:
 #
-# Rules: never set min_machines_running > 0 or auto_stop_machines = false here.
+#   - Rendered charts are written to the public Supabase Storage bucket
+#     `chart-screenshots` at a deterministic path, and the social-meta edge
+#     function on contributor.info points crawlers at that object directly.
+#     Only a cache miss reaches this app (see docs/social-cards.md).
+#   - `auto_stop_machines = "suspend"` snapshots the VM instead of stopping
+#     it, so a miss resumes in well under a second rather than relaunching
+#     Chromium. Suspend requires <= 2 GB memory and no swap; keep the VM
+#     block below within that or Fly silently falls back to "stop".
+#
+# Rules: never set min_machines_running > 0 or auto_stop_machines = "off" here.
 app = "contributor-info-social-cards"
 primary_region = "sjc"
 kill_signal = "SIGINT"
@@ -27,7 +33,7 @@ kill_timeout = "5s"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 0
   processes = ["app"]
@@ -53,7 +59,8 @@ kill_timeout = "5s"
 [deploy]
   strategy = "rolling"
 
-# VM configuration for Playwright
+# VM configuration for Playwright. 2048 MB is the suspend ceiling; do not
+# add swap_size_mb, suspend does not support it.
 [[vm]]
   cpu_kind = "shared"
   cpus = 2

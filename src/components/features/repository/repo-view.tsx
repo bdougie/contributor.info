@@ -40,6 +40,7 @@ import { GitHubAppInstallButton } from './github-app-install-button';
 import { UnifiedSyncButton } from './unified-sync-button';
 import { AddToWorkspaceButton } from '../workspace/AddToWorkspaceButton';
 import { useAnalytics } from '@/hooks/use-analytics';
+import { prewarmChartCard } from '@/lib/social-cards/prewarm';
 
 const repositorySections = [
   { value: 'contributions', label: 'Activity' },
@@ -90,6 +91,14 @@ export default function RepoView() {
   const navigate = useNavigate();
   const location = useLocation();
   const timeRange = useTimeRangeStore((state) => state.timeRange);
+
+  // Chart tabs share the repo social card client-side, but crawlers get a
+  // chart screenshot from Fly. Warm it on every tab change (SocialMetaTags
+  // stays mounted across tabs, so its own effect would not see the path)
+  // so the first share of a chart page already has an image in storage.
+  useEffect(() => {
+    prewarmChartCard(location.pathname);
+  }, [location.pathname]);
   const [includeBots, setIncludeBots] = useState(false);
   const [isGeneratingUrl, setIsGeneratingUrl] = useState(false);
   const [hasSearchedOnce, setHasSearchedOnce] = useState(false);

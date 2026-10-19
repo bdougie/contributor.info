@@ -2,7 +2,7 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { renderer } from './playwright-renderer.js';
-import { generateCacheKey, getCachedImage, cacheImage, getCacheStats } from './cache.js';
+import { generateCacheKey, getCachedImage, cacheImage, getCacheStats, CACHE_TTL } from './cache.js';
 import {
   fetchSelfSelectionData,
   fetchLotteryFactorData,
@@ -60,12 +60,20 @@ setInterval(() => {
 }, RATE_LIMIT_WINDOW_MS);
 const PORT = process.env.PORT || 8080;
 
-// Initialize Supabase client
+// Two Supabase clients, deliberately separate:
+// - `supabase` (anon key) runs the chart data queries, so RLS still decides
+//   which repositories an unauthenticated chart request may read.
+// - `storageClient` (service role key, falling back to anon) only touches
+//   the `chart-screenshots` bucket, whose RLS refuses anon uploads. Never
+//   pass it to the data fetchers.
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseStorageKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 // Only initialize if environment variables are provided
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const storageClient =
+  supabaseUrl && supabaseStorageKey ? createClient(supabaseUrl, supabaseStorageKey) : null;
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -97,6 +105,13 @@ function validateInput(input, pattern = /^[a-zA-Z0-9_.-]+$/) {
 
 // Valid chart types
 const VALID_CHART_TYPES = ['self-selection', 'lottery-factor', 'health-factors', 'distribution'];
+
+// Bound the HTTP cache lifetime by what is left of the storage TTL so a
+// client-side copy never outlives the object it came from.
+function chartCacheControl(remainingTtlMs = CACHE_TTL) {
+  const seconds = Math.max(0, Math.floor(remainingTtlMs / 1000));
+  return `public, max-age=${seconds}, s-maxage=${seconds}`;
+}
 
 // Chart rendering endpoint (with rate limiting)
 app.get('/charts/:chartType', rateLimit, async (req, res) => {
@@ -134,20 +149,20 @@ app.get('/charts/:chartType', rateLimit, async (req, res) => {
     });
 
     // Check cache first
-    const cachedImage = await getCachedImage(cacheKey, supabase);
-    if (cachedImage) {
+    const cached = await getCachedImage(cacheKey, storageClient);
+    if (cached) {
       const responseTime = Date.now() - startTime;
       global.avgResponseTime = (global.avgResponseTime || 0) * 0.9 + responseTime * 0.1;
 
       res.set({
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
+        'Cache-Control': chartCacheControl(cached.remainingTtlMs),
         'Access-Control-Allow-Origin': '*',
         'X-Response-Time': `${responseTime}ms`,
         'X-Cache': 'HIT',
       });
 
-      return res.status(200).send(cachedImage);
+      return res.status(200).send(cached.buffer);
     }
 
     // Fetch data based on chart type
@@ -188,7 +203,7 @@ app.get('/charts/:chartType', rateLimit, async (req, res) => {
     });
 
     // Cache the result (async)
-    cacheImage(cacheKey, imageBuffer, supabase);
+    cacheImage(cacheKey, imageBuffer, storageClient);
 
     // Track performance
     const responseTime = Date.now() - startTime;
@@ -197,7 +212,7 @@ app.get('/charts/:chartType', rateLimit, async (req, res) => {
     // Send response
     res.set({
       'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=21600, s-maxage=21600', // 6h cache
+      'Cache-Control': chartCacheControl(),
       'Access-Control-Allow-Origin': '*',
       'X-Response-Time': `${responseTime}ms`,
       'X-Cache': 'MISS',
