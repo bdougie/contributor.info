@@ -1,23 +1,494 @@
-# TEMPORARY: contributor.info is paused. This config serves a static notice page
-# and 302-redirects every URL to it at /paused/ (see maintenance/_redirects).
-# No build command runs and the edge functions directory points at a path that
-# doesn't exist, so nothing else is bundled or deployed alongside the page.
-#
-# The one exception is the GitHub App webhook receiver: maintenance/functions/
-# holds a single re-export of netlify/functions/github-webhook-background.mts so
-# installs and PR/issue events keep landing in Supabase while the site is down
-# (cost-reduction plan, Phase 1a). Needs GITHUB_APP_WEBHOOK_SECRET, GITHUB_APP_ID,
-# GITHUB_APP_PRIVATE_KEY and SUPABASE_SERVICE_ROLE_KEY in the Netlify env.
-#
-# To resume: `git mv netlify.active.toml netlify.toml`, delete maintenance/, and redeploy.
-
 [build]
-  publish = "maintenance"
-  edge_functions = "maintenance/no-edge-functions"
+  publish = "dist"
+  command = "npm run build"
+  
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+
+# Enable standard Netlify processing
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
+
+
+[dev]
+  command = "vite --port 5174"
+  framework = "#custom"
+  targetPort = 5174
+  publish = "dist"
+  autoLaunch = false
+  envFiles = [".env", ".env.local"]
+
+# Deploy contexts
+[context.production.environment]
+  # Production-specific env vars can go here
+  VITE_CONTEXT = "production"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+
+[context.deploy-preview.environment]
+  # Deploy preview specific env vars
+  CONTEXT = "deploy-preview"
+  VITE_CONTEXT = "deploy-preview"
+  # Pass Netlify deployment URLs to Vite
+  VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
+  VITE_DEPLOY_URL = "$DEPLOY_URL"
+  VITE_URL = "$URL"
+  NODE_OPTIONS = "--max-old-space-size=4096"
+  # NOTE: VITE_DUB_CO_KEY must be set in Netlify UI for oss.fyi link shortening
+  # Without it, share buttons will return original URLs instead of short links
+
+[context.branch-deploy.environment]
+  # Branch deploy specific env vars
+  CONTEXT = "branch-deploy"
+  VITE_CONTEXT = "branch-deploy"
+  # Pass Netlify deployment URLs to Vite
+  VITE_DEPLOY_PRIME_URL = "$DEPLOY_PRIME_URL"
+  VITE_DEPLOY_URL = "$DEPLOY_URL"
+  VITE_URL = "$URL"
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 [functions]
-  directory = "maintenance/functions"
+  directory = "netlify/functions"
   node_bundler = "esbuild"
 
-[build.processing]
-  skip_processing = true
+# Edge Functions for SSR (Server-Side Rendering)
+# These run BEFORE the SPA redirect and provide pre-rendered HTML for SEO/LCP
+# Order matters: more specific paths are declared first
+
+# SSR for home page - pre-rendered landing page for better LCP
+[[edge_functions]]
+  function = "ssr-home"
+  path = "/"
+
+# SSR for workspaces page - pre-rendered workspaces list (auth-aware)
+[[edge_functions]]
+  function = "ssr-workspaces"
+  path = "/workspaces"
+
+# SSR for workspace creation page
+[[edge_functions]]
+  function = "ssr-workspace-new"
+  path = "/workspaces/new"
+
+# SSR for individual workspace pages - pre-rendered for sharing/SEO
+[[edge_functions]]
+  function = "ssr-workspace-detail"
+  path = "/i/*"
+
+# SSR for repository pages - most important for SEO (frequently shared)
+[[edge_functions]]
+  function = "ssr-repo"
+  path = "/:owner/:repo"
+  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/social-cards/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/review-labels", "/review-labels/*", "/spam/*", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico"]
+
+# SSR for profile pages (user/org)
+# Must come after ssr-repo to avoid intercepting repo routes (though pattern differs)
+# Matches single segment paths (e.g. /bdougie)
+[[edge_functions]]
+  function = "ssr-profile"
+  path = "/:username"
+  excludedPath = ["/api/*", "/assets/*", "/js/*", "/css/*", "/icons/*", "/login", "/signup", "/settings", "/admin/*", "/dev/*", "/i/*", "/workspaces/*", "/social-cards", "/social-cards/*", "/trending", "/widgets", "/changelog", "/privacy", "/terms", "/billing", "/invitation/*", "/review-labels", "/review-labels/*", "/spam", "/*.js", "/*.css", "/*.json", "/*.png", "/*.svg", "/*.ico", "/*.txt", "/*.xml"]
+
+# Edge Functions for social media meta tags
+# Detects crawler user-agents and injects dynamic og:image URLs
+# /social-cards/* is excluded so card responses are served straight from the
+# CDN cache (an edge function in the chain would bypass durable caching)
+[[edge_functions]]
+  function = "social-meta"
+  path = "/*"
+  excludedPath = ["/social-cards/*"]
+
+# Social card renderer: native @resvg/resvg-js ships a platform-specific
+# .node binary that esbuild cannot bundle — keep it as a regular module
+[functions.social-cards]
+  external_node_modules = ["@resvg/resvg-js"]
+
+# Inngest functions need longer timeouts for processing
+# Note: inngest-prod migrated to Supabase Edge Functions (see docs/infrastructure/inngest-supabase-migration.md)
+
+[functions.inngest]
+  node_bundler = "esbuild"
+
+[functions.inngest-local-full]
+  node_bundler = "esbuild"
+
+# Embeddings function needs esbuild with longer timeout for ML model loading
+[functions.inngest-embeddings]
+  node_bundler = "esbuild"
+  # Use ESM format to support import.meta in the codebase
+  [functions.inngest-embeddings.esbuild]
+    format = "esm"
+
+# Manual backfill functions may take longer
+# Chat function requires ESM format for V2 function detection
+# Needs extended timeout for multi-step LLM tool calls
+[functions.chat]
+  node_bundler = "esbuild"
+  timeout = 26
+  [functions.chat.esbuild]
+    format = "esm"
+
+[functions.backfill-trigger]
+  node_bundler = "esbuild"
+
+[functions.backfill-status]
+  node_bundler = "esbuild"
+
+# Specific API routes (these must come first)
+
+# GitHub App webhooks run in a Netlify Background Function (202 immediately,
+# up to 15 min of processing), which is what the old Fly box existed for.
+# The GitHub App points at /.netlify/functions/github-webhook-background
+# directly; these two rewrites keep the older URLs working.
+# See docs/infrastructure/cost-reduction-plan.md, Phase 1a.
+[[redirects]]
+  from = "/api/github-webhook"
+  to = "/.netlify/functions/github-webhook-background"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/webhook"
+  to = "/.netlify/functions/github-webhook-background"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health-check"
+  status = 200
+  force = true
+
+# Dub.co short URL creation (server-side to bypass CORS and secure API key)
+[[redirects]]
+  from = "/api/create-short-url"
+  to = "/.netlify/functions/create-short-url"
+  status = 200
+  force = true
+
+# Inngest endpoint - migrated to Supabase Edge Function (stub implementation)
+# Full function migration to be completed in follow-up work
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
+[[redirects]]
+  from = "/api/inngest"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
+
+[[redirects]]
+  from = "/api/inngest-sync"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/inngest-prod"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
+
+# Inngest embeddings endpoint - Netlify Function for Node.js dependencies
+# Handles embeddings generation which requires @xenova/transformers
+[[redirects]]
+  from = "/api/inngest-embeddings"
+  to = "/.netlify/functions/inngest-embeddings"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/hello"
+  to = "/.netlify/functions/hello"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/github/callback"
+  to = "/.netlify/functions/github-callback"
+  status = 200
+  force = true
+
+# Queue event endpoint - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
+[[redirects]]
+  from = "/api/queue-event"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/queue-event"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
+
+[[redirects]]
+  from = "/api/discover-repository"
+  to = "/.netlify/functions/api-discover-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/validate-repository"
+  to = "/.netlify/functions/validate-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/track-repository"
+  to = "/.netlify/functions/api-track-repository"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repository-status"
+  to = "/.netlify/functions/api-repository-status"
+  status = 200
+  force = true
+
+# GitHub App installation status
+[[redirects]]
+  from = "/api/github-app/installation-status"
+  to = "/.netlify/functions/github-app-installation-status"
+  status = 200
+  force = true
+
+# Manual Backfill API endpoints
+[[redirects]]
+  from = "/api/backfill/trigger"
+  to = "/.netlify/functions/backfill-trigger"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/status/*"
+  to = "/.netlify/functions/backfill-status"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/backfill/cancel/*"
+  to = "/.netlify/functions/backfill-cancel"
+  status = 200
+  force = true
+
+# CODEOWNERS API - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
+[[redirects]]
+  from = "/api/repos/*/*/codeowners"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/codeowners/repos/:splat/codeowners"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
+
+[[redirects]]
+  from = "/api/repos/*/*/suggest-reviewers"
+  to = "/.netlify/functions/api-suggest-reviewers"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repos/*/*/suggested-codeowners"
+  to = "/.netlify/functions/api-suggested-codeowners"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/repos/*/*/file-tree"
+  to = "/.netlify/functions/api-file-tree"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/webhook/backfill-complete"
+  to = "/.netlify/functions/webhook-backfill-complete"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/trigger-inngest-sync"
+  to = "/.netlify/functions/trigger-inngest-sync"
+  status = 200
+  force = true
+
+# Workspace sync API - migrated to Supabase Edge Function for better timeout handling
+# NOTE: Netlify redirects don't support environment variables.
+# To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID
+[[redirects]]
+  from = "/api/workspace-sync"
+  to = "https://egcxzonpmmcirmgqdrla.supabase.co/functions/v1/workspace-sync"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "contributor.info"}
+
+# Headers for proper MIME types and caching
+# Note: Some headers are also in public/_headers, but these are kept for compatibility
+
+# JavaScript MIME types - CRITICAL for ES modules
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/*.mjs"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# CSS MIME types
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Legacy workspace invitation redirects
+# Handle old invitation link format that may still be in circulation
+[[redirects]]
+  from = "/workspace/invitation/accept"
+  to = "/invitation/:token"
+  status = 301
+  force = false
+  query = {token = ":token"}
+
+[[redirects]]
+  from = "/workspaces/invitation/accept"
+  to = "/invitation/:token"
+  status = 301
+  force = false
+  query = {token = ":token"}
+
+# Redirect docs to subdomain documentation (SEO-friendly)
+[[redirects]]
+  from = "/docs"
+  to = "https://docs.contributor.info"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/docs/*"
+  to = "https://docs.contributor.info/:splat"
+  status = 301
+  force = true
+
+# Redirect changelog to docs subdomain
+[[redirects]]
+  from = "/changelog"
+  to = "https://docs.contributor.info/changelog"
+  status = 301
+  force = true
+
+# Redirect local TUI documentation to subdomain
+[[redirects]]
+  from = "/local"
+  to = "https://local.contributor.info"
+  status = 301
+  force = true
+
+# Redirect rules for SPA behavior
+# All API redirects above have force = true so they take precedence
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Font and image optimizations
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Content-Type = "font/woff2"
+
+# Image caching and optimization headers
+[[headers]]
+  for = "/*.webp"
+  [headers.values]
+    Content-Type = "image/webp"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.avif"
+  [headers.values]
+    Content-Type = "image/avif"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpg"
+  [headers.values]
+    Content-Type = "image/jpeg"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.jpeg"
+  [headers.values]
+    Content-Type = "image/jpeg"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Content-Type = "image/png"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.gif"
+  [headers.values]
+    Content-Type = "image/gif"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Content-Type = "image/svg+xml"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Resource hints are handled via index.html and build-time injection
+# HTTP/2 Server Push removed due to wildcard limitations with hashed filenames
+
+# JavaScript MIME type fix
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+    X-Content-Type-Options = "nosniff"

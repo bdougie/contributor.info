@@ -1,9 +1,11 @@
 # Plan: contributor.info on Supabase + Netlify + Fly (scale-to-zero), no Inngest
 
-Status: draft, 2026-10-18. The app is in maintenance mode (`maintenance/`,
-`netlify.toml` → `/paused/`); Fly machines destroyed; Inngest blocked after
-50k+ executions last month; every GitHub Actions workflow disabled. Companion
-plan for the data pipeline: `gh-datapipe/docs/plans/2026-10-18-cost-reduction.md`.
+Status: in progress, 2026-10-19. Phases 0 and 1 merged; Phase 2 (this
+revision) takes the app out of maintenance mode. Fly machines destroyed except
+the scale-to-zero social-cards and gh-datapipe-sync apps; Inngest paused after
+50k+ executions last month; GitHub Actions workflows disabled except
+`progressive-backfill.yml` and `chunk-recovery.yml`. Companion plan for the
+data pipeline: `gh-datapipe/docs/plans/2026-10-18-cost-reduction.md`.
 
 ## Goal
 
@@ -192,11 +194,34 @@ delete the two 307 redirects from `netlify.active.toml`.
 
 ### Phase 2: bring the site back (1 h)
 
-- [ ] `mv netlify.active.toml netlify.toml`, delete `maintenance/`, redeploy.
-- [ ] Re-enable `progressive-backfill.yml` and `chunk-recovery.yml`.
-- [ ] Inngest stays paused. Until Phase 3 lands, the frontend's `queue-event`
-      calls will fail closed (they already catch and log); the site works read-only
-      for new data. If Polar billing is live, do Phase 3 before this.
+- [x] `git mv netlify.active.toml netlify.toml`, deleted `maintenance/`
+      (#1857). The webhook function now deploys from `netlify/functions/`
+      directly, so the re-export shim and its `_redirects` pass-through went
+      with the rest of the directory.
+- [x] Re-enabled `progressive-backfill.yml` (every 15 min) and
+      `chunk-recovery.yml` (every 2 h) with `gh workflow enable`; both had been
+      `disabled_inactivity`. They are the interim capture path until Phase 4,
+      but only for repositories that already have an `active`
+      `progressive_backfill_state` row: the live `api-track-repository`
+      function hands new repositories to Inngest (paused) and never inserts
+      that row, so a repository tracked after the relaunch gets no historical
+      backfill until the Phase 3 item below lands.
+- [ ] `@netlify/plugin-lighthouse` was a Netlify UI plugin (not in the repo);
+      it was removed because it broke the static maintenance build. Re-add it
+      from the Netlify UI if wanted.
+- [x] Found on the #1865 deploy preview: the `GITHUB_TOKEN` in the Netlify env
+      was dead (GitHub returned 401; `/api/health` github `unhealthy`,
+      `/api/track-repository` 503). Rotated 2026-10-19 with
+      `netlify env:set GITHUB_TOKEN --secret` for production, deploy-preview
+      and branch-deploy; health and tracking verified on the rebuilt preview.
+      The Fly `gh-datapipe-sync` app still has the dead token (gh-datapipe#265).
+- [ ] Set `FLY_DATAPIPE_TOKEN` and `FLY_DATAPIPE_IMAGE` in the Netlify env once
+      #1863 (gh-datapipe scale-to-zero) is merged; the backfill functions need
+      them to start Fly machines.
+- [x] Inngest stays paused. Polar billing is not live (see the Phase 0 notes), so
+      this phase can land before Phase 3. Until Phase 3 lands, the frontend's
+      `queue-event` calls fail closed (they already catch and log); the site
+      works read-only for new data.
 
 ### Phase 3: Inngest → pg_cron + pgmq (1–2 days)
 
@@ -233,6 +258,17 @@ delete the two 307 redirects from `netlify.active.toml`.
 - [ ] `process-job`: pgmq read/delete/archive loop; add cases for the bucket-3
       types; `capture/*` cases call `fly-machines.createMachine()` (shared lib
       with the Netlify functions, or a Deno copy under `supabase/functions/_shared`).
+- [ ] `api-track-repository`: when a repository is tracked (or reactivated),
+      do what `capture-repository-sync-enhanced.ts` step 3 does today: insert
+      an `active` `progressive_backfill_state` row (and a pending
+      `progressive_capture_jobs` row) for repositories with 100+ PRs and under
+      80% captured, so the re-enabled `progressive-backfill.yml` picks them up.
+      Found by Devin on #1865. Fold it into the `capture/*` job path if Phase 4
+      replaces the Actions workflow first.
+- [ ] Delete `netlify/functions/trigger-inngest-sync.ts`, its redirect, and the
+      `unified-sync-button.tsx` call that uses it. It accepts repository IDs
+      without authentication and only forwards them to Inngest; the button
+      should post to `queue-event` like the rest of the frontend.
 - [ ] Move the per-repository git-history indexing and file-embedding work
       that `installation_repositories.added` triggers (`app/webhooks/installation.ts`,
       `handleRepositoriesAdded`) onto the queue as one job per repo. Since
