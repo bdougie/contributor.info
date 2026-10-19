@@ -159,14 +159,11 @@ jobs:
           fi
 
           echo ""
-          echo "✅ Sitemaps verified! Automatic submission will be triggered."
+          echo "✅ Sitemaps verified."
           echo ""
-          echo "📤 The 'Submit Sitemap to Search Engines' workflow will automatically:"
-          echo "- Submit sitemaps to Google"
-          echo "- Submit sitemaps to Bing"
-          echo "- Attempt IndexNow submission (if configured)"
-          echo ""
-          echo "✨ Sitemaps are also referenced in robots.txt for automatic discovery"
+          echo "ℹ️ The 'Submit Sitemap to Search Engines' workflow was removed in Oct 2026"
+          echo "   (cost-reduction plan, Phase 0). Sitemaps are discovered via robots.txt;"
+          echo "   submit by hand in Google Search Console / Bing Webmaster Tools if needed."
 
   notify:
     name: Release Notification

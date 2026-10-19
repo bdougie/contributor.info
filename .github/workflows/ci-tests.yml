@@ -64,6 +64,12 @@ jobs:
           VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: mock-anon-key
 
+      # Moved here from the deleted performance-monitoring.yml (cost-reduction
+      # Phase 0). Enforces the per-chunk size cap and fails if a route chunk
+      # statically imports a deny-listed vendor chunk. Non-zero exit fails the job.
+      - name: Check chunk graph
+        run: npm run build:check-chunks -- --summary "$GITHUB_STEP_SUMMARY"
+
   # Critical E2E flows only
   e2e-critical:
     name: E2E Critical Flows

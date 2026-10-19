@@ -1,5 +1,7 @@
 # Workspace Sync Operations Guide
 
+> **Note (Oct 2026):** `capture-workspace-issues.yml` was removed under the cost-reduction plan (`docs/infrastructure/cost-reduction-plan.md`, Phase 0). The `workspace-issues-sync` edge function is the only sync path. Where this page says `gh workflow run capture-workspace-issues.yml`, invoke the edge function directly instead.
+
 ## Quick Start Deployment
 
 ### Prerequisites

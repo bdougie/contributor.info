@@ -1,5 +1,7 @@
 # GitHub Actions Workflows Guide
 
+> **Note (Oct 2026):** `update-pr-activity.yml` was removed under the cost-reduction plan (`docs/infrastructure/cost-reduction-plan.md`, Phase 0). PR activity refresh is owned by gh-datapipe's hourly sync and the `update/pr.activity` event. This page is kept for historical reference.
+
 This guide explains the two main GitHub Actions workflows that keep contributor data fresh and accurate.
 
 ## Overview
