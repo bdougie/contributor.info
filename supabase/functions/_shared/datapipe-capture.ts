@@ -35,6 +35,46 @@ export interface DatapipeDb {
   };
 }
 
+/** The query shape findRecentCapture uses, kept apart so the overloads stay simple. */
+export interface CaptureLookupDb {
+  from(table: string): {
+    select(columns: string): {
+      eq(column: string, value: string): {
+        in(column: string, values: string[]): {
+          gte(column: string, value: string): {
+            order(column: string, options: { ascending: boolean }): {
+              limit(n: number): PromiseLike<DbResult<RecentCaptureRow[]>>;
+            };
+          };
+        };
+      };
+    };
+  };
+}
+
+export interface RecentCaptureRow {
+  id: string;
+  fly_machine_id: string | null;
+  params: { repository?: string; days?: number; sources?: string[] } | null;
+}
+
+/** GitHub owner and repository names: letters, digits, '-', '_', '.'. */
+const GITHUB_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+
+export function isValidRepositoryName(fullName: string): boolean {
+  const parts = fullName.split('/');
+  return parts.length === 2 && GITHUB_NAME.test(parts[0]) && GITHUB_NAME.test(parts[1]);
+}
+
+/**
+ * A capture that is already queued or running for the same repository within
+ * this window is reused instead of starting another machine. Public callers
+ * (a page load, the sync button) can otherwise start one Fly machine per
+ * request; the datapipe syncs the whole window anyway, so a second machine
+ * inside ten minutes would only repeat the first.
+ */
+export const CAPTURE_DEDUPE_MINUTES = 10;
+
 /** Event name -> unified_workspace_backfill.py --sources */
 export const CAPTURE_SOURCES: Record<string, string[]> = {
   'capture/repository.events': ['github_events', 'extended_events'],
@@ -82,6 +122,29 @@ export type CaptureResult = {
 
 export function isCaptureEvent(eventName: string): boolean {
   return eventName in CAPTURE_SOURCES;
+}
+
+export async function findRecentCapture(
+  supabase: CaptureLookupDb,
+  repository: string,
+  sources: string[],
+): Promise<RecentCaptureRow | null> {
+  const since = new Date(Date.now() - CAPTURE_DEDUPE_MINUTES * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from('datapipe_jobs')
+    .select('id, fly_machine_id, params')
+    .eq('type', 'capture')
+    .in('status', ['queued', 'running'])
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  const wanted = new Set(sources);
+  for (const row of data ?? []) {
+    if (row.params?.repository !== repository) continue;
+    const covered = (row.params?.sources ?? []).filter((s) => wanted.has(s));
+    if (covered.length === wanted.size) return row;
+  }
+  return null;
 }
 
 export function backfillCommand(
@@ -201,7 +264,7 @@ export async function resolveRepository(
  * failed if the machine could not be created.
  */
 export async function startCapture(
-  supabase: DatapipeDb,
+  supabase: DatapipeDb & CaptureLookupDb,
   eventName: string,
   payload: CapturePayload,
 ): Promise<CaptureResult> {
@@ -213,8 +276,28 @@ export async function startCapture(
 
   const repository = await resolveRepository(supabase, payload);
   if (!repository) throw new Error(`Could not resolve repository for ${eventName}`);
+  if (!isValidRepositoryName(repository)) {
+    throw new Error('Repository must be a GitHub-shaped owner/name');
+  }
   const days = await daysCoveringSelectors(supabase, repository, payload, daysFromPayload(payload));
   const selectors = selectedNumbers(payload);
+
+  const recent = await findRecentCapture(supabase, repository, sources);
+  if (recent?.fly_machine_id && (recent.params?.days ?? 0) >= days) {
+    console.log(
+      'capture for %s reuses job %s started within %d min',
+      repository,
+      recent.id,
+      CAPTURE_DEDUPE_MINUTES,
+    );
+    return {
+      datapipe_job_id: recent.id,
+      fly_machine_id: recent.fly_machine_id,
+      repository,
+      sources,
+      days: recent.params?.days ?? days,
+    };
+  }
 
   const { data: job, error } = await supabase
     .from('datapipe_jobs')

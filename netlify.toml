@@ -313,12 +313,6 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/api/trigger-inngest-sync"
-  to = "/.netlify/functions/trigger-inngest-sync"
-  status = 200
-  force = true
-
 # Workspace sync API - migrated to Supabase Edge Function for better timeout handling
 # NOTE: Netlify redirects don't support environment variables.
 # To update the Supabase URL, replace "egcxzonpmmcirmgqdrla" with your project ID

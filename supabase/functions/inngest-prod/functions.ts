@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
-import { GraphQLClient } from './graphql-client.ts';
-import { RepositorySizeClassifier } from './repository-classifier.ts';
+import { GraphQLClient } from '../_shared/graphql-client.ts';
+import { RepositorySizeClassifier } from '../_shared/repository-classifier.ts';
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

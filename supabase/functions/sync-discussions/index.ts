@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createSupabaseClient } from '../_shared/database.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { startCapture } from '../_shared/datapipe-capture.ts';
 import {
   corsPreflightResponse,
   errorResponse,
@@ -26,8 +27,11 @@ serve(async (req: Request) => {
       return validationError('Missing required fields', 'owner and repo parameters are required');
     }
 
-    // Initialize Supabase client
-    const supabase = createSupabaseClient();
+    // Service-role client, pinned to the version datapipe-capture is typed against
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     // Get repository ID
     const { data: repository, error: repoError } = await supabase
@@ -57,47 +61,14 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get Inngest event key to trigger the background job
-    const inngestEventKey = Deno.env.get('INNGEST_EVENT_KEY');
-    if (!inngestEventKey) {
-      return errorResponse(
-        'Configuration error',
-        500,
-        'Inngest event key not configured',
-        'INNGEST_NOT_CONFIGURED',
-      );
-    }
-
-    // Trigger Inngest function to process discussions in the background
-    const inngestResponse = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: 'capture/repository.discussions',
-        data: {
-          repositoryId: repository.id,
-          maxItems: max_items,
-          workspace_id,
-        },
-        ts: Date.now(),
-      }),
+    // One gh-datapipe machine per request (capture/repository.discussions),
+    // tracked as a datapipe_jobs row; same path queue-event takes for capture/*.
+    const capture = await startCapture(supabase, 'capture/repository.discussions', {
+      repositoryId: repository.id,
+      maxItems: max_items,
+      workspace_id,
     });
-
-    if (!inngestResponse.ok) {
-      const inngestError = await inngestResponse.text();
-      console.error('Failed to trigger Inngest: %s', inngestError);
-      return errorResponse(
-        'Background job failed to start',
-        inngestResponse.status,
-        `Failed to trigger background processing: ${inngestError}`,
-        'INNGEST_TRIGGER_FAILED',
-      );
-    }
-
-    const inngestData = await inngestResponse.json();
-    const eventId = inngestData.ids?.[0] || inngestData.id || inngestData.eventId || 'unknown';
+    const eventId = capture.datapipe_job_id;
 
     return legacySuccessResponse(
       {

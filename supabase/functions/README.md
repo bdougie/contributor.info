@@ -59,7 +59,7 @@ Handle GitHub webhook events:
 
 - `github-webhook` - Main webhook handler
 - `process-webhook` - Webhook processor utility
-- `queue-event` - Event queue for async processing
+- `queue-event` - Entry point for background work: `capture/*` → gh-datapipe machine, everything else → pgmq `jobs` (see docs/infrastructure/jobs-queue.md)
 
 ### ⚙️ Background Jobs
 
@@ -69,7 +69,7 @@ Process long-running tasks:
 - `manual-backfill` - Manual trigger backfill
 - `backfill-pr-stats` - PR statistics backfill
 - `pr-details-batch` - Batch PR processing
-- `process-job` - Generic job processor
+- `process-job` - Worker for the pgmq `jobs` queue (handlers in `_shared/jobs/`)
 - `cleanup-stuck-jobs` - Stuck job cleanup
 
 ### 🏥 Health Checks

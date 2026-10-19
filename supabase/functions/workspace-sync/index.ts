@@ -65,45 +65,10 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string' && item.length > 0);
 }
 
-async function triggerMetricsAggregation(workspaceId: string): Promise<boolean> {
-  const inngestEventKey = Deno.env.get('INNGEST_PRODUCTION_EVENT_KEY');
-  if (!inngestEventKey || inngestEventKey === 'local_development_only') {
-    console.warn(
-      '[workspace-sync] INNGEST_PRODUCTION_EVENT_KEY not configured; skipping aggregation',
-    );
-    return false;
-  }
-  try {
-    const response = await fetch(`https://inn.gs/e/${inngestEventKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'workspace.metrics.aggregate',
-        data: {
-          workspaceId,
-          timeRange: 'all',
-          priority: 50,
-          forceRefresh: true,
-          triggeredBy: 'manual_sync',
-        },
-      }),
-    });
-    if (!response.ok) {
-      console.error(
-        '[workspace-sync] Metrics aggregation trigger failed: %s',
-        await response.text(),
-      );
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.error(
-      '[workspace-sync] Metrics aggregation trigger error: %s',
-      error instanceof Error ? error.message : 'Unknown',
-    );
-    return false;
-  }
-}
+// `workspace.metrics.aggregate` is a retired event (its consumer wrote to
+// workspace_metrics_cache, dropped 2026-04-28; see _shared/jobs/retired.ts),
+// so there is nothing to trigger after queueing. The response field is kept
+// for callers that read it.
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -242,9 +207,7 @@ Deno.serve(async (req: Request) => {
 
   const queuedCount = results.filter((r) => r.status === 'queued').length;
   const failedCount = results.length - queuedCount;
-  const aggregationTriggered = queuedCount > 0
-    ? await triggerMetricsAggregation(workspaceId)
-    : false;
+  const aggregationTriggered = false;
 
   return json(200, {
     message: queuedCount > 0

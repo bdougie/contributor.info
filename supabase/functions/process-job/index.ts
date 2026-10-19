@@ -1,653 +1,350 @@
+/**
+ * process-job: worker for the pgmq `jobs` queue.
+ *
+ * Phase 3b of docs/infrastructure/cost-reduction-plan.md. Called every minute
+ * by pg_cron (`drain_jobs_queue()`, only when the queue is non-empty) and
+ * kicked by queue-event after an enqueue. Each invocation reads messages in
+ * small batches and runs them until the queue is empty or the wall-clock
+ * budget is spent, then responds with counts.
+ *
+ *   jobs_read(vt, qty) ──▶ background_jobs row → processing
+ *     ├─ ok       ──▶ completed, jobs_delete(msg)
+ *     ├─ retry    ──▶ queued, retry_count = attempt, jobs_set_vt(msg, backoff)
+ *     └─ give up  ──▶ failed, jobs_archive(msg)
+ *
+ * Body: { source?: string, maxMessages?: number } for a drain run, or
+ * { jobId: string } to re-run one failed or completed background_jobs row
+ * directly (no queue message is involved; rows that still have a message
+ * are refused so the queue and the manual run cannot execute it twice).
+ */
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders } from '../_shared/cors.ts';
+import { isCaptureEvent, startCapture } from '../_shared/datapipe-capture.ts';
+import { enqueueJob } from '../_shared/jobs/queue.ts';
+import { hasHandler, JOB_HANDLERS } from '../_shared/jobs/registry.ts';
+import {
+  READ_BATCH_SIZE,
+  retryDelaySeconds,
+  shouldRetry,
+  VISIBILITY_TIMEOUT_SECONDS,
+  WORKER_BUDGET_MS,
+} from '../_shared/jobs/retry.ts';
+import { errorMessage, isNonRetriable, NonRetriableJobError } from '../_shared/jobs/types.ts';
+import type { JobContext, JobPayload, JobResult } from '../_shared/jobs/types.ts';
 
-// Import job processors
-import { GraphQLClient } from '../inngest-prod/graphql-client.ts';
-import { RepositorySizeClassifier } from '../inngest-prod/repository-classifier.ts';
-import { CAPTURE_SOURCES, startCapture } from '../_shared/datapipe-capture.ts';
-
-// Type definitions for job payloads
-interface RepositorySyncPayload {
-  repositoryId?: string;
-  owner: string;
-  repo?: string;
-  name?: string;
-  repository?: string;
-  days?: number;
-  daysLimit?: number;
-  fullSync?: boolean;
-}
-
-interface PRDetailsPayload {
-  owner?: string;
-  repo?: string;
-  name?: string;
-  repository?: string;
-  prNumbers: number[];
-}
-
-interface WebhookPayload {
-  action?: string;
-  repository?: {
-    full_name: string;
-    owner: { login: string };
-    name: string;
-  };
-  pull_request?: Record<string, unknown>;
-  issue?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
-type JobPayload = RepositorySyncPayload | PRDetailsPayload | WebhookPayload;
-
-interface JobResult {
-  success?: boolean;
-  message?: string;
-  data?: Record<string, unknown>;
-  error?: string;
-  [key: string]: unknown;
-}
-
-// Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// GitHub token
 const GITHUB_TOKEN = Deno.env.get('GITHUB_TOKEN') || Deno.env.get('VITE_GITHUB_TOKEN') || '';
 
-// Circuit breaker configuration
-const CIRCUIT_BREAKER_THRESHOLD = 5; // Number of consecutive failures to open circuit
-const CIRCUIT_BREAKER_TIMEOUT_MS = 60000; // 1 minute cooldown
+/** Below this much budget, read one message at a time so none sit prefetched. */
+const SINGLE_READ_BELOW_MS = 60_000;
+
+// Circuit breaker: after N consecutive failures of one job type, skip that
+// type for a minute. Per isolate, so it only dampens tight failure loops.
+const CIRCUIT_BREAKER_THRESHOLD = 5;
+const CIRCUIT_BREAKER_TIMEOUT_MS = 60_000;
 const circuitBreakers = new Map<
   string,
-  {
-    failures: number;
-    lastFailure: number;
-    isOpen: boolean;
-  }
+  { failures: number; lastFailure: number; isOpen: boolean }
 >();
 
-/** Resolve owner/name from either a "owner/name" string or separate fields. */
-function splitRepository(
-  repository: string | undefined,
-  owner: string | undefined,
-  name: string | undefined,
-): [string, string] {
-  const [repoOwner, repoName] = repository ? repository.split('/') : [owner, name];
-  if (!repoOwner || !repoName) {
-    throw new Error('Job payload must include repository or owner and name');
-  }
-  return [repoOwner, repoName];
-}
-
-console.log('Job processor starting with circuit breaker protection...');
-console.log('Datapipe capture routes: %d', Object.keys(CAPTURE_SOURCES).length);
-
-serve(async (req: Request) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
-  }
-
-  // Verify authorization
-  const authHeader = req.headers.get('Authorization');
-  const apiKey = req.headers.get('x-api-key');
-
-  // Check for service role key in Authorization header or API key
-  if (!authHeader?.includes(supabaseServiceKey) && apiKey !== supabaseServiceKey) {
-    // Also allow internal Supabase calls (from other Edge Functions or database)
-    const isInternalCall = req.headers.get('x-forwarded-host')?.includes('supabase.co');
-    if (!isInternalCall) {
-      console.error('Unauthorized request to process-job function');
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-  }
-
-  try {
-    const { jobId, immediate } = await req.json();
-
-    if (!jobId) {
-      // Process next queued job
-      const { data: nextJob, error } = await supabase.rpc('get_next_job');
-
-      if (error || !nextJob || nextJob.length === 0) {
-        return new Response(JSON.stringify({ message: 'No jobs in queue' }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const job = nextJob[0];
-      processJob(job.id, job.type, job.payload);
-
-      return new Response(JSON.stringify({ jobId: job.id, status: 'processing' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Process specific job
-    const { data: job, error: jobError } = await supabase
-      .from('background_jobs')
-      .select('*')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      return new Response(JSON.stringify({ error: 'Job not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // If immediate flag is set, wait for completion
-    if (immediate) {
-      const result = await processJobSync(job.id, job.type, job.payload);
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Otherwise, process async
-    processJob(job.id, job.type, job.payload);
-
-    return new Response(JSON.stringify({ jobId: job.id, status: 'processing' }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error in job processor:', error);
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});
-
-// Async job processing (fire and forget)
-async function processJob(jobId: string, type: string, payload: JobPayload) {
-  try {
-    await processJobSync(jobId, type, payload);
-  } catch (error) {
-    console.error(`Job ${jobId} processing failed:`, error);
-  }
-}
-
-// Check circuit breaker status
-function checkCircuitBreaker(jobType: string): { isOpen: boolean; reason?: string } {
+function checkCircuitBreaker(jobType: string): string | null {
   const breaker = circuitBreakers.get(jobType);
-  if (!breaker) return { isOpen: false };
-
-  // Check if circuit is open and if timeout has passed
-  if (breaker.isOpen) {
-    const timeSinceLastFailure = Date.now() - breaker.lastFailure;
-    if (timeSinceLastFailure > CIRCUIT_BREAKER_TIMEOUT_MS) {
-      // Reset circuit breaker
-      breaker.isOpen = false;
-      breaker.failures = 0;
-      console.log(`Circuit breaker for ${jobType} reset after cooldown`);
-      return { isOpen: false };
-    }
-    return {
-      isOpen: true,
-      reason: `Circuit breaker open for ${jobType}: ${breaker.failures} consecutive failures`,
-    };
+  if (!breaker?.isOpen) return null;
+  if (Date.now() - breaker.lastFailure > CIRCUIT_BREAKER_TIMEOUT_MS) {
+    breaker.isOpen = false;
+    breaker.failures = 0;
+    return null;
   }
-
-  return { isOpen: false };
+  return `Circuit breaker open for ${jobType}: ${breaker.failures} consecutive failures`;
 }
 
-// Update circuit breaker on failure
-function recordCircuitBreakerFailure(jobType: string) {
-  let breaker = circuitBreakers.get(jobType);
-  if (!breaker) {
-    breaker = { failures: 0, lastFailure: 0, isOpen: false };
-    circuitBreakers.set(jobType, breaker);
-  }
-
+function recordFailure(jobType: string) {
+  const breaker = circuitBreakers.get(jobType) ?? { failures: 0, lastFailure: 0, isOpen: false };
   breaker.failures++;
   breaker.lastFailure = Date.now();
-
-  if (breaker.failures >= CIRCUIT_BREAKER_THRESHOLD) {
-    breaker.isOpen = true;
-    console.error(`Circuit breaker opened for ${jobType} after ${breaker.failures} failures`);
-  }
+  if (breaker.failures >= CIRCUIT_BREAKER_THRESHOLD) breaker.isOpen = true;
+  circuitBreakers.set(jobType, breaker);
 }
 
-// Reset circuit breaker on success
-function recordCircuitBreakerSuccess(jobType: string) {
-  const breaker = circuitBreakers.get(jobType);
-  if (breaker) {
-    breaker.failures = 0;
-    breaker.isOpen = false;
-  }
+function recordSuccess(jobType: string) {
+  circuitBreakers.delete(jobType);
 }
 
-// Synchronous job processing
-async function processJobSync(
-  jobId: string,
-  type: string,
-  payload: JobPayload,
-): Promise<JobResult> {
-  const startTime = Date.now();
+interface QueueMessage {
+  msg_id: number;
+  read_ct: number;
+  message: { job_id?: string; type?: string; payload?: JobPayload };
+}
 
-  // Check circuit breaker before processing
-  const circuitStatus = checkCircuitBreaker(type);
-  if (circuitStatus.isOpen) {
-    console.error(`Circuit breaker preventing job ${jobId} execution: ${circuitStatus.reason}`);
+interface JobRow {
+  id: string;
+  type: string;
+  payload: JobPayload | null;
+  status: string;
+  max_retries: number;
+  pgmq_msg_id: number | null;
+}
 
-    // Mark job as failed due to circuit breaker
-    await supabase
-      .from('background_jobs')
-      .update({
-        status: 'failed',
-        error: circuitStatus.reason,
-        failed_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
+interface DrainStats {
+  processed: number;
+  succeeded: number;
+  retried: number;
+  failed: number;
+  skipped: number;
+  released: number;
+}
 
-    throw new Error(circuitStatus.reason);
+function makeContext(jobId: string, type: string, deadline: number): JobContext {
+  return {
+    supabase,
+    jobId,
+    type,
+    githubToken: GITHUB_TOKEN,
+    enqueue: (jobType, payload, options) =>
+      enqueueJob(supabase, jobType, payload, { source: `job:${type}`, ...options }),
+    remainingMs: () => Math.max(0, deadline - Date.now()),
+  };
+}
+
+async function dispatch(ctx: JobContext, payload: JobPayload): Promise<JobResult> {
+  const { type } = ctx;
+  if (isCaptureEvent(type)) {
+    const capture = await startCapture(supabase, type, payload);
+    return {
+      success: true,
+      message: `Started gh-datapipe machine ${capture.fly_machine_id}`,
+      data: capture,
+    };
   }
+  if (!hasHandler(type)) {
+    throw new NonRetriableJobError(`Unknown job type: ${type}`);
+  }
+  return JOB_HANDLERS[type](ctx, payload);
+}
 
-  // Update job status to processing
+/** Run one job row to completion and record the outcome. Throws on failure. */
+async function runJob(row: JobRow, deadline: number): Promise<JobResult> {
+  const open = checkCircuitBreaker(row.type);
+  if (open) throw new Error(open);
+
   await supabase
     .from('background_jobs')
-    .update({
-      status: 'processing',
-      started_at: new Date().toISOString(),
-    })
-    .eq('id', jobId);
+    .update({ status: 'processing', started_at: new Date().toISOString(), error: null })
+    .eq('id', row.id);
 
+  const started = Date.now();
   try {
-    console.log(`Processing job ${jobId} of type ${type}`);
-
-    let result: JobResult = {};
-
-    // Route to appropriate processor based on job type
-    switch (type) {
-      // Former Inngest capture/* events: one gh-datapipe Fly machine per job
-      // (see _shared/datapipe-capture.ts and gh-datapipe/docs/capture-event-mapping.md)
-      case 'capture/repository.events':
-      case 'capture/repository.sync':
-      case 'capture/repository.sync.graphql':
-      case 'capture/repository.sync.enhanced':
-      case 'capture/pr.details':
-      case 'capture/pr.details.graphql':
-      case 'capture/pr.reviews':
-      case 'capture/pr.comments':
-      case 'capture/issue.comments':
-      case 'capture/repository.comments.all':
-      case 'capture/repository.issues':
-      case 'capture/repository.discussions': {
-        const capture = await startCapture(supabase, type, payload as Record<string, unknown>);
-        result = {
-          success: true,
-          message: `Started gh-datapipe machine ${capture.fly_machine_id}`,
-          data: capture,
-        };
-        break;
-      }
-
-      case 'classify/repository.single': {
-        const { repositoryId, owner, repo } = payload as RepositorySyncPayload;
-        if (!repositoryId || !repo) {
-          throw new Error('classify/repository.single requires repositoryId and repo');
-        }
-        result = await classifyRepositorySize(repositoryId, owner, repo);
-        break;
-      }
-
-      // Sync-router job types
-      case 'sync-router/repository.sync': {
-        const { repository, owner, name, fullSync, daysLimit = 30 } =
-          payload as RepositorySyncPayload;
-        const [repoOwner, repoName] = splitRepository(repository, owner, name);
-        result = await syncRepositoryBasic(repoOwner, repoName, fullSync ?? false, daysLimit);
-        break;
-      }
-
-      case 'sync-router/repository.sync.graphql': {
-        const { repository, owner, name, fullSync, daysLimit = 30 } =
-          payload as RepositorySyncPayload;
-        const [repoOwner, repoName] = splitRepository(repository, owner, name);
-
-        // Look up repository ID
-        const { data: repoData } = await supabase
-          .from('repositories')
-          .select('id')
-          .eq('full_name', `${repoOwner}/${repoName}`)
-          .single();
-
-        if (repoData?.id) {
-          result = await syncRepositoryWithGraphQL(repoData.id, repoOwner, repoName, daysLimit);
-        } else {
-          // Create repository record if it doesn't exist
-          const { data: newRepo } = await supabase
-            .from('repositories')
-            .insert({
-              full_name: `${repoOwner}/${repoName}`,
-              owner: repoOwner,
-              name: repoName,
-              first_tracked_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-
-          if (newRepo) {
-            result = await syncRepositoryWithGraphQL(newRepo.id, repoOwner, repoName, daysLimit);
-          } else {
-            throw new Error(`Failed to create repository record for ${repoOwner}/${repoName}`);
-          }
-        }
-        break;
-      }
-
-      case 'sync-router/pr.details.batch': {
-        const { repository, owner, name, prNumbers } = payload as PRDetailsPayload;
-        const [repoOwner, repoName] = splitRepository(repository, owner, name);
-        result = await fetchPullRequestDetails(repoOwner, repoName, prNumbers);
-        break;
-      }
-
-      // Webhook job types - delegate to webhook processor
-      case 'webhook/pull_request':
-      case 'webhook/issues':
-      case 'webhook/push':
-      case 'webhook/repository': {
-        // These are processed by process-webhook function
-        // This is a fallback if they somehow end up here
-        console.log(`Webhook job ${type} should be processed by process-webhook function`);
-        result = await processWebhookFallback(type, payload as WebhookPayload);
-        break;
-      }
-
-      default:
-        throw new Error(`Unknown job type: ${type}`);
-    }
-
-    const duration = Date.now() - startTime;
-
-    // Update job as completed
+    const result = await dispatch(makeContext(row.id, row.type, deadline), row.payload ?? {});
     await supabase
       .from('background_jobs')
-      .update({
-        status: 'completed',
-        result,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    console.log(`Job ${jobId} completed in ${duration}ms`);
-
-    // Record success for circuit breaker
-    recordCircuitBreakerSuccess(type);
-
-    return { success: true, result, duration };
+      .update({ status: 'completed', result, completed_at: new Date().toISOString() })
+      .eq('id', row.id);
+    recordSuccess(row.type);
+    console.log('job %s (%s) completed in %dms', row.id, row.type, Date.now() - started);
+    return result;
   } catch (error) {
-    const duration = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`Job ${jobId} failed after ${duration}ms:`, error);
-
-    // Record failure for circuit breaker
-    recordCircuitBreakerFailure(type);
-
-    // Update job as failed
-    await supabase
-      .from('background_jobs')
-      .update({
-        status: 'failed',
-        error: errorMessage,
-        failed_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    // Check if we should retry
-    const { data: job } = await supabase
-      .from('background_jobs')
-      .select('retry_count, max_retries')
-      .eq('id', jobId)
-      .single();
-
-    if (job && job.retry_count < job.max_retries) {
-      // Schedule retry
-      await supabase.rpc('retry_failed_job', { job_id: jobId });
-      console.log(
-        `Job ${jobId} scheduled for retry (attempt ${job.retry_count + 1}/${job.max_retries})`,
-      );
-    }
-
+    recordFailure(row.type);
+    console.error(
+      'job %s (%s) failed after %dms: %s',
+      row.id,
+      row.type,
+      Date.now() - started,
+      errorMessage(error),
+    );
     throw error;
   }
 }
 
-// Job processor implementations
-async function syncRepositoryWithGraphQL(
-  repositoryId: string,
-  owner: string,
-  repo: string,
-  days: number,
-): Promise<JobResult> {
-  console.log(`Syncing repository ${owner}/${repo} for last ${days} days`);
-
-  if (!GITHUB_TOKEN) {
-    throw new Error('GitHub token not configured');
+async function handleMessage(
+  msg: QueueMessage,
+  deadline: number,
+  stats: DrainStats,
+): Promise<void> {
+  const jobId = msg.message?.job_id;
+  if (!jobId) {
+    console.warn('message %d has no job_id, archiving', msg.msg_id);
+    await supabase.rpc('jobs_archive', { p_msg_id: msg.msg_id });
+    stats.skipped++;
+    return;
   }
 
-  const client = new GraphQLClient();
-  const since = new Date();
-  since.setDate(since.getDate() - days);
+  const { data: row } = await supabase
+    .from('background_jobs')
+    .select('id, type, payload, status, max_retries, pgmq_msg_id')
+    .eq('id', jobId)
+    .maybeSingle();
 
-  // Fetch recent PRs
-  const prs = await client.getRecentPRs(owner, repo, since.toISOString(), 100);
-
-  // Store PRs in database
-  const prRecords = prs.map((pr) => ({
-    repository_id: repositoryId,
-    pr_number: pr.number,
-    github_id: pr.databaseId,
-    title: pr.title,
-    state: pr.state,
-    is_draft: pr.isDraft,
-    created_at: pr.createdAt,
-    updated_at: pr.updatedAt,
-    closed_at: pr.closedAt,
-    merged_at: pr.mergedAt,
-    author_login: pr.author?.login,
-    author_id: pr.author?.databaseId,
-    base_branch: pr.baseRefName,
-    head_branch: pr.headRefName,
-    additions: pr.additions,
-    deletions: pr.deletions,
-    changed_files: pr.changedFiles,
-    commit_count: pr.commits?.totalCount || 0,
-  }));
-
-  // Upsert PRs
-  const { error: prError } = await supabase.from('pull_requests').upsert(prRecords, {
-    onConflict: 'repository_id,pr_number',
-    ignoreDuplicates: false,
-  });
-
-  if (prError) {
-    console.error('Error upserting PRs:', prError);
-    throw prError;
+  if (!row) {
+    console.warn('message %d points at missing job %s, deleting', msg.msg_id, jobId);
+    await supabase.rpc('jobs_delete', { p_msg_id: msg.msg_id });
+    stats.skipped++;
+    return;
+  }
+  if (row.status === 'completed' || row.status === 'cancelled') {
+    await supabase.rpc('jobs_delete', { p_msg_id: msg.msg_id });
+    stats.skipped++;
+    return;
   }
 
-  // Update repository sync status
-  await supabase
-    .from('repositories')
-    .update({
-      last_synced_at: new Date().toISOString(),
-      sync_status: 'completed',
-      total_pull_requests: prRecords.length,
-    })
-    .eq('id', repositoryId);
-
-  // Get metrics
-  const metrics = client.getMetrics();
-
-  return {
-    repositoryId,
-    prsProcessed: prRecords.length,
-    metrics,
-    duration: new Date().toISOString(),
-  };
-}
-
-async function classifyRepositorySize(
-  repositoryId: string,
-  owner: string,
-  repo: string,
-): Promise<JobResult> {
-  console.log(`Classifying repository size for ${owner}/${repo}`);
-
-  if (!GITHUB_TOKEN) {
-    throw new Error('GitHub token not configured');
-  }
-
-  const classifier = new RepositorySizeClassifier(GITHUB_TOKEN);
-  const size = await classifier.classifyAndUpdateRepository(repositoryId, owner, repo);
-
-  return {
-    repositoryId,
-    size,
-    classified_at: new Date().toISOString(),
-  };
-}
-
-async function fetchPullRequestDetails(
-  owner: string,
-  repo: string,
-  prNumbers: number[],
-): Promise<JobResult> {
-  console.log(`Fetching details for ${prNumbers.length} PRs from ${owner}/${repo}`);
-
-  if (!GITHUB_TOKEN) {
-    throw new Error('GitHub token not configured');
-  }
-
-  const client = new GraphQLClient();
-  const details = [];
-
-  for (const prNumber of prNumbers) {
-    try {
-      const pr = await client.getPRDetails(owner, repo, prNumber);
-      details.push(pr);
-    } catch (error) {
-      console.error(`Failed to fetch PR #${prNumber}:`, error);
+  stats.processed++;
+  try {
+    await runJob(row as JobRow, deadline);
+    await supabase.rpc('jobs_delete', { p_msg_id: msg.msg_id });
+    stats.succeeded++;
+  } catch (error) {
+    const attempt = msg.read_ct;
+    const message = errorMessage(error);
+    if (shouldRetry(attempt, row.max_retries, isNonRetriable(error))) {
+      const delay = retryDelaySeconds(attempt);
+      await supabase
+        .from('background_jobs')
+        .update({ status: 'queued', retry_count: attempt, error: message })
+        .eq('id', row.id);
+      await supabase.rpc('jobs_set_vt', { p_msg_id: msg.msg_id, vt_offset: delay });
+      console.log('job %s retry %d scheduled in %ds', row.id, attempt, delay);
+      stats.retried++;
+    } else {
+      await supabase
+        .from('background_jobs')
+        .update({
+          status: 'failed',
+          retry_count: Math.max(0, attempt - 1),
+          error: message,
+          failed_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+      await supabase.rpc('jobs_archive', { p_msg_id: msg.msg_id });
+      stats.failed++;
     }
   }
-
-  return {
-    owner,
-    repo,
-    fetched: details.length,
-    total: prNumbers.length,
-    details,
-  };
 }
 
-// Basic repository sync using REST API (fallback for non-GraphQL sync)
-async function syncRepositoryBasic(
-  owner: string,
-  repo: string,
-  fullSync: boolean,
-  daysLimit: number,
-): Promise<JobResult> {
-  console.log(
-    `Basic sync for ${owner}/${repo} (${fullSync ? 'full' : 'partial'}, ${daysLimit} days)`,
-  );
-
-  if (!GITHUB_TOKEN) {
-    throw new Error('GitHub token not configured');
-  }
-
-  // For now, use the GraphQL client as fallback
-  // In production, this would use REST API endpoints
-  const client = new GraphQLClient();
-  const since = new Date();
-  since.setDate(since.getDate() - daysLimit);
-
-  // Look up or create repository record
-  let repositoryId: string;
-
-  const { data: repoData } = await supabase
-    .from('repositories')
-    .select('id')
-    .eq('full_name', `${owner}/${repo}`)
-    .single();
-
-  if (repoData?.id) {
-    repositoryId = repoData.id;
-  } else {
-    // Create repository record
-    const { data: newRepo, error: createError } = await supabase
-      .from('repositories')
-      .insert({
-        full_name: `${owner}/${repo}`,
-        owner,
-        name: repo,
-        first_tracked_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (createError || !newRepo) {
-      throw new Error(`Failed to create repository: ${createError?.message}`);
+/**
+ * Messages read but not handled before the budget ran out would otherwise
+ * stay invisible for the full visibility timeout. Make them visible again so
+ * the next invocation (the cron tick a minute later) picks them up.
+ */
+async function releaseUnhandled(messages: QueueMessage[], stats: DrainStats): Promise<void> {
+  for (const msg of messages) {
+    const { error } = await supabase.rpc('jobs_set_vt', { p_msg_id: msg.msg_id, vt_offset: 1 });
+    if (error) {
+      console.warn('could not release message %d: %s', msg.msg_id, error.message);
+    } else {
+      stats.released++;
     }
-
-    repositoryId = newRepo.id;
   }
+}
 
-  // Fetch PRs using existing GraphQL method
-  const prs = await client.getRecentPRs(owner, repo, since.toISOString(), fullSync ? 500 : 100);
+async function drain(maxMessages: number): Promise<DrainStats> {
+  const deadline = Date.now() + WORKER_BUDGET_MS;
+  const stats: DrainStats = {
+    processed: 0,
+    succeeded: 0,
+    retried: 0,
+    failed: 0,
+    skipped: 0,
+    released: 0,
+  };
+  let seen = 0;
 
-  // Store basic PR data
-  if (prs.length > 0) {
-    const prRecords = prs.map((pr) => ({
-      repository_id: repositoryId,
-      pr_number: pr.number,
-      title: pr.title,
-      state: pr.state,
-      created_at: pr.createdAt,
-      updated_at: pr.updatedAt,
-      author_login: pr.author?.login,
-    }));
-
-    await supabase.from('pull_requests').upsert(prRecords, {
-      onConflict: 'repository_id,pr_number',
-      ignoreDuplicates: false,
+  while (Date.now() < deadline && seen < maxMessages) {
+    const remaining = deadline - Date.now();
+    const qty = remaining < SINGLE_READ_BELOW_MS
+      ? 1
+      : Math.min(READ_BATCH_SIZE, maxMessages - seen);
+    const { data, error } = await supabase.rpc('jobs_read', {
+      p_vt: VISIBILITY_TIMEOUT_SECONDS,
+      p_qty: qty,
     });
+    if (error) throw new Error(`jobs_read failed: ${error.message}`);
+    const messages = (data ?? []) as QueueMessage[];
+    if (messages.length === 0) break;
+
+    for (let i = 0; i < messages.length; i++) {
+      if (Date.now() >= deadline) {
+        await releaseUnhandled(messages.slice(i), stats);
+        return stats;
+      }
+      seen++;
+      await handleMessage(messages[i], deadline, stats);
+    }
+  }
+  return stats;
+}
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+console.log('process-job worker ready: %d handlers', Object.keys(JOB_HANDLERS).length);
+
+serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
-  return {
-    repositoryId,
-    repository: `${owner}/${repo}`,
-    pullRequests: prs.length,
-    syncType: fullSync ? 'full' : 'partial',
-    daysLimit,
-    completed: new Date().toISOString(),
-  };
-}
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const apiKey = req.headers.get('x-api-key');
+  if (authHeader !== `Bearer ${supabaseServiceKey}` && apiKey !== supabaseServiceKey) {
+    return json(401, { error: 'Unauthorized' });
+  }
 
-// Fallback webhook processor (simplified version)
-async function processWebhookFallback(type: string, payload: WebhookPayload): Promise<JobResult> {
-  const { event: githubEvent, data } = payload;
-  console.log(`Processing webhook fallback: ${githubEvent}`);
+  let body: { jobId?: unknown; source?: unknown; maxMessages?: unknown } = {};
+  try {
+    body = await req.json();
+  } catch {
+    // empty body is a plain drain request
+  }
 
-  // Basic processing - just acknowledge the webhook
-  // Real processing happens in process-webhook function
-  return {
-    processed: true,
-    type: githubEvent,
-    message: 'Webhook processed (fallback handler)',
-    timestamp: new Date().toISOString(),
-  };
-}
+  try {
+    if (typeof body.jobId === 'string') {
+      const { data: row, error } = await supabase
+        .from('background_jobs')
+        .select('id, type, payload, status, max_retries, pgmq_msg_id')
+        .eq('id', body.jobId)
+        .maybeSingle();
+      if (error || !row) return json(404, { error: 'Job not found' });
+      if (row.status === 'queued' || row.status === 'processing') {
+        return json(409, {
+          error: 'Job is still on the queue',
+          message:
+            'Queued and processing jobs are run by the queue; manual runs are for failed or completed rows',
+          status: row.status,
+        });
+      }
+      try {
+        const result = await runJob(row as JobRow, Date.now() + WORKER_BUDGET_MS);
+        return json(200, { jobId: row.id, status: 'completed', result });
+      } catch (err) {
+        const message = errorMessage(err);
+        await supabase
+          .from('background_jobs')
+          .update({ status: 'failed', error: message, failed_at: new Date().toISOString() })
+          .eq('id', row.id);
+        return json(500, { jobId: row.id, status: 'failed', error: message });
+      }
+    }
+
+    const maxMessages = typeof body.maxMessages === 'number' && body.maxMessages > 0
+      ? Math.floor(body.maxMessages)
+      : 100;
+    const stats = await drain(maxMessages);
+    console.log(
+      'drain (%s): %s',
+      typeof body.source === 'string' ? body.source : 'manual',
+      JSON.stringify(stats),
+    );
+    return json(200, { source: body.source ?? 'manual', ...stats });
+  } catch (error) {
+    console.error('process-job error:', error);
+    return json(500, { error: errorMessage(error) });
+  }
+});

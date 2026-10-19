@@ -735,11 +735,10 @@ async function triggerMetricsAggregation(
   timeRange: MetricsTimeRange
 ): Promise<void> {
   try {
-    // Import inngest client dynamically to avoid SSR issues
-    const { inngest } = await import('@/lib/inngest/client');
+    // Loaded on demand so the queue client stays out of the initial chunk graph
+    const { sendInngestEvent } = await import('@/lib/inngest/client-safe');
 
-    // Send Inngest event to trigger aggregation
-    await inngest.send({
+    await sendInngestEvent({
       name: 'workspace.metrics.aggregate',
       data: {
         workspaceId,

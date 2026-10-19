@@ -1,4 +1,4 @@
-import { inngest } from '../../../src/lib/inngest/client';
+import { sendInngestEvent } from '../../../src/lib/inngest/client-safe';
 
 /**
  * Priority levels for embedding generation
@@ -9,7 +9,9 @@ export type EmbeddingPriority = 'critical' | 'high' | 'medium' | 'low';
  * EmbeddingQueueService - Unified event queueing for embeddings
  *
  * Provides consistent event naming and priority handling across all
- * webhook handlers for embedding generation tasks.
+ * webhook handlers for embedding generation tasks. Events go to the
+ * queue-event edge function; `embedding/progress.update` is a retired event
+ * that queue-event acknowledges without queueing anything.
  */
 export class EmbeddingQueueService {
   /**
@@ -21,7 +23,7 @@ export class EmbeddingQueueService {
     priority: EmbeddingPriority = 'high'
   ): Promise<void> {
     try {
-      await inngest.send({
+      await sendInngestEvent({
         name: 'embedding/issue.generate',
         data: {
           issueId,
@@ -46,7 +48,7 @@ export class EmbeddingQueueService {
     priority: EmbeddingPriority = 'high'
   ): Promise<void> {
     try {
-      await inngest.send({
+      await sendInngestEvent({
         name: 'embedding/pr.generate',
         data: {
           prId,
@@ -71,7 +73,7 @@ export class EmbeddingQueueService {
     items: Array<{ type: 'issue' | 'pr'; id: string }>
   ): Promise<void> {
     try {
-      await inngest.send({
+      await sendInngestEvent({
         name: 'embedding/batch.process',
         data: {
           installationId,
@@ -101,7 +103,7 @@ export class EmbeddingQueueService {
     status: 'processing' | 'completed' | 'failed'
   ): Promise<void> {
     try {
-      await inngest.send({
+      await sendInngestEvent({
         name: 'embedding/progress.update',
         data: {
           jobId,
@@ -125,7 +127,7 @@ export class EmbeddingQueueService {
     triggerType: 'issue_created' | 'issue_edited' | 'pr_opened'
   ): Promise<void> {
     try {
-      await inngest.send({
+      await sendInngestEvent({
         name: 'similarity/repository.recalculate',
         data: {
           repositoryId,

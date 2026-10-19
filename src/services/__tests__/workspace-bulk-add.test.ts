@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkspaceService } from '../workspace.service';
 import { supabase } from '@/lib/supabase';
 import { getSupabase } from '@/lib/supabase-lazy';
-import { inngest } from '@/lib/inngest/client';
+import { sendInngestEvent } from '@/lib/inngest/client-safe';
 import { workspacePrioritySync } from '@/lib/progressive-capture/workspace-priority-sync';
 import type { MockQueryBuilder } from './test-types';
 
@@ -24,10 +24,8 @@ vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
   WorkspacePrioritySync: vi.fn(),
 }));
 
-vi.mock('@/lib/inngest/client', () => ({
-  inngest: {
-    send: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
-  },
+vi.mock('@/lib/inngest/client-safe', () => ({
+  sendInngestEvent: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
 }));
 
 vi.mock('@/lib/error-logging', () => ({
@@ -167,7 +165,7 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual({ added: [], skipped: [REPO_A] });
     expect(insertMock).not.toHaveBeenCalled();
-    expect(vi.mocked(inngest.send)).not.toHaveBeenCalled();
+    expect(vi.mocked(sendInngestEvent)).not.toHaveBeenCalled();
   });
 
   it('rejects when the batch would exceed the workspace limit', async () => {
@@ -193,7 +191,7 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
     ]);
     expect(result).toMatchObject({ success: false, statusCode: 500 });
     expect(insertMock).not.toHaveBeenCalled();
-    expect(inngest.send).not.toHaveBeenCalled();
+    expect(sendInngestEvent).not.toHaveBeenCalled();
   });
 
   it('rejects with 404 when the workspace is not found', async () => {
@@ -225,7 +223,7 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
     expect(result.success).toBe(false);
     expect(result.statusCode).toBe(500);
     expect(insertMock).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(inngest.send)).not.toHaveBeenCalled();
+    expect(vi.mocked(sendInngestEvent)).not.toHaveBeenCalled();
   });
 
   it('inserts new repositories in one batch and fires one event of each type', async () => {
@@ -253,7 +251,7 @@ describe('WorkspaceService.addRepositoriesToWorkspace', () => {
       },
     ]);
     expect(vi.mocked(workspacePrioritySync.markAsWorkspaceRepo)).toHaveBeenCalledWith(REPO_B);
-    const eventNames = vi.mocked(inngest.send).mock.calls.map((call) => {
+    const eventNames = vi.mocked(sendInngestEvent).mock.calls.map((call) => {
       const payload = call[0] as { name: string };
       return payload.name;
     });

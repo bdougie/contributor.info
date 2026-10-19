@@ -1,6 +1,6 @@
 import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
-import { inngest } from '../../src/lib/inngest/client';
+import { sendInngestEvent } from '../../src/lib/inngest/client-safe';
 
 export const handler: Handler = async (event) => {
   const headers = { 'Content-Type': 'application/json' };
@@ -56,7 +56,7 @@ export const handler: Handler = async (event) => {
       };
     }
 
-    const result = await inngest.send({
+    const result = await sendInngestEvent({
       name: 'capture/repository.events',
       data: { repositoryId: repoData.id },
     });

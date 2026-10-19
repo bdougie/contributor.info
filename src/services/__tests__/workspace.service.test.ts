@@ -40,10 +40,8 @@ vi.mock('@/lib/progressive-capture/workspace-priority-sync', () => ({
 }));
 
 // Mock Inngest
-vi.mock('@/lib/inngest/client', () => ({
-  inngest: {
-    send: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
-  },
+vi.mock('@/lib/inngest/client-safe', () => ({
+  sendInngestEvent: vi.fn().mockResolvedValue({ ids: ['mock-event-id'] }),
 }));
 
 describe('WorkspaceService', () => {
