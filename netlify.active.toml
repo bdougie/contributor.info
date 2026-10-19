@@ -149,9 +149,6 @@
 [functions.backfill-status]
   node_bundler = "esbuild"
 
-[functions.backfill-events]
-  node_bundler = "esbuild"
-
 # Specific API routes (these must come first)
 
 # GitHub App webhooks run in a Netlify Background Function (202 immediately,
@@ -285,12 +282,6 @@
 [[redirects]]
   from = "/api/backfill/cancel/*"
   to = "/.netlify/functions/backfill-cancel"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/backfill/events"
-  to = "/.netlify/functions/backfill-events"
   status = 200
   force = true
 

@@ -20,7 +20,7 @@ function capMessages(messages: ModelMessage[]): ModelMessage[] {
   if (messages.length <= MAX_HISTORY_MESSAGES) return messages;
   return [messages[0], ...messages.slice(-(MAX_HISTORY_MESSAGES - 1))];
 }
-type DatapipeClient = typeof import('../lib/gh-datapipe-client.mts');
+type DatapipeClient = typeof import('../lib/repo-analytics.mts');
 
 // ---------------------------------------------------------------------------
 // Context extension

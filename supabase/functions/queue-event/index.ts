@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders } from '../_shared/cors.ts';
+import { isCaptureEvent, startCapture } from '../_shared/datapipe-capture.ts';
 
 // Initialize Supabase client with service role for idempotency key management
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -257,13 +258,20 @@ serve(async (req: Request) => {
       }
     }
 
-    // Send event to Inngest
+    // capture/* goes to gh-datapipe (one Fly machine per job); everything
+    // else still goes to Inngest until Phase 3b replaces it with pgmq.
     let result;
     let eventId;
     try {
-      result = await sendToInngest(eventName, data);
-      const resultTyped = result as { ids?: string[]; id?: string; eventId?: string };
-      eventId = resultTyped.ids?.[0] || resultTyped.id || resultTyped.eventId;
+      if (isCaptureEvent(eventName)) {
+        const capture = await startCapture(supabase, eventName, data);
+        result = capture;
+        eventId = capture.datapipe_job_id;
+      } else {
+        result = await sendToInngest(eventName, data);
+        const resultTyped = result as { ids?: string[]; id?: string; eventId?: string };
+        eventId = resultTyped.ids?.[0] || resultTyped.id || resultTyped.eventId;
+      }
 
       // Update idempotency record with success
       if (idempotencyKey) {
@@ -273,17 +281,20 @@ serve(async (req: Request) => {
         });
       }
     } catch (error) {
-      console.error('Failed to send event to Inngest:', error);
+      console.error('Failed to queue event %s:', eventName, error);
 
       // Update idempotency record with failure
       if (idempotencyKey) {
         await updateIdempotencyRecord(idempotencyKey, 'failed', {
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         });
       }
 
       return new Response(
-        JSON.stringify({ error: 'Failed to queue event', message: error.message }),
+        JSON.stringify({
+          error: 'Failed to queue event',
+          message: error instanceof Error ? error.message : String(error),
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -314,7 +325,10 @@ serve(async (req: Request) => {
     console.error('Error processing request:', error);
 
     return new Response(
-      JSON.stringify({ error: 'Internal server error', message: error.message }),
+      JSON.stringify({
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : String(error),
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -39,9 +39,9 @@ export function ManualBackfillDebug() {
           <CardContent className="space-y-4">
             <Alert>
               <AlertDescription>
-                <strong>Note:</strong> This feature requires the gh-datapipe API to be deployed and
-                configured. Make sure GH_DATPIPE_KEY and GH_DATPIPE_API_URL are set in your
-                environment variables.
+                <strong>Note:</strong> Each backfill runs as a one-off Fly machine on
+                gh-datapipe-sync and reports into the datapipe_jobs table. The Netlify functions
+                need FLY_DATAPIPE_TOKEN, FLY_DATAPIPE_IMAGE and SUPABASE_SERVICE_ROLE_KEY.
               </AlertDescription>
             </Alert>
 
@@ -78,24 +78,6 @@ export function ManualBackfillDebug() {
                 />
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>API Configuration Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 font-mono text-sm">
-              <div>
-                <span className="text-muted-foreground">GH_DATPIPE_API_URL:</span>{' '}
-                <span>{process.env.GH_DATPIPE_API_URL || 'Not configured'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">GH_DATPIPE_KEY:</span>{' '}
-                <span>{process.env.GH_DATPIPE_KEY ? '✓ Configured' : '✗ Not configured'}</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

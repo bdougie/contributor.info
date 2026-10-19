@@ -23,15 +23,15 @@ import {
 } from './agents/repo-health-agent.mts';
 import { runContributorAgent, type ContributorAgentContext } from './agents/contributor-agent.mts';
 import { searchRepositoryContext } from './agents/semantic-search-tool.mts';
-type DatapipeClient = typeof import('./lib/gh-datapipe-client.mts');
+type DatapipeClient = typeof import('./lib/repo-analytics.mts');
 
 let _datapipeCache: DatapipeClient | null | undefined;
 async function getDatapipe(): Promise<DatapipeClient | null> {
   if (_datapipeCache !== undefined) return _datapipeCache;
   try {
-    _datapipeCache = await import('./lib/gh-datapipe-client.mts');
+    _datapipeCache = await import('./lib/repo-analytics.mts');
   } catch (err) {
-    console.error('[chat] Failed to load gh-datapipe client: %s', err);
+    console.error('[chat] Failed to load repo analytics: %s', err);
     _datapipeCache = null;
   }
   return _datapipeCache;

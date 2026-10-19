@@ -1,5 +1,11 @@
 import { graphql } from 'https://esm.sh/@octokit/graphql@7.0.2';
 
+/** Shape of a GitHub GraphQL response as this client reads it. */
+interface GraphQLEnvelope<TRepository> {
+  rateLimit?: { limit: number; remaining: number; resetAt: string; cost: number };
+  repository?: TRepository;
+}
+
 // Export NonRetriableError for use in other files
 export class NonRetriableError extends Error {
   constructor(message: string) {
@@ -328,12 +334,12 @@ export class GraphQLClient {
     try {
       console.log(`Fetching recent PRs for ${owner}/${repo} since ${since}`);
 
-      const response = await this.client(GET_RECENT_PRS_QUERY, {
+      const response = (await this.client(GET_RECENT_PRS_QUERY, {
         owner,
         repo,
         since,
         first: Math.min(limit, 100),
-      });
+      })) as GraphQLEnvelope<{ pullRequests?: { nodes?: any[] } }>;
 
       this.recordMetric('query');
 
@@ -363,11 +369,11 @@ export class GraphQLClient {
     try {
       console.log(`Fetching PR details for ${owner}/${repo}#${prNumber}`);
 
-      const response = await this.client(GET_PR_DETAILS_QUERY, {
+      const response = (await this.client(GET_PR_DETAILS_QUERY, {
         owner,
         repo,
         number: prNumber,
-      });
+      })) as GraphQLEnvelope<{ pullRequest?: any }>;
 
       this.recordMetric('query');
 

@@ -4,7 +4,7 @@ import type {
   InsightsResponse,
   ActivityResponse,
   DiscoverResponse,
-} from '../gh-datapipe-client.mjs';
+} from '../repo-analytics.mjs';
 import {
   normalizeContributors,
   normalizeInsights,
