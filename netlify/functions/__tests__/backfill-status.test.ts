@@ -1,101 +1,116 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
 
-describe('backfill-status function', () => {
+const { getJob, getSupabaseAdmin, cancelJob } = vi.hoisted(() => ({
+  getJob: vi.fn(),
+  getSupabaseAdmin: vi.fn<() => object | null>(() => ({})),
+  cancelJob: vi.fn(),
+}));
+
+vi.mock('../lib/datapipe-jobs.mts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/datapipe-jobs.mts')>();
+  return { ...actual, getJob, getSupabaseAdmin, cancelJob };
+});
+
+const JOB_ID = '11111111-2222-4333-8444-555555555555';
+
+function event(path: string, method: string): HandlerEvent {
+  return { httpMethod: method, body: null, headers: {}, path } as unknown as HandlerEvent;
+}
+
+describe('backfill-status and backfill-cancel functions', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
     originalEnv = { ...process.env };
     vi.resetModules();
+    getJob.mockReset();
+    cancelJob.mockReset();
+    getSupabaseAdmin.mockReturnValue({});
   });
 
   afterEach(() => {
     process.env = originalEnv;
   });
 
-  it('should return 503 when GH_DATPIPE_KEY is not configured', async () => {
-    delete process.env.GH_DATPIPE_KEY;
-    delete process.env.GH_DATPIPE_API_URL;
-
-    const { handler } = await import('../backfill-status');
-
-    const event = {
-      httpMethod: 'GET',
-      body: null,
-      headers: {},
-      path: '/api/backfill/status/job-123',
-    } as unknown as HandlerEvent;
-
-    const response = await handler(event, {} as HandlerContext);
-
+  it('status returns 503 when Supabase is not configured', async () => {
+    getSupabaseAdmin.mockReturnValue(null);
+    const { handler } = await import('../backfill-status.mts');
+    const response = await handler(
+      event(`/api/backfill/status/${JOB_ID}`, 'GET'),
+      {} as HandlerContext
+    );
     expect(response.statusCode).toBe(503);
-    const body = JSON.parse(response.body);
-    expect(body.error).toBe('Service unavailable');
   });
 
-  it('should return 405 for non-GET requests', async () => {
-    process.env.GH_DATPIPE_KEY = 'test-key';
-    process.env.GH_DATPIPE_API_URL = 'https://test.example.com';
-
-    const { handler } = await import('../backfill-status');
-
-    const event = {
-      httpMethod: 'POST',
-      body: null,
-      headers: {},
-      path: '/api/backfill/status/job-123',
-    } as unknown as HandlerEvent;
-
-    const response = await handler(event, {} as HandlerContext);
-
-    expect(response.statusCode).toBe(405);
-    expect(response.headers?.Allow).toBe('GET');
+  it('status validates method and job id', async () => {
+    const { handler } = await import('../backfill-status.mts');
+    expect(
+      (await handler(event(`/api/backfill/status/${JOB_ID}`, 'POST'), {} as HandlerContext))
+        .statusCode
+    ).toBe(405);
+    expect(
+      (await handler(event('/api/backfill/status', 'GET'), {} as HandlerContext)).statusCode
+    ).toBe(400);
+    expect(
+      (await handler(event('/api/backfill/status/not-a-uuid', 'GET'), {} as HandlerContext))
+        .statusCode
+    ).toBe(400);
+    expect(getJob).not.toHaveBeenCalled();
   });
 
-  it('should return 400 when job ID is missing', async () => {
-    process.env.GH_DATPIPE_KEY = 'test-key';
-    process.env.GH_DATPIPE_API_URL = 'https://test.example.com';
+  it('status returns the job view, or 404 when missing', async () => {
+    getJob.mockResolvedValueOnce({
+      id: JOB_ID,
+      type: 'backfill',
+      status: 'running',
+      params: { repository: 'owner/repo', days: 30 },
+      fly_machine_id: 'm1',
+      progress: { step: 'sync_to_supabase' },
+      error: null,
+      created_at: '2026-10-19T00:00:00Z',
+      started_at: '2026-10-19T00:01:00Z',
+      completed_at: null,
+    });
+    const { handler } = await import('../backfill-status.mts');
+    const ok = await handler(event(`/api/backfill/status/${JOB_ID}`, 'GET'), {} as HandlerContext);
+    expect(ok.statusCode).toBe(200);
+    expect(JSON.parse(ok.body)).toMatchObject({
+      id: JOB_ID,
+      status: 'running',
+      progress: 90,
+      data: { repository: 'owner/repo', days: 30 },
+    });
 
-    const { handler } = await import('../backfill-status');
-
-    const event = {
-      httpMethod: 'GET',
-      body: null,
-      headers: {},
-      path: '/api/backfill/status',
-    } as unknown as HandlerEvent;
-
-    const response = await handler(event, {} as HandlerContext);
-
-    expect(response.statusCode).toBe(400);
-    const body = JSON.parse(response.body);
-    expect(body.message).toContain('Job ID is required');
+    getJob.mockResolvedValueOnce(null);
+    const missing = await handler(
+      event(`/api/backfill/status/${JOB_ID}`, 'GET'),
+      {} as HandlerContext
+    );
+    expect(missing.statusCode).toBe(404);
   });
 
-  it('should return 404 for non-existent job', async () => {
-    process.env.GH_DATPIPE_KEY = 'test-key';
-    process.env.GH_DATPIPE_API_URL = 'https://test.example.com';
+  it('cancel calls cancelJob and maps 404', async () => {
+    cancelJob.mockResolvedValueOnce({
+      job_id: JOB_ID,
+      status: 'cancelled',
+      message: 'Job cancelled',
+    });
+    const { handler } = await import('../backfill-cancel.mts');
+    const ok = await handler(event(`/api/backfill/cancel/${JOB_ID}`, 'POST'), {} as HandlerContext);
+    expect(ok.statusCode).toBe(200);
+    expect(cancelJob).toHaveBeenCalledWith(JOB_ID, {});
 
-    // Mock the server client to throw a not found error BEFORE importing
-    vi.doMock('../../src/lib/manual-backfill/server-client', () => ({
-      manualBackfillServerClient: {
-        getJobStatus: vi.fn().mockRejectedValue(new Error('Job not found')),
-      },
-    }));
-
-    const { handler } = await import('../backfill-status');
-
-    const event = {
-      httpMethod: 'GET',
-      body: null,
-      headers: {},
-      path: '/api/backfill/status/non-existent-job',
-    } as unknown as HandlerEvent;
-
-    const response = await handler(event, {} as HandlerContext);
-
-    expect(response.statusCode).toBe(404);
-    const body = JSON.parse(response.body);
-    expect(body.error).toBe('Not found');
+    const { DatapipeJobsError } = await import('../lib/datapipe-jobs.mts');
+    cancelJob.mockRejectedValueOnce(new DatapipeJobsError('Job not found', 404));
+    const missing = await handler(
+      event(`/api/backfill/cancel/${JOB_ID}`, 'POST'),
+      {} as HandlerContext
+    );
+    expect(missing.statusCode).toBe(404);
+    expect(
+      (await handler(event(`/api/backfill/cancel/${JOB_ID}`, 'GET'), {} as HandlerContext))
+        .statusCode
+    ).toBe(405);
   });
 });

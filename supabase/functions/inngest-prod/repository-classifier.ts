@@ -106,7 +106,8 @@ export class RepositorySizeClassifier {
       // Calculate active contributors (contributed in last 30 days)
       const activeContributors = contributors.filter((contributor) => {
         const lastWeek = contributor.weeks[contributor.weeks.length - 1];
-        return lastWeek && (lastWeek.a > 0 || lastWeek.d > 0 || lastWeek.c > 0);
+        return lastWeek &&
+          ((lastWeek.a ?? 0) > 0 || (lastWeek.d ?? 0) > 0 || (lastWeek.c ?? 0) > 0);
       }).length;
 
       return {
@@ -231,7 +232,7 @@ export class RepositorySizeClassifier {
         results.push({
           repositoryId: repo.id,
           repository: `${repo.owner}/${repo.name}`,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           success: false,
         });
       }

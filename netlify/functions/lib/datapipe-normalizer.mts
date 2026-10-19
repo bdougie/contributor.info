@@ -1,7 +1,7 @@
 /**
  * Data Normalization Layer for RAG Pipeline
  *
- * Converts structured JSON from gh-datapipe (contributors, insights, activity, discover)
+ * Converts structured JSON from repo-analytics (contributors, insights, activity, discover)
  * into natural-language text chunks suitable for embedding with MiniLM (384 dims).
  *
  * Each normalizer returns a single DatapipeChunk or null when the input has no useful data.
@@ -12,7 +12,7 @@ import type {
   InsightsResponse,
   ActivityResponse,
   DiscoverResponse,
-} from './gh-datapipe-client.mjs';
+} from './repo-analytics.mjs';
 
 // ---------------------------------------------------------------------------
 // Output types
