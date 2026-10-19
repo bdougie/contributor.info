@@ -16,8 +16,8 @@
   ```
 
 ### Webhook
-- **Webhook URL**: `https://contributor-info-webhooks.fly.dev/webhook`
-  - For local testing: Use ngrok URL like `https://abc123.ngrok.io/webhook` (when running the Fly.io service locally)
+- **Webhook URL**: `https://contributor.info/.netlify/functions/github-webhook-background` (Netlify Background Function; see docs/infrastructure/cost-reduction-plan.md Phase 1a)
+  - For local testing: `netlify dev` plus an ngrok URL like `https://abc123.ngrok.io/.netlify/functions/github-webhook-background`
 - **Webhook secret**: Generate a secure random string (save this!)
 
 ### Permissions
@@ -71,7 +71,7 @@ GITHUB_APP_CLIENT_ID=Iv1.abc123def456
 GITHUB_APP_CLIENT_SECRET=your_client_secret_here
 
 # App URLs (update for production)
-GITHUB_APP_WEBHOOK_URL=https://contributor-info-webhooks.fly.dev/webhook
+GITHUB_APP_WEBHOOK_URL=https://contributor.info/.netlify/functions/github-webhook-background
 ```
 
 For easier handling, you can base64 encode the private key:
@@ -248,4 +248,4 @@ The app accepts the private key in any of these environment variables, checked i
 2. `GITHUB_APP_PRIVATE_KEY_BASE64` - the PEM body only, headers stripped, on one line.
 3. `GITHUB_APP_PRIVATE_KEY` - the raw PEM with real newlines.
 
-Use the encoded form on hosts that reject multi-line values or cap variable size. The Fly.io webhooks server (`webhooks-server/`) reads `CONTRIBUTOR_APP_KEY` or `GITHUB_APP_PRIVATE_KEY`; set it with `fly secrets set`.
+Use the encoded form on hosts that reject multi-line values or cap variable size. The webhook background function (`netlify/functions/github-webhook-background.mts`) reads `CONTRIBUTOR_APP_KEY` or `GITHUB_APP_PRIVATE_KEY` from the Netlify environment; set it with `netlify env:set`.

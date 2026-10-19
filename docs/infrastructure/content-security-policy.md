@@ -32,7 +32,6 @@ Our CSP is configured in `/public/_headers` and defines allowed sources for vari
   - `https://us.i.posthog.com` - PostHog US API
   - `https://api.github.com` - GitHub API
   - `https://raw.githubusercontent.com` - Raw GitHub content
-  - `https://contributor-info-webhooks.fly.dev` - Webhook service
   - `https://contributor-info-social-cards.fly.dev` - Social card service
   - `https://vercel.live` - Vercel preview features
   - `https://ingesteer.services-prod.nsvcs.net` - RUM/monitoring service

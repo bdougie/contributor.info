@@ -109,21 +109,19 @@ SUPABASE_ANON_KEY=your-anon-key
 
 ### Production Deployment
 
-1. Deploy to Fly.io:
-   ```bash
-   cd fly-github-webhooks
-   fly deploy -a contributor-info-webhooks
-   ```
+1. The webhook handler is the Netlify Background Function
+   `netlify/functions/github-webhook-background.mts`; it deploys with the site.
 
-2. Set secrets:
+2. Set the GitHub App credentials in the Netlify environment:
    ```bash
-   fly secrets set CONTRIBUTOR_APP_ID=xxx -a contributor-info-webhooks
-   fly secrets set CONTRIBUTOR_APP_KEY="xxx" -a contributor-info-webhooks
+   netlify env:set GITHUB_APP_ID xxx
+   netlify env:set GITHUB_APP_PRIVATE_KEY "<base64 PEM>"
+   netlify env:set GITHUB_APP_WEBHOOK_SECRET xxx
    ```
 
 3. Update GitHub App webhook URL:
    ```
-   https://contributor-info-webhooks.fly.dev/webhook
+   https://contributor.info/.netlify/functions/github-webhook-background
    ```
 
 ## How It Works
@@ -192,7 +190,7 @@ The following issues appear to be related to this PR:
 
 1. Verify GitHub App permissions include "Checks: write"
 2. Check webhook delivery in GitHub App settings
-3. Review Fly logs: `fly logs -a contributor-info-webhooks`
+3. Review function logs: `netlify logs:function github-webhook-background` (or the Netlify UI, Functions tab)
 
 ### Similarity Check Always Empty
 

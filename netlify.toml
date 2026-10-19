@@ -1,7 +1,13 @@
 # TEMPORARY: contributor.info is paused. This config serves a static notice page
-# and 302-redirects every URL to it at /paused/. No build command runs, and the functions and
-# edge functions directories are pointed at paths that don't exist so nothing
-# is bundled or deployed alongside the page.
+# and 302-redirects every URL to it at /paused/ (see maintenance/_redirects).
+# No build command runs and the edge functions directory points at a path that
+# doesn't exist, so nothing else is bundled or deployed alongside the page.
+#
+# The one exception is the GitHub App webhook receiver: maintenance/functions/
+# holds a single re-export of netlify/functions/github-webhook-background.mts so
+# installs and PR/issue events keep landing in Supabase while the site is down
+# (cost-reduction plan, Phase 1a). Needs GITHUB_APP_WEBHOOK_SECRET, GITHUB_APP_ID,
+# GITHUB_APP_PRIVATE_KEY and SUPABASE_SERVICE_ROLE_KEY in the Netlify env.
 #
 # To resume: `git mv netlify.active.toml netlify.toml`, delete maintenance/, and redeploy.
 
@@ -10,7 +16,8 @@
   edge_functions = "maintenance/no-edge-functions"
 
 [functions]
-  directory = "maintenance/no-functions"
+  directory = "maintenance/functions"
+  node_bundler = "esbuild"
 
 [build.processing]
   skip_processing = true

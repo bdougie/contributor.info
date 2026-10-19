@@ -1,17 +1,11 @@
-import {
-  InstallationEvent,
-  InstallationRepositoriesEvent,
-  Installation,
-  Repository,
-} from '../types/github';
+import { InstallationEvent, InstallationRepositoriesEvent, Installation } from '../types/github';
 import { supabaseAdmin } from '../../src/lib/supabase-admin';
 
-// Installation webhooks run server-side only (Fly webhook server), where there
+// Installation webhooks run server-side only (Netlify background function), where there
 // is no user session. Writes to github_app_installations / app_enabled_repositories
 // / repositories are blocked by RLS for the anon role, so use the service-role
 // admin client (RLS bypass). supabaseAdmin is always initialized server-side.
 const supabase = supabaseAdmin!;
-import { inngest } from '../../src/lib/inngest/client';
 import { githubAppAuth } from '../lib/auth';
 import { indexGitHistory } from '../services/git-history';
 import { generateFileEmbeddings } from '../services/file-embeddings';
@@ -72,7 +66,7 @@ export async function handleInstallationRepositoriesEvent(event: InstallationRep
 async function handleInstallationCreated(event: InstallationEvent) {
   try {
     // Store installation in database
-    const { data: installation, error } = await supabase
+    const { error } = await supabase
       .from('github_app_installations')
       .upsert({
         installation_id: event.installation.id,
@@ -101,16 +95,14 @@ async function handleInstallationCreated(event: InstallationEvent) {
       await handleRepositoriesAdded(event.installation, event.repositories);
     }
 
-    // Send welcome event
-    await inngest.send({
-      name: 'github.app.installed',
-      data: {
-        installation_id: event.installation.id,
-        account: event.installation.account.login,
-        repository_selection: event.installation.repository_selection,
-        repository_count: event.repositories?.length || 0,
-      },
-    });
+    // The former `github.app.installed` Inngest event had no consumer; the
+    // metrics row below is the record of the install.
+    console.log(
+      'App installed for %s (%s, %d repos)',
+      event.installation.account.login,
+      event.installation.repository_selection,
+      event.repositories?.length || 0
+    );
 
     // Track installation metrics
     await trackInstallationMetrics('installation_created', {
@@ -120,6 +112,9 @@ async function handleInstallationCreated(event: InstallationEvent) {
     });
   } catch (error) {
     console.error('Error handling installation created:', error);
+    // Re-throw so the webhook receiver records the delivery as failed and a
+    // GitHub "Redeliver" retries it instead of being skipped as a duplicate.
+    throw error;
   }
 }
 
@@ -172,6 +167,7 @@ async function handleInstallationDeleted(event: InstallationEvent) {
     });
   } catch (error) {
     console.error('Error handling installation deleted:', error);
+    throw error;
   }
 }
 
@@ -188,6 +184,7 @@ async function handleInstallationSuspended(event: InstallationEvent) {
       .eq('installation_id', event.installation.id);
   } catch (error) {
     console.error('Error handling installation suspended:', error);
+    throw error;
   }
 }
 
@@ -204,6 +201,7 @@ async function handleInstallationUnsuspended(event: InstallationEvent) {
       .eq('installation_id', event.installation.id);
   } catch (error) {
     console.error('Error handling installation unsuspended:', error);
+    throw error;
   }
 }
 
@@ -213,14 +211,8 @@ async function handleInstallationUnsuspended(event: InstallationEvent) {
 async function handleNewPermissionsAccepted(event: InstallationEvent) {
   console.log('New permissions accepted for installation:', event.installation.id);
 
-  // Could trigger re-sync of data with new permissions
-  await inngest.send({
-    name: 'github.app.permissions_updated',
-    data: {
-      installation_id: event.installation.id,
-      account: event.installation.account.login,
-    },
-  });
+  // The former `github.app.permissions_updated` Inngest event had no consumer.
+  // A re-sync with the new permissions happens on the next scheduled sync.
 }
 
 /**
@@ -321,22 +313,25 @@ async function handleRepositoriesAdded(
           })
           .eq('id', repoId);
 
-        // Queue for data sync
-        await inngest.send({
-          name: 'github.repository.app_enabled',
-          data: {
-            installation_id: installation.id,
-            repository_id: repoId,
-            repository_name: repo.full_name,
-            is_private: repo.private,
-          },
-        });
+        // The former `github.repository.app_enabled` Inngest event had no
+        // consumer. Data sync is picked up by the scheduled sync; the
+        // `webhook_priority` flag above is what marks the repo as app-enabled.
+        console.log(
+          'App enabled for %s (installation %d, private=%s)',
+          repo.full_name,
+          installation.id,
+          String(repo.private)
+        );
 
-        // Index git history and generate embeddings in the background
+        // Index git history and generate embeddings. These used to be
+        // fire-and-forget because the Fly server was a long-lived process. The
+        // webhook now runs in a Netlify Background Function, which only keeps
+        // the invocation alive for awaited work, so both are awaited here
+        // (inside the 15 min budget). Failures are logged, not thrown, so one
+        // repo cannot block the rest of the installation.
         try {
           const octokit = await githubAppAuth.getInstallationOctokit(installation.id);
 
-          // Index git history
           // Ensure owner is properly set before calling indexGitHistory
           if (!repo.owner?.login) {
             repo.owner = {
@@ -345,12 +340,12 @@ async function handleRepositoriesAdded(
               type: 'User',
             };
           }
-          indexGitHistory(repo, octokit).catch((error) => {
-            console.error(`Failed to index git history for ${repo.full_name}:`, error);
+
+          const indexHistory = indexGitHistory(repo, octokit).catch((error) => {
+            console.error('Failed to index git history for %s:', repo.full_name, error);
           });
 
-          // Generate embeddings for recent files
-          octokit.repos
+          const embedRecentFiles = octokit.repos
             .listCommits({
               owner: repo.owner?.login || repo.full_name.split('/')[0],
               repo: repo.name,
@@ -373,19 +368,19 @@ async function handleRepositoriesAdded(
                     }
                   });
                 } catch (error) {
-                  console.error(`Error fetching commit ${commit.sha}:`, error);
+                  console.error('Error fetching commit %s:', commit.sha, error);
                 }
               }
 
               if (files.size > 0) {
-                generateFileEmbeddings(repo, octokit, Array.from(files)).catch((error) => {
-                  console.error(`Failed to generate embeddings for ${repo.full_name}:`, error);
-                });
+                await generateFileEmbeddings(repo, octokit, Array.from(files));
               }
             })
             .catch((error) => {
-              console.error(`Failed to fetch commits for ${repo.full_name}:`, error);
+              console.error('Failed to generate embeddings for %s:', repo.full_name, error);
             });
+
+          await Promise.allSettled([indexHistory, embedRecentFiles]);
         } catch (error) {
           console.error(`Failed to get octokit client for installation ${installation.id}:`, error);
         }
@@ -393,6 +388,7 @@ async function handleRepositoriesAdded(
     }
   } catch (error) {
     console.error('Error handling repositories added:', error);
+    throw error;
   }
 }
 
