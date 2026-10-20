@@ -4,7 +4,6 @@
 declare global {
   namespace NodeJS {
     interface ProcessEnv {
-      VITE_GITHUB_TOKEN?: string;
       VITE_SUPABASE_URL?: string;
       VITE_SUPABASE_ANON_KEY?: string;
       VITE_INNGEST_EVENT_KEY?: string;
@@ -22,7 +21,6 @@ declare global {
 }
 
 interface ImportMetaEnv {
-  readonly VITE_GITHUB_TOKEN?: string;
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_INNGEST_EVENT_KEY?: string;

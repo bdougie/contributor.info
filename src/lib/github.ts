@@ -21,7 +21,6 @@ import { detectBot } from './utils/bot-detection';
 const GITHUB_API_BASE = 'https://api.github.com';
 
 // Use universal environment access
-const VITE_GITHUB_TOKEN = env.GITHUB_TOKEN;
 const NODE_ENV = env.MODE;
 
 // Type for repository search results
@@ -144,8 +143,9 @@ export async function searchGitHubRepositories(
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env token
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -366,8 +366,9 @@ export async function fetchPullRequests(
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env token
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -637,8 +638,9 @@ export async function fetchRepositoryInfo(
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env token
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -700,7 +702,9 @@ export async function fetchRepositoryStargazers(
     data: { session },
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -759,7 +763,9 @@ export async function fetchRepositoryCommitActivity(
     data: { session },
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }
@@ -850,8 +856,9 @@ export async function fetchDirectCommits(
   } = await supabase.auth.getSession();
   const userToken = session?.provider_token;
 
-  // Use user's token if available, otherwise fall back to env token
-  const token = userToken || VITE_GITHUB_TOKEN;
+  // Only a signed-in user's GitHub token is used in the browser; anonymous
+  // visitors send no Authorization header (#1870).
+  const token = userToken;
   if (token) {
     headers.Authorization = `token ${token}`;
   }

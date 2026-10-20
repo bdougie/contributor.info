@@ -26,6 +26,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 import { corsHeaders } from '../_shared/cors.ts';
 import {
+  CaptureError,
   isCaptureEvent,
   isValidRepositoryName,
   resolveRepository,
@@ -288,7 +289,9 @@ serve(async (req: Request) => {
       if (idempotencyKey) {
         await updateIdempotencyRecord(idempotencyKey, 'failed', { error: message });
       }
-      const status = error instanceof RequestError ? error.status : 500;
+      const status = error instanceof RequestError || error instanceof CaptureError
+        ? error.status
+        : 500;
       return json(status, { error: 'Failed to queue event', message });
     }
 

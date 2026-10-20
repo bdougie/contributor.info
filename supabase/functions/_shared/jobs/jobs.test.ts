@@ -12,7 +12,7 @@ import {
 import { calculateNextScheduledAt, formatAssigneeReport } from './slack-assignee-report.ts';
 import { splitRepository } from './sync-router.ts';
 import { assertRepositoryName, isNonRetriable, NonRetriableJobError } from './types.ts';
-import { CAPTURE_DEDUPE_MINUTES, isValidRepositoryName } from '../datapipe-capture.ts';
+import { CAPTURE_QUEUED_WINDOW_MINUTES, isValidRepositoryName } from '../datapipe-capture.ts';
 
 Deno.test('retry: exponential backoff from 60 s, capped at one hour', () => {
   assertEquals(retryDelaySeconds(1), 60);
@@ -192,5 +192,5 @@ Deno.test('names: only GitHub-shaped owner/repository pairs are accepted', () =>
   assertEquals(isValidRepositoryName('bdougie'), false);
   assertEquals(isValidRepositoryName('a/b/c'), false);
   assertEquals(isValidRepositoryName('owner/re po'), false);
-  assert(CAPTURE_DEDUPE_MINUTES >= 5);
+  assert(CAPTURE_QUEUED_WINDOW_MINUTES >= 5);
 });

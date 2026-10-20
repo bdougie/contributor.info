@@ -107,7 +107,7 @@ export function ContributorHoverCard({
           data: { session },
         } = await supabase.auth.getSession();
         const userToken = session?.provider_token;
-        const token = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+        const token = userToken;
 
         if (token) {
           headers.Authorization = `token ${token}`;

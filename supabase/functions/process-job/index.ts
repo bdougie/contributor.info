@@ -117,7 +117,9 @@ async function dispatch(ctx: JobContext, payload: JobPayload): Promise<JobResult
     const capture = await startCapture(supabase, type, payload);
     return {
       success: true,
-      message: `Started gh-datapipe machine ${capture.fly_machine_id}`,
+      message: capture.fly_machine_id
+        ? `Started gh-datapipe machine ${capture.fly_machine_id}`
+        : `Reused active gh-datapipe capture ${capture.datapipe_job_id}`,
       data: capture,
     };
   }

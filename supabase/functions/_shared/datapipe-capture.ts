@@ -19,6 +19,7 @@ interface DbResult<T> {
 }
 
 export interface DatapipeDb {
+  rpc(fn: string, args: Record<string, unknown>): PromiseLike<DbResult<unknown>>;
   from(table: string): {
     insert(row: Record<string, unknown>): {
       select(columns: string): { single(): PromiseLike<DbResult<{ id: string }>> };
@@ -35,29 +36,6 @@ export interface DatapipeDb {
   };
 }
 
-/** The query shape findRecentCapture uses, kept apart so the overloads stay simple. */
-export interface CaptureLookupDb {
-  from(table: string): {
-    select(columns: string): {
-      eq(column: string, value: string): {
-        in(column: string, values: string[]): {
-          gte(column: string, value: string): {
-            order(column: string, options: { ascending: boolean }): {
-              limit(n: number): PromiseLike<DbResult<RecentCaptureRow[]>>;
-            };
-          };
-        };
-      };
-    };
-  };
-}
-
-export interface RecentCaptureRow {
-  id: string;
-  fly_machine_id: string | null;
-  params: { repository?: string; days?: number; sources?: string[] } | null;
-}
-
 /** GitHub owner and repository names: letters, digits, '-', '_', '.'. */
 const GITHUB_NAME = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
 
@@ -67,13 +45,28 @@ export function isValidRepositoryName(fullName: string): boolean {
 }
 
 /**
- * A capture that is already queued or running for the same repository within
- * this window is reused instead of starting another machine. Public callers
- * (a page load, the sync button) can otherwise start one Fly machine per
- * request; the datapipe syncs the whole window anyway, so a second machine
- * inside ten minutes would only repeat the first.
+ * Whether a capture needs a new machine is decided in Postgres by
+ * `datapipe_claim_capture()` (migration 20261020000000): it serialises
+ * callers per repository with an advisory lock, reuses a queued (< 20 min) or
+ * running (< 3 h) capture that already covers the requested sources and
+ * window, and refuses to start more than `CAPTURE_MAX_ACTIVE` capture
+ * machines at once. These constants mirror the function for callers and
+ * tests; the SQL is the source of truth.
  */
-export const CAPTURE_DEDUPE_MINUTES = 10;
+export const CAPTURE_QUEUED_WINDOW_MINUTES = 20;
+export const CAPTURE_RUNNING_WINDOW_HOURS = 3;
+export const CAPTURE_MAX_ACTIVE = 2;
+
+/** Message prefix datapipe_claim_capture raises when the cap is hit. */
+export const CAPTURE_CAPACITY_MESSAGE = 'capture_capacity_reached';
+
+/** Thrown by startCapture with the HTTP status the edge function should answer with. */
+export class CaptureError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'CaptureError';
+  }
+}
 
 /** Event name -> unified_workspace_backfill.py --sources */
 export const CAPTURE_SOURCES: Record<string, string[]> = {
@@ -114,7 +107,8 @@ export interface CapturePayload {
 /** Object-literal type (not an interface) so it is assignable to Record<string, unknown>. */
 export type CaptureResult = {
   datapipe_job_id: string;
-  fly_machine_id: string;
+  /** null while a reused capture has not had its machine created yet */
+  fly_machine_id: string | null;
   repository: string;
   sources: string[];
   days: number;
@@ -124,27 +118,53 @@ export function isCaptureEvent(eventName: string): boolean {
   return eventName in CAPTURE_SOURCES;
 }
 
-export async function findRecentCapture(
-  supabase: CaptureLookupDb,
+interface CaptureClaim {
+  job_id: string;
+  reused: boolean;
+  fly_machine_id: string | null;
+  days: number;
+}
+
+function isCaptureClaim(value: unknown): value is CaptureClaim {
+  if (typeof value !== 'object' || value === null) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.job_id === 'string' &&
+    typeof row.reused === 'boolean' &&
+    (row.fly_machine_id === null || typeof row.fly_machine_id === 'string') &&
+    typeof row.days === 'number'
+  );
+}
+
+/**
+ * Ask Postgres for the capture job to use: an active one to reuse, or a fresh
+ * queued row this caller must start a machine for. Throws CaptureError(429)
+ * when the concurrency cap is reached.
+ */
+export async function claimCapture(
+  supabase: DatapipeDb,
   repository: string,
   sources: string[],
-): Promise<RecentCaptureRow | null> {
-  const since = new Date(Date.now() - CAPTURE_DEDUPE_MINUTES * 60 * 1000).toISOString();
-  const { data } = await supabase
-    .from('datapipe_jobs')
-    .select('id, fly_machine_id, params')
-    .eq('type', 'capture')
-    .in('status', ['queued', 'running'])
-    .gte('created_at', since)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  const wanted = new Set(sources);
-  for (const row of data ?? []) {
-    if (row.params?.repository !== repository) continue;
-    const covered = (row.params?.sources ?? []).filter((s) => wanted.has(s));
-    if (covered.length === wanted.size) return row;
+  days: number,
+  params: Record<string, unknown>,
+): Promise<CaptureClaim> {
+  const { data, error } = await supabase.rpc('datapipe_claim_capture', {
+    p_repository: repository,
+    p_sources: sources,
+    p_days: days,
+    p_params: params,
+  });
+  if (error) {
+    if (error.message.includes(CAPTURE_CAPACITY_MESSAGE)) {
+      throw new CaptureError(429, error.message);
+    }
+    throw new Error(`datapipe_claim_capture failed: ${error.message}`);
   }
-  return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!isCaptureClaim(row)) {
+    throw new Error('datapipe_claim_capture returned no job');
+  }
+  return row;
 }
 
 export function backfillCommand(
@@ -264,7 +284,7 @@ export async function resolveRepository(
  * failed if the machine could not be created.
  */
 export async function startCapture(
-  supabase: DatapipeDb & CaptureLookupDb,
+  supabase: DatapipeDb,
   eventName: string,
   payload: CapturePayload,
 ): Promise<CaptureResult> {
@@ -282,41 +302,27 @@ export async function startCapture(
   const days = await daysCoveringSelectors(supabase, repository, payload, daysFromPayload(payload));
   const selectors = selectedNumbers(payload);
 
-  const recent = await findRecentCapture(supabase, repository, sources);
-  if (recent?.fly_machine_id && (recent.params?.days ?? 0) >= days) {
-    console.log(
-      'capture for %s reuses job %s started within %d min',
-      repository,
-      recent.id,
-      CAPTURE_DEDUPE_MINUTES,
-    );
+  const params = {
+    repository,
+    days,
+    sources,
+    config: 'production',
+    reason: eventName,
+    ...(selectors.prs.length > 0 ? { pr_numbers: selectors.prs } : {}),
+    ...(selectors.issues.length > 0 ? { issue_numbers: selectors.issues } : {}),
+  };
+  const claim = await claimCapture(supabase, repository, sources, days, params);
+  if (claim.reused) {
+    console.log('capture for %s reuses active job %s', repository, claim.job_id);
     return {
-      datapipe_job_id: recent.id,
-      fly_machine_id: recent.fly_machine_id,
+      datapipe_job_id: claim.job_id,
+      fly_machine_id: claim.fly_machine_id,
       repository,
       sources,
-      days: recent.params?.days ?? days,
+      days: claim.days,
     };
   }
-
-  const { data: job, error } = await supabase
-    .from('datapipe_jobs')
-    .insert({
-      type: 'capture',
-      status: 'queued',
-      params: {
-        repository,
-        days,
-        sources,
-        config: 'production',
-        reason: eventName,
-        ...(selectors.prs.length > 0 ? { pr_numbers: selectors.prs } : {}),
-        ...(selectors.issues.length > 0 ? { issue_numbers: selectors.issues } : {}),
-      },
-    })
-    .select('id')
-    .single();
-  if (error || !job) throw new Error(`Failed to create datapipe job: ${error?.message}`);
+  const job = { id: claim.job_id };
 
   try {
     const machine = await createMachine({
