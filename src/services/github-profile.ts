@@ -34,8 +34,8 @@ export async function fetchGitHubUserProfile(username: string): Promise<GitHubUs
     } = await supabase.auth.getSession();
     const userToken = session?.provider_token;
 
-    // Use user's token if available, otherwise fall back to env token
-    const githubToken = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+    // Only a signed-in user's token is used in the browser (#1870)
+    const githubToken = userToken;
 
     const headers: HeadersInit = {
       Accept: 'application/vnd.github.v3+json',
@@ -97,8 +97,8 @@ export async function fetchGitHubUserProfileGraphQL(username: string): Promise<{
     } = await supabase.auth.getSession();
     const userToken = session?.provider_token;
 
-    // Use user's token if available, otherwise fall back to env token
-    const githubToken = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+    // Only a signed-in user's token is used in the browser (#1870)
+    const githubToken = userToken;
 
     if (!githubToken) {
       console.warn('No GitHub token available, falling back to REST API');

@@ -204,7 +204,10 @@ export async function fetchPRDataSmart(
           data: {
             repositoryId: repoData.id,
             repositoryName: `${repoData.owner}/${repoData.name}`,
-            days: 30,
+            // An empty repository needs the full window; a stale one only
+            // needs the days since the last sync, not a 30-day backfill on
+            // every page view (#1870).
+            days: isEmpty ? 30 : 7,
             priority: isEmpty ? 'high' : 'medium',
             reason: isEmpty ? 'smart-fetch-empty-repository' : 'smart-fetch-stale-data',
           },

@@ -75,8 +75,8 @@ export async function fetchGitHubProfileSocialLinks(username: string): Promise<S
     } = await supabase.auth.getSession();
     const userToken = session?.provider_token;
 
-    // Use user's token if available, otherwise fall back to env token
-    const githubToken = userToken || import.meta.env.VITE_GITHUB_TOKEN;
+    // Only a signed-in user's token is used in the browser (#1870)
+    const githubToken = userToken;
 
     console.log('GitHub token available:', !!githubToken);
     console.log('Using user token:', !!userToken);
