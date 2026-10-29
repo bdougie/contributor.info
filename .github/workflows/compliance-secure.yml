@@ -13,6 +13,9 @@ concurrency:
 # SECURITY NOTE: This workflow uses pull_request_target to access secrets for commenting
 # but checks out the PR code in a restricted environment without access to secrets
 
+permissions:
+  contents: read
+
 jobs:
   # Job 1: Checkout PR code safely and run checks without secrets
   code-checks:
@@ -29,7 +32,7 @@ jobs:
     steps:
       # SECURITY: Checkout PR code (untrusted) - no secrets available here
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           # IMPORTANT: We checkout the PR head, not the base
           ref: ${{ github.event.pull_request.head.sha }}
@@ -38,7 +41,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
           cache: 'npm'
@@ -167,7 +170,7 @@ jobs:
 
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: check-results
           path: check-results.json
@@ -186,17 +189,18 @@ jobs:
     steps:
       # SECURITY: Checkout base branch code (trusted) for commenting
       - name: Checkout base branch code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Download check results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           name: check-results
 
       - name: Parse results and comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -303,12 +307,13 @@ jobs:
     steps:
       # SECURITY: Checkout base branch for labeler config (trusted)
       - name: Checkout base branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Auto-label PR based on changes
-        uses: actions/labeler@v5
+        uses: actions/labeler@v5.0.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: .github/pr-labeler.yml
@@ -325,18 +330,18 @@ jobs:
     steps:
       # SECURITY: Checkout PR code for analysis (no secrets)
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v3.39.1
         with:
           languages: javascript
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v3.39.1
 # SECURITY NOTES:
 # 1. This workflow uses pull_request_target for accessing secrets to comment on PRs
 # 2. The PR code is checked out without access to secrets in the code-checks job

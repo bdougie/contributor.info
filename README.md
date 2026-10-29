@@ -7,6 +7,7 @@ A web application that visualizes GitHub repository contributors' information, p
 [![Contributors](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=contributors&style=flat)](https://contributor.info/bdougie/contributor.info)
 [![Pull Requests](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=pull-requests&style=flat)](https://contributor.info/bdougie/contributor.info)
 [![Merge Rate](https://contributor.info/api/widgets/badge?owner=bdougie&repo=contributor.info&type=merge-rate&style=flat)](https://contributor.info/bdougie/contributor.info)
+[![Plumber Score](https://score.getplumber.io/github.com/bdougie/contributor.info.svg)](https://score.getplumber.io/github.com/bdougie/contributor.info)
 
 
 _https://contributor.info/widgets_

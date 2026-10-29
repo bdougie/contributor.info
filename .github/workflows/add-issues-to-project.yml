@@ -5,8 +5,15 @@ on:
     types:
       - opened
 
+permissions:
+  contents: read
+
 jobs:
   add-to-project:
+    permissions:
+      contents: read
+      # Creates the needs-triage label and puts it on the issue.
+      issues: write
     name: Add issue to contributor.info project
     runs-on: ubuntu-latest
     steps:
@@ -20,7 +27,7 @@ jobs:
       
       # Then, add the needs-triage label
       - name: Add needs-triage label
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

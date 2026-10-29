@@ -33,7 +33,9 @@ jobs:
       matrix: ${{ steps.discover.outputs.matrix }}
       has-agents: ${{ steps.discover.outputs.has_agents }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Discover agents
         id: discover
@@ -62,10 +64,12 @@ jobs:
       matrix:
         agent: ${{ fromJson(needs.discover.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
 
@@ -81,7 +85,7 @@ jobs:
 
       - name: Create Check Run
         id: check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         env:
           AGENT_NAME: ${{ steps.agent-name.outputs.name }}
         with:
@@ -156,7 +160,7 @@ jobs:
 
       - name: Update Check Run
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         env:
           AGENT_OUTPUT: ${{ steps.run.outputs.output }}
           AGENT_ERROR: ${{ steps.run.outputs.error }}

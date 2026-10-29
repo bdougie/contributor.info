@@ -10,14 +10,19 @@ on:
     paths:
       - 'supabase/functions/**'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.7.0
+        with:
+          persist-credentials: false
       
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v1.5.2
         with:
           deno-version: v1.x
       
@@ -34,10 +39,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.7.0
+        with:
+          persist-credentials: false
       
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v1.5.2
         with:
           deno-version: v1.x
       
@@ -57,7 +64,7 @@ jobs:
           deno task coverage
       
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v3.1.6
         with:
           files: supabase/functions/coverage/lcov.info
           flags: edge-functions
@@ -65,10 +72,12 @@ jobs:
   type-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.7.0
+        with:
+          persist-credentials: false
       
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v1.5.2
         with:
           deno-version: v1.x
       

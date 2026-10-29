@@ -25,6 +25,9 @@ on:
 env:
   NODE_VERSION: '20'
 
+permissions:
+  contents: read
+
 jobs:
   recover-chunks:
     name: Recover Stuck Chunks
@@ -33,10 +36,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'

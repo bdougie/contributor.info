@@ -7,8 +7,15 @@ on:
       - 'scripts/migrations/*.js'
       - '.github/workflows/validate-migrations.yml'
 
+permissions:
+  contents: read
+
 jobs:
   validate:
+    permissions:
+      contents: read
+      # Comments the analysis on the pull request when validation fails.
+      pull-requests: write
     name: Validate Migration Compatibility
     runs-on: ubuntu-latest
 
@@ -28,10 +35,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
           cache: 'npm'
@@ -88,7 +97,7 @@ jobs:
 
       - name: Comment PR with results
         if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.1.0
         with:
           script: |
             const fs = require('fs');
@@ -157,7 +166,7 @@ jobs:
 
       - name: Upload analysis artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: migration-analysis
           path: |

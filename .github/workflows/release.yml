@@ -19,6 +19,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Create Release
@@ -33,13 +36,13 @@ jobs:
       tag: ${{ steps.release.outputs.tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
           cache: 'npm'
@@ -63,7 +66,7 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add tracked-repositories.txt tracked-repositories.json tracked-repositories-stats.json 2>/dev/null || true
             git commit -m "chore: update tracked repositories list [skip ci]" || echo "No changes to commit"
-            git push origin HEAD || echo "Push failed, possibly due to no changes"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }} || echo "Push failed, possibly due to no changes"
           fi
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -92,7 +95,7 @@ jobs:
 
       - name: Create Release
         id: release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v4.2.2
         with:
           semantic_version: 22.0.12
           extra_plugins: |

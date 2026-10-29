@@ -1,0 +1,35 @@
+# Plumber overlay: inherits every control from the CLI's built-in
+# baseline, only the differences for this repository are written here.
+# Run 'plumber config resolve' to see the full effective config.
+extends: plumber:default
+version: '2.0'
+
+github:
+  controls:
+    githubActionMustComeFromAuthorizedSources:
+      # Keep the curated default list and trust the actions this
+      # repository uses on top of it, all locked in actions.lock.
+      includePlumberDefaults: true
+      trustedGithubActions:
+        - Swatinem/rust-cache
+        - cycjimmy/semantic-release-action
+        - dtolnay/rust-toolchain
+        - superfly/flyctl-actions
+        - wagoid/commitlint-github-action
+
+    # The Rust toolchain action and the code review agent action install
+    # their tools through their own downloads, which the control flags
+    # as unverified fetches. Both are the standard way to run them,
+    # locked to their commits in actions.lock, so the check is off here.
+    actionsMustNotExecuteMutableRemoteCode:
+      enabled: false
+
+    # compliance-secure.yml checks out the pull request head on
+    # pull_request_target by design: the untrusted job references no
+    # secret and drops its checkout token, the trusted jobs check out
+    # the base branch. The control flags the pattern itself, so it is
+    # off here. The pattern GitHub documents for this need, checks on
+    # pull_request and a workflow_run job that comments, would let it
+    # come back on.
+    pullRequestTargetMustNotCheckoutHead:
+      enabled: false
