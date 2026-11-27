@@ -368,7 +368,9 @@ describe('Polar Webhook Handler', () => {
   describe('Subscription Update Handler', () => {
     it('should update subscription with correct fields', async () => {
       const mockUpdate = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        eq: vi.fn().mockReturnValue({
+          or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        }),
       });
 
       mockSupabase.from.mockReturnValue({
@@ -409,7 +411,9 @@ describe('Polar Webhook Handler', () => {
 
     it('should return 500 when update fails', async () => {
       const mockUpdate = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+        eq: vi.fn().mockReturnValue({
+          or: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+        }),
       });
 
       mockSupabase.from.mockReturnValue({
@@ -441,7 +445,9 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Cancellation Handler', () => {
     it('should mark subscription as canceled', async () => {
-      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockEq = vi.fn().mockReturnValue({
+        or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockSupabase.from.mockReturnValue({
@@ -480,7 +486,9 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Revocation Handler', () => {
     it('should downgrade to free tier immediately', async () => {
-      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockEq = vi.fn().mockReturnValue({
+        or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockSupabase.from.mockReturnValue({
