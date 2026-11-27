@@ -9,6 +9,11 @@ process.env.POLAR_PRODUCT_ID_PRO = 'prod_test_pro_123';
 process.env.POLAR_PRODUCT_ID_TEAM = 'prod_test_team_456';
 
 // Mock Supabase client
+// `subscription.created` first looks for an already-applied newer event; none here.
+const noExistingRow = {
+  select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+};
+
 const mockSupabase = {
   from: vi.fn(),
 };
@@ -219,7 +224,7 @@ describe('Polar Webhook Handler', () => {
 
     it('should successfully create subscription with all required fields', async () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
-      mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
       const payload = {
         type: 'subscription.created',
@@ -259,7 +264,7 @@ describe('Polar Webhook Handler', () => {
 
     it('should map pro tier correctly with proper limits', async () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
-      mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
       const payload = {
         type: 'subscription.created',
@@ -294,7 +299,7 @@ describe('Polar Webhook Handler', () => {
 
     it('should default to free tier for unknown product IDs', async () => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
-      mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -340,7 +345,7 @@ describe('Polar Webhook Handler', () => {
       const mockUpsert = vi
         .fn()
         .mockResolvedValue({ data: null, error: { message: 'Database error' } });
-      mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
       const payload = {
         type: 'subscription.created',
@@ -534,7 +539,7 @@ describe('Polar Webhook Handler', () => {
       'should map productId %s to tier %s with %d workspaces and %d repos',
       async (productId, expectedTier, expectedWorkspaces, expectedRepos) => {
         const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
-        mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+        mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
         const payload = {
           type: 'subscription.created',
@@ -574,7 +579,7 @@ describe('Polar Webhook Handler', () => {
       ['unknown', null],
     ])('should map recurringInterval %s to billing_cycle %s', async (interval, expected) => {
       const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
-      mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert, ...noExistingRow });
 
       const payload = {
         type: 'subscription.created',

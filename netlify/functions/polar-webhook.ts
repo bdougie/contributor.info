@@ -36,8 +36,7 @@ const supabase = createClient<Database>(
  * event cannot overwrite the result of a newer one.
  */
 function getEventTime(payload: WebhookPayload): string {
-  const raw = (payload as { timestamp?: unknown }).timestamp;
-  const parsed = raw ? new Date(raw as string | number | Date) : new Date();
+  const parsed = new Date(payload.timestamp);
   return (Number.isNaN(parsed.getTime()) ? new Date() : parsed).toISOString();
 }
 
@@ -306,6 +305,18 @@ export const handler: Handler = async (event) => {
           limits.max_repos_per_workspace
         );
 
+        // A replayed or late `subscription.created` must not undo a newer cancel/revoke/update.
+        const eventAt = getEventTime(payload);
+        const { data: existing } = await supabase
+          .from('subscriptions')
+          .select('last_event_at')
+          .eq('polar_subscription_id', subscription.id)
+          .maybeSingle();
+        if (existing?.last_event_at && new Date(existing.last_event_at) >= new Date(eventAt)) {
+          console.log('Ignoring stale subscription.created for %s', subscription.id);
+          return;
+        }
+
         // Database operation with error checking
         const { error } = await supabase.from('subscriptions').upsert(
           {
@@ -325,6 +336,7 @@ export const handler: Handler = async (event) => {
             current_period_start: subscription.currentPeriodStart,
             current_period_end: subscription.currentPeriodEnd,
             created_at: subscription.createdAt,
+            last_event_at: eventAt,
             updated_at: new Date().toISOString(),
           },
           {
@@ -469,6 +481,10 @@ export const handler: Handler = async (event) => {
             billing_cycle: billingCycle,
             current_period_start: subscription.currentPeriodStart,
             current_period_end: subscription.currentPeriodEnd,
+            // Keep a scheduled cancellation when this newer snapshot lands before the cancel event
+            ...(typeof subscription.cancelAtPeriodEnd === 'boolean' && {
+              cancel_at_period_end: subscription.cancelAtPeriodEnd,
+            }),
             last_event_at: eventAt,
             updated_at: new Date().toISOString(),
           })
