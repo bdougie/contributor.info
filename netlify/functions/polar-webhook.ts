@@ -32,6 +32,15 @@ const supabase = createClient<Database>(
 );
 
 /**
+ * Polar does not guarantee delivery order. Use the event time so a late, older
+ * event cannot overwrite the result of a newer one.
+ */
+function getEventTime(payload: WebhookPayload): string {
+  const parsed = new Date(payload.timestamp);
+  return (Number.isNaN(parsed.getTime()) ? new Date() : parsed).toISOString();
+}
+
+/**
  * Trigger workspace backfill for a user's workspaces when addon is purchased
  */
 async function triggerWorkspaceBackfill(
@@ -296,31 +305,44 @@ export const handler: Handler = async (event) => {
           limits.max_repos_per_workspace
         );
 
-        // Database operation with error checking
-        const { error } = await supabase.from('subscriptions').upsert(
-          {
-            user_id: userId,
-            polar_customer_id: subscription.customerId,
-            polar_subscription_id: subscription.id,
-            status: subscription.status as
-              | 'active'
-              | 'canceled'
-              | 'past_due'
-              | 'trialing'
-              | 'inactive',
-            tier,
-            max_workspaces: limits.max_workspaces,
-            max_repos_per_workspace: limits.max_repos_per_workspace,
-            billing_cycle: billingCycle,
-            current_period_start: subscription.currentPeriodStart,
-            current_period_end: subscription.currentPeriodEnd,
-            created_at: subscription.createdAt,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'user_id',
-          }
-        );
+        const eventAt = getEventTime(payload);
+        const values = {
+          user_id: userId,
+          polar_customer_id: subscription.customerId,
+          polar_subscription_id: subscription.id,
+          status: subscription.status as
+            | 'active'
+            | 'canceled'
+            | 'past_due'
+            | 'trialing'
+            | 'inactive',
+          tier,
+          max_workspaces: limits.max_workspaces,
+          max_repos_per_workspace: limits.max_repos_per_workspace,
+          billing_cycle: billingCycle,
+          current_period_start: subscription.currentPeriodStart,
+          current_period_end: subscription.currentPeriodEnd,
+          created_at: subscription.createdAt,
+          last_event_at: eventAt,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Insert without overwriting an existing row. Gate any update in the database
+        // so an intervening cancellation or revocation cannot be overwritten.
+        let { data: applied, error } = await supabase
+          .from('subscriptions')
+          .upsert(values, { onConflict: 'user_id', ignoreDuplicates: true })
+          .select('id')
+          .maybeSingle();
+        if (!error && !applied) {
+          ({ data: applied, error } = await supabase
+            .from('subscriptions')
+            .update(values)
+            .eq('user_id', userId)
+            .or('last_event_at.is.null,last_event_at.lt.' + eventAt)
+            .select('id')
+            .maybeSingle());
+        }
 
         // Check for errors
         if (error) {
@@ -331,6 +353,11 @@ export const handler: Handler = async (event) => {
             extra: { subscription_id: subscription.id, user_id: userId },
           });
           throw error; // Return error to Polar for retry
+        }
+
+        if (!applied) {
+          console.log('Ignoring stale subscription.created for %s', subscription.id);
+          return;
         }
 
         await trackServerEvent(
@@ -440,7 +467,10 @@ export const handler: Handler = async (event) => {
           billingCycle = 'monthly';
         }
 
-        // Update subscription status in database with error checking
+        const eventAt = getEventTime(payload);
+
+        // Update subscription status in database with error checking.
+        // Skipped when a newer event was already applied (out-of-order delivery).
         const { error: updateError } = await supabase
           .from('subscriptions')
           .update({
@@ -456,9 +486,15 @@ export const handler: Handler = async (event) => {
             billing_cycle: billingCycle,
             current_period_start: subscription.currentPeriodStart,
             current_period_end: subscription.currentPeriodEnd,
+            // Keep a scheduled cancellation when this newer snapshot lands before the cancel event
+            ...(typeof subscription.cancelAtPeriodEnd === 'boolean' && {
+              cancel_at_period_end: subscription.cancelAtPeriodEnd,
+            }),
+            last_event_at: eventAt,
             updated_at: new Date().toISOString(),
           })
-          .eq('polar_subscription_id', subscription.id);
+          .eq('polar_subscription_id', subscription.id)
+          .or(`last_event_at.is.null,last_event_at.lt.${eventAt}`);
 
         if (updateError) {
           console.error('❌ Failed to update subscription:', updateError);
@@ -496,15 +532,18 @@ export const handler: Handler = async (event) => {
         const subscription = payload.data;
         console.log('Subscription canceled:', subscription.id);
 
-        // Mark subscription as canceled
+        // Mark subscription as canceled (ignore events older than the last applied one)
+        const eventAt = getEventTime(payload);
         const { error } = await supabase
           .from('subscriptions')
           .update({
             status: 'canceled',
             cancel_at_period_end: true,
+            last_event_at: eventAt,
             updated_at: new Date().toISOString(),
           })
-          .eq('polar_subscription_id', subscription.id);
+          .eq('polar_subscription_id', subscription.id)
+          .or(`last_event_at.is.null,last_event_at.lt.${eventAt}`);
 
         if (error) {
           console.error('❌ Failed to cancel subscription:', error);
@@ -533,16 +572,19 @@ export const handler: Handler = async (event) => {
         const subscription = payload.data;
         console.log('Subscription revoked:', subscription.id);
 
-        // Immediately downgrade to free tier
+        // Immediately downgrade to free tier (ignore events older than the last applied one)
+        const eventAt = getEventTime(payload);
         const { error } = await supabase
           .from('subscriptions')
           .update({
-            status: 'inactive',
+            status: 'canceled',
             tier: 'free',
             cancel_at_period_end: false,
+            last_event_at: eventAt,
             updated_at: new Date().toISOString(),
           })
-          .eq('polar_subscription_id', subscription.id);
+          .eq('polar_subscription_id', subscription.id)
+          .or(`last_event_at.is.null,last_event_at.lt.${eventAt}`);
 
         if (error) {
           console.error('❌ Failed to revoke subscription:', error);

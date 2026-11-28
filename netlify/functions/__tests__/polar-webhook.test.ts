@@ -8,7 +8,11 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
 process.env.POLAR_PRODUCT_ID_PRO = 'prod_test_pro_123';
 process.env.POLAR_PRODUCT_ID_TEAM = 'prod_test_team_456';
 
-// Mock Supabase client
+// Fake the row returned by a successful insert or the provider's insert error.
+const insertResult = (error: { message: string } | null = null) => ({
+  select: () => ({ maybeSingle: async () => ({ data: error ? null : { id: 'row-id' }, error }) }),
+});
+
 const mockSupabase = {
   from: vi.fn(),
 };
@@ -218,7 +222,7 @@ describe('Polar Webhook Handler', () => {
     });
 
     it('should successfully create subscription with all required fields', async () => {
-      const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpsert = vi.fn().mockReturnValue(insertResult());
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
       const payload = {
@@ -253,12 +257,12 @@ describe('Polar Webhook Handler', () => {
           max_repos_per_workspace: 3,
           billing_cycle: 'monthly',
         }),
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id', ignoreDuplicates: true }
       );
     });
 
     it('should map pro tier correctly with proper limits', async () => {
-      const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpsert = vi.fn().mockReturnValue(insertResult());
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
       const payload = {
@@ -288,12 +292,12 @@ describe('Polar Webhook Handler', () => {
           billing_cycle: 'yearly',
           status: 'trialing',
         }),
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id', ignoreDuplicates: true }
       );
     });
 
     it('should default to free tier for unknown product IDs', async () => {
-      const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpsert = vi.fn().mockReturnValue(insertResult());
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -330,7 +334,7 @@ describe('Polar Webhook Handler', () => {
           max_workspaces: 0,
           max_repos_per_workspace: 0,
         }),
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id', ignoreDuplicates: true }
       );
 
       consoleErrorSpy.mockRestore();
@@ -339,7 +343,7 @@ describe('Polar Webhook Handler', () => {
     it('should return 500 when database upsert fails', async () => {
       const mockUpsert = vi
         .fn()
-        .mockResolvedValue({ data: null, error: { message: 'Database error' } });
+        .mockReturnValue(insertResult({ message: 'Database error' }));
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
       const payload = {
@@ -368,7 +372,9 @@ describe('Polar Webhook Handler', () => {
   describe('Subscription Update Handler', () => {
     it('should update subscription with correct fields', async () => {
       const mockUpdate = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        eq: vi.fn().mockReturnValue({
+          or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+        }),
       });
 
       mockSupabase.from.mockReturnValue({
@@ -409,7 +415,9 @@ describe('Polar Webhook Handler', () => {
 
     it('should return 500 when update fails', async () => {
       const mockUpdate = vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+        eq: vi.fn().mockReturnValue({
+          or: vi.fn().mockResolvedValue({ data: null, error: { message: 'Update failed' } }),
+        }),
       });
 
       mockSupabase.from.mockReturnValue({
@@ -441,7 +449,9 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Cancellation Handler', () => {
     it('should mark subscription as canceled', async () => {
-      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockEq = vi.fn().mockReturnValue({
+        or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockSupabase.from.mockReturnValue({
@@ -480,7 +490,9 @@ describe('Polar Webhook Handler', () => {
 
   describe('Subscription Revocation Handler', () => {
     it('should downgrade to free tier immediately', async () => {
-      const mockEq = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockEq = vi.fn().mockReturnValue({
+        or: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      });
       const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
       mockSupabase.from.mockReturnValue({
@@ -509,7 +521,7 @@ describe('Polar Webhook Handler', () => {
       expect(response.statusCode).toBe(200);
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'inactive',
+          status: 'canceled',
           tier: 'free',
           cancel_at_period_end: false,
         })
@@ -525,7 +537,7 @@ describe('Polar Webhook Handler', () => {
     ])(
       'should map productId %s to tier %s with %d workspaces and %d repos',
       async (productId, expectedTier, expectedWorkspaces, expectedRepos) => {
-        const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
+        const mockUpsert = vi.fn().mockReturnValue(insertResult());
         mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
         const payload = {
@@ -553,7 +565,7 @@ describe('Polar Webhook Handler', () => {
             max_workspaces: expectedWorkspaces,
             max_repos_per_workspace: expectedRepos,
           }),
-          { onConflict: 'user_id' }
+          { onConflict: 'user_id', ignoreDuplicates: true }
         );
       }
     );
@@ -565,7 +577,7 @@ describe('Polar Webhook Handler', () => {
       ['month', 'monthly'],
       ['unknown', null],
     ])('should map recurringInterval %s to billing_cycle %s', async (interval, expected) => {
-      const mockUpsert = vi.fn().mockResolvedValue({ data: {}, error: null });
+      const mockUpsert = vi.fn().mockReturnValue(insertResult());
       mockSupabase.from.mockReturnValue({ upsert: mockUpsert });
 
       const payload = {
@@ -591,7 +603,7 @@ describe('Polar Webhook Handler', () => {
         expect.objectContaining({
           billing_cycle: expected,
         }),
-        { onConflict: 'user_id' }
+        { onConflict: 'user_id', ignoreDuplicates: true }
       );
     });
   });

@@ -5252,6 +5252,7 @@ export type Database = {
           max_workspaces: number | null;
           polar_customer_id: string | null;
           polar_subscription_id: string | null;
+          last_event_at: string | null;
           status: string;
           stripe_customer_id: string | null;
           stripe_price_id: string | null;
@@ -5274,6 +5275,7 @@ export type Database = {
           max_workspaces?: number | null;
           polar_customer_id?: string | null;
           polar_subscription_id?: string | null;
+          last_event_at?: string | null;
           status?: string;
           stripe_customer_id?: string | null;
           stripe_price_id?: string | null;
@@ -5296,6 +5298,7 @@ export type Database = {
           max_workspaces?: number | null;
           polar_customer_id?: string | null;
           polar_subscription_id?: string | null;
+          last_event_at?: string | null;
           status?: string;
           stripe_customer_id?: string | null;
           stripe_price_id?: string | null;
