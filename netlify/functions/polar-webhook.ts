@@ -305,44 +305,44 @@ export const handler: Handler = async (event) => {
           limits.max_repos_per_workspace
         );
 
-        // A replayed or late `subscription.created` must not undo a newer cancel/revoke/update.
         const eventAt = getEventTime(payload);
-        const { data: existing } = await supabase
-          .from('subscriptions')
-          .select('last_event_at')
-          .eq('polar_subscription_id', subscription.id)
-          .maybeSingle();
-        if (existing?.last_event_at && new Date(existing.last_event_at) >= new Date(eventAt)) {
-          console.log('Ignoring stale subscription.created for %s', subscription.id);
-          return;
-        }
+        const values = {
+          user_id: userId,
+          polar_customer_id: subscription.customerId,
+          polar_subscription_id: subscription.id,
+          status: subscription.status as
+            | 'active'
+            | 'canceled'
+            | 'past_due'
+            | 'trialing'
+            | 'inactive',
+          tier,
+          max_workspaces: limits.max_workspaces,
+          max_repos_per_workspace: limits.max_repos_per_workspace,
+          billing_cycle: billingCycle,
+          current_period_start: subscription.currentPeriodStart,
+          current_period_end: subscription.currentPeriodEnd,
+          created_at: subscription.createdAt,
+          last_event_at: eventAt,
+          updated_at: new Date().toISOString(),
+        };
 
-        // Database operation with error checking
-        const { error } = await supabase.from('subscriptions').upsert(
-          {
-            user_id: userId,
-            polar_customer_id: subscription.customerId,
-            polar_subscription_id: subscription.id,
-            status: subscription.status as
-              | 'active'
-              | 'canceled'
-              | 'past_due'
-              | 'trialing'
-              | 'inactive',
-            tier,
-            max_workspaces: limits.max_workspaces,
-            max_repos_per_workspace: limits.max_repos_per_workspace,
-            billing_cycle: billingCycle,
-            current_period_start: subscription.currentPeriodStart,
-            current_period_end: subscription.currentPeriodEnd,
-            created_at: subscription.createdAt,
-            last_event_at: eventAt,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'user_id',
-          }
-        );
+        // Insert without overwriting an existing row. Gate any update in the database
+        // so an intervening cancellation or revocation cannot be overwritten.
+        let { data: applied, error } = await supabase
+          .from('subscriptions')
+          .upsert(values, { onConflict: 'user_id', ignoreDuplicates: true })
+          .select('id')
+          .maybeSingle();
+        if (!error && !applied) {
+          ({ data: applied, error } = await supabase
+            .from('subscriptions')
+            .update(values)
+            .eq('user_id', userId)
+            .or('last_event_at.is.null,last_event_at.lt.' + eventAt)
+            .select('id')
+            .maybeSingle());
+        }
 
         // Check for errors
         if (error) {
@@ -353,6 +353,11 @@ export const handler: Handler = async (event) => {
             extra: { subscription_id: subscription.id, user_id: userId },
           });
           throw error; // Return error to Polar for retry
+        }
+
+        if (!applied) {
+          console.log('Ignoring stale subscription.created for %s', subscription.id);
+          return;
         }
 
         await trackServerEvent(
@@ -572,7 +577,7 @@ export const handler: Handler = async (event) => {
         const { error } = await supabase
           .from('subscriptions')
           .update({
-            status: 'inactive',
+            status: 'canceled',
             tier: 'free',
             cancel_at_period_end: false,
             last_event_at: eventAt,

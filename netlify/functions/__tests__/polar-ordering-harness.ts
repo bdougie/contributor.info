@@ -10,7 +10,7 @@ process.env.POLAR_PRODUCT_ID_TEAM = 'prod_test_team_456';
 // Minimal in-memory `subscriptions` table: .update/.select + .eq + .or('col.is.null,col.lt.value'),
 // plus .maybeSingle() and .upsert() (keyed by polar_subscription_id).
 type Row = Record<string, unknown>;
-export const table: { rows: Row[] } = { rows: [] };
+export const table: { rows: Row[]; beforeUpsert?: () => Promise<void> } = { rows: [] };
 export const mockValidateEvent = vi.fn();
 
 function makeQuery(update?: Row) {
@@ -30,7 +30,12 @@ function makeQuery(update?: Row) {
   const query: Record<string, unknown> = {
     eq: (col: string, v: unknown) => (eqs.push([col, v]), query),
     or: (expr: string) => ((orExpr = expr), query),
-    maybeSingle: async () => ({ data: table.rows.find(matches) ?? null, error: null }),
+    select: () => query,
+    maybeSingle: async () => {
+      const row = table.rows.find(matches);
+      if (row && update) Object.assign(row, update);
+      return { data: row ?? null, error: null };
+    },
     then(resolve: (v: unknown) => unknown) {
       if (update) table.rows.filter(matches).forEach((r) => Object.assign(r, update));
       return Promise.resolve({ data: {}, error: null }).then(resolve);
@@ -43,12 +48,19 @@ export const mockSupabase = {
   from: vi.fn(() => ({
     update: (values: Row) => makeQuery(values),
     select: () => makeQuery(),
-    upsert: async (values: Row) => {
-      const row = table.rows.find((r) => r.polar_subscription_id === values.polar_subscription_id);
-      if (row) Object.assign(row, values);
-      else table.rows.push({ ...values });
-      return { data: {}, error: null };
-    },
+    upsert: (values: Row) => ({
+      select: () => ({
+        maybeSingle: async () => {
+          await table.beforeUpsert?.();
+          if (table.rows.some((row) => row.user_id === values.user_id)) {
+            return { data: null, error: null };
+          }
+          const row = { ...values };
+          table.rows.push(row);
+          return { data: row, error: null };
+        },
+      }),
+    }),
   })),
 };
 

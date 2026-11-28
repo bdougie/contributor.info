@@ -39,8 +39,11 @@ describe('Polar webhook: out-of-order delivery', () => {
     await send('subscription.revoked', 'canceled', '2025-10-20T10:00:02Z');
     await send('subscription.updated', 'active', '2025-10-20T10:00:01Z');
 
-    expect(table.rows[0].status).toBe('inactive');
-    expect(table.rows[0].tier).toBe('free');
+    expect(table.rows[0]).toMatchObject({
+      status: 'canceled',
+      tier: 'free',
+      cancel_at_period_end: false,
+    });
   });
 
   it('still applies events delivered in order', async () => {

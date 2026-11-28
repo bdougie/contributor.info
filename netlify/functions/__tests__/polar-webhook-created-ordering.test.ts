@@ -21,6 +21,7 @@ describe('Polar webhook: subscription.created ordering', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     table.rows = [];
+    table.beforeUpsert = undefined;
     vi.resetModules();
     handler = (await import('../polar-webhook')).handler;
   });
@@ -38,5 +39,30 @@ describe('Polar webhook: subscription.created ordering', () => {
     await send('subscription.created', 'active', '2025-10-20T10:00:00Z');
 
     expect(table.rows[0].status).toBe('canceled');
+  });
+
+  it('applies a newer creation to an existing row', async () => {
+    await send('subscription.created', 'active', '2025-10-20T10:00:00Z');
+    await send('subscription.created', 'trialing', '2025-10-20T10:00:01Z');
+
+    expect(table.rows).toHaveLength(1);
+    expect(table.rows[0]).toMatchObject({
+      status: 'trialing',
+      last_event_at: '2025-10-20T10:00:01.000Z',
+    });
+  });
+
+  it('preserves a cancellation committed immediately before a replay writes', async () => {
+    await send('subscription.created', 'active', '2025-10-20T10:00:00Z');
+
+    table.beforeUpsert = async () => {
+      await send('subscription.canceled', 'canceled', '2025-10-20T10:00:02Z');
+    };
+    await send('subscription.created', 'active', '2025-10-20T10:00:01Z');
+
+    expect(table.rows[0]).toMatchObject({
+      status: 'canceled',
+      last_event_at: '2025-10-20T10:00:02.000Z',
+    });
   });
 });
